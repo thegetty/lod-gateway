@@ -12,7 +12,7 @@ from cromulent.model import factory, \
 
 # Define Person Entity
 
-p = Person("Van Gogh");
+p = Person("Van Gogh")
 p.identified_by  = []
 p.classified_as  = []
 p.referred_to_by = []
@@ -24,34 +24,34 @@ p._label = "Vincent van Gogh"
 
 # Define Object Entity
 
-o = Object("Irises");
+o = Object("Irises")
 o.classified_as  = []
 o.identified_by  = []
 o.referred_to_by = []
-o.produced_by    = [];
+o.produced_by    = []
 
 # Set Object URI
-o.id = "https://data.getty.edu/museum/collection/object/826";
+o.id = "https://data.getty.edu/museum/collection/object/826"
 
 # Set Artist/Maker Relationship(s)
-o.produced_by.append(p);
+o.produced_by.append(p)
 
 # Artwork
-t = Type();
+t = Type()
 t.id = "http://vocab.getty.edu/aat/300133025"
 t._label = "Artwork"
-o.classified_as.append(t);
+o.classified_as.append(t)
 
 # Painting
-t = Type();
+t = Type()
 t.id = "http://vocab.getty.edu/aat/300033618"
 t._label = "Painting"
-o.classified_as.append(t);
+o.classified_as.append(t)
 
 # Set Accession Number
-i = Identifier();
+i = Identifier()
 i.id = "https://data.getty,edu/museum/collection/identifier/1"
-i.content = "90.PA.20";
+i.content = "90.PA.20"
 i._label = "Accession Number"
 i.classified_as = []
 
@@ -81,11 +81,11 @@ n.content = "IRISES"
 o.identified_by.append(n)
 
 # Add Object Dimensions
-o.dimension = [];
+o.dimension = []
 
 # Add Object Width
 d = Dimension()
-d.value = "29 1/4";
+d.value = "29 1/4"
 m = MeasurementUnit()
 m.id = "http://vocab.getty.edu/aat/300379100"
 m._label = "inches"
@@ -168,9 +168,9 @@ l.classified_as.append(t)
 o.referred_to_by.append(l)
 
 # Serialize Object to JSON-LD representation
-print("");
-print("Object Representation");
-print("#####################");
+print("")
+print("Object Representation")
+print("#####################")
 print(factory.toString(o, compact=False))
 
 # NOTE To prevent all of the Person data being emitted as part of the related Object,
@@ -193,7 +193,7 @@ p.identified_by.append(n)
 
 # Add Person ULAN ID (if available)
 p.exact_match = []
-t = Type();
+t = Type()
 t.id = "http://vocab.getty.edu/ulan/500115588-agent"
 t._label = "Vincent van Gogh"
 p.exact_match.append(t)
@@ -225,7 +225,7 @@ b.took_place_at = []
 b.took_place_at.append(pl)
 p.born = b
 
-# print(dir(b));
+# print(dir(b))
 
 # Add Person Death Date (Died 1899 in Auvers-sur-Oise, France)
 d = Death()
@@ -268,7 +268,7 @@ p.died = d
 t1 = Type()
 t1.id = "http://vocab.getty.edu/aat/300111175"
 t1._label = "Dutch"
-t1.classified_as = [];
+t1.classified_as = []
 t2 = Type()
 t2.id = "http://vocab.getty.edu/aat/300379842"
 t2._label = "Nationality"
@@ -287,7 +287,7 @@ l.classified_as.append(t)
 p.referred_to_by.append(l)
 
 # Serialize Person to JSON-LD representation
-print("");
-print("Person Representation");
-print("#####################");
+print("")
+print("Person Representation")
+print("#####################")
 print(factory.toString(p, compact=False))

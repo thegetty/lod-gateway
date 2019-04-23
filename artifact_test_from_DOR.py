@@ -9,10 +9,10 @@ from cromulent.model import factory, \
 	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan
 
 import json
-from DOR_data_access import DORDataAccess
+from DOR_data_access import DORDataAccessArtifact
 
 # Get record 826 as a test of DORDataAcces function
-da = DORDataAccess()
+da = DORDataAccessArtifact()
 
 raw_data = da.get_data(826)
 

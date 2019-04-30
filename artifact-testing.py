@@ -6,12 +6,24 @@ from cromulent.model import factory, \
 	Activity, Group, Name, MonetaryAmount, PropertyInterest, \
 	Destruction, AttributeAssignment, BaseResource, PhysicalObject, \
 	Acquisition, ManMadeFeature, VisualItem, Set, \
-	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan
+	PropositionalObject, PropositionalObject as Exhibition, Payment, Creation, Phase, Birth, Death, TimeSpan, Production
+
+import json
+
+#j = {}
+#j["@context"] = "https://linked.art/ns/v1/linked-art.json"
+#j["id"] = "https://linked.art/example/object/46"
+#j["identified_by"] = []
+
+#print(json.dumps(j, indent=2))
 
 # TODO clarify how we add an ordering to the alternatite titles and other data attributes where ordering is important
 
 # Define Person Entity
 p = Person("Van Gogh")
+
+# print(dir(p));
+
 p.identified_by  = []
 p.classified_as  = []
 p.referred_to_by = []
@@ -35,16 +47,21 @@ o.id = "https://data.getty.edu/museum/collection/object/826/"
 o._label = "Irises"
 
 # Set Object Artist/Maker Relationship(s)
-o.produced_by.append(p)
+a = Production()
+a.id = "https://data.getty.edu/museum/collection/object/826/activity/produced-by/377/"
+a._label = "Production of Artwork"
+a.carried_out_by = []
+a.carried_out_by.append(p)
+o.produced_by.append(a)
 
 # Set Object Artwork Classification
-t = Type();
+t = Type()
 t.id = "http://vocab.getty.edu/aat/300133025/"
 t._label = "Artwork"
 o.classified_as.append(t)
 
 # Set Object Painting Classification
-t = Type();
+t = Type()
 t.id = "http://vocab.getty.edu/aat/300033618/"
 t._label = "Painting"
 o.classified_as.append(t)
@@ -206,6 +223,104 @@ l.classified_as.append(t)
 l.format = "text/html"
 o.subject_of.append(l)
 
+# Add Current Location
+o.current_location = []
+pl = Place()
+pl.id = "https://data.getty.edu/museum/collection/place/279/getty-center-west-pavilion-gallery-204/"
+pl._label = "Getty Center, Museum West Pavilion, Gallery W204"
+
+n = Name()
+n.id = "https://data.getty.edu/museum/collection/place/279/getty-center-west-pavilion-gallery-204/name/"
+n.content = "Getty Center, Museum West Pavilion, Gallery W204"
+
+pl.identified_by = []
+pl.identified_by.append(n)
+o.current_location.append(pl)
+
+# Add Ownership
+o.current_owner = []
+g = Group()
+g.id = "http://vocab.getty.edu/ulan/500115988/"
+g._label = "J. Paul Getty Museum, Los Angeles, California"
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300312281/"
+t._label = "Museum"
+g.classified_as = []
+g.classified_as.append(t)
+
+a = Acquisition()
+a.id = "https://data.getty.edu/museum/collection/object/826/activity/acquisition/"
+a._label = "Acquisition"
+g.acquired_title_through = []
+g.acquired_title_through.append(a)
+
+o.current_owner.append(g)
+
+# Add Previous Ownership (Provenance)
+
+# Add Exhibition History
+e = Exhibition()
+e.id = "https://data.getty.edu/museum/collection/exhibition/999/"
+e._label = "Salon des Indépendants"
+
+e.identified_by = []
+e.classified_as = []
+e.about         = []
+e.motivated     = []
+e.created_by    = []
+
+i = Identifier()
+i.id = "https://data.getty.edu/museum/collection/exhibition/999/identifier/1/"
+i._label = ""
+e.identified_by.append(i)
+
+n = Name()
+n.id = "https://data.getty.edu/museum/collection/exhibition/999/name/"
+n.content = "Salon des Indépendants"
+e.identified_by.append(n)
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300417531/"
+t._label = "Exhibition"
+e.classified_as.append(t)
+
+c = Creation()
+c.id = "https://data.getty.edu/museum/collection/exhibition/999/creation/"
+c._label = "Creation"
+c.carried_out_by = []
+
+cp = Person()
+cp.id = "https://data.getty.edu/museum/collection/person/x/"
+cp._label = "Curator"
+c.carried_out_by.append(cp)
+
+e.created_by.append(c)
+
+a = Activity()
+a.id = "https://data.getty.edu/museum/collection/exhibition/999/activity/"
+a._label = "Salon des Indépendants"
+
+# a.classified_as = []
+# a.classified_as.append()
+# a.took_place_at = []
+# a.took_place_at.append()
+
+a.timespan = TimeSpan()
+a.timespan.id = "https://data.getty.edu/museum/collection/exhibition/999/time-span/"
+a.timespan.begin_of_the_begin = ""
+a.timespan.end_of_the_end     = ""
+a.carried_out_by = []
+g = Group()
+g.id = "https://data.getty.edu/museum/collection/group/x/"
+g._label = "X"
+g.classified_as = []
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300312281"
+t._label = "Museum"
+g.classified_as.append(t)
+a.carried_out_by.append(g)
+
 # Serialize Object to JSON-LD representation
 print("")
 print("Object Representation")
@@ -221,7 +336,7 @@ print(factory.toString(o, compact=False))
 
 # Add Person Primary Name
 n = Name()
-n.id = "https://data.getty.edu/museum/collection/person/377/name/"
+n.id = "https://data.getty.edu/museum/collection/person/377/name/1/"
 n.content = "Vincent van Gogh"
 t = Type()
 t.id = "http://vocab.getty.edu/aat/300404670/"
@@ -232,7 +347,7 @@ p.identified_by.append(n)
 
 # Add Person ULAN ID (if available)
 p.exact_match = []
-t = Type();
+t = Type()
 t.id = "http://vocab.getty.edu/ulan/500115588-agent/"
 t._label = "Vincent van Gogh"
 p.exact_match.append(t)
@@ -316,7 +431,7 @@ p.classified_as.append(t1)
 
 # Add Person Biography
 l = LinguisticObject()
-l.id = ""
+l.id = "https://data.getty.edu/museum/collection/person/377/biography/"
 l.content = "<p>Art was Van Gogh's means of personal, spiritual redemption, and his voluminous letters to his devoted brother Theo, offer profound insight into the artistic struggle.</p><p>Van Gogh became an artist in 1881. Although he studied briefly in Antwerp and Paris, he was largely self-taught. He ultimately chose to live in the country, and most of his paintings capture his deep affinity for nature. Theo, an art dealer, introduced Vincent to Paris's most advanced painters, and his work changed under the influences of Edgar Degas, Paul Gauguin, Georges Seurat, and Henri de Toulouse-Lautrec. The flatness of color and shape in Japanese <term>woodcuts</term> also inspired him.</p><p>Van Gogh's color expressed his emotions as he responded to the world. His insistence on color's expressive possibilities led him to develop a corresponding expressiveness in applying <term>pigment</term>. His brushstrokes of thick, opaque paint almost seem drawn. His often violently interacting colors and forms and strong expressive line influenced nearly every artistic movement that came after him: <term>Symbolism</term>, <term>Fauvism</term>, <term>Expressionism</term>, and beyond.</p>"
 l.classified_as = []
 t = Type()

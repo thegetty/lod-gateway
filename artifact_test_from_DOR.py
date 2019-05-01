@@ -21,7 +21,7 @@ r_code = raw_data[0]
 r_data = raw_data[1]
 data = json.loads(r_data)
 outstr = json.dumps(data, indent=2)
-PrintToFile("d:/11/826_DOR.json", outstr)
+PrintToFile("826_DOR.json", outstr)
 
 # Code below is the repetition of 'artifact-testing.py'. Will be modified as we proceed
 
@@ -230,7 +230,7 @@ print("#####################")
 print(factory.toString(o, compact=False))
 
 result = factory.toString(o, compact=False)
-PrintToFile("d:/11/826_Object.json", result)
+PrintToFile("826_Object.json", result)
 
 # NOTE To prevent all of the Person data being emitted as part of the related Object,
 # we need to define the Person with only its top-level ID, then wait until the Object
@@ -354,5 +354,5 @@ print(factory.toString(p, compact=False))
 
 
 result = factory.toString(p, compact=False)
-PrintToFile("d:/11/826_Person.json", result)
+PrintToFile("826_Person.json", result)
 

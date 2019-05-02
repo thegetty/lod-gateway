@@ -99,7 +99,7 @@ n.content = "IRISES"
 o.identified_by.append(n)
 
 # Add Object Dimensions
-o.Dimension = []
+o.dimension = []
 
 # Add Object Width
 d = Dimension()
@@ -114,7 +114,7 @@ t.id = "http://vocab.getty.edu/aat/300055647/"
 t._label = "Width"
 d.classified_as = []
 d.classified_as.append(t)
-o.Dimension.append(d)
+o.dimension.append(d)
 
 # Add Object Height
 d = Dimension()
@@ -129,7 +129,7 @@ t.id = "http://vocab.getty.edu/aat/300055644/"
 t._label = "Height"
 d.classified_as = []
 d.classified_as.append(t)
-o.Dimension.append(d)
+o.dimension.append(d)
 
 # Add Object Dimensions Statement
 l = LinguisticObject()

@@ -1,22 +1,33 @@
 import requests
 import json
 import config as cfg
+from abc import ABC, abstractmethod
 
 
-class DORDataAccess:
+class DORDataAccess(ABC):
     
     def __init__(self):
-        self.base_url = "https://atlas7.getty.edu/api/"
-                
-        self.access_code = cfg.dor_secret['code']
+        self.base_url = cfg.dor_config["base_url"]       
+        self.access_code = cfg.dor_config['code']
 
         self.headers = {
             "Authorization": "ApiKey getty.edu:" + self.access_code,
             "Accept":        "application/json;charset=UTF-8;"
         }
 
+        # Abstract methods
+        # Get all ids from the endpoint
+        @abstractmethod
+        def get_all_ids(self):
+            pass
 
-class DORDataAccessArtifact(DORDataAccess):
+        # Get data for spesific id
+        @abstractmethod
+        def get_data(self, id):
+            pass
+
+
+class DORDataAccessObject(DORDataAccess):
 
     def __init__(self):
         super().__init__()

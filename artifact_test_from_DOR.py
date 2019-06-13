@@ -9,13 +9,13 @@ from cromulent.model import factory, \
 	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan
 
 import json
-from DOR_data_access import DORDataAccessArtifact
+from DOR_data_access import DORDataAccessObject
 from utilities import PrintToFile
 
 # Function to print out the result JSON so it can be opened in the editor
 
 # Get record 826 as a test of DORDataAcces function
-da = DORDataAccessArtifact()
+da = DORDataAccessObject()
 raw_data = da.get_data(826)
 r_code = raw_data[0]
 r_data = raw_data[1]
@@ -99,7 +99,7 @@ n.content = "IRISES"
 o.identified_by.append(n)
 
 # Add Object Dimensions
-o.Dimension = []
+o.dimension = []
 
 # Add Object Width
 d = Dimension()
@@ -114,7 +114,7 @@ t.id = "http://vocab.getty.edu/aat/300055647/"
 t._label = "Width"
 d.classified_as = []
 d.classified_as.append(t)
-o.Dimension.append(d)
+o.dimension.append(d)
 
 # Add Object Height
 d = Dimension()
@@ -129,7 +129,7 @@ t.id = "http://vocab.getty.edu/aat/300055644/"
 t._label = "Height"
 d.classified_as = []
 d.classified_as.append(t)
-o.Dimension.append(d)
+o.dimension.append(d)
 
 # Add Object Dimensions Statement
 l = LinguisticObject()

@@ -1,0 +1,20 @@
+version: 2
+
+# define our test jobs
+jobs:
+    build:
+        machine: true
+        
+        environment:
+            TEST_RESULTS: /tmp/test-results
+        
+        steps:
+            # checkout the repository
+            - checkout
+            # create test results folder
+            - run: mkdir -p $TEST_RESULTS
+            - store_artifacts:
+                path: /tmp/test-results
+                destination: raw-test-results
+            - store_test_results:
+                path: /tmp/test-results

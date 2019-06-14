@@ -1,1 +1,2 @@
-dor_secret = {"code": ""}
+dor_config = {"code": "secret code goes here",
+              "base_url": "https://atlas7.getty.edu/api/"}

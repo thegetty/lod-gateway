@@ -28,9 +28,12 @@ class LAComponentType(Enum):
 # Abstract base class for all LA Model Components.
 class LABaseComponent(ABC):
     def __init__(self):
+        self.component_type  = None
         self.dor_data_access = None
-        self.component_type = None
-        self.id_list = None      
+        self.id_list         = None
+        self.base_uri        = "https://data.getty.edu/museum/collection"
+        self.base_uri_object = "https://data.getty.edu/museum/collection/object/"
+        self.base_uri_person = "https://data.getty.edu/museum/collection/person/"
 
     @abstractmethod
     def get_id_list(self):

@@ -11,7 +11,7 @@ def PrintToFile(fName, text):
 
 
 # String manipulation
-def FindBetween(s, first, last):
+def FindBetween(s, first, last):    
     try:
         start = s.index(first) + len(first)
         end = s.index(last, start)

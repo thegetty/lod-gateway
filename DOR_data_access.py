@@ -19,8 +19,8 @@ class DORDataAccess(ABC):
         r = requests.get(self.base_url + str(id), headers=self.headers)
         if (r.status_code == 200):
             return json.loads(r.text)
-        else:
-            raise Exception("Error accessing data. Status code: " + str(r.status_code))
+        #else:
+        #    raise Exception("Error accessing data. Status code: " + str(r.status_code))
 
     @abstractmethod
     def get_all_ids(self):

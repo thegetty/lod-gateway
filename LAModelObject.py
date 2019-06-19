@@ -24,10 +24,19 @@ class LAModelObject(LABaseComponent):
 		
 	def get_id_list(self):
 		#return [818, 819, 820, 821, 822, 823, 824, 825, 826, 827]
-		return [826]
+		#return [826]
+		result = []
+		for i in range(1, 100000):
+			result.append(i)
+		return result
 
 	def get_data(self, id):
 		data = self.dor_data_access.get_data(id)
+
+		#
+		print(id)
+		#
+
 		return data
 
 	def to_jsonld(self, data):
@@ -37,6 +46,7 @@ class LAModelObject(LABaseComponent):
 		# Set Object URI
 		str_id = str(data["id"])
 		o.id = self.base_uri_object + str_id
+		o._label = data["display_title"]
 		
 		# TODO Set Object Creation Date(s)
 
@@ -58,9 +68,10 @@ class LAModelObject(LABaseComponent):
 		a = Production()
 
 		for maker in data["display_makers"]:
-			a._label = "roduction of Artwork"
+			a._label = "Production of Artwork"
 			p = Person(maker["display_value"])			
 			p.id = self.base_uri_person + "activity/produced-by/" + str(maker["id"])
+			p._label = maker["display_value"]
 			a._label = "Production of Artwork"
 			a.carried_out_by = p
 			o.produced_by = a
@@ -114,31 +125,33 @@ class LAModelObject(LABaseComponent):
 		d = Dimension()
 		d.id = self.base_uri_object + str_id + "/dimension/1/"
 		dim = data["display_dimensions"]
-		dim = FindBetween(dim, "(", ")").replace('in.', '').strip().split('×')
-		d.value = dim[0].strip()
-		m = MeasurementUnit()
-		m.id = "http://vocab.getty.edu/aat/300379100/"
-		m._label = "inches"
-		d.unit = m
-		t = Type()
-		t.id = "http://vocab.getty.edu/aat/300055647/"
-		t._label = "Width"
-		d.classified_as = t
-		o.dimension = d
+		if (dim != None):
+			dim = FindBetween(dim, "(", ")").replace('in.', '').strip().split('×')
+			d.value = dim[0].strip()
+			m = MeasurementUnit()
+			m.id = "http://vocab.getty.edu/aat/300379100/"
+			m._label = "inches"
+			d.unit = m
+			t = Type()
+			t.id = "http://vocab.getty.edu/aat/300055647/"
+			t._label = "Width"
+			d.classified_as = t
+			o.dimension = d
 
 		# Add Object Height
-		d = Dimension()
-		d.id = self.base_uri_object + d.id + "dimension/2/"
-		d.value = dim[1].strip()
-		m = MeasurementUnit()
-		m.id = "http://vocab.getty.edu/aat/300379100/"
-		m._label = "inches"
-		d.unit = m
-		t = Type()
-		t.id = "http://vocab.getty.edu/aat/300055644/"
-		t._label = "Height"
-		d.classified_as = t
-		o.dimension = d
+		if ((dim != None) and len(dim) > 1):
+			d = Dimension()
+			d.id = self.base_uri_object + d.id + "dimension/2/"
+			d.value = dim[1].strip()
+			m = MeasurementUnit()
+			m.id = "http://vocab.getty.edu/aat/300379100/"
+			m._label = "inches"
+			d.unit = m
+			t = Type()
+			t.id = "http://vocab.getty.edu/aat/300055644/"
+			t._label = "Height"
+			d.classified_as = t
+			o.dimension = d
 
 		# Add Object Dimensions Statement
 		l = LinguisticObject()
@@ -225,15 +238,21 @@ class LAModelObject(LABaseComponent):
 		o.shows = v
 
 		# Add Object Main Image
-		v = VisualItem()
-		v.id = data["display_image"]["image_larger"]["resource_uri"]		
-		v._label = "Main Image"
-		t = Type()
-		t.id = "http://vocab.getty.edu/aat/300215302/"
-		t._label = "Digital Image"
-		v.classified_as = t
-		v.format = "image/jpeg"
-		o.representation = v
+		if data["display_image"] != None:
+			v = VisualItem()
+			if "image_larger" in data["display_image"]:		
+				v.id = data["display_image"]["image_larger"]["resource_uri"]
+			elif "image_enlarge" in data["display_image"]:			
+				v.id = data["display_image"]["image_enlarge"]["resource_uri"]
+			else:
+				v.id = data["display_image"]["image_thumbnail"]["resource_uri"]
+			v._label = "Main Image"
+			t = Type()
+			t.id = "http://vocab.getty.edu/aat/300215302/"
+			t._label = "Digital Image"
+			v.classified_as = t
+			v.format = "image/jpeg"
+			o.representation = v
 
 		# Add Object Home Page
 		l = LinguisticObject()

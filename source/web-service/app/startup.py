@@ -8,5 +8,6 @@ app = Flask(__name__)
 def welcome():
     return "Welcome to the Museum Linked Art Data Service!"
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int("5000"), debug=True)
+# if __name__ == "__main__":
+#    # make debug an environment variable
+#    app.run(host="0.0.0.0", port=int("5100"), debug=True)

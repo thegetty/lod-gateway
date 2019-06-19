@@ -11,6 +11,8 @@ from cromulent.model import factory, \
 import json
 import copy
 
+from utilities import PrintToFile
+
 #j = {}
 #j["@context"] = "https://linked.art/ns/v1/linked-art.json"
 #j["id"] = "https://linked.art/example/object/46"
@@ -537,6 +539,10 @@ print("Object Representation")
 print("#####################")
 print(factory.toString(o, compact=False))
 
+# added by V. to produce files
+result = factory.toString(o, compact=False)
+PrintToFile("826_Object.json", result)
+
 # NOTE To prevent all of the Person data being emitted as part of the related Object,
 # we need to define the Person with only its top-level ID, then wait until the Object
 # has been emitted before we add the rest of the detail to the Person. We can then emit
@@ -645,3 +651,7 @@ p.referred_to_by = l
 # print("Person Representation")
 # print("#####################")
 # print(factory.toString(p, compact=False))
+
+# added by V. to produce files
+result = factory.toString(p, compact=False)
+PrintToFile("826_Person.json", result)

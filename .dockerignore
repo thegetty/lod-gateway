@@ -1,0 +1,8 @@
+# Ignore Data
+data/*
+
+# Misc Files
+_*
+!__*__.*
+.*
+*.pyc

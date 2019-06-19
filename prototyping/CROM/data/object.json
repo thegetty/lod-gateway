@@ -1,0 +1,453 @@
+{
+  "@context": "https://linked.art/ns/v1/linked-art.json",
+  "id": "https://data.getty.edu/museum/collection/object/826/",
+  "type": "ManMadeObject",
+  "_label": "Irises",
+  "referred_to_by": [
+    {
+      "id": "http://rightsstatements.org/vocab/NoC-US/1.0/",
+      "type": "LinguisticObject",
+      "content": "No Copyright - United States",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300055547/",
+          "type": "Type",
+          "_label": "Rights Statement"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300418049/",
+          "type": "Type",
+          "_label": "Brief Text"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/dimension-statement/",
+      "type": "LinguisticObject",
+      "content": "74.3 \u00d7 94.3 cm (29 1/4 \u00d7 37 1/8 in.)",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300266036/",
+          "type": "Type",
+          "_label": "Dimension Statement"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300418049/",
+          "type": "Type",
+          "_label": "Brief Text"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/material-statement/",
+      "type": "LinguisticObject",
+      "content": "Oil on canvas",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300010358/",
+          "type": "Type",
+          "_label": "Material Statement"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300418049/",
+          "type": "Type",
+          "_label": "Brief Text"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/description/",
+      "type": "LinguisticObject",
+      "content": "<p>In May 1889, after episodes of self-mutilation and hospitalization, Vincent van Gogh chose to enter an asylum in Saint-R\u00e9my, France. There, in the last year before his death, he created almost 130 paintings. Within the first week, he began Irises, working from nature in the asylum's garden. The cropped composition, divided into broad areas of vivid color with monumental irises overflowing its borders, was probably influenced by the decorative patterning of Japanese woodblock prints.</p><p>There are no known drawings for this painting; Van Gogh himself considered it a study. His brother Theo quickly recognized its quality and submitted it to the Salon des Ind\u00e9pendants in September 1889, writing Vincent of the exhibition: \"[It] strikes the eye from afar. It is a beautiful study full of air and life.\"</p><p>Each one of Van Gogh's irises is unique. He carefully studied their movements and shapes to create a variety of curved silhouettes bounded by wavy, twisting, and curling lines. The painting's first owner, French art critic Octave Mirbeau, one of Van Gogh's earliest supporters, wrote: \"How well he has understood the exquisite nature of flowers!\"</p>",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300080091/",
+          "type": "Type",
+          "_label": "Description"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300418049/",
+          "type": "Type",
+          "_label": "Brief Text"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/culture/",
+      "type": "LinguisticObject",
+      "content": "Dutch",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300055768/",
+          "type": "Type",
+          "_label": "Culture"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300418049/",
+          "type": "Type",
+          "_label": "Brief Text"
+        }
+      ]
+    }
+  ],
+  "produced_by": {
+    "id": "https://data.getty.edu/museum/collection/object/826/activity/production/",
+    "type": "Production",
+    "_label": "Production of Artwork",
+    "timespan": {
+      "id": "https://data.getty.edu/museum/collection/object/826/activity/production/timespan/",
+      "type": "TimeSpan",
+      "identified_by": [
+        {
+          "id": "https://data.getty.edu/museum/collection/object/826/activity/production/timespan/name/",
+          "type": "Name",
+          "_label": "Date",
+          "content": "1889",
+          "classified_as": [
+            {
+              "id": "http://vocab.getty.edu/aat/300404439/",
+              "type": "Type",
+              "_label": "Dates (Spans of Time)"
+            }
+          ]
+        }
+      ],
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300404439/",
+          "type": "Type",
+          "_label": "Dates (Spans of Time)"
+        }
+      ],
+      "begin_of_the_begin": "1889-01-01",
+      "end_of_the_begin": "1889-01-01",
+      "begin_of_the_end": "1889-12-31",
+      "end_of_the_end": "1889-12-31"
+    },
+    "carried_out_by": [
+      {
+        "id": "https://data.getty.edu/museum/collection/person/377/",
+        "type": "Person",
+        "_label": "Vincent van Gogh"
+      }
+    ],
+    "took_place_at": [
+      {
+        "id": "https://data.getty.edu/museum/collection/object/826/place/created/",
+        "type": "Place",
+        "_label": "Saint R\u00e9my, France",
+        "identified_by": [
+          {
+            "id": "https://data.getty.edu/museum/collection/object/826/place/created/name/",
+            "type": "Name",
+            "content": "Saint R\u00e9my, France"
+          }
+        ],
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/page/aat/300008347/",
+            "type": "Type",
+            "_label": "Inhabited Place"
+          }
+        ]
+      }
+    ]
+  },
+  "classified_as": [
+    {
+      "id": "http://vocab.getty.edu/aat/300133025/",
+      "type": "Type",
+      "_label": "Artwork"
+    },
+    {
+      "id": "http://vocab.getty.edu/aat/300033618/",
+      "type": "Type",
+      "_label": "Painting"
+    }
+  ],
+  "identified_by": [
+    {
+      "id": "https://data.getty.edu/museum/collection/identifier/1/",
+      "type": "Identifier",
+      "_label": "Accession Number",
+      "content": "90.PA.20",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300312355/",
+          "type": "Type",
+          "_label": "Accession Number"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/name/1/",
+      "type": "Name",
+      "_label": "Primary Title",
+      "content": "Irises",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300404670/",
+          "type": "Type",
+          "_label": "Primary Title"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/name/2/",
+      "type": "Name",
+      "_label": "Example Secondary Title",
+      "content": "IRISES"
+    }
+  ],
+  "dimension": [
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/dimension/1/",
+      "type": "Dimension",
+      "value": "29 1/4",
+      "unit": {
+        "id": "http://vocab.getty.edu/aat/300379100/",
+        "type": "MeasurementUnit",
+        "_label": "inches"
+      },
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300055647/",
+          "type": "Type",
+          "_label": "Width"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/dimension/2/",
+      "type": "Dimension",
+      "value": "37 1/8",
+      "unit": {
+        "id": "http://vocab.getty.edu/aat/300379100/",
+        "type": "MeasurementUnit",
+        "_label": "inches"
+      },
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300055644/",
+          "type": "Type",
+          "_label": "Height"
+        }
+      ]
+    }
+  ],
+  "made_of": [
+    {
+      "id": "http://vocab.getty.edu/aat/300015050/",
+      "type": "Material",
+      "_label": "oil paint (paint)"
+    },
+    {
+      "id": "http://vocab.getty.edu/aat/300014078/",
+      "type": "Material",
+      "_label": "canvas (textile material)"
+    }
+  ],
+  "carries": [
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/carries/signature/",
+      "type": "LinguisticObject",
+      "content": "Lower right: \"Vincent\" (underlined)",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300028705/",
+          "type": "Type",
+          "_label": "Signatures (Names)"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300418049/",
+          "type": "Type",
+          "_label": "Brief Text"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/carries/marks/",
+      "type": "LinguisticObject",
+      "content": "<some marking(s) on the object>",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300028744/",
+          "type": "Type",
+          "_label": "Marks (Symbols)"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300418049/",
+          "type": "Type",
+          "_label": "Brief Text"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/carries/inscriptions/",
+      "type": "LinguisticObject",
+      "content": "<some inscription(s) on the object>",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300028702/",
+          "type": "Type",
+          "_label": "Inscriptions"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300418049/",
+          "type": "Type",
+          "_label": "Brief Text"
+        }
+      ]
+    },
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/carries/watermarks/",
+      "type": "LinguisticObject",
+      "content": "<some watermark(s) on the object>",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300028749/",
+          "type": "Type",
+          "_label": "Watermarks"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300418049/",
+          "type": "Type",
+          "_label": "Brief Text"
+        }
+      ]
+    }
+  ],
+  "shows": [
+    {
+      "id": "https://data.getty.edu/museum/collection/object/826/shows/1/",
+      "type": "VisualItem",
+      "represents": [
+        {
+          "id": "https://data.getty.edu/museum/collection/object/826/place/depicted/",
+          "type": "Place",
+          "_label": "Saint R\u00e9my, France",
+          "identified_by": [
+            {
+              "id": "https://data.getty.edu/museum/collection/object/826/place/depicted/name/",
+              "type": "Name",
+              "content": "Saint R\u00e9my, France"
+            }
+          ],
+          "classified_as": [
+            {
+              "id": "http://vocab.getty.edu/page/aat/300008347/",
+              "type": "Type",
+              "_label": "Inhabited Place"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "representation": [
+    {
+      "id": "http://media.getty.edu/museum/images/web/larger/00094701.jpg",
+      "type": "VisualItem",
+      "_label": "Main Image",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300215302/",
+          "type": "Type",
+          "_label": "Digital Image"
+        }
+      ],
+      "format": "image/jpeg"
+    }
+  ],
+  "subject_of": [
+    {
+      "id": "http://www.getty.edu/art/collection/objects/826/",
+      "type": "LinguisticObject",
+      "_label": "Homepage for Object",
+      "classified_as": [
+        {
+          "id": "http://vocab.getty.edu/aat/300264578/",
+          "type": "Type",
+          "_label": "Web Page"
+        },
+        {
+          "id": "http://vocab.getty.edu/aat/300404670/",
+          "type": "Type",
+          "_label": "Primary"
+        }
+      ],
+      "format": "text/html"
+    }
+  ],
+  "current_location": {
+    "id": "https://data.getty.edu/museum/collection/place/279/getty-center-west-pavilion-gallery-204/",
+    "type": "Place",
+    "_label": "Getty Center, Museum West Pavilion, Gallery W204",
+    "identified_by": [
+      {
+        "id": "https://data.getty.edu/museum/collection/place/279/getty-center-west-pavilion-gallery-204/name/",
+        "type": "Name",
+        "content": "Getty Center, Museum West Pavilion, Gallery W204"
+      }
+    ]
+  },
+  "current_owner": {
+    "id": "http://vocab.getty.edu/ulan/500115988/",
+    "type": "Group",
+    "_label": "J. Paul Getty Museum, Los Angeles, California",
+    "classified_as": [
+      {
+        "id": "http://vocab.getty.edu/aat/300312281/",
+        "type": "Type",
+        "_label": "Museum"
+      }
+    ],
+    "member_of": [
+      {
+        "id": "http://vocab.getty.edu/ulan/500115987/",
+        "type": "Group",
+        "_label": "J. Paul Getty Trust, Los Angeles, California",
+        "classified_as": [
+          {
+            "id": "http://vocab.getty.edu/ulan/500000003/",
+            "type": "Type",
+            "_label": "Corporate Bodies"
+          }
+        ]
+      }
+    ],
+    "acquired_title_through": [
+      {
+        "id": "https://data.getty.edu/museum/collection/object/826/activity/acquisition/",
+        "type": "Acquisition",
+        "_label": "Acquisition"
+      }
+    ]
+  },
+  "current_keeper": {
+    "id": "https://data.getty.edu/museum/collection/department/1/",
+    "type": "Group",
+    "_label": "Paintings (Curatorial Department)",
+    "member_of": [
+      {
+        "id": "http://vocab.getty.edu/ulan/500115988/",
+        "type": "Group",
+        "_label": "J. Paul Getty Museum, Los Angeles, California"
+      }
+    ],
+    "classified_as": [
+      {
+        "id": "http://vocab.getty.edu/aat/300263534/",
+        "type": "Type",
+        "_label": "Department (Organizational Unit)"
+      }
+    ],
+    "identified_by": [
+      {
+        "id": "https://data.getty.edu/museum/collection/department/1/name/",
+        "type": "Name",
+        "content": "Paintings"
+      }
+    ]
+  }
+}

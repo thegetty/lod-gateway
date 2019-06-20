@@ -1,0 +1,75 @@
+version: "3.0"
+
+services:
+    postgres:
+        build:
+            context: ./
+            dockerfile: ./services/postgres/Dockerfile
+        environment:
+            POSTGRES_USER:     mart
+            POSTGRES_PASSWORD: test
+            POSTGRES_DB:       mart
+            POSTGRES_PORT:     5432
+            PGDATA:            /var/lib/postgresql/data/mart
+            TZ:                America/Los_Angeles
+        ports:
+            - "6432:5432"
+        stop_grace_period: 10s
+        # stop_signal: SIGTERM
+        volumes:
+            - data_postgres:/var/lib/postgresql/data/mart
+            # - ./services/postgres/pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
+
+    transformer:
+        build:
+            context: ./
+            dockerfile: ./source/transformer/Dockerfile
+        environment:
+            LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
+            TZ:              America/Los_Angeles
+            # MART_TRANSFORMER_DEBUG: true
+        volumes:
+            - ./source:/usr/local/mart/source
+            - ./data:/usr/local/mart/data
+            - ./tests:/usr/local/mart/tests
+        ports:
+             - "5200:5200"
+        links:
+            - postgres:postgres
+
+    web:
+        build:
+            context: ./
+            dockerfile: ./source/web-service/Dockerfile
+        environment:
+            LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
+            TZ:              America/Los_Angeles
+        volumes:
+            - ./source:/usr/local/mart/source
+            - ./data:/usr/local/mart/data
+            - ./tests:/usr/local/mart/tests
+        ports:
+            - "5100:5100"
+        links:
+            - postgres:postgres
+
+volumes:
+    data_postgres:
+        # name: mart-postgres-data
+        driver: local
+        driver_opts:
+            type: none
+            device: ${PWD}/data/postgres/data
+            o: bind
+#    data_transformer:
+#        driver: local
+#        driver_opts:
+#            type: none
+#            device: ${PWD}/data/transformer
+#            o: bind
+#    data_web_service:
+#        driver: local
+#        driver_opts:
+#            type: none
+#            device: ${PWD}/data/web_service
+#            o: bind

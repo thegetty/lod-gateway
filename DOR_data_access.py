@@ -8,10 +8,11 @@ from abc import ABC, abstractmethod
 class DORDataAccess(ABC):
     
     def __init__(self):
-        self.base_url = cfg.dor_config["base_url"]       
+        self.base_url    = cfg.dor_config["base_url"]       
         self.access_code = cfg.dor_config['code']
+        self.user_name   = cfg.dor_config['user_name']
         self.headers = {
-            "Authorization": "ApiKey getty.edu:" + self.access_code,
+            "Authorization": "ApiKey " + self.user_name + ":" + self.access_code,
             "Accept":        "application/json;charset=UTF-8;"
         }
 

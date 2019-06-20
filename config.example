@@ -1,2 +1,3 @@
-dor_config = {"code": "secret code goes here",
+dor_config = {"user_name": "museum-lod",
+              "code": "*********************************",
               "base_url": "https://atlas7.getty.edu/api/"}

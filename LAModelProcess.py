@@ -43,7 +43,7 @@ class LAModelProcess:
         return result_list
 
 
-p = LAModelProcess([LAComponentType.Object])
+p = LAModelProcess([LAComponentType.Person])
 p.process_models()
 
 a = 0

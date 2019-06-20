@@ -20,10 +20,20 @@ class LAModelPerson(LABaseComponent):
 		self.dor_data_access = DORDataAccessPerson()
 		
 	def get_id_list(self):
-		return [377, 378, 379, 380, 381, 382, 383, 384, 385, 386]
+		#return [377, 378, 379, 380, 381, 382, 383, 384, 385, 386]
+		return [377]
+		#result = []
+		#for i in range(1, 5000):
+	    #	result.append(i)
+		#return result
 
 	def get_data(self, id):
 		data = self.dor_data_access.get_data(id)
+
+		#
+		print(id)
+		#
+
 		return data
 
 	def to_jsonld(self, data):

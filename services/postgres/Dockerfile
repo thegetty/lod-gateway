@@ -22,12 +22,12 @@ ENV LANG en_US.utf8
 # RUN initdb --auth=trust --pgdata=/var/lib/postgresql/data/mart
 # EXPOSE 5432
 
+# COPY ./services/postgres/<script>.sh /docker-entrypoint-initdb.d/##-<script>.sh
+# COPY ./services/postgres/<script>.sql /docker-entrypoint-initdb.d/##-<script>.sql
+
 COPY ./services/postgres/scripts/01-create-hstore.sql /docker-entrypoint-initdb.d/01-create-hstore.sql
 COPY ./services/postgres/scripts/02-create-schema.sql /docker-entrypoint-initdb.d/02-create-schema.sql
 # COPY ./services/postgres/scripts/03-sample-data.sql /docker-entrypoint-initdb.d/03-sample-data.sql
-
-# COPY ./services/postgres/sample_data.sql /tmp/sample_data.sql
-# COPY ./services/postgres/load_data.sh /docker-entrypoint-initdb.d/02-load_data.sh
 
 COPY ./services/postgres/is_postgres_ready.sh /usr/local/bin/is_postgres_ready.sh
 RUN chmod +x /usr/local/bin/is_postgres_ready.sh

@@ -1,1 +1,5 @@
-dor_secret = {"code": ""}
+dor_config = {
+	"user": "",
+	"code": "",
+	"base_url": "",
+}

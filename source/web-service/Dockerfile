@@ -13,15 +13,14 @@ WORKDIR /app
 # RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Copy and install our dependencies from requirements.txt
-COPY requirements.txt /requirements.txt
-RUN pip install -r /requirements.txt
+COPY requirements.txt /app/requirements.txt
+RUN pip install -r /app/requirements.txt
 
 COPY ./source/app /app
+COPY ./source/web-service/app /app
 
-COPY ./source/web-service/app/startup.py /app/startup.py
-# RUN chmod +x /app/startup.py
-
-COPY ./source/web-service/app/startup.sh /app/startup.sh
+COPY ./source/web-service/startup.py /app/startup.py
+COPY ./source/web-service/startup.sh /app/startup.sh
 RUN chmod +x /app/startup.sh
 
 # Tell Docker to open port 5100; this is the same port as we have configured for use by Flask

@@ -3,3 +3,4 @@ flask
 pytest
 requests
 uWSGI
+psycopg2

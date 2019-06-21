@@ -13,16 +13,15 @@ WORKDIR /app
 # RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Copy and install our dependencies from requirements.txt
-COPY requirements.txt /requirements.txt
-RUN pip install -r /requirements.txt
+COPY requirements.txt /app/requirements.txt
+RUN pip install -r /app/requirements.txt
 
-COPY ./source/app /app
+COPY ./source/transformer/app /app
+COPY ./source/app/utilities /app/utilities
 
-COPY ./source/transformer/app/startup.py /app/startup.py
-# RUN chmod +x /app/startup.py
-
-COPY ./source/transformer/app/startup.sh /app/startup.sh
-RUN chmod +x /app/startup.sh
+COPY ./source/transformer/startup.py /startup.py
+COPY ./source/transformer/startup.sh /startup.sh
+RUN chmod +x /startup.sh
 
 # Tell Docker to open port 5200; this is the same port as we have configured for use by Flask
 EXPOSE 5200
@@ -32,4 +31,6 @@ EXPOSE 5200
 # CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "uwsgi", "--http 0.0.0.0:5000", "--manage-script-name", "--mount /=museum-linked-art.app:app" ]
 
 # For now, run our application startup script directly...
-CMD [ "/app/startup.sh" ];
+# CMD [ "/startup.sh" ];
+
+CMD [ "/bin/bash" ];

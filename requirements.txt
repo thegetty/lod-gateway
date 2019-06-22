@@ -1,0 +1,6 @@
+git+https://github.com/thegetty/crom.git#egg=crom
+flask
+pytest
+requests
+uWSGI
+psycopg2

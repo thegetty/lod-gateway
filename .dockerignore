@@ -1,0 +1,11 @@
+# Ignore Data
+data/*
+
+# Misc Files
+_*
+!__*__.*
+.*
+*.pyc
+
+source/transformer/app/utilities
+source/web-service/app/utilities

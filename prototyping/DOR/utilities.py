@@ -3,7 +3,7 @@ import os
 # Printing
 def PrintToFile(fName, text):
     curr_dir = os.path.dirname(__file__)
-    data_dir = os.path.abspath(os.path.join(curr_dir, '..', 'Data'))
+    data_dir = os.path.abspath(os.path.join(curr_dir, '.', 'data'))
     fn = os.path.abspath(os.path.join(data_dir, fName))
     fh = open(fn, 'w')
     fh.write(text)
@@ -11,7 +11,7 @@ def PrintToFile(fName, text):
 
 
 # String manipulation
-def FindBetween(s, first, last):    
+def FindBetween(s, first, last):
     try:
         start = s.index(first) + len(first)
         end = s.index(last, start)

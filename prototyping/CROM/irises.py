@@ -9,8 +9,9 @@ from cromulent.model import factory, \
 	PropositionalObject, PropositionalObject as Exhibition, Payment, Creation, Phase, Birth, Death, TimeSpan, Production
 
 import json
-from utilities import PrintToFile
+import copy
 
+from utilities import PrintToFile
 
 #j = {}
 #j["@context"] = "https://linked.art/ns/v1/linked-art.json"
@@ -20,6 +21,28 @@ from utilities import PrintToFile
 #print(json.dumps(j, indent=2))
 
 # TODO clarify how we add an ordering to the alternatite titles and other data attributes where ordering is important
+
+# Define The Organization
+
+jpgt = Group()
+jpgt.id = "http://vocab.getty.edu/ulan/500115987/"
+jpgt._label = "J. Paul Getty Trust, Los Angeles, California"
+
+t = Type()
+t.id = "http://vocab.getty.edu/ulan/500000003/"
+t._label = "Corporate Bodies"
+jpgt.classified_as = t
+
+jpgm = Group()
+jpgm.id = "http://vocab.getty.edu/ulan/500115988/"
+jpgm._label = "J. Paul Getty Museum, Los Angeles, California"
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300312281/"
+t._label = "Museum"
+jpgm.classified_as = t
+
+jpgm.member_of = jpgt
 
 # Define Person Entity
 p = Person("Van Gogh")
@@ -54,11 +77,40 @@ l.classified_as = t
 o.referred_to_by = l
 
 # Set Object Artist/Maker Relationship(s)
-a = Production()
-a.id = "https://data.getty.edu/museum/collection/object/826/activity/produced-by/377/"
-a._label = "Production of Artwork"
-a.carried_out_by = p
-o.produced_by = a
+tspn = Name();
+tspn.id = "https://data.getty.edu/museum/collection/object/826/activity/production/timespan/name/"
+tspn._label = "Date"
+tspn.content = "1889"
+
+tspt = Type()
+tspt.id = "http://vocab.getty.edu/aat/300404439/"
+tspt._label = "Dates (Spans of Time)"
+tspn.classified_as = tspt
+
+tsp = TimeSpan()
+tsp.id = "https://data.getty.edu/museum/collection/object/826/activity/production/timespan/"
+tsp.identified_by = tspn
+
+tsp.classified_as = tspt # the timespan itself likely does not need to be classified_as, as it should be implicit, but is it helpful to do so?
+
+tsp.begin_of_the_begin = "1889-01-01"
+tsp.end_of_the_begin   = "1889-01-01"
+tsp.begin_of_the_end   = "1889-12-31"
+tsp.end_of_the_end     = "1889-12-31"
+
+# Create the Production Activity instance
+pr = Production()
+pr.id = "https://data.getty.edu/museum/collection/object/826/activity/production/"
+pr._label = "Production of Artwork"
+
+# Associate the Production Activity TimeSpan (this is overall timespan (dates) for the creation of the Object)
+pr.timespan = tsp
+
+# TODO How do we add the timespan that this given artist (Person) was involved with the production of the Object?
+# See https://linked.art/model/provenance/production.html#multiple-artists-with-roles
+pr.carried_out_by = p
+
+o.produced_by = pr
 
 # Set Object Artwork Classification
 t = Type()
@@ -187,14 +239,20 @@ t._label = "Brief Text"
 l.classified_as = t
 o.referred_to_by = l
 
-# Add Object Culture Description
+# Culture "Statement"
+# add a LinguisticObject via the "referred_to_by" property on the object
+# add a classified_as to the LinguisticObject of type http://vocab.getty.edu/aat/300055768/ (culture)
+# also add a Type to the Object via classified_as that points to the AAT ID for the matched culture where we can find an exact match
+# and also add a classified_as to the Type of http://vocab.getty.edu/aat/300055768/ (culture)
+# this would allow us to convey both the literal string as well as (where known) the exact match for the AAT vocabulary term...
+
+# Object Culture
 l = LinguisticObject()
-l.id = "https://data.getty.edu/museum/collection/object/826/culture-statement/"
+l.id = "https://data.getty.edu/museum/collection/object/826/culture/"
 l.content = "Dutch"
 t = Type()
-# TODO What is the correct AAT ID for "Culture Statement"?
-t.id = "http://vocab.getty.edu/aat/<culture-statement-id>/"
-t._label = "Culture Statement"
+t.id = "http://vocab.getty.edu/aat/300055768/"
+t._label = "Culture"
 l.classified_as = t
 t = Type()
 t.id = "http://vocab.getty.edu/aat/300418049/"
@@ -202,9 +260,116 @@ t._label = "Brief Text"
 l.classified_as = t
 o.referred_to_by = l
 
-# Add Object Shows (VisualItem)
+# Object Signature
+# add a LinguisticObject via the "carries" property on the object
+# add a classified_as to the LinguisticObject of Type http://vocab.getty.edu/aat/300028705 (signatures (names))
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300028705/"
+t._label = "Signatures (Names)"
+
+l = LinguisticObject()
+l.id = "https://data.getty.edu/museum/collection/object/826/carries/signature/"
+l.content = "Lower right: \"Vincent\" (underlined)"
+l.classified_as = t
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300418049/"
+t._label = "Brief Text"
+l.classified_as = t
+
+o.carries = l;
+
+# Object Markings
+# add a LinguisticObject via the "carries" property on the object
+# add a classified_as to the LinguisticObject of Type http://vocab.getty.edu/aat/300028744/ (marks)
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300028744/"
+t._label = "Marks (Symbols)"
+
+l = LinguisticObject()
+l.id = "https://data.getty.edu/museum/collection/object/826/carries/marks/"
+l.content = "<some marking(s) on the object>"
+l.classified_as = t
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300418049/"
+t._label = "Brief Text"
+l.classified_as = t
+
+o.carries = l;
+
+# Object Inscriptions
+# add a LinguisticObject via the "carries" property on the object
+# add a classified_as to the LinguisticObject of Type http://vocab.getty.edu/aat/300028702/ (inscription)
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300028702/"
+t._label = "Inscriptions"
+
+l = LinguisticObject()
+l.id = "https://data.getty.edu/museum/collection/object/826/carries/inscriptions/"
+l.content = "<some inscription(s) on the object>"
+l.classified_as = t
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300418049/"
+t._label = "Brief Text"
+l.classified_as = t
+
+o.carries = l;
+
+# Object Watermarks
+# add a LinguisticObject via the "carries" property on the object
+# add a classified_as to the LinguisticObject of Type http://vocab.getty.edu/aat/300028749/ (watermarks)
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300028749/"
+t._label = "Watermarks"
+
+l = LinguisticObject()
+l.id = "https://data.getty.edu/museum/collection/object/826/carries/watermarks/"
+l.content = "<some watermark(s) on the object>"
+l.classified_as = t
+
+t = Type()
+t.id = "http://vocab.getty.edu/aat/300418049/"
+t._label = "Brief Text"
+l.classified_as = t
+
+o.carries = l;
+
+# TODO Curatorial Department Association
+# add for now as a Group (that is a member_of the organization The J. Paul Getty Trust Musuem/Trust Group) and for now use the current_keeper relationship
+
+
+
+
+
+# Object Place Depicted
 v = VisualItem()
 v.id = "https://data.getty.edu/museum/collection/object/826/shows/1/"
+pl = Place()
+pl.id = "https://data.getty.edu/museum/collection/object/826/place/depicted/"
+pl._label = "Saint Rémy, France"
+n = Name()
+n.id = "https://data.getty.edu/museum/collection/object/826/place/depicted/name/"
+n.content = "Saint Rémy, France"
+pl.identified_by = n
+t = Type()
+t.id = "http://vocab.getty.edu/page/aat/300008347/"
+t._label = "Inhabited Place"
+pl.classified_as = t
+v.represents = pl
+o.shows = v
+
+# Object Place Created
+# add as a took_place_at property of the Production Activity
+
+# TODO How do we assign a Place Created to each Maker's involvement as mutliple creation places
+# may be involved, one (or maybe more) for each maker, for different timespans of creation of the work
+
 pl = Place()
 pl.id = "https://data.getty.edu/museum/collection/object/826/place/created/"
 pl._label = "Saint Rémy, France"
@@ -216,8 +381,13 @@ t = Type()
 t.id = "http://vocab.getty.edu/page/aat/300008347/"
 t._label = "Inhabited Place"
 pl.classified_as = t
-v.represents = pl
-o.shows = v
+pr.took_place_at = pl
+
+# TODO Object Place Found
+# Rob to investigate and get back to us
+
+# TODO Object Date String
+# add a Name to the TimeSpan of the Prodction Activity to store the date string...
 
 # Add Object Main Image
 v = VisualItem();
@@ -265,21 +435,37 @@ pl.identified_by = n
 o.current_location = pl
 
 # Add Ownership
-g = Group()
-g.id = "http://vocab.getty.edu/ulan/500115988/"
-g._label = "J. Paul Getty Museum, Los Angeles, California"
-
-t = Type()
-t.id = "http://vocab.getty.edu/aat/300312281/"
-t._label = "Museum"
-g.classified_as = t
+# make a copy of the 'jpgm' Group instance representing the J. Paul Getty Museum
+owner = copy.copy(jpgm)
 
 a = Acquisition()
 a.id = "https://data.getty.edu/museum/collection/object/826/activity/acquisition/"
 a._label = "Acquisition"
-g.acquired_title_through = a
+owner.acquired_title_through = a
 
-o.current_owner = g
+o.current_owner = owner
+
+
+# Object Curatorial Department
+# modelled for the time-being via o.current_keeper
+
+dept = Group()
+dept.id = "https://data.getty.edu/museum/collection/department/1/"
+dept._label = "Paintings (Curatorial Department)"
+dept.member_of = jpgm
+
+t = Type();
+t.id = "http://vocab.getty.edu/aat/300263534/"
+t._label = "Department (Organizational Unit)"
+dept.classified_as = t
+
+n = Name()
+n.id = "https://data.getty.edu/museum/collection/department/1/name/"
+n.content = "Paintings"
+dept.identified_by = n
+
+o.current_keeper = dept
+
 
 
 # TODO Add Previous Ownership (Provenance)

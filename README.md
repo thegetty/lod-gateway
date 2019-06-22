@@ -9,27 +9,27 @@ The project will eventually allow the conversion of the entirety of the Museum's
 
 The MART project consists of the following proposed software components:
 
-- [Python](https://www.python.org) version 3.6+
+- [Python](https://www.python.org) version 3.7+
 - [CROM](https://github.com/thegetty/crom)
 - [Flask](http://flask.pocoo.org)
 
-**Installation Instructions**
+**Setup Instructions**
 
 The installation instructions currently stand as follows; these will be updated over time as the repository and its capabilites evolve.
 
-1. Ensure that Python 3 is installed.
-2. Install the CROM library by cloning the source repository from GitHub, navigating to the root of the cloned repository, and running the setup script as follows: `python setup.py install` - this can either be done globally if desired or the preferred approach would be to install the dependencies within a virtual environment or within a container.
-3. Once the dependencies have been installed, navigate to the root of the clone of this repository and run the desired script as follows: `python <script>.py` for example to run the `artifact-test.py` script, use the following command: `python artifact-test.py`.
+1. Ensure that [Docker Desktop](https://www.docker.com) is installed on your system; follow the instructions available at: https://www.docker.com/products/docker-desktop.
+2. Clone the project repository from GitHub: `git clone https://github.com/thegetty/museum-collections-data-to-linked-art museum-art`
+3. Switch to the local project repository directory: `cd museum-art`
+4. To build or rebuild the container, run: `docker build --tag museum-art-app .`
+5. To start the application, run: `docker run --name museum-art -p 5000:5000 museum-art-app`
+6. Repeat steps 4/5 as needed during development and testing.
 
-Overall the setup would look something like this assuming the `python` command noted below references a Python 3 installation on your system:
+Overall the setup process would look something like this:
 
-	$ git clone https://github.com/thegetty/crom
-	$ cd crom
-	$ python setup.py install
-	$ cd ..
-	$ git clone https://github.com/thegetty/museum-collections-data-to-linked-art mart
-	$ cd mart
-	$ python artifact-test.py
+	$ git clone https://github.com/thegetty/museum-collections-data-to-linked-art museum-art
+	$ cd museum-art
+	$ docker build --tag museum-art-app .
+	$ docker run --name museum-art -p 5000:5000 museum-art-app
 
 **Local Deployment Instructions**
 
@@ -45,5 +45,4 @@ The proposed process of operation will involve supporting two modes of operation
 
 **License and Copyright Information**
 
-© The J. Paul Getty Trust 2019.  All rights reserved.
-
+© The J. Paul Getty Trust 2019. All rights reserved.

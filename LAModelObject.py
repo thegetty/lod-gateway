@@ -24,11 +24,11 @@ class LAModelObject(LABaseComponent):
 		
 	def get_id_list(self):
 		#return [818, 819, 820, 821, 822, 823, 824, 825, 826, 827]
-		return [826]
-		#result = []
-		#for i in range(1, 5000):
-		#	result.append(i)
-		#return result
+		#return [826]
+		result = []
+		for i in range(1, 100000):
+			result.append(i)
+		return result
 
 	def get_data(self, id):
 		data = self.dor_data_access.get_data(id)

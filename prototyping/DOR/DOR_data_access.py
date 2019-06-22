@@ -1,6 +1,8 @@
 import requests
 import json
+
 import config as cfg
+
 from abc import ABC, abstractmethod
 
 # Abstract class with some common types and methods from which all DOR data access classes will be derived
@@ -8,26 +10,26 @@ from abc import ABC, abstractmethod
 class DORDataAccess(ABC):
     
     def __init__(self):
-        self.base_url    = cfg.dor_config["base_url"]       
-        self.access_code = cfg.dor_config['code']
-        self.user_name   = cfg.dor_config['user_name']
+        self.base_url   = cfg.dor_config["base_url"]
+        self.api_user   = cfg.dor_config['user']
+        self.api_secret = cfg.dor_config['secret']
         self.headers = {
-            "Authorization": "ApiKey " + self.user_name + ":" + self.access_code,
-            "Accept":        "application/json;charset=UTF-8;"
+            "Authorization": "ApiKey " + self.api_user + ":" + self.api_secret,
+            "Accept":        "application/json;charset=UTF-8;version=1.4",
         }
 
     def get_data(self, id):
         r = requests.get(self.base_url + str(id), headers=self.headers)
-        if (r.status_code == 200):
+        if(r.status_code == 200):
             return json.loads(r.text)
-        #else:
-        #    raise Exception("Error accessing data. Status code: " + str(r.status_code))
+        else:
+            print("get_data status code = %d" % (r.status_code))
+            return None
 
     @abstractmethod
     def get_all_ids(self):
         pass
 
-       
 # 'artifact' is temporary end point. Will be 'Object'
 class DORDataAccessObject(DORDataAccess):
 

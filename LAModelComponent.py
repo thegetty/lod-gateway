@@ -9,6 +9,7 @@ from cromulent.model import factory, \
 	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan
 
 import json
+
 from DOR_data_access import DORDataAccess
 from utilities import PrintToFile
 from abc import ABC, abstractmethod
@@ -23,6 +24,8 @@ class LAComponentType(Enum):
     Provenance = 4
     Place      = 5
     Collection = 6
+    Set        = 7
+    Exhibition = 8
 
 
 # Abstract base class for all LA Model Components.
@@ -46,6 +49,3 @@ class LABaseComponent(ABC):
     @abstractmethod
     def to_jsonld(self, data):
         pass
-
-
-

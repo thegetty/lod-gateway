@@ -10,7 +10,7 @@ model_dict = {
 }
 
 # Class that has collection of all or any combination of LAModelComponent
-class LAModelProcess:    
+class LAModelProcess:
     def __init__(self, user_type_list = None):
         self.lamodel_list = self.__create_model_list(user_type_list)
 
@@ -21,7 +21,6 @@ class LAModelProcess:
                 j_data = m.get_data(id)
                 if (j_data != None):
                     m.to_jsonld(j_data)
-            
 
     # Private method to create a list of Model Classes from the list of Model types supplied by the user
     def __create_model_list(self, user_type_list = None):
@@ -43,8 +42,9 @@ class LAModelProcess:
         return result_list
 
 
-p = LAModelProcess()
+p = LAModelProcess([LAComponentType.Object])
 p.process_models()
 
 a = 0
-
+p = LAModelProcess()
+p.process_models()

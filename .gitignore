@@ -1,3 +1,17 @@
+# Ignore Data
+data/*
+prototyping/DOR/data/*
+
+# Misc Files
+_*
+!__*__.*
+.*
+!.circleci
+!.gitignore
+!.dockerignore
+!.env.example
+*.pyc
+
 # Config files
 *config.py
 config.py

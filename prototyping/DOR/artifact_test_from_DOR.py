@@ -9,6 +9,7 @@ from cromulent.model import factory, \
 	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan
 
 import json
+
 from DOR_data_access import DORDataAccessObject, DORDataAccessPerson
 from utilities import PrintToFile
 
@@ -16,22 +17,17 @@ from utilities import PrintToFile
 
 # Get record 826 as a test of DORDataAcces function
 da = DORDataAccessObject()
-raw_data = da.get_data(826)
-r_code = raw_data[0]
-r_data = raw_data[1]
-data = json.loads(r_data)
-outstr = json.dumps(data, indent=2)
-PrintToFile("826_DOR.json", outstr)
+
+data = da.get_data(826)
+
+if data:
+	outstr = json.dumps(data, indent=2)
+	PrintToFile("DORArtifact826.json", outstr)
 
 r = da.get_all_ids()
 
 # Get Person
 da = DORDataAccessPerson()
-raw_data = da.get_data(377)
-r_code = raw_data[0]
-r_data = raw_data[1]
-data = json.loads(r_data)
+data = da.get_data(377)
 outstr = json.dumps(data, indent=2)
-PrintToFile("826_DOR.json", outstr)
-
-
+PrintToFile("DORConstituent377.json", outstr)

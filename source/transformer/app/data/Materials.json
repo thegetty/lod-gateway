@@ -1,0 +1,12 @@
+{
+	"Oil on canvas": [
+		{
+			"id": "http://vocab.getty.edu/aat/300015050",
+			"label": "Oil Paint (Paint)"
+		},
+		{
+			"id": "http://vocab.getty.edu/aat/300014078",
+			"label": "Canvas (Textile Material)"
+		}
+	]
+}

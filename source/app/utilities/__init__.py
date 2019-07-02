@@ -2,6 +2,12 @@ import pprint
 import sched
 import time
 import json
+import io
+
+def sprintf(*args, end='', **kwargs):
+    sio = io.StringIO()
+    print(*args, **kwargs, end=end, file=sio)
+    return sio.getvalue()
 
 def debug(*args, **kwargs):
 	if(args and len(args) > 0):

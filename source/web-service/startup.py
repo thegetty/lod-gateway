@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+import sys
+import datetime
+
+# import our utility functions (get, has, debug, repeater, sprintf, etc)
+from app.utilities import *
 
 from flask import Flask
 
@@ -6,7 +10,10 @@ app = Flask(__name__)
 
 @app.route("/")
 def welcome():
-    return "Welcome to the Museum Linked Art Data Service!"
+	now = datetime.datetime.now()
+	
+	return sprintf("Welcome to the Museum Linked Art Data Service at %02d:%02d:%02d on %02d/%02d/%04d" % (now.hour, now.minute, now.second, now.month, now.day, now.year))
+	# return "Hello"
 
 # if __name__ == "__main__":
 #    # make debug an environment variable

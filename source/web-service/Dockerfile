@@ -1,11 +1,10 @@
 # Base this image off the Debian ("stretch") release, using Python 3.7
 FROM python:3.7-stretch
 
-MAINTAINER Daniel Sissman <dsissman@getty.edu>
-MAINTAINER Viktor Grabarchuk <vgrabarchuk@getty.edu>
+LABEL Authors="Daniel Sissman <dsissman@getty.edu>, Viktor Grabarchuk <vgrabarchuk@getty.edu>"
 
-# Set our working directory to /app
-WORKDIR /app
+# Set our working directory
+WORKDIR /
 
 # Later in preparation for deploying our container we need to integrate and test with envconsul...
 # COPY --from=getty/envconsul:latest /bin/envconsul /usr/local/bin/envconsul
@@ -16,12 +15,15 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
-COPY ./source/app /app
 COPY ./source/web-service/app /app
+COPY ./source/app/utilities /app/utilities
 
-COPY ./source/web-service/startup.py /app/startup.py
-COPY ./source/web-service/startup.sh /app/startup.sh
-RUN chmod +x /app/startup.sh
+COPY ./source/web-service/startup.py /startup.py
+COPY ./source/web-service/startup.sh /startup.sh
+RUN chmod +x /startup.sh
+
+# Set the default shell to BASH rather than the more basic (DA)SH
+SHELL ["/bin/bash", "--login", "-c"]
 
 # Tell Docker to open port 5100; this is the same port as we have configured for use by Flask
 EXPOSE 5100
@@ -29,6 +31,7 @@ EXPOSE 5100
 # Later in preparation for deploying our container we need to integrate and test with envconsul...
 # ENTRYPOINT [ "docker-entrypoint.sh" ]
 # CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "uwsgi", "--http 0.0.0.0:5000", "--manage-script-name", "--mount /=museum-linked-art.app:app" ]
+# CMD [ "/bin/bash" ];
 
-# For now, run our application startup script directly...
-CMD [ "/app/startup.sh" ];
+# Run our application startup script...
+CMD [ "/startup.sh" ];

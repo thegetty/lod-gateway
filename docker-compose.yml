@@ -26,6 +26,7 @@ services:
             dockerfile: ./source/transformer/Dockerfile
         environment:
             LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
+            SHELL:                ${SHELL}
             TZ:                   ${MART_TIMEZONE}
             MART_DOR_BASE_URL:    ${MART_DOR_BASE_URL}
             MART_DOR_API_USER:    ${MART_DOR_API_USER}
@@ -34,8 +35,15 @@ services:
             MART_DOR_API_CACHING: ${MART_DOR_API_CACHING}
             MART_LOD_BASE_URL:    ${MART_LOD_BASE_URL}
         volumes:
-            - ./source:/usr/local/mart/source
+            # use a volume mount to dynamically bind the application's source code
+            - ./source/transformer/startup.py:/startup.py
+            - ./source/transformer/startup.sh:/startup.sh
+            - ./source/transformer/app:/app
+            # use a volume mount to dynamically bind the shared utilities code
+            - ./source/app/utilities:/app/utilities
+            # use a volume mount to dynamically bind the data path
             - ./data:/usr/local/mart/data
+            # use a volume mount to dynamically bind the tests path
             - ./tests:/usr/local/mart/tests
         ports:
              - "5200:5200"
@@ -50,10 +58,21 @@ services:
             dockerfile: ./source/web-service/Dockerfile
         environment:
             LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
+            SHELL:           ${SHELL}
             TZ:              ${MART_TIMEZONE}
+            FLASK_ENV:       ${MART_FLASK_ENV}
+            FLASK_DEBUG:     ${MART_FLASK_DEBUG}
+            FLASK_APP:       ${MART_FLASK_APP}
         volumes:
-            - ./source:/usr/local/mart/source
+            # use a volume mount to dynamically bind the application's source code
+            - ./source/web-service/startup.py:/startup.py
+            - ./source/web-service/startup.sh:/startup.sh
+            - ./source/web-service/app:/app
+            # use a volume mount to dynamically bind the shared utilities code
+            - ./source/app/utilities:/app/utilities
+            # use a volume mount to dynamically bind the data path
             - ./data:/usr/local/mart/data
+            # use a volume mount to dynamically bind the tests path
             - ./tests:/usr/local/mart/tests
         ports:
             - "5100:5100"
@@ -66,17 +85,17 @@ volumes:
         driver: local
         driver_opts:
             type: none
-            device: ${PWD}/data/postgres/data
+            device: ${PWD-.}/data/postgres/data
             o: bind
 #    data_transformer:
 #        driver: local
 #        driver_opts:
 #            type: none
-#            device: ${PWD}/data/transformer
+#            device: ${PWD-.}/data/transformer
 #            o: bind
 #    data_web_service:
 #        driver: local
 #        driver_opts:
 #            type: none
-#            device: ${PWD}/data/web_service
+#            device: ${PWD-.}/data/web_service
 #            o: bind

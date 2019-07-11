@@ -2,25 +2,70 @@ import pprint
 import sched
 import time
 import json
+import io
+
+def sprintf(*args, end='', **kwargs):
+    sio = io.StringIO()
+    print(*args, **kwargs, end=end, file=sio)
+    return sio.getvalue()
 
 def debug(*args, **kwargs):
 	if(args and len(args) > 0):
 		if(args[0]):
 			value = args[0]
 			if(value):
+				format = None
 				if("format" in kwargs):
-					format = kwargs["format"]
+					if(isinstance(kwargs["format"], str) and len(kwargs["format"]) > 0):
+						format = kwargs["format"]
 					del kwargs["format"]
 				
-				if(format == "JSON"):
-					print()
-					print(json.dumps(value, sort_keys=True, indent=4))
-					print()
+				label = None
+				if("label" in kwargs):
+					if(isinstance(kwargs["label"], str) and len(kwargs["label"]) > 0):
+						label = kwargs["label"]
+					del kwargs["label"]
+				
+				error = False
+				if("error" in kwargs):
+					if(isinstance(kwargs["error"], bool)):
+						error = kwargs["error"]
+					del kwargs["error"]
+				
+				level = 0
+				if("level" in kwargs):
+					if(isinstance(kwargs["level"], int)):
+						error = kwargs["level"]
+					del kwargs["level"]
+				
+				indent = 0
+				if("indent" in kwargs):
+					if(isinstance(kwargs["indent"], int)):
+						error = kwargs["indent"]
+					del kwargs["indent"]
+				
+				if(label):
+					print(label)
+				
+				if(error):
+					print("\033[93;41m", end="")
+				
+				if(isinstance(value, str)):
+					placeholders = [value]
+					for index, arg in enumerate(args):
+						if(index > 0):
+							placeholders.append(arg)
+					
+					print(sprintf(*placeholders))
 				else:
-					print()
-					pp = pprint.PrettyPrinter(**kwargs)
-					pp.pprint(value)
-					print()
+					if(format == "JSON"):
+						print(json.dumps(value, sort_keys=True, indent=4))
+					else:
+						pp = pprint.PrettyPrinter(**kwargs)
+						pp.pprint(value)
+				
+				if(error):
+					print("\033[0m", end="")
 	else:
 		print()
 

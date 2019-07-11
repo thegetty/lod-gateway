@@ -19,7 +19,7 @@ from cromulent.model import factory, \
 	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan, Production, \
 	PropositionalObject as Exhibition
 
-from .. utilities import get, has
+from .. utilities import get, has, debug, sprintf
 
 # Abstract BaseRecord class for all Model (Record) entities
 class BaseRecord(ABC):
@@ -61,13 +61,13 @@ class BaseRecord(ABC):
 			testCaching = None
 			if(sys.argv):
 				for index, argv in enumerate(sys.argv):
-					if(argv == "--cache"):
+					if(argv in ["--cache", "--caching"]):
 						if(sys.argv[(index + 1)]):
 							testCaching = sys.argv[(index + 1)]
 			
 			if(testCaching == None and (os.getenv("MART_DOR_API_CACHING", "YES") == "NO")):
 				headers["X-Request-Caching"] = "NO"
-			elif(testCaching == "NO"):
+			elif(testCaching in ["NO", "OFF"]):
 				headers["X-Request-Caching"] = "NO"
 			
 			return headers
@@ -210,6 +210,22 @@ class BaseRecord(ABC):
 				# Assign entity ID
 				self.entity.id = self.generateEntityURI();
 				
+				# For debugging, support emitting all or part of the obtained record data
+				testDebug = False
+				if(sys.argv):
+					for index, argv in enumerate(sys.argv):
+						if(argv == "--debug"):
+							if(sys.argv[(index + 1)] and isinstance(sys.argv[(index + 1)], str) and not sys.argv[(index + 1)].startswith("-")):
+								testDebug = sys.argv[(index + 1)]
+							else:
+								testDebug = True
+				
+				if(testDebug):
+					if(testDebug == True):
+						debug(self.data, format="JSON", label="Debug Output for self.data:")
+					elif(isinstance(testDebug, str) and len(testDebug) > 0):
+						debug(get(self.data, testDebug), format="JSON", label=sprintf("Debug Output for self.data (%s):" % (testDebug)))
+				
 				# For testing, support specifying and running a specified method from the CLI
 				testMethod = None
 				if(sys.argv):
@@ -218,6 +234,7 @@ class BaseRecord(ABC):
 							if(sys.argv[(index + 1)]):
 								testMethod = sys.argv[(index + 1)]
 				
+				methodNames = []
 				# Now look for any class methods starting with the word "map";
 				# we will then call any of the discovered "map" methods to update
 				# the entity instance by mapping part of the data; we exclude
@@ -229,6 +246,7 @@ class BaseRecord(ABC):
 						if(isinstance(methodName, str)):
 							if(methodName.startswith("map")):
 								if(methodName not in ["mapData"]):
+									methodNames.append(methodName)
 									mapMethod = getattr(self, methodName)
 									if(mapMethod):
 										# Run all methods if no test has been defined, or just the matching method
@@ -236,6 +254,13 @@ class BaseRecord(ABC):
 											# As "self.entity" is passed by reference, it may be
 											# updated directly by the called "map" method
 											mapMethod(self.entity, self.data)
+				
+				# If the testMethod was invalid or not found, report the error
+				if(isinstance(testMethod, str)):
+					if(not testMethod.startswith("map")):
+						debug("The specified method (%s.%s) does not begin with 'map'; only map methods are supported for this use-case!" % (self.__class__.__name__, testMethod), error=True, level=1)
+					elif(testMethod not in methodNames):
+						debug("The specified method (%s.%s) does not exist!" % (self.__class__.__name__, testMethod), error=True, level=1)
 				
 				if(entity):
 					return entity

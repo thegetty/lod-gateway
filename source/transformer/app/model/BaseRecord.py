@@ -167,6 +167,8 @@ class BaseRecord(ABC):
 		
 		URL = self.generateURL();
 		
+		print("Will now call URL: %s" % (URL))
+		
 		if(URL):
 			headers = self.assembleHeaders()
 			if(headers):

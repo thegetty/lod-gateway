@@ -10,10 +10,12 @@ from app.model.ConstituentRecord import *
 from app.model.ExhibitionRecord import *
 from app.model.LocationRecord import *
 
+from app.manager.ArtifactManager import *
+
 # for testing, support controlling the transformation process from the CLI
 testEntity = None
 testID     = None
-testRecord = None
+testMode   = None
 
 if(sys.argv):
 	for index, argv in enumerate(sys.argv):
@@ -23,33 +25,43 @@ if(sys.argv):
 		elif(argv == "--id"):
 			if(sys.argv[(index + 1)]):
 				testID = sys.argv[(index + 1)]
+		elif(argv == "--mode"):
+			if(sys.argv[(index + 1)]):
+				testMode = sys.argv[(index + 1)]
 
-if(testEntity and testID):
-	if(testEntity == "Artifact"):
+if(testMode == "manager"):
+	am = ArtifactManager()
+	ids = am.getIDs()
+	
+	print(ids)
+else:
+	testRecord = None
+	if(testEntity and testID):
+		if(testEntity == "Artifact"):
+			testRecord = ArtifactRecord(testID)
+		elif(testEntity == "Constituent"):
+			testRecord = ConstituentRecord(testID)
+		elif(testEntity == "Exhibition"):
+			testRecord = ExhibitionRecord(testID)
+		elif(testEntity == "Location"):
+			testRecord = LocationRecord(testID)
+		else:
+			testRecord = ArtifactRecord(826)
+	elif(testID):
 		testRecord = ArtifactRecord(testID)
-	elif(testEntity == "Constituent"):
-		testRecord = ConstituentRecord(testID)
-	elif(testEntity == "Exhibition"):
-		testRecord = ExhibitionRecord(testID)
-	elif(testEntity == "Location"):
-		testRecord = LocationRecord(testID)
 	else:
 		testRecord = ArtifactRecord(826)
-elif(testID):
-	testRecord = ArtifactRecord(testID)
-else:
-	testRecord = ArtifactRecord(826)
-
-if(testEntity):
-	print("testEntity = %s; testID = %s; testRecord = %s (%s)" % (testEntity, testID, testRecord, testRecord.id))
-
-if(testRecord):
-	data = testRecord.getData()
-	# print(data)
-	data = testRecord.mapData()
-	# print(data)
-	data = testRecord.toJSON()
-	print(data)
+	
+	if(testEntity):
+		print("testEntity = %s; testID = %s; testRecord = %s (%s)" % (testEntity, testID, testRecord, testRecord.id))
+	
+	if(testRecord):
+		data = testRecord.getData()
+		# print(data)
+		data = testRecord.mapData()
+		# print(data)
+		data = testRecord.toJSON()
+		print(data)
 
 counter = 0
 delay   = 2 # seconds

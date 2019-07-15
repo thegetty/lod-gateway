@@ -26,7 +26,7 @@ services:
             context: ./
             dockerfile: ./source/transformer/Dockerfile
         environment:
-            LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
+            LD_LIBRARY_PATH:      /usr/local/lib:/usr/local/lib64
             SHELL:                ${SHELL}
             TZ:                   ${MART_TIMEZONE}
             MART_DOR_BASE_URL:    ${MART_DOR_BASE_URL}
@@ -47,7 +47,7 @@ services:
             # use a volume mount to dynamically bind the tests path
             - ./tests:/usr/local/mart/tests
         ports:
-             - "5200:5200"
+             - "${MART_TRANSFORMER_PORT}:5200"
         links:
             - postgres:postgres
         stdin_open: true
@@ -76,7 +76,7 @@ services:
             # use a volume mount to dynamically bind the tests path
             - ./tests:/usr/local/mart/tests
         ports:
-            - "5100:5100"
+            - "${MART_WEB_SERVICE_PORT}:5100"
         links:
             - postgres:postgres
 

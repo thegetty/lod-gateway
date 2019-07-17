@@ -6,6 +6,7 @@ prototyping/DOR/data/*
 _*
 !__*__.*
 .*
+!.gitattributes
 !.circleci
 !.gitignore
 !.dockerignore

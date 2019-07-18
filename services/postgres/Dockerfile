@@ -20,7 +20,7 @@ ENV LANG en_US.utf8
 # ENV PGDATA /var/lib/postgresql/data/mart
 
 # RUN initdb --auth=trust --pgdata=/var/lib/postgresql/data/mart
-# EXPOSE 5432
+EXPOSE 5432
 
 # COPY ./services/postgres/<script>.sh /docker-entrypoint-initdb.d/##-<script>.sh
 # COPY ./services/postgres/<script>.sql /docker-entrypoint-initdb.d/##-<script>.sql

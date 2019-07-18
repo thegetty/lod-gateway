@@ -19,20 +19,54 @@ from cromulent.model import factory, \
 	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan, Production, \
 	PropositionalObject as Exhibition
 
-from .. utilities import get, has, debug, sprintf
+from ..... utilities import get, has, debug, sprintf
+from ..... import *
 
 # Abstract BaseRecord class for all Model (Record) entities
 class BaseRecord(ABC):
 	
-	def __init__(self, id):
+	def __init__(self, id=None, URL=None):
+		debug("BaseRecord.__init__(id: %s, URL: %s) called..." % (id, URL))
+		
 		self.className = self.__class__.__name__
-		self.entity    = None
 		self.id        = id
-		self.resource  = None
+		self.recordURL = URL
+		self.resource  = self.resourceType()
+		self.UUID      = None
+		self.entity    = None
 		self.data      = None
+		
+		# now fetch the data
+		self.getData()
+	
+	@abstractmethod
+	def resourceType(self):
+		"""Provide a method for determining the correct target resource type"""
+		pass
+	
+	@abstractmethod
+	def entityType(self):
+		"""Provide a method for determining the correct target entity type"""
+		pass
+	
+	def entityTypeName(self, **kwargs):
+		"""Provide a method for determining the correct target entity type"""
+		if("entity" in kwargs):
+			entity = kwargs["entity"]
+		else:
+			entity = self.entityType()
+		
+		if(entity):
+			if(isinstance(entity, type)):
+				entity = entity()
+			
+			if(entity):
+				return entity.__class__.__name__
+		
+		return None
 	
 	def info(self):
-		print("The '%s' eneity was just initialized with: id = %s; resource = %s; uri = %s" % (self.className, str(self.id), self.resource, self.generateURI()))
+		debug("The '%s' eneity was just initialized with: id = %s; resource = %s; uri = %s" % (self.className, str(self.id), self.resource, self.generateURI()))
 	
 	def assembleHeaders(self):
 		"""Assemble our HTTP Request Headers for the DOR API call"""
@@ -77,10 +111,16 @@ class BaseRecord(ABC):
 	def generateURI(self):
 		"""Generate the URI for a DOR API resource"""
 		
-		return "/api/" + self.resource + "/" + str(self.id) + "/"
+		if(self.resource and self.id):
+			return "/api/" + self.resource + "/" + str(self.id) + "/"
+		
+		return None
 	
 	def generateURL(self):
 		"""Generate the absolute URL for a DOR API resource"""
+		
+		if(self.recordURL):
+			return self.recordURL
 		
 		baseURL   = os.getenv("MART_DOR_BASE_URL", None)
 		recordURI = self.generateURI()
@@ -105,26 +145,26 @@ class BaseRecord(ABC):
 				# Instantiate it so that we can correctly determine its class name
 				entity = entity()
 			
-			if(entity.__class__):
-				if(entity.__class__.__name__):
-					className = entity.__class__.__name__
-					
-					# Split the entity name on upper case characters
-					parts = re.findall("[A-Z][^A-Z]*", className)
-					if(parts and len(parts) > 0):
-						# Lowercase each part of the entity name
-						for index, part in enumerate(parts):
-							parts[index] = part.lower()
-						
-						# Hyphenate the parts for readability
-						return "-".join(parts)
+			if(entity):
+				className = self.entityTypeName(entity=entity)
+				if(isinstance(className, str) and len(className) > 0):
+						# Split the entity name on upper case characters
+						parts = re.findall("[A-Z][^A-Z]*", className)
+						if(parts and len(parts) > 0):
+							# Lowercase each part of the entity name
+							for index, part in enumerate(parts):
+								parts[index] = part.lower()
+							
+							# Hyphenate the parts for readability
+							return "-".join(parts)
 		
 		return None
 	
 	def generateEntityURI(self, **kwargs):
 		"""Generate an entity URI for the current or provided entity"""
 		
-		baseURL = os.getenv("MART_LOD_BASE_URL");
+		baseURL       = os.getenv("MART_LOD_BASE_URL");
+		trailingSlash = os.getenv("MART_TRANSFORMER_URLS_TRAILING_SLASH", "YES")
 		
 		if(self.data):
 			if("uuid" in self.data):
@@ -140,15 +180,19 @@ class BaseRecord(ABC):
 					if("entity" in kwargs):
 						entity = kwargs["entity"]
 					
-					# print("UUID = %s; entity = %s" % (UUID, entity))
+					# debug("UUID = %s; entity = %s; trailingSlash = %s" % (UUID, entity, trailingSlash))
 					
 					entityName = self.generateEntityName(entity=entity);
 					if(entityName):
-						ID = baseURL + "/" + entityName + "/" + UUID + "/";
+						ID = baseURL + "/" + entityName + "/" + UUID + "/"
 						
 						if("sub" in kwargs):
 							if(len(kwargs["sub"]) > 0):
-								ID += "/".join(kwargs["sub"]) + "/";
+								ID += "/".join(kwargs["sub"]) + "/"
+						
+						if(trailingSlash != "YES"):
+							if(ID.endswith("/")):
+								ID = ID[0:-1]
 						
 						return ID
 					else:
@@ -166,20 +210,23 @@ class BaseRecord(ABC):
 		"""Obtain the data for the specified DOR entity resource"""
 		
 		URL = self.generateURL();
+		URL = transformURL(URL)
 		
-		print("Will now call URL: %s" % (URL))
+		debug("Will now call URL: %s" % (URL))
 		
-		if(URL):
+		if(isinstance(URL, str)):
 			headers = self.assembleHeaders()
-			if(headers):
+			if(isinstance(headers, dict)):
 				response = requests.get(URL, headers=headers)
 				if(response):
 					if(response.status_code == 200):
 						data = json.loads(response.text)
-						if(data):
+						if(isinstance(data, dict)):
+							self.id   = get(data, "id")
+							self.UUID = get(data, "uuid")
 							self.data = data
 							
-							return True
+							return data
 						else:
 							raise RuntimeError("Invalid JSON Data!")
 					else:
@@ -189,15 +236,9 @@ class BaseRecord(ABC):
 			else:
 				raise RuntimeError("Missing DOR API Version Environment Variable!")
 		else:
-			raise RuntimeError("Missing DOR API Version Environment Variable!")
+			raise RuntimeError("The record URL was invalid!")
 		
-		return False
-	
-	@abstractmethod
-	def entityType(self):
-		"""Provide a method for determining the correct target entity type"""
-		
-		pass
+		return None
 	
 	def mapData(self):
 		"""Orchestrate the data mapping process"""
@@ -210,7 +251,8 @@ class BaseRecord(ABC):
 				self.entity = entity
 				
 				# Assign entity ID
-				self.entity.id = self.generateEntityURI();
+				self.entity.id    = self.generateEntityURI()
+				self.entity._name = self.entityTypeName()
 				
 				# For debugging, support emitting all or part of the obtained record data
 				testDebug = False
@@ -241,7 +283,7 @@ class BaseRecord(ABC):
 				# we will then call any of the discovered "map" methods to update
 				# the entity instance by mapping part of the data; we exclude
 				# any calls to the "mapData" method below to prevent infinite recursion
-				methods = inspect.getmembers(self, predicate=inspect.ismethod);
+				methods = inspect.getmembers(self, predicate=inspect.ismethod)
 				for method in methods:
 					if(method and method[0]):
 						methodName = method[0];
@@ -249,6 +291,8 @@ class BaseRecord(ABC):
 							if(methodName.startswith("map")):
 								if(methodName not in ["mapData"]):
 									methodNames.append(methodName)
+									
+									# obtain a reference to the named method via getattr()
 									mapMethod = getattr(self, methodName)
 									if(mapMethod):
 										# Run all methods if no test has been defined, or just the matching method
@@ -275,11 +319,50 @@ class BaseRecord(ABC):
 		
 		return None
 	
-	def toJSON(self):
+	def mapDigitalObjectRepositoryID(self, entity, data):
+		"""Map the record's DOR ID and UUID"""
+		
+		number = get(data, "id")
+		if(number):
+			identifier = Identifier()
+			identifier.id = self.generateEntityURI(sub=["identifier", "dor-id"])
+			identifier._label = "Getty Digital Object Repository (DOR) ID"
+			identifier.content = number
+			
+			identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/dor-identifier", label="Getty Digital Object Repository (DOR) ID")
+			
+			entity.identified_by = identifier
+		
+		number = get(data, "uuid")
+		if(number):
+			identifier = Identifier()
+			identifier.id = self.generateEntityURI(sub=["identifier", "dor-uuid"])
+			identifier._label = "Getty Digital Object Repository (DOR) UUID"
+			identifier.content = number
+			
+			identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/universally-unique-identifier", label="Universally Unique Identifier (UUID)")
+			
+			entity.identified_by = identifier
+	
+	def mapTheMuseumSystemID(self, entity, data):
+		"""Map the record's TMS ID"""
+		
+		number = get(data, "record_identifier")
+		if(number):
+			identifier = Identifier()
+			identifier.id = self.generateEntityURI(sub=["identifier", "tms-id"])
+			identifier._label = "Gallery Systems' The Museum System (TMS) ID"
+			identifier.content = number
+			
+			identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms-identifier", label="Gallery Systems' The Museum System (TMS) ID")
+			
+			entity.identified_by = identifier
+	
+	def toJSON(self, compact=False):
 		"""Convert the mapped data into its JSON-LD serialization using CROM's Factory.toString() method"""
 		
 		if(self.entity):
-			data = factory.toString(self.entity, compact=False)
+			data = factory.toString(self.entity, compact=compact)
 			if(data):
 				return data
 		

@@ -16,6 +16,7 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
 COPY ./source/transformer/app /app
+COPY ./source/app/database /app/database
 COPY ./source/app/utilities /app/utilities
 
 COPY ./source/transformer/startup.py /startup.py
@@ -34,4 +35,4 @@ EXPOSE 5200
 # CMD [ "/bin/bash" ];
 
 # Run our application startup script...
-CMD [ "/startup.sh" ];
+# CMD [ "/startup.sh" ];

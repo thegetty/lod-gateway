@@ -11,14 +11,12 @@ from cromulent.model import factory, \
 	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan, Production, \
 	PropositionalObject as Exhibition
 
-from .. utilities import get, has, debug
+from ..... utilities import get, has, debug
 
 class ConstituentRecord(BaseRecord):
 	
-	def __init__(self, id):
-		super().__init__(id)
-		self.resource = "constituent"
-		# self.info()
+	def resourceType(self):
+		return "constituent"
 	
 	def entityType(self):
 		if(self.data):

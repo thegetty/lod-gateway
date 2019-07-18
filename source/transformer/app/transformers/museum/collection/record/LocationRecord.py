@@ -11,14 +11,12 @@ from cromulent.model import factory, \
 	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan, Production, \
 	PropositionalObject as Exhibition
 
-from .. utilities import get, has, debug
+from ..... utilities import get, has, debug
 
 class LocationRecord(BaseRecord):
 	
-	def __init__(self, id):
-		super().__init__(id)
-		self.resource = "location"
-		# self.info()
+	def resourceType(self):
+		return "location"
 	
 	def entityType(self):
 		return Place

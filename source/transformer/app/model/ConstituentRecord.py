@@ -15,10 +15,8 @@ from .. utilities import get, has, debug
 
 class ConstituentRecord(BaseRecord):
 	
-	def __init__(self, id):
-		super().__init__(id)
-		self.resource = "constituent"
-		# self.info()
+	def resourceType(self):
+		return "constituent"
 	
 	def entityType(self):
 		if(self.data):

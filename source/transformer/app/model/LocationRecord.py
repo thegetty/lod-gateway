@@ -15,10 +15,8 @@ from .. utilities import get, has, debug
 
 class LocationRecord(BaseRecord):
 	
-	def __init__(self, id):
-		super().__init__(id)
-		self.resource = "location"
-		# self.info()
+	def resourceType(self):
+		return "location"
 	
 	def entityType(self):
 		return Place

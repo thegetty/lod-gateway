@@ -15,10 +15,8 @@ from .. utilities import get, has, debug
 
 class ExhibitionRecord(BaseRecord):
 	
-	def __init__(self, id):
-		super().__init__(id)
-		self.resource = "exhibition"
-		# self.info()
+	def resourceType(self):
+		return "exhibition"
 	
 	def entityType(self):
 		return Exhibition

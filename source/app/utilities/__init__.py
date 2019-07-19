@@ -93,13 +93,25 @@ def get(variable, *args, **kwargs):
 		if(args and len(args) > 0):
 			keys = args
 			
-			if(len(args) == 1):
-				if(isinstance(args[0], str)):
-					if("." in args[0]):
-						keys = args[0].split(".")
+			if(len(keys) == 1):
+				if(isinstance(keys[0], str) and len(keys[0]) > 0):
+					if("." in keys[0]):
+						keys = keys[0].split(".")
+					else:
+						keys = [keys[0]]
+				elif(isinstance(keys[0], list)):
+					keys = keys[0]
+				else:
+					keys = []
 			
-			for key in keys:
-				if(key in value):
+			for index, key in enumerate(keys):
+				# debug("key[%d] = %s (%s) => %s (%s)" % (index, key, type(key), value, type(value)))
+				
+				if(isinstance(value, list) and isinstance(key, int) and (key < len(value))):
+					value = value[key]
+				elif(isinstance(value, tuple) and isinstance(key, int) and (key < len(value))):
+					value = value[key]
+				elif(isinstance(key, str) and (isinstance(value, dict)) and (key in value)):
 					value = value[key]
 				else:
 					value = None

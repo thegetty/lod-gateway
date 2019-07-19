@@ -8,6 +8,7 @@ _*
 .*
 !.circleci
 !.gitignore
+!.gitattributes
 !.dockerignore
 !.env.example
 *.pyc

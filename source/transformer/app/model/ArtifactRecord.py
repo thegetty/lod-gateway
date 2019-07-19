@@ -18,14 +18,16 @@ import json
 
 class ArtifactRecord(BaseRecord):
 	
-	def __init__(self, id):
-		super().__init__(id)
-		self.resource = "artifact"
-		self.cultures = self.loadCultures()
-		# self.info()
+	def resourceType(self):
+		return "artifact"
 	
 	def entityType(self):
+		"""Provide a method for determining the correct target entity type"""
 		return Object
+	
+	def entityTypeName(self, **kwargs):
+		"""Provide a method for determining the correct target entity type"""
+		return "Object"
 	
 	def loadCultures(self):
 		with open(os.path.dirname(os.path.abspath(__file__)) + "/../data/Cultures.json", "r") as file:
@@ -183,20 +185,22 @@ class ArtifactRecord(BaseRecord):
 				
 				entity.referred_to_by = lobj
 			
-			# Add a Type to the Object via its "classified_as" property that points to the AAT ID for the matched culture
-			# where we can find an exact match; also add a "classified_as" to the Type of http://vocab.getty.edu/aat/300055768 (culture);
-			# This allows us to convey both the literal string as well as (where known) the exact match for the AAT vocabulary term
-			if(culture in self.cultures):
-				info = self.cultures[culture]
-				if(info):
-					type = Type()
-					type.id = info["id"];
-					type._label = info["label"];
-					
-					# Map the "Culture" classification
-					type.classified_as = Type(ident="http://vocab.getty.edu/aat/300055768", label="Culture")
-					
-					entity.classified_as = type;
+			cultures = self.loadCultures()
+			if(cultures):
+				# Add a Type to the Object via its "classified_as" property that points to the AAT ID for the matched culture
+				# where we can find an exact match; also add a "classified_as" to the Type of http://vocab.getty.edu/aat/300055768 (culture);
+				# This allows us to convey both the literal string as well as (where known) the exact match for the AAT vocabulary term
+				if(culture in cultures):
+					info = cultures[culture]
+					if(info):
+						type = Type()
+						type.id = info["id"];
+						type._label = info["label"];
+						
+						# Map the "Culture" classification
+						type.classified_as = Type(ident="http://vocab.getty.edu/aat/300055768", label="Culture")
+						
+						entity.classified_as = type;
 	
 	# Map Object Material Statement (Medium)
 	def mapMaterialStatement(self, entity, data):

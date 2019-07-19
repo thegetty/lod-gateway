@@ -16,6 +16,8 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
 COPY ./source/web-service/app /app
+COPY ./source/app/database /app/database
+COPY ./source/app/routes /app/routes
 COPY ./source/app/utilities /app/utilities
 
 COPY ./source/web-service/startup.py /startup.py

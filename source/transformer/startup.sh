@@ -19,3 +19,5 @@ else # or when running in Docker...
 	# ...our environment variables will be available through docker-compose.yml or from Hashicorp Vault in production
 	python3 "${DIR}/startup.py" $@;
 fi
+
+# Test for CRLF - LF fix

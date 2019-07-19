@@ -15,13 +15,29 @@ from .. utilities import get, has, debug
 
 class GalleryRecord(BaseRecord):
 	
-	def __init__(self, id):
-		super().__init__(id)
-		self.resource = "gallery"
-		# self.info()
+	def resourceType(self):
+		return "gallery"
 	
 	def entityType(self):
 		return Place
 	
 	def mapEntity(self, entity, data):
+		pass
+	
+	def mapID(self, entity, data):
+		pass
+	
+	def mapName(self, entity, data):
+		pass
+	
+	def mapPavilion(self, entity, data):
+		pass
+	
+	def mapBuilding(self, entity, data):
+		pass
+	
+	def mapFloor(self, entity, data):
+		pass
+	
+	def mapRoom(self, entity, data):
 		pass

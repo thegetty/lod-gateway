@@ -6,38 +6,49 @@ services:
             context: ./
             dockerfile: ./services/postgres/Dockerfile
         environment:
+            POSTGRES_HOST:     ${MART_POSTGRES_HOST}
             POSTGRES_USER:     ${MART_POSTGRES_USER}
             POSTGRES_PASSWORD: ${MART_POSTGRES_PASSWORD}
             POSTGRES_DB:       ${MART_POSTGRES_DB}
             POSTGRES_PORT:     5432
             PGDATA:            ${MART_PGDATA}
             TZ:                ${MART_TIMEZONE}
+        expose:
+            - "${MART_POSTGRES_PORT}"
         ports:
             - "${MART_POSTGRES_PORT}:5432"
         stop_grace_period: 10s
         stop_signal: SIGTERM
         volumes:
-             - data_postgres:/var/lib/postgresql/data
+            - data_postgres:/var/lib/postgresql/data
 
     transformer:
         build:
             context: ./
             dockerfile: ./source/transformer/Dockerfile
         environment:
-            LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
-            SHELL:                ${SHELL}
-            TZ:                   ${MART_TIMEZONE}
-            MART_DOR_BASE_URL:    ${MART_DOR_BASE_URL}
-            MART_DOR_API_USER:    ${MART_DOR_API_USER}
-            MART_DOR_API_KEY:     ${MART_DOR_API_KEY}
-            MART_DOR_API_VERSION: ${MART_DOR_API_VERSION}
-            MART_DOR_API_CACHING: ${MART_DOR_API_CACHING}
-            MART_LOD_BASE_URL:    ${MART_LOD_BASE_URL}
+            LD_LIBRARY_PATH:        /usr/local/lib:/usr/local/lib64
+            SHELL:                  ${SHELL}
+            TZ:                     ${MART_TIMEZONE}
+            MART_POSTGRES_HOST:     "postgres"
+            MART_POSTGRES_PORT:     "5432"
+            MART_POSTGRES_USER:     ${MART_POSTGRES_USER}
+            MART_POSTGRES_PASSWORD: ${MART_POSTGRES_PASSWORD}
+            MART_POSTGRES_DB:       ${MART_POSTGRES_DB}
+            MART_DOR_BASE_URL:      ${MART_DOR_BASE_URL}
+            MART_DOR_FIND_URL:      ${MART_DOR_FIND_URL}
+            MART_DOR_API_USER:      ${MART_DOR_API_USER}
+            MART_DOR_API_KEY:       ${MART_DOR_API_KEY}
+            MART_DOR_API_VERSION:   ${MART_DOR_API_VERSION}
+            MART_DOR_API_CACHING:   ${MART_DOR_API_CACHING}
+            MART_LOD_BASE_URL:      ${MART_LOD_BASE_URL}
         volumes:
             # use a volume mount to dynamically bind the application's source code
             - ./source/transformer/startup.py:/startup.py
             - ./source/transformer/startup.sh:/startup.sh
             - ./source/transformer/app:/app
+            # use a volume mount to dynamically bind the shared database code
+            - ./source/app/database:/app/database
             # use a volume mount to dynamically bind the shared utilities code
             - ./source/app/utilities:/app/utilities
             # use a volume mount to dynamically bind the data path
@@ -45,7 +56,7 @@ services:
             # use a volume mount to dynamically bind the tests path
             - ./tests:/usr/local/mart/tests
         ports:
-             - "5200:5200"
+             - "${MART_TRANSFORMER_PORT}:5200"
         links:
             - postgres:postgres
         stdin_open: true
@@ -56,17 +67,25 @@ services:
             context: ./
             dockerfile: ./source/web-service/Dockerfile
         environment:
-            LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
-            SHELL:           ${SHELL}
-            TZ:              ${MART_TIMEZONE}
-            FLASK_ENV:       ${MART_FLASK_ENV}
-            FLASK_DEBUG:     ${MART_FLASK_DEBUG}
-            FLASK_APP:       ${MART_FLASK_APP}
+            LD_LIBRARY_PATH:        /usr/local/lib:/usr/local/lib64
+            SHELL:                  ${SHELL}
+            TZ:                     ${MART_TIMEZONE}
+            MART_POSTGRES_HOST:     "postgres"
+            MART_POSTGRES_PORT:     "5432"
+            MART_POSTGRES_USER:     ${MART_POSTGRES_USER}
+            MART_POSTGRES_PASSWORD: ${MART_POSTGRES_PASSWORD}
+            MART_POSTGRES_DB:       ${MART_POSTGRES_DB}
+            MART_LOD_BASE_URL:      ${MART_LOD_BASE_URL}
+            FLASK_ENV:              ${MART_FLASK_ENV}
+            FLASK_DEBUG:            ${MART_FLASK_DEBUG}
+            FLASK_APP:              ${MART_FLASK_APP}
         volumes:
             # use a volume mount to dynamically bind the application's source code
             - ./source/web-service/startup.py:/startup.py
             - ./source/web-service/startup.sh:/startup.sh
             - ./source/web-service/app:/app
+            # use a volume mount to dynamically bind the shared database code
+            - ./source/app/database:/app/database
             # use a volume mount to dynamically bind the shared utilities code
             - ./source/app/utilities:/app/utilities
             # use a volume mount to dynamically bind the data path
@@ -74,7 +93,7 @@ services:
             # use a volume mount to dynamically bind the tests path
             - ./tests:/usr/local/mart/tests
         ports:
-            - "5100:5100"
+            - "${MART_WEB_SERVICE_PORT}:5100"
         links:
             - postgres:postgres
 

@@ -7,29 +7,49 @@ The project will eventually allow the conversion of the entirety of the Museum's
 
 **Components**
 
-The MART project consists of the following proposed software components:
+The MART project consists of the following primary software components:
 
 - [Python](https://www.python.org) version 3.7+
 - [CROM](https://github.com/thegetty/crom)
 - [Flask](http://flask.pocoo.org)
+- [Psycopg2](http://initd.org/psycopg/)
 
 **Setup Instructions**
 
-The installation instructions currently stand as follows; these will be updated over time as the repository and its capabilites evolve.
+The MART project application is containerised using Docker, and comprises of two primary services: the `transformer` and the `web-service`, and for development purposes, a third `postgres` service is bundled with the application to allow for local developemnt as well as to support continuous integration testing. The source code for the primary services may be found nested within the top-level `source` directory within this repository, and the `postgres` service configuration may be found within the top-level `servicess` directory. Each service has its own `Dockerfile` and these are tied together for development via the project's `docker-compose.yml` file. Configuration settings for the application are defined within an `.env` file, which is read by the `docker-compose` command automatically into the build and runtime environment via the `docker-compose.yml` file. More information on configuring the application may be found below in the **Configuration** section.
+
+The installation, build and startup instructions for development are as follows:
 
 1. Ensure that [Docker Desktop](https://www.docker.com) is installed on your system; follow the instructions available at: https://www.docker.com/products/docker-desktop.
 2. Clone the project repository from GitHub: `git clone https://github.com/thegetty/museum-collections-data-to-linked-art museum-art`
 3. Switch to the local project repository directory: `cd museum-art`
-4. To build or rebuild the container, run: `docker build --tag museum-art-app .`
-5. To start the application, run: `docker run --name museum-art -p 5000:5000 museum-art-app`
-6. Repeat steps 4/5 as needed during development and testing.
+4. To build or rebuild the container, run: `docker-compose build`
+5. To start the application, run: `docker-compose up`
+
+While the `Dockerfile` for each of the application's services copy in the necessary source code assets, as an affordance for development, the project's `docker-compose.yml` file mounts the project's source code over the copied source code assets within each resulting Docker container. This means that when the application is run via `docker-compose`, changes made to project source code in the project repository are immediately reflected within the relevant service container. This allows iterative changes to be made to the project code efficiently without having to continually rebuild the Docker containers and relaunch the application, thus saving a great deal of time.
+
+As each service has its own default `ENTRYPOINT` / `CMD` configured, when working with the project in a development capacity, it is useful to interact with each container via the shell. This can be achieved using the `exec` subcommand of `docker-compose` as follows, with `bash` being the preferred shell for this project:
+
+	$ docker-compose exec <service> bash
+	
+One should replace `<service>` in the command above with the relevant name of one of the application's available services, which are currently comprised of the following:
+	
+- `postgres`
+- `transformer`
+- `web-service`
 
 Overall the setup process would look something like this:
 
 	$ git clone https://github.com/thegetty/museum-collections-data-to-linked-art museum-art
 	$ cd museum-art
-	$ docker build --tag museum-art-app .
-	$ docker run --name museum-art -p 5000:5000 museum-art-app
+	$ docker-compose build
+	$ docker-compose up
+
+To shut the application down at any time, from within the root of the project's source code repository run the following:
+
+	$ docker-compose down
+	
+This may take several seconds to complete, to allow the safe shutdown of the application's bundled PostgreSQL instance.
 
 **Local Deployment Instructions**
 
@@ -45,4 +65,4 @@ The proposed process of operation will involve supporting two modes of operation
 
 **License and Copyright Information**
 
-© The J. Paul Getty Trust 2019. All rights reserved.
+Copyright © The J. Paul Getty Trust 2019. All rights reserved.

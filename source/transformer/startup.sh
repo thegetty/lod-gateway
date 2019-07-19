@@ -1,14 +1,15 @@
 #!/bin/bash
 
+# determine the path to this script, regardless of where it is run from
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
 
-echo "startup.sh path ${DIR}";
+echo "startup.sh path: ${DIR}";
 
 # run the process...
 
 # if running our script directly on the command line (detected here by ${DIR} not being "/")...
 if [ "${DIR}" != "/" ]; then
-	# import our environment variables from our .evn file...
+	# import our environment variables...
 	ENV="$( cd "$( dirname "${DIR}/../../.env" )" && pwd )/.env";
 	
 	# see https://stackoverflow.com/questions/19331497/set-environment-variables-from-file-of-key-pair-values

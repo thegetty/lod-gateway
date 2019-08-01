@@ -13,7 +13,7 @@ WORKDIR /
 
 # Copy and install our dependencies from requirements.txt
 COPY requirements.txt /app/requirements.txt
-RUN pip install -r /app/requirements.txt ; return 0;
+RUN pip install -r /app/requirements.txt
 
 COPY ./source/web-service/app /app
 COPY ./source/app/database /app/database

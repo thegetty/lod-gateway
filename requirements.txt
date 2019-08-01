@@ -1,4 +1,4 @@
-git+https://github.com/thegetty/crom.git#egg=crom
+git+https://github.com/thegetty/crom.git#egg=cromulent
 flask
 pytest
 requests

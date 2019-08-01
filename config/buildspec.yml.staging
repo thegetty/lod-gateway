@@ -22,7 +22,7 @@ phases:
       - docker build -t $WEB_SERVICE_REPOSITORY_URI:latest -f Dockfile .
       - docker tag $WEB_SERVICE_REPOSITORY_URI:latest $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG
       - echo Building the transformer container...
-      - cd .. 
+      - cd ../.. 
       - cd source/transformer/      
       - docker build -t $TRANSFORMER_REPOSITORY_URI:latest -f Dockerfile .
       - docker tag $TRANSFORMER_REPOSITORY_URI:latest $TRANSFORMER_REPOSITORY_URI:$IMAGE_TAG

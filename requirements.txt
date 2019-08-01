@@ -1,4 +1,4 @@
-git+https://github.com/thegetty/crom.git#egg=crom
+git+https://github.com/thegetty/crom.git#egg=crom; return 0;
 flask
 pytest
 requests

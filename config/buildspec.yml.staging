@@ -18,10 +18,13 @@ phases:
       - echo Build started on `date`
       - echo Building the Docker images...
       - echo Building the web museum collections container...
-      - docker build -t $WEB_SERVICE_REPOSITORY_URI:latest -f /source/web-service/Dockfile .
+      - cd source/web-service/
+      - docker build -t $WEB_SERVICE_REPOSITORY_URI:latest -f Dockfile .
       - docker tag $WEB_SERVICE_REPOSITORY_URI:latest $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG
       - echo Building the transformer container...
-      - docker build -t $TRANSFORMER_REPOSITORY_URI:latest -f /source/transformer/Dockerfile .
+      - cd .. 
+      - cd source/transformer/      
+      - docker build -t $TRANSFORMER_REPOSITORY_URI:latest -f Dockerfile .
       - docker tag $TRANSFORMER_REPOSITORY_URI:latest $TRANSFORMER_REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:

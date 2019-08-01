@@ -7,9 +7,9 @@ LABEL Authors="Daniel Sissman <dsissman@getty.edu>, Viktor Grabarchuk <vgrabarch
 WORKDIR /
 
 # Later in preparation for deploying our container we need to integrate and test with envconsul...
-# COPY --from=getty/envconsul:latest /bin/envconsul /usr/local/bin/envconsul
-# COPY --from=getty/envconsul:latest /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-# RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY --from=getty/envconsul:latest /bin/envconsul /usr/local/bin/envconsul
+COPY --from=getty/envconsul:latest /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Copy and install our dependencies from requirements.txt
 COPY requirements.txt /app/requirements.txt
@@ -30,8 +30,8 @@ SHELL ["/bin/bash", "--login", "-c"]
 EXPOSE 5200
 
 # Later in preparation for deploying our container we need to integrate and test with envconsul...
-# ENTRYPOINT [ "docker-entrypoint.sh" ]
-# CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "uwsgi", "--http 0.0.0.0:5000", "--manage-script-name", "--mount /=museum-linked-art.app:app" ]
+ENTRYPOINT [ "docker-entrypoint.sh" ]
+CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "uwsgi", "--http 0.0.0.0:5000", "--manage-script-name", "--mount /=museum-linked-art.app:app" ]
 # CMD [ "/bin/bash" ];
 
 # Run our application startup script...

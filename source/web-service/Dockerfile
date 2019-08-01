@@ -13,7 +13,13 @@ WORKDIR /
 
 # Copy and install our dependencies from requirements.txt
 COPY requirements.txt /app/requirements.txt
-RUN pip install -r /app/requirements.txt
+#RUN pip install -r /app/requirements.txt
+RUN pip install -r git+https://github.com/thegetty/crom.git#egg=crom; return 0;
+RUN pip install -r flask
+RUN pip install -r pytest
+RUN pip install -r requests
+RUN pip install -r uWSGI
+RUN pip install -r psycopg2
 
 COPY ./source/web-service/app /app
 COPY ./source/app/database /app/database

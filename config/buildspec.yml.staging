@@ -21,14 +21,14 @@ phases:
       - pwd
       - cd source/web-service/
       - pwd
-      - docker build -t $WEB_SERVICE_REPOSITORY_URI:latest -f Dockerfile .
+      - docker build -t $WEB_SERVICE_REPOSITORY_URI:latest .
       - docker tag $WEB_SERVICE_REPOSITORY_URI:latest $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG
       - echo Building the transformer container...
       - cd ../..
       - pwd
       - cd source/transformer/
       - pwd
-      - docker build -t $TRANSFORMER_REPOSITORY_URI:latest -f Dockerfile .
+      - docker build -t $TRANSFORMER_REPOSITORY_URI:latest .
       - docker tag $TRANSFORMER_REPOSITORY_URI:latest $TRANSFORMER_REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:

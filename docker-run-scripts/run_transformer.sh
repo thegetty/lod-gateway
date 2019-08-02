@@ -1,4 +1,4 @@
-docker run --network=mart-transformer --name=mart-transformer --rm -p 5200:5200 -d \
+docker run --network=mart --name=mart-transformer -p 5200:5200 -d \
 -e VAULT_ADDR="${VAULT_ADDR}" \
 -e VAULT_TOKEN="${VAULT_TOKEN}" \
 -e VAULT_ENV="${VAULT_ENV}" \

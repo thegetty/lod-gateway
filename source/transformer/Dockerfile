@@ -16,7 +16,10 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
 COPY ./source/transformer/app /app
+COPY ./source/app/di /app/di
 COPY ./source/app/database /app/database
+COPY ./source/app/graph /app/graph
+COPY ./source/app/model /app/model
 COPY ./source/app/utilities /app/utilities
 
 COPY ./source/transformer/startup.py /startup.py

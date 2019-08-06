@@ -1,6 +1,8 @@
+git+https://github.com/bluebinary/abcplus@master#egg=abcplus
 git+https://github.com/thegetty/crom.git#egg=cromulent
 flask
 pytest
 requests
 uWSGI
 psycopg2
+pytz

@@ -1,5 +1,13 @@
-from . BaseRecord import BaseRecord
+import os
+import json
 
+# Import our application utility functions
+from app.utilities import get, has, debug
+
+# Import our Museum Collection BaseTransformer class
+from app.transformers.museum.collection.BaseTransformer import BaseTransformer
+
+# Import the cromulent model for handling the assembly and export of our linked data
 from cromulent.model import factory, \
 	Identifier, Mark, HumanMadeObject as Object, Type, \
 	Person, Material, MeasurementUnit, Place, Dimension, Currency, \
@@ -11,12 +19,13 @@ from cromulent.model import factory, \
 	PropositionalObject, Payment, Creation, Phase, Birth, Death, TimeSpan, Production, \
 	PropositionalObject as Exhibition
 
-from .. utilities import get, has, debug
-
-import os
-import json
-
-class ArtifactRecord(BaseRecord):
+class ArtifactTransformer(BaseTransformer):
+	
+	def activityStreamObjectTypes(self):
+		"""Provide a method for conveying the supported Activity Stream Object type names that this transformer will handle"""
+		return [
+			"Artifact",
+		]
 	
 	def resourceType(self):
 		return "artifact"
@@ -30,7 +39,7 @@ class ArtifactRecord(BaseRecord):
 		return "Object"
 	
 	def loadCultures(self):
-		with open(os.path.dirname(os.path.abspath(__file__)) + "/../data/Cultures.json", "r") as file:
+		with open(os.path.dirname(os.path.abspath(__file__)) + "/./data/Cultures.json", "r") as file:
 			content = file.read()
 		
 		if(content):
@@ -42,7 +51,7 @@ class ArtifactRecord(BaseRecord):
 		return None
 	
 	def loadMaterials(self):
-		with open(os.path.dirname(os.path.abspath(__file__)) + "/../data/Materials.json", "r") as file:
+		with open(os.path.dirname(os.path.abspath(__file__)) + "/./data/Materials.json", "r") as file:
 			content = file.read()
 		
 		if(content):
@@ -59,9 +68,9 @@ class ArtifactRecord(BaseRecord):
 	
 	# Map RightsStatements.org Assertion
 	def mapRightsStatement(self, entity, data):
-		assertion = get(data, "display.images.rights.display.value")
+		assertion = get(data, "display.rights.display.value")
 		if(assertion):
-			link = get(data, "display.images.rights.display.uri")
+			link = get(data, "display.rights.display.uri")
 			if(link):
 				lobj = LinguisticObject()
 				lobj.id = link
@@ -403,6 +412,43 @@ class ArtifactRecord(BaseRecord):
 					
 					entity.representation = visual
 	
+	# Map Object Main Image IIIF
+	def mapMainImageIIIF(self, entity, data):
+		image = get(data, "display.images.display")
+		if(image):
+			derivative = None
+			
+			if(has(image, "iiif")):
+				manifest = get(image, "iiif.manifest")
+				profile  = get(image, "iiif.profile")
+			
+			# TODO How do we add InformationObjects to images? How do we define administrative attributes this way?
+			info = InformationObject()
+			
+			info.id = "https://data.getty.edu/museum/api/iiif/" + get(data, "uuid") + "/manifest.json"
+			
+			# Traceback (most recent call last):
+			# File "//startup.py", line 63, in <module>
+			# if(manager.processEntity(entity=options["entity"], id=options["id"], namespace=options["namespace"])):
+			# File "/app/manager/__init__.py", line 60, in processEntity
+			# if(entity.mapData()):
+			# File "/app/transformers/__init__.py", line 425, in mapData
+			# mapMethod(self.entity, self.data)
+			# File "/app/transformers/museum/collection/ArtifactTransformer.py", line 430, in mapMainImageIIIF
+			# info.conforms_to = Type(id="http://iiif.io/api/presentation")
+			# File "/usr/local/lib/python3.7/site-packages/cromulent/model.py", line 505, in __setattr__
+			# ok = self._check_prop(which, value)
+			# File "/usr/local/lib/python3.7/site-packages/cromulent/model.py", line 543, in _check_prop
+			# raise DataError("Can't set '%s' on resource of type '%s' to '%r'" % (which, self._type, value), self)
+			# cromulent.model.DataError: Can't set 'conforms_to' on resource of type 'crm:E73_Information_Object' to '<cromulent.model.Type object at 0x7f58c6a76a20>'
+			
+			# cannot set InformationObject.conforms_to due to CROM error! CROM and/or Linked.art documentation are wrong!
+			# info.conforms_to = Type(id="http://iiif.io/api/presentation")
+			
+			info.format = "application/ld+json;profile=\"http://iiif.io/api/presentation/2/context.json\"",
+			
+			entity.subject_of = info
+	
 	# Map Alternate Images
 	def mapAlternateImages(self, entity, data):
 		pass
@@ -448,7 +494,7 @@ class ArtifactRecord(BaseRecord):
 				group._label = value + " (Curatorial Department)"
 				
 				# Obtain a copy of the J. Paul Getty Museum Group
-				group.member_of = self.createGettyMuseumGroup(); # defined in BaseRecord.py
+				group.member_of = self.createGettyMuseumGroup(); # defined in BaseTransformer.py
 				
 				# Map the "Department (Organizational Unit)" classification
 				group.classified_as = Type(ident="http://vocab.getty.edu/aat/300263534", label="Department (Organizational Unit)");
@@ -643,3 +689,8 @@ class ArtifactRecord(BaseRecord):
 						production.took_place_at = place
 					
 					entity.produced_by = production
+					
+					# TODO Fix this method for multiple makers!
+					# For now, break out of the loop, ignoring additional makers
+					break
+					

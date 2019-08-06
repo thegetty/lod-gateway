@@ -1,5 +1,5 @@
 # See https://hub.docker.com/_/postgres
-FROM postgres:9.6.11
+FROM postgres:10.7
 
 MAINTAINER Daniel Sissman <dsissman@getty.edu>
 MAINTAINER Viktor Grabarchuk <vgrabarchuk@getty.edu>

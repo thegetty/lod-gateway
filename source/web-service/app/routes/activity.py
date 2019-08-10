@@ -105,6 +105,11 @@ def activityStream(path=None):
 	pages    = 0
 	data     = None
 	
+	if(limit < 10):
+		limit = 10
+	elif(limit > 1000):
+		limit = 1000
+	
 	if(UUID):
 		activity = Activity.findFirst("uuid = :uuid:", bind={"uuid": UUID})
 		if(activity):
@@ -181,8 +186,15 @@ def activityStream(path=None):
 				if(next > last):
 					next = 0
 				
-				query["offset"]   = offset
+				if(offset > 0):
+					_offset = (offset - 1)
+				elif(offset == 0):
+					_offset = offset
+				else:
+					_offset = 0
+				
 				query["limit"]    = limit
+				query["offset"]   = limit * _offset
 				query["ordering"] = {"id": "ASC"}
 				
 				data = {

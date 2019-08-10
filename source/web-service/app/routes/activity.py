@@ -327,21 +327,39 @@ def generateActivityStreamItem(activity, **kwargs):
 			"published": None,
 		}
 		
-		if(activity.datetime_created):
-			item["created"] = activity.datetime_created
+		created = activity.datetime_created
+		if(created):
+			created = datetime.strptime(created, "%Y-%m-%d %H:%M:%S%z")
+			if(created):
+				created = date("%Y-%m-%dT%H:%M:%S%z", timestamp=created)
 		
-		if(activity.datetime_updated):
-			item["updated"] = activity.datetime_updated
-		else:
-			item["updated"] = activity.datetime_created
+		updated = activity.datetime_updated
+		if(updated):
+			updated = datetime.strptime(updated, "%Y-%m-%d %H:%M:%S%z")
+			if(updated):
+				updated = date("%Y-%m-%dT%H:%M:%S%z", timestamp=updated)
 		
-		if(activity.datetime_published):
-			item["published"] = activity.datetime_published
+		published = activity.datetime_published
+		if(published):
+			published = datetime.strptime(published, "%Y-%m-%d %H:%M:%S%z")
+			if(published):
+				published = date("%Y-%m-%dT%H:%M:%S%z", timestamp=published)
+		
+		if(created):
+			item["created"] = created
+		
+		if(updated):
+			item["updated"] = updated
+		elif(created):
+			item["updated"] = created
+		
+		if(published):
+			item["published"] = published
 		else:
-			if(activity.datetime_updated):
-				item["published"] = activity.datetime_updated
-			else:
-				item["published"] = activity.datetime_created
+			if(updated):
+				item["published"] = updated
+			elif(created):
+				item["published"] = created
 		
 		record = activity.record
 		if(isinstance(record, Record)):

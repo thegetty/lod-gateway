@@ -105,6 +105,11 @@ def activityStream(path=None):
 	pages    = 0
 	data     = None
 	
+	if(limit < 10):
+		limit = 10
+	elif(limit > 1000):
+		limit = 1000
+	
 	if(UUID):
 		activity = Activity.findFirst("uuid = :uuid:", bind={"uuid": UUID})
 		if(activity):
@@ -181,8 +186,15 @@ def activityStream(path=None):
 				if(next > last):
 					next = 0
 				
-				query["offset"]   = offset
+				if(offset > 0):
+					_offset = (offset - 1)
+				elif(offset == 0):
+					_offset = offset
+				else:
+					_offset = 0
+				
 				query["limit"]    = limit
+				query["offset"]   = limit * _offset
 				query["ordering"] = {"id": "ASC"}
 				
 				data = {
@@ -327,21 +339,39 @@ def generateActivityStreamItem(activity, **kwargs):
 			"published": None,
 		}
 		
-		if(activity.datetime_created):
-			item["created"] = activity.datetime_created
+		created = activity.datetime_created
+		if(created):
+			created = datetime.strptime(created, "%Y-%m-%d %H:%M:%S%z")
+			if(created):
+				created = date("%Y-%m-%dT%H:%M:%S%z", timestamp=created)
 		
-		if(activity.datetime_updated):
-			item["updated"] = activity.datetime_updated
-		else:
-			item["updated"] = activity.datetime_created
+		updated = activity.datetime_updated
+		if(updated):
+			updated = datetime.strptime(updated, "%Y-%m-%d %H:%M:%S%z")
+			if(updated):
+				updated = date("%Y-%m-%dT%H:%M:%S%z", timestamp=updated)
 		
-		if(activity.datetime_published):
-			item["published"] = activity.datetime_published
+		published = activity.datetime_published
+		if(published):
+			published = datetime.strptime(published, "%Y-%m-%d %H:%M:%S%z")
+			if(published):
+				published = date("%Y-%m-%dT%H:%M:%S%z", timestamp=published)
+		
+		if(created):
+			item["created"] = created
+		
+		if(updated):
+			item["updated"] = updated
+		elif(created):
+			item["updated"] = created
+		
+		if(published):
+			item["published"] = published
 		else:
-			if(activity.datetime_updated):
-				item["published"] = activity.datetime_updated
-			else:
-				item["published"] = activity.datetime_created
+			if(updated):
+				item["published"] = updated
+			elif(created):
+				item["published"] = created
 		
 		record = activity.record
 		if(isinstance(record, Record)):

@@ -344,18 +344,27 @@ def generateActivityStreamItem(activity, **kwargs):
 			created = datetime.strptime(created, "%Y-%m-%d %H:%M:%S%z")
 			if(created):
 				created = date("%Y-%m-%dT%H:%M:%S%z", timestamp=created)
+				if(created):
+					# Fix the timezone offset to add minute separator, as %Z does not work as documented for 3.7+
+					created = created[:-2] + ":" + created[-2:]
 		
 		updated = activity.datetime_updated
 		if(updated):
 			updated = datetime.strptime(updated, "%Y-%m-%d %H:%M:%S%z")
 			if(updated):
 				updated = date("%Y-%m-%dT%H:%M:%S%z", timestamp=updated)
+				if(updated):
+					# Fix the timezone offset to add minute separator, as %Z does not work as documented for 3.7+
+					updated = updated[:-2] + ":" + updated[-2:]
 		
 		published = activity.datetime_published
 		if(published):
 			published = datetime.strptime(published, "%Y-%m-%d %H:%M:%S%z")
 			if(published):
 				published = date("%Y-%m-%dT%H:%M:%S%z", timestamp=published)
+				if(published):
+					# Fix the timezone offset to add minute separator, as %Z does not work as documented for 3.7+
+					published = published[:-2] + ":" + published[-2:]
 		
 		if(created):
 			item["created"] = created

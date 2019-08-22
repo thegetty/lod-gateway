@@ -34,8 +34,8 @@ class ArtifactTransformer(BaseTransformer):
 		"""Provide a method for determining the correct target entity type"""
 		return Object
 	
-	def entityTypeName(self, **kwargs):
-		"""Provide a method for determining the correct target entity type"""
+	def entityName(self):
+		"""Provide a method for determining the correct target entity type name"""
 		return "Object"
 	
 	def loadCultures(self):

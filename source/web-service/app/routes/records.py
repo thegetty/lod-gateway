@@ -27,19 +27,25 @@ def obtainRecord(namespace, entity, UUID):
 	
 	# return sprintf("You requested Namespace: %s for Entity: %s with UUID: %s" % (namespace, entity, UUID))
 	
+	# Define our default headers to add to the response
+	headers = {
+		"Server": "MART/1.0",
+		"Access-Control-Allow-Origin": "*",
+	}
+	
 	database = DI.get("database")
 	if(database):
 		connection = database.connect(autocommit=True)
 		if(connection):
 			DI.set("connection", connection)
 		else:
-			return Response(status=500, headers={
+			return Response(status=500, headers={**{
 				"X-Error": "Unable to obtain database connection!",
-			})
+			}, **headers})
 	else:
-		return Response(status=500, headers={
+		return Response(status=500, headers={**{
 			"X-Error": "Unable to obtain database handler!",
-		})
+		}, **headers})
 	
 	response = None
 	
@@ -66,10 +72,9 @@ def obtainRecord(namespace, entity, UUID):
 				if(isinstance(body, str) and len(body) > 0):
 					body = body.encode("utf-8")
 					
-					headers = {
-						"Date":   record.datetime_published,
-						"Server": "MART/1.0",
-					}
+					headers = {**{
+						"Date": record.datetime_published,
+					}, **headers}
 					
 					hasher = hashlib.sha1()
 					hasher.update(body)
@@ -79,28 +84,31 @@ def obtainRecord(namespace, entity, UUID):
 						headers["E-Tag"] = hash
 					
 					# see https://werkzeug.palletsprojects.com/en/0.15.x/wrappers/
-					response = Response(
-						body,
-						content_type='application/ld+json',
-						status=200,
-						headers=headers,
-					)
+					response = Response(body, status=200, content_type="application/ld+json;charset=UTF-8", headers=headers)
 				else:
 					debug("The result.data could not be serialized to JSON!", error=True)
 					
-					response = Response(status=404)
+					response = Response(status=404, headers={**{
+						"X-Error": "The result.data could not be serialized to JSON!",
+					}, **headers})
 			else:
 				debug("The result.data attribute is empty!", error=True)
 				
-				response = Response(status=404)
+				response = Response(status=404, headers={**{
+					"X-Error": "The result.data attribute is empty!",
+				}, **headers})
 		else:
 			debug("Unable to obtain matching record from database!", error=True)
 			
-			response = Response(status=404)
+			response = Response(status=404, headers={**{
+				"X-Error": "Unable to obtain matching record from database!",
+			}, **headers})
 	else:
 		debug("No valid entity type name was specified!", error=True)
 		
-		response = Response("Bad Request", status=400)
+		response = Response("Bad Request", status=400, headers={**{
+			"X-Error": "No valid entity type name was specified!",
+		}, **headers})
 	
 	database.disconnect(connection=connection)
 	

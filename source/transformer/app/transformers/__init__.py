@@ -205,8 +205,9 @@ class BaseTransformer(ABC):
 		"""Provide a method for determining the correct target entity type"""
 		pass
 	
+	@finalmethod
 	def entityTypeName(self, **kwargs):
-		"""Provide a method for determining the correct target entity type"""
+		"""Provide a method for determining the correct target entity type name"""
 		
 		if("entity" in kwargs):
 			entity = kwargs["entity"]
@@ -215,7 +216,15 @@ class BaseTransformer(ABC):
 		
 		if(entity):
 			if(isinstance(entity, type)):
+				if(entity == self.entityType()):
+					if(self.entityName):
+						return self.entityName()
+				
 				entity = entity()
+			else:
+				if(isinstance(entity, self.entityType())):
+					if(self.entityName):
+						return self.entityName()
 			
 			if(entity):
 				return entity.__class__.__name__
@@ -240,10 +249,13 @@ class BaseTransformer(ABC):
 	def generateEntityName(self, **kwargs):
 		"""Generate an hyphenated entity name for the current or provided entity for use in URIs/URLs"""
 		
+		debug("%s.generateEntityName(%s) called..." % (self.__class__.__name__, kwargs), level=1)
+		
 		entity = copy.copy(self.entity)
 		
 		if("entity" in kwargs):
-			entity = kwargs["entity"]
+			if(kwargs["entity"]):
+				entity = kwargs["entity"]
 		
 		if(entity):
 			# If the passed entity is a type, not an object
@@ -261,6 +273,8 @@ class BaseTransformer(ABC):
 	def generateEntityURI(self, **kwargs):
 		"""Generate an entity URI for the current or provided entity"""
 		
+		debug("%s.generateEntityURI(%s)" % (self.__class__.__name__, kwargs), level=1)
+		
 		baseURL       = os.getenv("MART_LOD_BASE_URL", None);
 		trailingSlash = os.getenv("MART_LOD_SLASH_URL", "YES")
 		
@@ -275,6 +289,8 @@ class BaseTransformer(ABC):
 		
 		if(not (isinstance(UUID, str) and len(UUID) > 0)):
 			raise RuntimeError("Missing entity UUID!")
+		
+		entity = None
 		
 		if(self.entity):
 			entity = self.entity
@@ -395,9 +411,8 @@ class BaseTransformer(ABC):
 				self.entity = entity
 				
 				# Assign entity ID
-				self.entity.id    = self.generateEntityURI()
-				self.entity._name = self.entityTypeName()
-				
+				self.entity.id = self.generateEntityURI()
+			
 				options = commandOptions({
 					"source": False,
 					"method": None,

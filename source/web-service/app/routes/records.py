@@ -84,7 +84,7 @@ def obtainRecord(namespace, entity, UUID):
 						headers["E-Tag"] = hash
 					
 					# see https://werkzeug.palletsprojects.com/en/0.15.x/wrappers/
-					response = Response(body, status=200, content_type="application/ld+json", headers=headers)
+					response = Response(body, status=200, content_type="application/ld+json;charset=UTF-8", headers=headers)
 				else:
 					debug("The result.data could not be serialized to JSON!", error=True)
 					

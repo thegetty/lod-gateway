@@ -532,6 +532,9 @@ class ArtifactTransformer(BaseTransformer):
 	
 	# Map Object Current Location
 	def mapCurrentLocation(self, entity, data):
+		# storage spaces = http://vocab.getty.edu/aat/300004465 (storage places)
+		# gallery spaces = http://vocab.getty.edu/aat/300240057 (display places)
+		
 		location = get(data, "display.location")
 		if(location):
 			id = get(data, "display.location.uuid")
@@ -539,6 +542,8 @@ class ArtifactTransformer(BaseTransformer):
 			# Add Object's Current Location (Gallery/Storage)
 			place = Place()
 			place.id = self.generateEntityURI(entity=Place, UUID=id)
+			place.classified_as = Type(id="http://vocab.getty.edu/aat/30024005", label="Galleries (Display Places)")
+			place._label = "Gallery"
 			
 			# Obtain the Object's current location display value (name)
 			value = get(location, "display.value") # e.g. "Getty Center, Museum West Pavilion, Gallery W204"
@@ -550,8 +555,21 @@ class ArtifactTransformer(BaseTransformer):
 				name.content = value
 				
 				place.identified_by = name
+		else:
+			id = "a03fec3c-c7a2-4b29-9995-5eddf3ceb0a4" # maps to the unknown storage location, perfect for the generic storage location concept
 			
-			entity.current_location = place
+			place = Place()
+			place.id = self.generateEntityURI(entity=Place, UUID=id)
+			place.classified_as = Type(id="http://vocab.getty.edu/aat/300004465", label="Storage Spaces")
+			place._label = "Storage"
+			
+			name = Name()
+			name.id = self.generateEntityURI(entity=Place, UUID=id, sub=["name"])
+			name.content = "Storage"
+			
+			place.identified_by = name
+		
+		entity.current_location = place
 	
 	# Map Object Dimensions
 	def mapDimensions(self, entity, data):

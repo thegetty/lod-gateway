@@ -1,5 +1,75 @@
 {
+	"$id": "https://mart.getty.edu/schemas/museum/collection/person.json",
+	
 	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "Person",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty MART JSON Schema Documentation for Person Entity Documents",
+	
+	"description": "This document describes the structure and content of Person entity documents stored within the Getty MART Linked Data system. The Place entity documents follow the Person entity schema defined at https://linked.art/model/actor/",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty MART JSON Schema Documentation for Person Entity Documents",
+				
+				"date": [
+					{
+						"date": "2019-07-01",
+						"dateType": "creation"
+					},
+					{
+						"date": "2019-08-23",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its Collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
 	
 	"definitions": {
 		
@@ -103,13 +173,19 @@
 					"$ref": "#/definitions/language"
 				},
 				"content": {
-					"type": "string"
+					"oneOf": [
+						{
+							"type": "string"
+						},
+						{
+							"type": "integer"
+						}
+					]
 				}
 			},
 			"required": [
 				"id",
 				"type",
-				"classified_as",
 				"content"
 			]
 		},
@@ -152,7 +228,7 @@
 			]
 		},
 		
-		"referrerd_to_by": {
+		"referred_to_by": {
 			"type": "object",
 			"properties": {
 				"id": {
@@ -256,26 +332,56 @@
 	"properties": {
 		
 		"id": {
-			"$ref": "#/definitions/id"
+			"$ref": "#/definitions/id",
+			"title": "The Person Document's ID",
+			"description": "This field contains the Person's ID, expressed as an absolute URL.",
+			"examples": [
+				"https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e"
+			]
 		},
 		
 		"type": {
-			"$ref": "#/definitions/type"
+			"$ref": "#/definitions/type",
+			"title": "The Person Document's Type",
+			"description": "This field contains the Person document's type, expressed as a string. It will always be 'Person' for Person entity documents.",
+			"const": "Person"
 		},
 		
 		"_label": {
-			"$ref": "#/definitions/_label"
+			"$ref": "#/definitions/_label",
+			"title": "The Person Document's Developer-Friendly Label",
+			"description": "This field contains the document's developer-friendly label. This label is intended for reference purposes only as a development aid to provide a short human-readable summary of the contents of the current document or document fragment, and is not intended to be acted upon or displayed in any downstream system.",
+			"examples": [
+				"Vincent van Gogh",
+				"Rembrandt Harmensz. van Rijn"
+			]
 		},
 		
 		"referred_to_by": {
 			"type": "array",
 			"items": {
 				"$ref": "#/definitions/referred_to_by"
-			}
+			},
+			"examples": [
+				{
+					"id": "https://data.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/biography",
+					"type": "LinguisticObject",
+					"content": "Art was Van Gogh's means of personal, spiritual redemption, and his voluminous letters to his devoted brother Theo, one of which is quoted here, offer profound insight into the artistic struggle. Van Gogh became an artist in 1881. Although he studied briefly in Antwerp and Paris, he was largely self-taught. He ultimately chose to live in the country, and most of his paintings capture his deep affinity for nature. Theo, an art dealer, introduced Vincent to Paris's most advanced painters, and his work changed under the influences of Edgar Degas, Paul Gauguin, Georges Seurat, and Henri de Toulouse-Lautrec. The flatness of color and shape in Japanese woodcuts also inspired him. Van Gogh's color expressed his emotions as he responded to the world. His insistence on color's expressive possibilities led him to develop a corresponding expressiveness in applying pigment. His brushstrokes of thick, opaque paint almost seem drawn. His often violently interacting colors and forms and strong expressive line influenced nearly every artistic movement that came after him: Symbolism, Fauvism, Expressionism, and beyond.",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300080102/",
+							"type": "Type",
+							"_label": "Biography Statement"
+						}
+					]
+				}
+			]
 		},
 		
 		"born": {
 			"type": "object",
+			"title": "The Person Birth",
+			"description": "This field contains information about the referenced person's birth, including when and where it took place, depending on what is currently known.",
 			"properties": {
 				"id": {
 					"$ref": "#/definitions/id"
@@ -301,12 +407,48 @@
 				}
 			},
 			"required": [
-				
+				"id",
+				"type"
+			],
+			"examples": [
+				{
+					"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/birth/activity",
+					"type": "Birth",
+					"timespan": {
+						"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/birth/timespan",
+						"type": "TimeSpan",
+						"begin_of_the_begin": "1853-01-01 00:00:00",
+						"end_of_the_begin": "1853-01-01 00:00:00"
+					},
+					"took_place_at": [
+						{
+							"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/birth/place",
+							"type": "Place",
+							"_label": "Zundert, The Netherlands",
+							"identified_by": [
+								{
+									"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/birth/place/name",
+									"type": "Name",
+									"content": "Zundert, The Netherlands"
+								}
+							],
+							"classified_as": [
+								{
+									"id": "http://vocab.getty.edu/aat/300008347",
+									"type": "Type",
+									"_label": "Inhabited Place"
+								}
+							]
+						}
+					]
+				}
 			]
 		},
 		
 		"died": {
 			"type": "object",
+			"title": "The Person Death",
+			"description": "This field contains information about the referenced person's death, if this has occurred, including when and where it took place, depending on what is currently known.",
 			"properties": {
 				"id": {
 					"$ref": "#/definitions/id"
@@ -332,12 +474,110 @@
 				}
 			},
 			"required": [
-				
+				"id",
+				"type"
+			],
+			"examples": [
+				{
+					"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/death/activity",
+					"type": "Death",
+					"timespan": {
+						"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/death/timespan",
+						"type": "TimeSpan",
+						"begin_of_the_begin": "1890-01-01 00:00:00",
+						"end_of_the_begin": "1890-01-01 00:00:00"
+					},
+					"took_place_at": [
+						{
+							"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/death/place",
+							"type": "Place",
+							"_label": "Auvers-sur-Oise, France",
+							"identified_by": [
+								{
+									"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/death/place/name",
+									"type": "Name",
+									"content": "Auvers-sur-Oise, France"
+								}
+							],
+							"classified_as": [
+								{
+									"id": "http://vocab.getty.edu/aat/300008347",
+									"type": "Type",
+									"_label": "Inhabited Place"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		
+		"identified_by": {
+			"type": "array",
+			"title": "The Person's identified_by Property",
+			"description": "This field contains identifiers associated with the Person. These may include names used to refer to the Person, alternative document IDs, alternative names, etc.",
+			"items": {
+				"$ref": "#/definitions/identified_by"
+			},
+			"examples": [
+				{
+					"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/identifier/dor-id",
+					"type": "Identifier",
+					"_label": "Getty Digital Object Repository (DOR) ID",
+					"content": 377,
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/internal/ontologies/linked-data/dor-identifier",
+							"type": "Type",
+							"_label": "Getty Digital Object Repository (DOR) ID"
+						}
+					]
+				},
+				{
+					"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/identifier/dor-uuid",
+					"type": "Identifier",
+					"_label": "Getty Digital Object Repository (DOR) UUID",
+					"content": "c3a876a9-5333-40d5-8488-6cc722058f5e",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/internal/ontologies/linked-data/universally-unique-identifier",
+							"type": "Type",
+							"_label": "Universally Unique Identifier (UUID)"
+						}
+					]
+				},
+				{
+					"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/name",
+					"type": "Name",
+					"content": "Vincent van Gogh",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300404670",
+							"type": "Type",
+							"_label": "Primary Name"
+						}
+					]
+				},
+				{
+					"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e/identifier/tms-id",
+					"type": "Identifier",
+					"_label": "Gallery Systems' The Museum System (TMS) ID",
+					"content": 381,
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/internal/ontologies/linked-data/tms-identifier",
+							"type": "Type",
+							"_label": "Gallery Systems' The Museum System (TMS) ID"
+						}
+					]
+				}
 			]
 		},
 		
 		"exact_match": {
 			"type": "array",
+			"title": "The Person exact_match Property",
+			"description": "This field contains any exact matches for records contained in other system's which are also digital representations of the same Person. This may include references to entries in The Getty's Union List of Artist Names (ULAN) controlled vocabulary system (http://vocab.getty.edu) for instance.",
 			"items": {
 				"type": "object",
 				"properties": {
@@ -355,21 +595,36 @@
 					"id",
 					"type"
 				]
-			}
+			},
+			"examples": [
+				{
+					"id": "http://vocab.getty.edu/ulan/500115588",
+					"type": "Type",
+					"_label": "Vincent van Gogh"
+				}
+			]
 		},
 		
 		"classified_as": {
 			"type": "array",
+			"title": "The Person's classified_as Property",
+			"description": "This field contains classifications associated with the Person. These may include classifications related to the Person's type, their culture, nationality, and other classifiable attributes, etc.",
 			"items": {
 				"$ref": "#/definitions/classified_as"
-			}
-		},
-		
-		"identified_by": {
-			"type": "array",
-			"items": {
-				"$ref": "#/definitions/identified_by"
-			}
+			},
+			"examples": [
+				{
+					"type": "Type",
+					"_label": "Dutch (Nationality)",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300379842",
+							"type": "Type",
+							"_label": "Nationality"
+						}
+					]
+				}
+			]
 		}
 	}
 }

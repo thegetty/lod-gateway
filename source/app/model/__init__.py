@@ -49,12 +49,11 @@ class Model(ABC):
 					if(isinstance(attribute, str)):
 						value = attributes[attribute]
 						if(value):
-							# self._snapshot[attribute] = value # copy.copy(value)
+							# copy the value into the snapshot so that changes
+							# to the value do not affect the snapshot
+							self._snapshot[attribute] = copy.copy(value)
 							
 							setattr(self, attribute, value)
-			
-			# Update the model instance's data snapshot
-			self._snapshot = self.getAttributeValues()
 	
 	def __del__(self):
 		debug("%s.__del__() called..." % (self.__class__.__name__), level=1)
@@ -493,7 +492,7 @@ class Model(ABC):
 	@classmethod
 	@finalmethod
 	def autoPopulatedFields(cls, fields):
-		debug("%s.autoPopulatedFields() called..." % (cls.__name__))
+		debug("%s.autoPopulatedFields() called..." % (cls.__name__), level=1)
 		
 		if(isinstance(fields, list) and len(fields) > 0):
 			cls._autopopulated = fields
@@ -1112,9 +1111,7 @@ class Model(ABC):
 	@classmethod
 	@finalmethod
 	def performQuery(cls, query):
-		# debug("%s.performQuery(query: %s) called..." % (cls.__name__, query), level=1)
-		
-		debug("%s.performQuery(query: %s) called..." % (cls.__name__, query), level=0)
+		debug("%s.performQuery(query: %s) called..." % (cls.__name__, query), level=1)
 		
 		result = None
 		

@@ -1,10 +1,10 @@
 {
-	"$id": "https://mart.getty.edu/schemas/museum/collection/group.json",
+	"$id": "https://mart.getty.edu/schemas/museum/collection/place.json",
 	
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	
 	"version": {
-		"name": "Group",
+		"name": "Place",
 		"version": "1.0.0"
 	},
 	
@@ -31,16 +31,16 @@
 		}
 	],
 	
-	"title": "The Getty MART JSON Schema Documentation for Group Entity Documents",
+	"title": "The Getty MART JSON Schema Documentation for Place Entity Documents",
 	
-	"description": "This document describes the structure and content of Group entity documents stored within the Getty MART Linked Data system. The Place entity documents follow the Person entity schema defined at https://linked.art/model/actor/",
+	"description": "This document describes the structure and content of Place entity documents stored within the Getty MART Linked Data system. The Place entity documents follow the Place entity schema defined at https://linked.art/model/place/",
 	
 	"metadata": {
 		"resourceInfo": {
 			"resourceType": "project",
 			
 			"citation": {
-				"title": "The Getty MART JSON Schema Documentation for Group Entity Documents",
+				"title": "The Getty MART JSON Schema Documentation for Place Entity Documents",
 				
 				"date": [
 					{
@@ -191,25 +191,6 @@
 			]
 		},
 		
-		"carried_out_by": {
-			"type": "object",
-			"properties": {
-				"id": {
-					"$ref": "#/definitions/id"
-				},
-				"type": {
-					"$ref": "#/definitions/type"
-				},
-				"_label": {
-					"$ref": "#/definitions/_label"
-				}
-			},
-			"required": [
-				"id",
-				"type"
-			]
-		},
-		
 		"classified_as" : {
 			"type": "object",
 			"properties": {
@@ -227,104 +208,6 @@
 				"id",
 				"type"
 			]
-		},
-		
-		"referrerd_to_by": {
-			"type": "object",
-			"properties": {
-				"id": {
-					"$ref": "#/definitions/id"
-				},
-				"type": {
-					"$ref": "#/definitions/type"
-				},
-				"_label": {
-					"$ref": "#/definitions/_label"
-				},
-				"classified_as": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/classified_as"
-					}
-				},
-				"content": {
-					"$ref": "#/definitions/content"
-				},
-				"language": {
-					"$ref": "#/definitions/language"
-				}
-			},
-			"required": [
-				"id",
-				"type",
-				"content"
-			]
-		},
-		
-		"took_place_at": {
-			"type": "object",
-			"properties": {
-				"id": {
-					"$ref": "#/definitions/id"
-				},
-				"type": {
-					"$ref": "#/definitions/type"
-				},
-				"_label": {
-					"$ref": "#/definitions/_label"
-				},
-				"identified_by": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/identified_by"
-					}
-				},
-				"classified_as": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/classified_as"
-					}
-				},
-				"language": {
-					"$ref": "#/definitions/language"
-				}
-			},
-			"required": [
-				"id",
-				"type"
-			]
-		},
-		
-		"member_of": {
-			"type": "object",
-			"properties": {
-				"id": {
-					"$ref": "#/definitions/id"
-				},
-				"type": {
-					"$ref": "#/definitions/type"
-				},
-				"_label": {
-					"$ref": "#/definitions/_label"
-				},
-				"classified_as": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/classified_as"
-					}
-				},
-				"member_of": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/member_of"
-					}
-				}
-			},
-			"required": [
-				"id",
-				"type",
-				"classified_as"
-			]
 		}
 	},
 	
@@ -334,62 +217,31 @@
 		
 		"id": {
 			"$ref": "#/definitions/id",
-			"title": "The Group Document's ID",
-			"description": "This field contains the Group's ID, expressed as an absolute URL."
+			"title": "The Place Document's ID",
+			"description": "This field contains the Place's ID, expressed as an absolute URL."
 		},
 		
 		"type": {
 			"$ref": "#/definitions/type",
-			"title": "The Group Document's Type",
-			"description": "This field contains the Group document's type, expressed as a string. It will always be 'Group' for Group entity documents.",
-			"const": "Group"
+			"title": "The Place Document's Type",
+			"description": "This field contains the Place document's type, expressed as a string. It will always be 'Place' for Place entity documents.",
+			"const": "Place"
 		},
 		
 		"_label": {
 			"$ref": "#/definitions/_label",
-			"title": "The Group Document's Developer-Friendly Label",
+			"title": "The Place Document's Developer-Friendly Label",
 			"description": "This field contains the document's developer-friendly label. This label is intended for reference purposes only as a development aid to provide a short human-readable summary of the contents of the current document or document fragment, and is not intended to be acted upon or displayed in any downstream system.",
 			"examples": [
-				"J. Paul Getty Museum, Los Angeles, California",
-				"Brooklyn-Budapest Painter"
+				"Los Angeles, California",
+				"Getty Center, Museum West Pavilion, Gallery W203"
 			]
-		},
-		
-		"referred_to_by": {
-			"type": "array",
-			"title": "The Group's referred_to_by Property",
-			"description": "This field contains related information about the Group. This may include one or descriptions of the Group, etc.",
-			"items": {
-				"$ref": "#/definitions/referred_to_by"
-			}
-		},
-		
-		"exact_match": {
-			"type": "array",
-			"items": {
-				"type": "object",
-				"properties": {
-					"id": {
-						"$ref": "#/definitions/id"
-					},
-					"type": {
-						"$ref": "#/definitions/type"
-					},
-					"_label": {
-						"$ref": "#/definitions/_label"
-					}
-				},
-				"required": [
-					"id",
-					"type"
-				]
-			}
 		},
 		
 		"classified_as": {
 			"type": "array",
-			"title": "The Group's classified_as Property",
-			"description": "This field contains classifications associated with the Group. These may include classifications related to the Group's type, etc.",
+			"title": "The Place's classified_as Property",
+			"description": "This field contains classifications associated with the Place. These may include classifications related to the Place's type, and other classifiable attributes, etc.",
 			"items": {
 				"$ref": "#/definitions/classified_as"
 			}
@@ -397,11 +249,77 @@
 		
 		"identified_by": {
 			"type": "array",
-			"title": "The Group's identified_by Property",
-			"description": "This field contains identifiers associated with the Group. These may include names used to refer to the Group, alternative document IDs, alternative names, etc.",
+			"title": "The Place's identified_by Property",
+			"description": "This field contains identifiers associated with the Place. These may include names used to refer to the Place, alternative document IDs, alternative names, etc.",
 			"items": {
 				"$ref": "#/definitions/identified_by"
 			}
+		},
+		
+		"part_of": {
+			"type": "array",
+			"title": "The Place's part_of Property",
+			"description": "This field contains information about the Place's hierarchy, whereby the system may provide additional partitioning information about the Place. This may include information about the Place's parent place, such as a city's parent region, a region's parent country, etc.",
+			"items": {
+				"type": "object",
+				
+				"properties": {
+					"id": {
+						"$ref": "#/definitions/id"
+					},
+					
+					"type": {
+						"$ref": "#/definitions/type"
+					},
+					
+					"_label": {
+						"$ref": "#/definitions/_label"
+					},
+					
+					"classified_as": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/classified_as"
+						}
+					}
+				},
+				
+				"required": [
+					"id",
+					"type"
+				]
+			}
+		},
+		
+		"current_location": {
+			"type": "object",
+			"title": "The Place's current_location Property",
+			"description": "This field contains information about the Place's current location. For instance, if the Place describes a building, its current_location property can be used to describe the building's location.",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					}
+				}
+			},
+			
+			"required": [
+				"id",
+				"type"
+			]
 		}
 	},
 	

@@ -501,7 +501,7 @@ class ArtifactTransformer(BaseTransformer):
 				
 				# Map the Curatorial Department's name for the Group
 				name = Name()
-				name.id = self.generateEntityURI(sub=["department", id, "name"])
+				name.id = self.generateEntityURI(entity=Group, UUID=id, sub=["name"])
 				name.content = value
 				
 				group.identified_by = name

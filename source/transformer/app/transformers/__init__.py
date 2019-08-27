@@ -217,13 +217,13 @@ class BaseTransformer(ABC):
 		if(entity):
 			if(isinstance(entity, type)):
 				if(entity == self.entityType()):
-					if(self.entityName):
+					if(hasattr(self, "entityName") and callable(self.entityName)):
 						return self.entityName()
 				
 				entity = entity()
 			else:
 				if(isinstance(entity, self.entityType())):
-					if(self.entityName):
+					if(hasattr(self, "entityName") and callable(self.entityName)):
 						return self.entityName()
 			
 			if(entity):

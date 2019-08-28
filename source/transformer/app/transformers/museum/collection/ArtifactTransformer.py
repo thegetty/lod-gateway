@@ -542,7 +542,7 @@ class ArtifactTransformer(BaseTransformer):
 			# Add Object's Current Location (Gallery/Storage)
 			place = Place()
 			place.id = self.generateEntityURI(entity=Place, UUID=id)
-			place.classified_as = Type(id="http://vocab.getty.edu/aat/30024005", label="Galleries (Display Places)")
+			place.classified_as = Type(ident="http://vocab.getty.edu/aat/30024005", label="Galleries (Display Places) [Object On Display]")
 			place._label = "Gallery"
 			
 			# Obtain the Object's current location display value (name)
@@ -560,7 +560,7 @@ class ArtifactTransformer(BaseTransformer):
 			
 			place = Place()
 			place.id = self.generateEntityURI(entity=Place, UUID=id)
-			place.classified_as = Type(id="http://vocab.getty.edu/aat/300004465", label="Storage Spaces")
+			place.classified_as = Type(ident="http://vocab.getty.edu/aat/300004465", label="Storage Spaces [Object Off Display]")
 			place._label = "Storage"
 			
 			name = Name()

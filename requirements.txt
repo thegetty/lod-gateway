@@ -6,3 +6,6 @@ requests
 uWSGI
 psycopg2
 pytz
+rdflib
+rdflib-jsonld
+pyld

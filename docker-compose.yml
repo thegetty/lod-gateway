@@ -37,6 +37,7 @@ services:
             MART_POSTGRES_DB:       ${MART_POSTGRES_DB}
             MART_NEPTUNE_HOST:      ${MART_NEPTUNE_HOST}
             MART_NEPTUNE_PORT:      ${MART_NEPTUNE_PORT}
+            MART_NEPTUNE_ENDPOINT:  ${MART_NEPTUNE_ENDPOINT}
             MART_DOR_BASE_URL:      ${MART_DOR_BASE_URL}
             MART_DOR_FIND_URL:      ${MART_DOR_FIND_URL}
             MART_DOR_API_USER:      ${MART_DOR_API_USER}

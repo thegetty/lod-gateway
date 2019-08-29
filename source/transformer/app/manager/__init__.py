@@ -24,6 +24,7 @@ from app.transformers import *
 
 # Import our shared data model classes
 from app.model import Activity, Stream, Record
+from app.graph import GraphStore
 
 # Abstract BaseManager class for all Manager entities
 class BaseManager(ABC):
@@ -199,9 +200,12 @@ class BaseManager(ABC):
 			if(record.save()):
 				debug("Successfully saved %s" % (record), level=2)
 				
-				# TODO Save entity to Neptune
-				
-				record.commit()
+				update_res = GraphStore.update(record.uuid,record.namespace,record.data)
+				if update_res:
+					record.commit()
+				else:
+					record.rollback()
+					return False
 				
 				return True
 			else:

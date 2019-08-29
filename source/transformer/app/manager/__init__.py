@@ -186,6 +186,7 @@ class BaseManager(ABC):
 		namespace = entity.getNamespace()
 		name      = entity.getEntityName()
 		UUID      = entity.getUUID()
+		entity_uri = entity.generateEntityURI()
 		
 		if(data == None):
 			data = entity.toJSON(compact=True)
@@ -200,7 +201,7 @@ class BaseManager(ABC):
 			if(record.save()):
 				debug("Successfully saved %s" % (record), level=2)
 				
-				update_res = GraphStore.update(record.uuid,record.namespace,record.data)
+				update_res = GraphStore.update(entity_uri,record.data)
 				if update_res:
 					record.commit()
 				else:

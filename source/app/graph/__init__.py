@@ -25,10 +25,10 @@ class GraphStore:
         debug("GraphStore.__init__() configuration = %o", self.configuration, level=2)
 
     @staticmethod
-    def update(graph_id, namespace, json_data):
+    def update(entity_uri, json_data):
         try:
             graph_name = (
-                "http://data.getty.edu/" + namespace + "/" + graph_id + "-graph"
+                entity_uri + "-graph"
             )
 
             debug("GraphStore.update(entity: %s) called..." % (graph_name), level=0)
@@ -40,7 +40,7 @@ class GraphStore:
             serialized_nt = g.serialize(format="nt").decode("UTF-8")
 
             # delete graph if it exists
-            GraphStore.delete(graph_id, namespace)
+            GraphStore.delete(entity_uri)
 
             # insert graph
             insert_stmt = (
@@ -60,8 +60,8 @@ class GraphStore:
             return False
 
     @staticmethod
-    def delete(graph_id, namespace):
-        graph_name = "http://data.getty.edu/" + namespace + "/" + graph_id + "-graph"
+    def delete(entity_uri):
+        graph_name = entity_uri + "-graph"
 
         debug("GraphStore.delete(entity: %s) called..." % (graph_name), level=0)
 

@@ -759,6 +759,25 @@
 						"Getty Villa, Museum, Gallery 102"
 					]
 				},
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					},
+					"description": "For Objects that are on display, the 'classified_as' property will always include the 'Galleries (Display Spaces)' classification as per the first of the example values below; for Objects that are off display, the classification will always include the 'Storage Spaces' classification as per the second of the example values below.",
+					"examples": [
+						{
+							"id": "http://vocab.getty.edu/aat/300240057",
+							"type": "Type",
+							"_label": "Galleries (Display Spaces) [Object On Display]"
+						},
+						{
+							"id": "http://vocab.getty.edu/aat/300004465",
+							"type": "Type",
+							"_label": "Storage Spaces [Object Off Display]"
+						}
+					]
+				},
 				"identified_by": {
 					"type": "array",
 					"items": {

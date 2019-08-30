@@ -3,6 +3,7 @@
 import sys
 import datetime
 import os
+import psutil
 
 # os.environ["MART_LOD_BASE_URL"] = "http://localhost:5100"
 
@@ -21,6 +22,8 @@ elif(options["debug"] == True):
 	debug(level=1) # display informational messages and errors (level <= 1)
 elif(options["debug"] == False):
 	debug(level=-1) # only display errors (level <= -1)
+else:
+	debug(level=os.getenv("MART_DEBUG_LEVEL", -1))
 
 # debug(level=3)
 
@@ -36,8 +39,12 @@ from app.database import Database
 # Initialise the dependency injector
 di = DI()
 
-# Instantiate and register the database service
-di.set("database", Database(shared=False))
+# Instantiate and register the database handler
+database = Database(shared=False)
+if(database):
+	di.set("database", database)
+else:
+	raise RuntimeError("The database handler could not be initialized!")
 
 # Instantiate and register the graph store service
 # di.set("graph", GraphStore(shared=False))
@@ -61,6 +68,59 @@ app.register_blueprint(records)
 def welcome():
 	now = datetime.datetime.now()
 	
-	body = sprintf("Welcome to the Museum Linked Art Data Service at %02d:%02d:%02d on %02d/%02d/%04d" % (now.hour, now.minute, now.second, now.month, now.day, now.year))
+	body = sprintf("Welcome to the Getty's Linked Open Data Gateway Service at %02d:%02d:%02d on %02d/%02d/%04d" % (now.hour, now.minute, now.second, now.month, now.day, now.year))
 	
 	return Response(body, status=200)
+
+@app.before_request
+def beforeRequest():
+	debug("%s - beforeRequest() called..." % (__file__), level=1)
+
+@app.after_request
+def afterRequest(response):
+	"""The after_request decorator allows us to augment responses after the request has completed, but before the response is returned to the client."""
+	
+	debug("%s - afterRequest() called... response.headers = %s" % (__file__, type(response.headers)), level=1)
+	
+	database = DI.get("database")
+	if(not database):
+		debug("No database connection could be established!", error=True)
+		return response
+	
+	information = database.information()
+	if(not isinstance(information, dict)):
+		debug("No database information could be obtained!", error=True)
+		return response
+	
+	process = psutil.Process()
+	if(not process):
+		debug("No process information instance could be obtained!", error=True)
+		return response
+	
+	information["process"] = {
+		"id": os.getpid(),
+		"memory": {
+			"info": process.memory_full_info(),
+			"used": process.memory_full_info().uss,
+		}
+	}
+	
+	debug(information, format="JSON", label="Process Information", level=2)
+	
+	if(os.getenv("MART_WEB_DEBUG_HEADER", "NO") == "YES"):
+		# Obtain the headers
+		headers = response.headers
+		if(not headers):
+			debug("No response headers could be obtained!", error=True)
+			return response
+		
+		headers["X-Process-Information"] = json.dumps(information)
+		
+		# Adjust the headers
+		response.headers = headers
+	
+	return response
+
+@app.teardown_request
+def teardownRequest(response):
+	debug("%s - teardownRequest() called..." % (__file__), level=1)

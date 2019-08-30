@@ -15,13 +15,15 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 COPY requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
-COPY source/web-service/app /app
-COPY source/app/database /app/database
-COPY source/web-service/app/routes /app/routes
-COPY source/app/utilities /app/utilities
+COPY ./source/web-service/app /app
+COPY ./source/app/di /app/di
+COPY ./source/app/database /app/database
+COPY ./source/app/graph /app/graph
+COPY ./source/app/model /app/model
+COPY ./source/app/utilities /app/utilities
 
-COPY source/web-service/startup.py /startup.py
-COPY source/web-service/startup.sh /startup.sh
+COPY ./source/web-service/startup.py /startup.py
+COPY ./source/web-service/startup.sh /startup.sh
 RUN chmod +x /startup.sh
 
 # Set the default shell to BASH rather than the more basic (DA)SH
@@ -32,8 +34,8 @@ EXPOSE 5100
 
 # Later in preparation for deploying our container we need to integrate and test with envconsul...
 ENTRYPOINT [ "docker-entrypoint.sh" ]
-CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "uwsgi", "--http 0.0.0.0:5000", "--manage-script-name", "--mount /=museum-linked-art.app:app" ]
+CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "-log-level=debug", "uwsgi", "--http 0.0.0.0:5000", "--manage-script-name", "--mount /=museum-linked-art.app:app" ]
 # CMD [ "/bin/bash" ];
 
 # Run our application startup script...
-# CMD [ "/startup.sh" ];
+CMD [ "/startup.sh" ];

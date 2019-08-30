@@ -1,88 +1,102 @@
+#!/usr/bin/env python3
+
 import sys
 import datetime
 
-# import our utility functions (get, has, debug, repeater, etc)
+# Import the utility functions (commandOptions, get, has, put, debug, repeater, etc)
 from app.utilities import *
 
-# import our source model record classes
-from app.model.ArtifactRecord import *
-from app.model.ConstituentRecord import *
-from app.model.ExhibitionRecord import *
-from app.model.LocationRecord import *
+# Configure the Transformer service
+options = commandOptions({
+	"debug":     False,
+	"mode":      None,
+	"manager":   None,
+	"event":     None,
+	"namespace": None,
+	"entity":    None,
+	"id":        None,
+	"output":    None,
+})
 
-from app.manager.ArtifactManager import *
+# debug(options, format="JSON")
+# exit()
 
-# for testing, support controlling the transformation process from the CLI
-testEntity    = None
-testID        = None
-testMode      = None
-testDirection = None
+# Configure the debug level
+if(isinstance(options["debug"], int)):
+	debug(level=options["debug"]) # display debug messages with a level of or below the defined level
+elif(options["debug"] == True):
+	debug(level=1) # display informational messages and errors (level <= 1)
+elif(options["debug"] == False):
+	debug(level=-1) # only display errors (level <= -1)
 
-if(sys.argv):
-	for index, argv in enumerate(sys.argv):
-		if(argv == "--entity"):
-			if(sys.argv[(index + 1)]):
-				testEntity = sys.argv[(index + 1)]
-		elif(argv == "--id"):
-			if(sys.argv[(index + 1)]):
-				testID = sys.argv[(index + 1)]
-		elif(argv == "--mode"):
-			if(sys.argv[(index + 1)]):
-				testMode = sys.argv[(index + 1)]
-		elif(argv == "--position"):
-			if(sys.argv[(index + 1)] and sys.argv[(index + 1)] in ["first", "last", "current"]):
-				testDirection = sys.argv[(index + 1)]
+# Import the dependency injector
+from app.di import DI
 
-if(testMode == "manager"):
-	if(testDirection):
-		direction = testDirection
-	else:
-		direction = "last"
-	
-	manager = BaseManager()
-	if(manager):
-		manager.processActivityStream(direction=direction)
+# Initialise the dependency injector
+di = DI()
+
+# Import the database service handler
+from app.database import Database
+
+# Instantiate and register the database handler
+database = Database(shared=True)
+if(database):
+	di.set("database", database)
 else:
-	testRecord = None
-	if(testEntity and testID):
-		if(testEntity == "Artifact"):
-			testRecord = ArtifactRecord(id=testID)
-		elif(testEntity == "Constituent"):
-			testRecord = ConstituentRecord(id=testID)
-		elif(testEntity == "Exhibition"):
-			testRecord = ExhibitionRecord(id=testID)
-		elif(testEntity == "Location"):
-			testRecord = LocationRecord(id=testID)
-		else:
-			testRecord = ArtifactRecord(id=826)
-	elif(testID):
-		testRecord = ArtifactRecord(id=testID)
-	else:
-		testRecord = ArtifactRecord(id=826)
-	
-	if(testEntity):
-		debug("testEntity = %s; testID = %s; testRecord = %s (%s)" % (testEntity, testID, testRecord, testRecord.id))
-	
-	if(testRecord):
-		data = testRecord.getData()
-		# debug(data)
-		data = testRecord.mapData()
-		# debug(data)
-		data = testRecord.toJSON()
-		debug(data)
+	raise RuntimeError("The database handler could not be initialized!")
 
-counter = 0
-delay   = 2 # seconds
+# Retrieve the shared database connection, without autocommit (the default)
+connection = database.connect(autocommit=False)
+if(connection):
+	di.set("connection", connection)
+else:
+	raise RuntimeError("No database connection could not be established!")
 
-def checkActivityStream(stream=None):
-	global counter
-	
-	now = datetime.datetime.now()
-	counter += 1
-	
-	debug("[%04d-%02d-%02d %02d:%02d:%02d] Checking activity stream: %s (%d)" % (now.year, now.month, now.day, now.hour, now.minute, now.second, stream, counter))
-	
-	# TODO call the DOR's ActivityStreams API endpoint to determine if any records have changed that need to be transformed...
+# Import the transformers
+from app.transformers import *
 
-# Run our checkActivityStream method every 'delay' seconds...
-# repeater(delay, checkActivityStream, stream="Object")
+# Import the process manager
+from app.manager import *
+
+# Import the graph store service handler
+# from app.graph import GraphStore
+
+# Instantiate and register the graph store service
+# di.set("graph", GraphStore())
+
+# Instantiate the process manager
+if(options["manager"] in ["records"]):
+	manager = RecordsManager()
+else:
+	manager = ActivityStreamManager()
+
+if(manager):
+	if(isinstance(manager, RecordsManager)): # manual/automatic records manager
+		manager.process(**options)
+	else: # automatic (activity streams polling) transform mode
+		manager.process(**options)
+		
+		# count = 0
+		# 
+		# delay = os.getenv("MART_TRANSFORMER_STREAMS_POLL_INTERVAL", 60) # seconds
+		# 
+		# if(isInteger(delay)):
+		# 	delay = int(delay)
+		# else:
+		# 	delay = 60
+		# 
+		# def runManagerProcess():
+		# 	global count, manager, options
+		# 	
+		# 	now = datetime.datetime.now()
+		# 	count += 1
+		# 	
+		# 	debug("[%04d-%02d-%02d %02d:%02d:%02d] processActivityStreams() called (%d)" % (now.year, now.month, now.day, now.hour, now.minute, now.second, count))
+		# 	
+		# 	manager.process(**options)
+		# 
+		# repeater(delay, runManagerProcess)
+else:
+	raise RuntimeError("Failed to initialise the process manager!")
+
+exit()

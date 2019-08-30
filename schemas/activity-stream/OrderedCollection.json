@@ -1,0 +1,195 @@
+{
+	"$id": "https://mart.getty.edu/schemas/activity-stream/ordered-collection.json",
+	
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "ActivityStream",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty MART JSON Schema Documentation for the Activity Stream Feed",
+	
+	"description": "This document describes the structure and content of the Activity Stream feed provided by the Getty MART Linked Data system.",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty MART JSON Schema Documentation for the Activity Stream Feed",
+				
+				"date": [
+					{
+						"date": "2019-07-01",
+						"dateType": "creation"
+					},
+					{
+						"date": "2019-08-21",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
+	
+	"definitions": {
+		
+		"@context": {
+			"type": "string"
+		},
+		
+		"id": {
+			"type": "string",
+			"format": "uri"
+		},
+		
+		"summary": {
+			"type": "string"
+		},
+		
+		"type": {
+			"type": "string"
+		},
+		
+		"startIndex": {
+			"type": "integer",
+			"enum": [0, 1]
+		},
+		
+		"totalItems": {
+			"type": "integer",
+			"minimum": 1
+		},
+		
+		"pageReference": {
+			"type": "object",
+			
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				
+				"type": {
+					"$ref": "#/definitions/type"
+				}
+			},
+			
+			"required": [
+				"id",
+				"type"
+			]
+		}
+	},
+	
+	"type": "object",
+	
+	"properties": {
+		
+		"@context": {
+			"$ref": "#/definitions/@context",
+			"title": "The document's linked-data context, expressed as an absolute URL",
+			"description": "This field contains a URL referencing the Activity Streams linked-data context document.",
+			"default": "https://www.w3.org/ns/activitystreams"
+		},
+		
+		"summary": {
+			"$ref": "#/definitions/summary",
+			"title": "A summary string describing the content of the Activity Stream",
+			"description": "This field contains a human-readable summary of the content of the Activity Stream."
+		},
+		
+		"type": {
+			"$ref": "#/definitions/type",
+			"title": "The Activity Stream document's type",
+			"description": "This field contains the Activity Stream document's type. As MART exposes an Activity Stream in the form of an ordered collection of activity stream items, this will always be OrderedCollection.",
+			"const": "OrderedCollection"
+		},
+		
+		"id": {
+			"$ref": "#/definitions/id",
+			"title": "The document's ID, expressed as an absolute URL",
+			"description": "This field contains the document's own ID, expressed as an absolute URL.",
+			"examples": [
+				"https://mart.getty.edu/activity-stream/page/1",
+				"https://mart.getty.edu/activity-stream/page/532",
+				"https://mart.getty.edu/activity-stream/page/first",
+				"https://mart.getty.edu/activity-stream/page/last"
+			]
+		},
+		
+		"startIndex": {
+			"$ref": "#/definitions/startIndex",
+			"title": "The start index of the Activity Stream pages. Always '1' in the case of MART.",
+			"description": "This field contains offset for the first page of the Activity Stream. MART uses page numbers starting at one (1), rather than zero (0).",
+			"default": 1,
+			"const": 1
+		},
+		
+		"totalItems": {
+			"$ref": "#/definitions/totalItems",
+			"title": "The current count of the items available from the Activity Stream.",
+			"description": "This field contains the current count of the items available from the Activity Stream. This number can change at any time as the system processes incoming data. It will never decrease, but could increase as new items are added to the end of the Activity Stream."
+		},
+		
+		"first": {
+			"$ref": "#/definitions/pageReference",
+			"title": "A reference to the first page of the Activity Stream.",
+			"description": "This field contains a reference expressed as an absolute URL to the first page of items from the Activity Stream. This URL will always be static, referencing the page offset for the first page."
+		},
+		
+		"last": {
+			"$ref": "#/definitions/pageReference",
+			"title": "A reference to the last page of the Activity Stream.",
+			"description": "This field contains a reference expressed as an absolute URL to the last page of items from the Activity Stream. This URL could change at any time as new items are added to the end of the Activity Stream, which may result in new pages being added to the paginated set to accomodate the new items."
+		}
+	},
+	
+	"required": [
+		"@context",
+		"id",
+		"type",
+		"startIndex",
+		"totalItems",
+		"first",
+		"last"
+	]
+}

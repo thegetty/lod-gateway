@@ -3,119 +3,113 @@ import datetime
 import json
 import hashlib
 
-# import our utility functions (get, has, debug, repeater, sprintf, etc)
-from .. utilities import *
-from .. database import Database
+# Import the utility functions (commandOptions, get, has, put, debug, repeater, etc)
+from app.utilities import *
 
+# Import the dependency injector
+from app.di import DI
+
+# Import the database service handler
+from app.database import Database
+
+# Import the data model
+from app.model import *
+
+# Import the Flask web framework
 from flask import Flask, Blueprint, Response
 
+# Create a new "records" route blueprint
 records = Blueprint("records", __name__)
 
 @records.route("/<path:namespace>/<string:entity>/<string:UUID>")
 def obtainRecord(namespace, entity, UUID):
-	debug("obtainRecord(namespace: %s, entity: %s; uuid: %s) called..." % (namespace, entity, UUID))
+	debug("obtainRecord(namespace: %s, entity: %s; uuid: %s) called..." % (namespace, entity, UUID), level=1)
 	
 	# return sprintf("You requested Namespace: %s for Entity: %s with UUID: %s" % (namespace, entity, UUID))
 	
+	# Define our default headers to add to the response
+	headers = {
+		"Server": "MART/1.0",
+		"Access-Control-Allow-Origin": "*",
+	}
+	
+	database = DI.get("database")
+	if(database):
+		connection = database.connect(autocommit=True)
+		if(connection):
+			DI.set("connection", connection)
+		else:
+			return Response(status=500, headers={**{
+				"X-Error": "Unable to obtain database connection!",
+			}, **headers})
+	else:
+		return Response(status=500, headers={**{
+			"X-Error": "Unable to obtain database handler!",
+		}, **headers})
+	
 	response = None
 	
-	if(isinstance(entity, str) and len(entity) > 0):
-		entityName  = None
-		entityParts = entity.split("-")
-		if(len(entityParts) > 0):
-			for index, part in enumerate(entityParts):
-				entityParts[index] = part.capitalize()
-			entityName = "".join(entityParts)
-	
-	if(entityName):
-		debug("Will now perform lookup for %s with UUID: %s" % (entityName, UUID))
+	if(entity):
+		_entity = camelCasedStringFromHyphenatedString(entity)
 		
-		database = Database()
-		if(database):
-			debug("Successfully connected to the database...")
+		debug("Will now perform lookup for %s with UUID: %s" % (_entity, UUID), level=2)
+		
+		record = Record.findFirst("namespace = :namespace: AND entity = :entity: AND uuid = :uuid:", bind={"namespace": namespace, "entity": _entity, "uuid": UUID})
+		if(record):
+			debug(record, level=3)
 			
-			if(database.connection):
-				cursor = database.cursor()
-				if(cursor):
-					debug("Successfully obtained a database cursor...")
-					
-					cursor.execute("SELECT * FROM records WHERE entity = %s and uuid = %s", [
-						entityName,
-						UUID
-					])
-					
-					results = cursor.fetchall()
-					
-					if(results and len(results) > 0):
-						debug("Found %d results" % (len(results)))
-						
-						# debug(results, format="JSON")
-						
-						result = get(results, [0])
-						if(result):
-							debug(result)
-							
-							if(result.data and len(result.data) >= 0):
-								# response = sprintf("Found record in the database with ID: %d of type %s" % (result.id, type(result.data)))
-								
-								body = json.dumps(result.data, sort_keys=False, indent=4, ensure_ascii=False)
-								if(isinstance(body, str) and len(body) > 0):
-									body = body.encode("utf-8")
-									
-									headers = {
-										"Date": result.datetime_published,
-										"Server": "MART/0.1",
-									}
-									
-									hasher = hashlib.sha1()
-									hasher.update(body)
-									hash = hasher.hexdigest()
-									
-									if(hash):
-										headers["E-Tag"] = hash
-									
-									# see https://werkzeug.palletsprojects.com/en/0.15.x/wrappers/
-									response = Response(
-										body,
-										content_type='application/ld+json',
-										status=200,
-										headers=headers,
-									)
-								else:
-									debug("The result.data could not be serialized to JSON!", error=True)
-									
-									response = Response("Not Found", status=404)
-							else:
-								debug("The result.data attribute is empty!", error=True)
-								
-								response = Response("Not Found", status=404)
-						else:
-							debug("Unable to obtain result from results!", error=True)
-							
-							response = Response("Not Found", status=404)
-					else:
-						debug("Found no results!", error=True)
-						
-						response = Response("Not Found", status=404)
-					
-					# clean up
-					cursor.close()
+			if(isinstance(record.counter, int)):
+				record.counter += 1
 			else:
-				debug("Failed to obtain a database cursor!", error=True)
+				record.counter  = 1
+			
+			record.update(quiet=True)
+			
+			if(record.data and len(record.data) >= 0):
+				# response = sprintf("Found record in the database with ID: %d of type %s" % (record.id, type(record.data)))
 				
-				response = Response("Internal Server Error", status=500)
-			
-			database.disconnect()
+				body = json.dumps(record.data, sort_keys=False, indent=4, ensure_ascii=False)
+				if(isinstance(body, str) and len(body) > 0):
+					body = body.encode("utf-8")
+					
+					headers = {**{
+						"Date": record.datetime_published,
+					}, **headers}
+					
+					hasher = hashlib.sha1()
+					hasher.update(body)
+					hash = hasher.hexdigest()
+					
+					if(hash):
+						headers["E-Tag"] = hash
+					
+					# see https://werkzeug.palletsprojects.com/en/0.15.x/wrappers/
+					response = Response(body, status=200, content_type="application/ld+json;charset=UTF-8", headers=headers)
+				else:
+					debug("The result.data could not be serialized to JSON!", error=True)
+					
+					response = Response(status=404, headers={**{
+						"X-Error": "The result.data could not be serialized to JSON!",
+					}, **headers})
+			else:
+				debug("The result.data attribute is empty!", error=True)
+				
+				response = Response(status=404, headers={**{
+					"X-Error": "The result.data attribute is empty!",
+				}, **headers})
 		else:
-			debug("Failed to obtain a database connection!", error=True)
+			debug("Unable to obtain matching record from database!", error=True)
 			
-			response = Response("Internal Server Error", status=500)
+			response = Response(status=404, headers={**{
+				"X-Error": "Unable to obtain matching record from database!",
+			}, **headers})
 	else:
 		debug("No valid entity type name was specified!", error=True)
 		
-		response = Response("Bad Request", status=400)
+		response = Response("Bad Request", status=400, headers={**{
+			"X-Error": "No valid entity type name was specified!",
+		}, **headers})
 	
-	# clean up
-	del database
+	database.disconnect(connection=connection)
 	
 	return response

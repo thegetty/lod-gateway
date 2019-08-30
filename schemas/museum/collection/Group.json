@@ -1,5 +1,75 @@
 {
+	"$id": "https://mart.getty.edu/schemas/museum/collection/group.json",
+	
 	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "Group",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty MART JSON Schema Documentation for Group Entity Documents",
+	
+	"description": "This document describes the structure and content of Group entity documents stored within the Getty MART Linked Data system. The Place entity documents follow the Person entity schema defined at https://linked.art/model/actor/",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty MART JSON Schema Documentation for Group Entity Documents",
+				
+				"date": [
+					{
+						"date": "2019-07-01",
+						"dateType": "creation"
+					},
+					{
+						"date": "2019-08-23",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its Collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
 	
 	"definitions": {
 		
@@ -103,7 +173,14 @@
 					"$ref": "#/definitions/language"
 				},
 				"content": {
-					"type": "string"
+					"oneOf": [
+						{
+							"type": "string"
+						},
+						{
+							"type": "integer"
+						}
+					]
 				}
 			},
 			"required": [
@@ -256,19 +333,32 @@
 	"properties": {
 		
 		"id": {
-			"$ref": "#/definitions/id"
+			"$ref": "#/definitions/id",
+			"title": "The Group Document's ID",
+			"description": "This field contains the Group's ID, expressed as an absolute URL."
 		},
 		
 		"type": {
-			"$ref": "#/definitions/type"
+			"$ref": "#/definitions/type",
+			"title": "The Group Document's Type",
+			"description": "This field contains the Group document's type, expressed as a string. It will always be 'Group' for Group entity documents.",
+			"const": "Group"
 		},
 		
 		"_label": {
-			"$ref": "#/definitions/_label"
+			"$ref": "#/definitions/_label",
+			"title": "The Group Document's Developer-Friendly Label",
+			"description": "This field contains the document's developer-friendly label. This label is intended for reference purposes only as a development aid to provide a short human-readable summary of the contents of the current document or document fragment, and is not intended to be acted upon or displayed in any downstream system.",
+			"examples": [
+				"J. Paul Getty Museum, Los Angeles, California",
+				"Brooklyn-Budapest Painter"
+			]
 		},
 		
 		"referred_to_by": {
 			"type": "array",
+			"title": "The Group's referred_to_by Property",
+			"description": "This field contains related information about the Group. This may include one or descriptions of the Group, etc.",
 			"items": {
 				"$ref": "#/definitions/referred_to_by"
 			}
@@ -298,6 +388,8 @@
 		
 		"classified_as": {
 			"type": "array",
+			"title": "The Group's classified_as Property",
+			"description": "This field contains classifications associated with the Group. These may include classifications related to the Group's type, etc.",
 			"items": {
 				"$ref": "#/definitions/classified_as"
 			}
@@ -305,9 +397,16 @@
 		
 		"identified_by": {
 			"type": "array",
+			"title": "The Group's identified_by Property",
+			"description": "This field contains identifiers associated with the Group. These may include names used to refer to the Group, alternative document IDs, alternative names, etc.",
 			"items": {
 				"$ref": "#/definitions/identified_by"
 			}
 		}
-	}
+	},
+	
+	"required": [
+		"id",
+		"type"
+	]
 }

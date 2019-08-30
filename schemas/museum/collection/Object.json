@@ -1,0 +1,1142 @@
+{
+	"$id": "https://mart.getty.edu/schemas/museum/collection/object.json",
+	
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "Object",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty MART JSON Schema Documentation for Human Made Objects (Artifacts) Entity Documents",
+	
+	"description": "This document describes the structure and content of Object entity documents stored within the Getty MART Linked Data system. The Place entity documents follow the Person entity schema defined at https://linked.art/model/object/",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty MART JSON Schema Documentation for Human Made Objects (Artifacts)",
+				
+				"date": [
+					{
+						"date": "2019-07-01",
+						"dateType": "creation"
+					},
+					{
+						"date": "2019-08-23",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its Collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
+	
+	"definitions": {
+		
+		"id": {
+			"type": "string",
+			"format": "uri"
+		},
+		
+		"type": {
+			"type": "string"
+		},
+		
+		"_label": {
+			"type": "string"
+		},
+		
+		"content": {
+			"type": "string"
+		},
+		
+		"language" : {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		
+		"timespan": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				"identified_by": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/identified_by"
+					}
+				},
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					}
+				},
+				"begin_of_the_begin": {
+					"type": "string"
+				},
+				"end_of_the_begin": {
+					"type": "string"
+				},
+				"begin_of_the_end": {
+					"type": "string"
+				},
+				"end_of_the_end": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		
+		"identified_by" : {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					}
+				},
+				"language": {
+					"$ref": "#/definitions/language"
+				},
+				"content": {
+					"oneOf": [
+						{
+							"type": "string"
+						},
+						{
+							"type": "integer"
+						}
+					]
+				}
+			},
+			"required": [
+				"id",
+				"type",
+				"content"
+			]
+		},
+		
+		"carried_out_by": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		
+		"classified_as" : {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		
+		"referred_to_by": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					}
+				},
+				"content": {
+					"$ref": "#/definitions/content"
+				},
+				"language": {
+					"$ref": "#/definitions/language"
+				}
+			},
+			"required": [
+				"id",
+				"type",
+				"content"
+			]
+		},
+		
+		"took_place_at": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				"identified_by": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/identified_by"
+					}
+				},
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					}
+				},
+				"language": {
+					"$ref": "#/definitions/language"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		
+		"member_of": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					}
+				},
+				"member_of": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/member_of"
+					}
+				}
+			},
+			"required": [
+				"id",
+				"type",
+				"classified_as"
+			]
+		}
+	},
+	
+	"type": "object",
+	
+	"properties": {
+		
+		"id": {
+			"$ref": "#/definitions/id",
+			"title": "The Object Document's ID",
+			"description": "This field contains the Object's ID, expressed as an absolute URL.",
+			"examples": [
+				"https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb"
+			]
+		},
+		
+		"type": {
+			"$ref": "#/definitions/type",
+			"title": "The Object Document's Type",
+			"description": "This field contains the Object document's type, expressed as a string. It will always be 'Object' for Object entity documents.",
+			"const": "Object"
+		},
+		
+		"_label": {
+			"$ref": "#/definitions/_label",
+			"title": "The Object Document's Developer-Friendly Label",
+			"description": "This field contains the document's developer-friendly label. This label is intended for reference purposes only as a development aid to provide a short human-readable summary of the contents of the current document or document fragment, and is not intended to be acted upon or displayed in any downstream system.",
+			"examples": [
+				"Irises",
+				"Still Life with Apples",
+				"A Wooded Landscape with Travelers on a Path through a Hamlet"
+			]
+		},
+		
+		"identified_by": {
+			"type": "array",
+			"title": "The Object's Identifiers",
+			"description": "This field contains an array of identifiers related to the object.",
+			"items": {
+				"$ref": "#/definitions/identified_by"
+			},
+			"examples": [
+				{
+					"id": "https://mart.getty.edu/museum/collection/object/e8788c40-7c8d-41f4-967c-2e46e1511ac9/identifier/7be3dc39-1e4d-4e59-abc7-19818b1a2705",
+					"type": "Identifier",
+					"_label": "Accession Number",
+					"content": "2019.13.5",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300312355",
+							"type": "Type",
+							"_label": "Accession Number"
+						}
+					]
+				},
+				{
+					"id": "https://mart.getty.edu/museum/collection/object/e8788c40-7c8d-41f4-967c-2e46e1511ac9/name/c7c53e26-439d-4402-a27b-ca6ac84483d2",
+					"type": "Name",
+					"_label": "Primary Title",
+					"content": "Gold Ring with Standing Herakles",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300404670",
+							"type": "Type",
+							"_label": "Primary Title"
+						}
+					]
+				}
+			]
+		},
+		
+		"produced_by": {
+			"type": "object",
+			
+			"title": "The Object's produced_by Property",
+			"description": "This field contains information about the production of the object, including whom the object was produced by and when it was produced, if known.",
+			
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				"timespan": {
+					"$ref": "#/definitions/timespan"
+				},
+				"carried_out_by": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/carried_out_by"
+					}
+				},
+				"took_place_at": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/took_place_at"
+					}
+				}
+			},
+			
+			"required": [
+				"id",
+				"type"
+			],
+			
+			"examples": [
+				{
+					"id": "https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/activity/production/c3a876a9-5333-40d5-8488-6cc722058f5e",
+					"type": "Production",
+					"_label": "Production of Artwork",
+					"timespan": {
+						"id": "https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/activity/production/c3a876a9-5333-40d5-8488-6cc722058f5e/timespan",
+						"type": "TimeSpan",
+						"identified_by": [
+							{
+								"id": "https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/activity/production/c3a876a9-5333-40d5-8488-6cc722058f5e/timespan/name",
+								"type": "Name",
+								"_label": "Date",
+								"content": "1889",
+								"classified_as": [
+									{
+										"id": "http://vocab.getty.edu/aat/300404439",
+										"type": "Type",
+										"_label": "Dates (Spans of Time)"
+									}
+								]
+							}
+						],
+						"classified_as": [
+							{
+								"id": "http://vocab.getty.edu/aat/300404439",
+								"type": "Type",
+								"_label": "Dates (Spans of Time)"
+							}
+						],
+						"begin_of_the_begin": "1889-01-01 00:00:00",
+						"end_of_the_begin": "1889-01-01 00:00:00",
+						"begin_of_the_end": "1889-12-31 23:59:59",
+						"end_of_the_end": "1889-12-31 23:59:59"
+					},
+					"carried_out_by": [
+						{
+							"id": "https://mart.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e",
+							"type": "Person",
+							"_label": "Vincent van Gogh"
+						}
+					],
+					"took_place_at": [
+						{
+							"id": "https://mart.getty.edu/museum/collection/object/670eef27-a09c-4b7f-b163-b18b378b8d99",
+							"type": "Place",
+							"_label": "Saint-Rémy, France",
+							"identified_by": [
+								{
+								"id": "https://mart.getty.edu/museum/collection/object/670eef27-a09c-4b7f-b163-b18b378b8d99/name",
+								"type": "Name",
+								"content": "Saint-Rémy, France"
+								}
+							],
+							"classified_as": [
+								{
+									"id": "http://vocab.getty.edu/aat/300008347",
+									"type": "Type",
+									"_label": "Inhabited Place"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		
+		"classified_as": {
+			"type": "array",
+			
+			"title": "The Object's classified_as Property",
+			"description": "This field contains classifications associated with the Object. These may include classifications related to the Object's type, its culture, and style.",
+			
+			"items": {
+				"$ref": "#/definitions/classified_as"
+			},
+			
+			"examples": [
+				{
+					"id": "http://vocab.getty.edu/aat/300133025",
+					"type": "Type",
+					"_label": "Artwork"
+				},
+				{
+					"id": "http://vocab.getty.edu/aat/300033618",
+					"type": "Type",
+					"_label": "Paintings"
+				},
+				{
+					"id": "http://vocab.getty.edu/aat/300111175",
+					"type": "Type",
+					"_label": "Dutch (Culture or Style)",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300055768",
+							"type": "Type",
+							"_label": "Culture"
+						}
+					]
+				}
+			]
+		},
+		
+		"referred_to_by": {
+			"type": "array",
+			
+			"title": "The Object's referred_to_by Property",
+			"description": "This field contains related information about the Object. This may include one or descriptions of the Object, the Object's culture, its dimensions, etc.",
+			
+			"items": {
+				"$ref": "#/definitions/referred_to_by"
+			},
+			
+			"examples": [
+				{
+					"id": "https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/culture/7ccad4bc-4d46-42d2-8bca-dde51e6bd1e9",
+					"type": "LinguisticObject",
+					"content": "Dutch",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300055768",
+							"type": "Type",
+							"_label": "Culture"
+						},
+						{
+							"id": "http://vocab.getty.edu/aat/300418049",
+							"type": "Type",
+							"_label": "Brief Text"
+						}
+					]
+				},
+				{
+					"id": "https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/description/55cd08c6-963a-407a-9c88-d065c02ebc6c",
+					"type": "LinguisticObject",
+					"content": "In May 1889, after episodes of self-mutilation and hospitalization, Vincent van Gogh chose to enter an asylum in Saint-Rémy, France. There, in the last year before his death, he created almost 130 paintings. Within the first week, he began <em>Irises</em>, working from nature in the asylum's garden. The cropped composition, divided into broad areas of vivid color with monumental irises overflowing its borders, was probably influenced by the decorative patterning of Japanese woodblock prints.<br />\n<br />\nThere are no known drawings for this painting; Van Gogh himself considered it a study. His brother Theo quickly recognized its quality and submitted it to the <em>Salon des Indépendants</em> in September 1889, writing Vincent of the exhibition: \"[It] strikes the eye from afar. It is a beautiful study full of air and life.\"<br />\n<br />\nEach one of Van Gogh's irises is unique. He carefully studied their movements and shapes to create a variety of curved silhouettes bounded by wavy, twisting, and curling lines. The painting's first owner, French art critic Octave Mirbeau, one of Van Gogh's earliest supporters, wrote: \"How well he has understood the exquisite nature of flowers!\"",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300080091",
+							"type": "Type",
+							"_label": "Description"
+						},
+						{
+							"id": "http://vocab.getty.edu/aat/300418049",
+							"type": "Type",
+							"_label": "Brief Text"
+						}
+					]
+				},
+				{
+					"id": "https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/dimensions/0b39ed8a-d8d8-41f8-a374-e6ade1ed25d6",
+					"type": "LinguisticObject",
+					"content": "74.3 × 94.3 cm (29 1/4 × 37 1/8 in.)",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300266036",
+							"type": "Type",
+							"_label": "Dimension Statement"
+						},
+						{
+							"id": "http://vocab.getty.edu/aat/300418049",
+							"type": "Type",
+							"_label": "Brief Text"
+						}
+					]
+				},
+				{
+					"id": "https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/material-statement/ca9ddc4c-3f49-40e1-a633-d5810bcefc7e",
+					"type": "LinguisticObject",
+					"content": "Oil on canvas",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300010358",
+							"type": "Type",
+							"_label": "Material Statement"
+						},
+						{
+							"id": "http://vocab.getty.edu/aat/300418049",
+							"type": "Type",
+							"_label": "Brief Text"
+						}
+					]
+				},
+				{
+					"id": "https://rightsstatements.org/vocab/NoC-US/1.0/",
+					"type": "LinguisticObject",
+					"_label": "RightsStatements.org Rights Assertion",
+					"content": "No Copyright - United States",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300055547",
+							"type": "Type",
+							"_label": "Rights Statement"
+						},
+						{
+							"id": "http://vocab.getty.edu/aat/300418049",
+							"type": "Type",
+							"_label": "Brief Text"
+						}
+					]
+				}
+			]
+		},
+		
+		"current_keeper": {
+			"type": "array",
+			
+			"title": "The Object's current_keeper Property",
+			"description": "This field contains information about the object's current keeper.",
+			
+			"items": {
+				"type": "object",
+				
+				"properties": {
+					"id": {
+						"$ref": "#/definitions/id"
+					},
+					"type": {
+						"$ref": "#/definitions/type"
+					},
+					"_label": {
+						"$ref": "#/definitions/_label"
+					},
+					"classified_as": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/classified_as"
+						}
+					},
+					"member_of": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/member_of"
+						}
+					},
+					"identified_by": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/identified_by"
+						}
+					}
+				},
+				
+				"required": [
+					"id",
+					"type",
+					"classified_as",
+					"identified_by"
+				]
+			},
+			
+			"examples": [
+				{
+					"id": "https://mart.getty.edu/museum/collection/group/0453e4ea-4769-4b02-b590-9541ad174184",
+					"type": "Group",
+					"_label": "Paintings (Curatorial Department)",
+					"member_of": [
+						{
+							"id": "http://vocab.getty.edu/ulan/500115988",
+							"type": "Group",
+							"_label": "J. Paul Getty Museum, Los Angeles, California",
+							"classified_as": [
+								{
+									"id": "http://vocab.getty.edu/aat/300312281",
+									"type": "Type",
+									"_label": "Museum"
+								}
+							],
+							"member_of": [
+								{
+									"id": "http://vocab.getty.edu/ulan/500115987",
+									"type": "Group",
+									"_label": "The J. Paul Getty Trust, Los Angeles, California",
+									"classified_as": [
+										{
+											"id": "http://vocab.getty.edu/ulan/500000003",
+											"type": "Type",
+											"_label": "Corporate Bodies"
+										}
+									]
+								}
+							]
+						}
+					],
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300263534",
+							"type": "Type",
+							"_label": "Department (Organizational Unit)"
+						}
+					],
+					"identified_by": [
+						{
+							"id": "https://mart.getty.edu/museum/collection/group/0453e4ea-4769-4b02-b590-9541ad174184/name",
+							"type": "Name",
+							"content": "Paintings"
+						}
+					]
+				}
+			]
+		},
+		
+		"current_location": {
+			"type": "object",
+			
+			"title": "The Object's current_location Property",
+			"description": "This field contains information about the object's current location, referenced as a Place entity.",
+			
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id",
+					"examples": [
+						"https://mart.getty.edu/museum/collection/place/3d39e983-6c89-411c-b340-7d3caec67f6a"
+					]
+				},
+				"type": {
+					"$ref": "#/definitions/type",
+					"const": "Place"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label",
+					"examples": [
+						"Getty Center, Museum West Pavilion, Gallery W204",
+						"Getty Villa, Museum, Gallery 102"
+					]
+				},
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					},
+					"description": "For Objects that are on display, the 'classified_as' property will always include the 'Galleries (Display Spaces)' classification as per the first of the example values below; for Objects that are off display, the classification will always include the 'Storage Spaces' classification as per the second of the example values below.",
+					"examples": [
+						{
+							"id": "http://vocab.getty.edu/aat/300240057",
+							"type": "Type",
+							"_label": "Galleries (Display Spaces) [Object On Display]"
+						},
+						{
+							"id": "http://vocab.getty.edu/aat/300004465",
+							"type": "Type",
+							"_label": "Storage Spaces [Object Off Display]"
+						}
+					]
+				},
+				"identified_by": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/identified_by"
+					}
+				}
+			},
+			
+			"required": [
+				"id",
+				"type",
+				"identified_by"
+			],
+			
+			"examples": [
+				{
+					"id": "https://mart.getty.edu/museum/collection/place/3d39e983-6c89-411c-b340-7d3caec67f6a",
+					"type": "Place",
+					"_label": "Getty Center, Museum West Pavilion, Gallery W204",
+					"identified_by": [
+						{
+							"id": "https://mart.getty.edu/museum/collection/place/3d39e983-6c89-411c-b340-7d3caec67f6a/name",
+							"type": "Name",
+							"content": "Getty Center, Museum West Pavilion, Gallery W204"
+						}
+					]
+				}
+			]
+		},
+		
+		"current_owner": {
+			"type": "array",
+			
+			"title": "The Object's current_owner Property",
+			"description": "This field contains information about the object's current owner.",
+			
+			"items": {
+				"type": "object",
+				
+				"properties": {
+					"id": {
+						"$ref": "#/definitions/id"
+					},
+					"type": {
+						"$ref": "#/definitions/type"
+					},
+					"_label": {
+						"$ref": "#/definitions/_label"
+					},
+					"classified_as": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/classified_as"
+						}
+					},
+					"member_of": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/member_of"
+						}
+					},
+					"acquired_title_through": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"$ref": "#/definitions/id"
+								},
+								"type": {
+									"$ref": "#/definitions/type"
+								},
+								"_label": {
+									"$ref": "#/definitions/_label"
+								}
+							},
+							"required": [
+								"id",
+								"type"
+							]
+						}
+					}
+				},
+				
+				"required": [
+					"id",
+					"type",
+					"classified_as"
+				]
+			},
+			
+			"examples": [
+				{
+					"id": "http://vocab.getty.edu/ulan/500115988",
+					"type": "Group",
+					"_label": "J. Paul Getty Museum, Los Angeles, California",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300312281",
+							"type": "Type",
+							"_label": "Museum"
+						}
+					],
+					"member_of": [
+						{
+							"id": "http://vocab.getty.edu/ulan/500115987",
+							"type": "Group",
+							"_label": "The J. Paul Getty Trust, Los Angeles, California",
+							"classified_as": [
+								{
+									"id": "http://vocab.getty.edu/ulan/500000003",
+									"type": "Type",
+									"_label": "Corporate Bodies"
+								}
+							]
+						}
+					],
+					"acquired_title_through": [
+						{
+							"id": "https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/activity/acquisition",
+							"type": "Acquisition",
+							"_label": "Acquisition"
+						}
+					]
+				}
+			]
+		},
+		
+		"subject_of": {
+			"type": "array",
+			
+			"title": "The Object's subject_of Property",
+			"description": "This field contains information about resources that the object is a subject of.",
+			
+			"items": {
+				"type": "object",
+				
+				"properties": {
+					"id": {
+						"$ref": "#/definitions/id"
+					},
+					"type": {
+						"$ref": "#/definitions/type"
+					},
+					"_label": {
+						"$ref": "#/definitions/_label"
+					},
+					"format": {
+						"oneOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"classified_as": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/classified_as"
+						}
+					}
+				},
+				
+				"required": [
+					"id",
+					"type"
+				]
+			},
+			
+			"examples": [
+				{
+					"id": "http://www.getty.edu/art/collection/objects/826",
+					"type": "LinguisticObject",
+					"_label": "Homepage for Object",
+					"format": "text/html",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300264578",
+							"type": "Type",
+							"_label": "Web Page"
+						},
+						{
+							"id": "http://vocab.getty.edu/aat/300404670",
+							"type": "Type",
+							"_label": "Primary"
+						}
+					]
+				},
+				{
+					"id": "https://data.getty.edu/museum/api/iiif/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/manifest.json",
+					"type": "InformationObject",
+					"conforms_to": [
+						{
+							"id": "http://iiif.io/api/presentation"
+						}
+					],
+					"format": [
+						"application/ld+json;profile=\"http://iiif.io/api/presentation/2/context.json\""
+					]
+				}
+			]
+		},
+		
+		"representation": {
+			"type": "array",
+			
+			"title": "The Object's representation Property",
+			"description": "This field contains information about other digital representations of the object, such as digital images depicting the object.",
+			
+			"items": {
+				"type": "object",
+				
+				"properties": {
+					"id": {
+						"$ref": "#/definitions/id"
+					},
+					"type": {
+						"$ref": "#/definitions/type"
+					},
+					"_label": {
+						"$ref": "#/definitions/_label"
+					},
+					"format": {
+						"type": "string"
+					},
+					"classified_as": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/classified_as"
+						}
+					}
+				},
+				
+				"required": [
+					"id",
+					"type",
+					"classified_as"
+				]
+			},
+			
+			"examples": [
+				{
+					"id": "http://media.getty.edu/museum/images/web/larger/00094701.jpg",
+					"type": "VisualItem",
+					"_label": "Main View",
+					"format": "image/jpeg",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300215302",
+							"type": "Type",
+							"_label": "Digital Image"
+						}
+					]
+				}
+			]
+		},
+		
+		"made_of": {
+			"type": "array",
+			
+			"title": "The Object's made_of Property",
+			"description": "This field contains information about what the object is made of.",
+			
+			"items": {
+				"type": "object",
+				
+				"properties": {
+					"id": {
+						"$ref": "#/definitions/id"
+					},
+					"type": {
+						"$ref": "#/definitions/type"
+					},
+					"_label": {
+						"$ref": "#/definitions/_label"
+					}
+				},
+				
+				"required": [
+					"id",
+					"type"
+				]
+			},
+			
+			"examples": [
+				{
+					"id": "http://vocab.getty.edu/aat/300015050",
+					"type": "Material",
+					"_label": "Oil Paint (Paint)"
+				},
+				{
+					"id": "http://vocab.getty.edu/aat/300014078",
+					"type": "Material",
+					"_label": "Canvas (Textile Material)"
+				}
+			]
+		},
+		
+		"carries": {
+			"type": "array",
+			
+			"title": "The Object's carries Property",
+			"description": "This field contains information about things carried by the object, such as inscriptions, markings, signatures and watermarks.",
+			
+			"items": {
+				"type": "object",
+				
+				"properties": {
+					"id": {
+						"$ref": "#/definitions/id"
+					},
+					"type": {
+						"$ref": "#/definitions/type"
+					},
+					"_label": {
+						"$ref": "#/definitions/_label"
+					},
+					"content": {
+						"$ref": "#/definitions/content"
+					},
+					"classified_as": {
+						"type": "array",
+						"items": {
+							"$ref": "#/definitions/classified_as"
+						}
+					}
+				},
+				
+				"required": [
+					"id",
+					"type",
+					"content"
+				]
+			},
+			
+			"examples": [
+				{
+					"id": "https://mart.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb/signature/dd2e150f-6bea-4edd-b924-f31b598082e3",
+					"type": "LinguisticObject",
+					"content": "Lower right: \"Vincent\" (underlined)",
+					"classified_as": [
+						{
+							"id": "http://vocab.getty.edu/aat/300028705",
+							"type": "Type",
+							"_label": "Signatures (Names)"
+						},
+						{
+							"id": "http://vocab.getty.edu/aat/300418049",
+							"type": "Type",
+							"_label": "Brief Text"
+						}
+					]
+				}
+			]
+		}
+	}
+}

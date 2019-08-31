@@ -13,6 +13,8 @@ WORKDIR /
 
 # Copy and install our dependencies from requirements.txt
 COPY requirements.txt /app/requirements.txt
+
+RUN pip install --upgrade pip
 RUN pip install -r /app/requirements.txt
 
 COPY ./source/transformer/app /app

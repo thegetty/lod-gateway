@@ -21,6 +21,8 @@ elif(options["debug"] == True):
 	debug(level=1) # display informational messages and errors (level <= 1)
 elif(options["debug"] == False):
 	debug(level=-1) # only display errors (level <= -1)
+else:
+	debug(level=os.getenv("MART_DEBUG_LEVEL", -1))
 
 # debug(level=3)
 

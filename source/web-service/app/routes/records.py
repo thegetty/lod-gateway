@@ -40,11 +40,11 @@ def obtainRecord(namespace, entity, UUID):
 			DI.set("connection", connection)
 		else:
 			return Response(status=500, headers={**{
-				"X-Error": "Unable to obtain database connection!",
+				"X-Error": "Unable to establish a database connection!",
 			}, **headers})
 	else:
 		return Response(status=500, headers={**{
-			"X-Error": "Unable to obtain database handler!",
+			"X-Error": "Unable to obtain the database handler!",
 		}, **headers})
 	
 	response = None
@@ -63,7 +63,7 @@ def obtainRecord(namespace, entity, UUID):
 			else:
 				record.counter  = 1
 			
-			record.update(quiet=True)
+			record.update(quietly=True)
 			
 			if(record.data and len(record.data) >= 0):
 				# response = sprintf("Found record in the database with ID: %d of type %s" % (record.id, type(record.data)))

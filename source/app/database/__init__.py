@@ -92,32 +92,46 @@ class Database:
 		
 		if(connection):
 			if(connection in self.cursors):
-				for cursor in self.cursors[connection]:
+				for index, cursor in enumerate(self.cursors[connection]):
 					if(cursor):
 						try:
 							cursor.close()
 						except:
 							debug("Database.disconnect() Failed to close cursor (%s) for the %s database!" % (cursor, self.configuration["database"]), error=True)
+					
+					del self.cursors[connection][index]
+				
+				del self.cursors[connection]
 			
 			try:
 				connection.close()
 			except:
 				debug("Database.disconnect() Failed to close connection for the %s database!" % (self.configuration["database"]), error=True)
+			
+			index = self.connections.index(connection)
+			if(index >= 0):
+				del self.connections[index]
 		elif(self.connections and len(self.connections) > 0):
-			for connection in self.connections:
+			for index, connection in enumerate(self.connections):
 				if(connection):
 					if(connection in self.cursors):
-						for cursor in self.cursors[connection]:
+						for cindex, cursor in enumerate(self.cursors[connection]):
 							if(cursor):
 								try:
 									cursor.close()
 								except:
 									debug("Database.disconnect() Failed to close cursor (%s) for the %s database!" % (cursor, self.configuration["database"]), error=True)
+							
+							del self.cursors[connection][cindex]
+						
+						del self.cursors[connection]
 					
 					try:
 						connection.close()
 					except:
 						debug("Database.disconnect() Failed to close connection for the %s database!" % (self.configuration["database"]), error=True)
+				
+				del self.connections[index]
 	
 	def cursor(self, connection=None, factory=NamedTupleCursor):
 		debug("Database.cursor(connection: %s, factory: %s) called..." % (connection, factory), level=1)

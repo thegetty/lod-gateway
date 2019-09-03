@@ -11,6 +11,8 @@ from app.utilities import has, get, sprintf, debug
 class Database:
 	
 	def __init__(self, shared=True):
+		"""Initialize the database handler class, including configuring the database connection and credential details, and if the connection will be shared or not."""
+		
 		debug("Database.__init__(shared: %s) called..." % (shared), level=1)
 		
 		self.configuration = {
@@ -43,6 +45,8 @@ class Database:
 				self.connections.append(connection)
 	
 	def __del__(self):
+		"""Provide support for cleaning up any database connections at garbage collection time."""
+		
 		# debug("Database.__del__() called...", level=1)
 		# if(self.connection):
 		# 	if(self.connection.closed == 0):
@@ -50,6 +54,8 @@ class Database:
 		pass
 	
 	def connect(self, autocommit=False):
+		"""Provide support for obtaining a new database connection."""
+		
 		debug("Database.connect(autocommit: %s) called..." % (autocommit), level=1)
 		
 		if(self.shared):
@@ -86,6 +92,8 @@ class Database:
 			return None
 	
 	def disconnect(self, connection=None):
+		"""Provide support for disconnecting the current database connection."""
+		
 		debug("Database.disconnect(connection: %s) called..." % (connection), level=1)
 		
 		self.disconnects += 1 # Increment the requested disconnects counter
@@ -134,6 +142,8 @@ class Database:
 				del self.connections[index]
 	
 	def cursor(self, connection=None, factory=NamedTupleCursor):
+		"""Provide support for obtaining a new database cursor of the desired type. The default is a NamedTupleCursor. Other Pyscopg2 supported cursor types may be specified via the 'factory' named argument if needed."""
+		
 		debug("Database.cursor(connection: %s, factory: %s) called..." % (connection, factory), level=1)
 		
 		if(not connection):
@@ -165,6 +175,8 @@ class Database:
 			return None
 	
 	def commit(self, connection=None):
+		"""Provide support for committing the current database connection's transaction."""
+		
 		debug("Database.commit(connection: %s) called..." % (connection), level=1)
 		
 		if(not connection):
@@ -187,6 +199,8 @@ class Database:
 			return None
 	
 	def rollback(self, connection=None):
+		"""Provide support for rolling back the current database connection's transaction."""
+		
 		debug("Database.rollback(connection: %s) called..." % (connection), level=1)
 		
 		if(not connection):

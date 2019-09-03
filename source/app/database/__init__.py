@@ -26,6 +26,8 @@ class Database:
 		self.connection  = None
 		self.connections = []
 		self.cursors     = {}
+		self.connects    = 0
+		self.disconnects = 0
 		
 		# how should connections be managed? as a list or as a singular connection or should this be handled outside of the class?
 		# should the DI be able to handle it by providing a wrapper method that is called when the DI is 'got' that then creates a new DB instance,
@@ -67,6 +69,8 @@ class Database:
 		
 		debug("Database.connect(autocommit: %s) service = %s" % (autocommit, service), level=2)
 		
+		self.connects += 1 # Increment the requested connections counter
+		
 		try:
 			connection = psycopg2.connect(service)
 			if(connection):
@@ -83,6 +87,8 @@ class Database:
 	
 	def disconnect(self, connection=None):
 		debug("Database.disconnect(connection: %s) called..." % (connection), level=1)
+		
+		self.disconnects += 1 # Increment the requested disconnects counter
 		
 		if(connection):
 			if(connection in self.cursors):
@@ -187,3 +193,52 @@ class Database:
 				raise RuntimeError("The database connection is already closed!")
 		else:
 			return None
+	
+	def information(self):
+			"""Obtain information and statistics about the current state of the database for debugging purposes."""
+			
+			debug("Database.information() called...", level=1)
+			
+			information = {
+				"database": {
+					"connection": {
+						"host":   self.configuration["hostname"],
+						"port":   self.configuration["hostport"],
+						"name":   self.configuration["database"],
+						"user":   self.configuration["username"],
+						"shared": self.shared,
+					},
+					"connections": {
+						"requested": self.connects,
+						"known":     len(self.connections),
+						"active":    0,
+						"cursors":   len(self.cursors),
+					},
+					"disconnections": {
+						"requested": self.disconnects,
+					},
+				},
+			}
+			
+			connection = self.connect(autocommit=True)
+			if(connection):
+				cursor = self.cursor(connection=connection)
+				if(cursor):
+					cursor.execute("SELECT SUM(numbackends) AS connections FROM pg_stat_database")
+					
+					result = cursor.fetchone()
+					if(result):
+						if(result[0]):
+							information["database"]["connections"]["active"] = result[0]
+						else:
+							debug("Database.information(connection: %s) The query result did not contain a 'connections' property!" % (connection), error=True)
+					else:
+						debug("Database.information(connection: %s) A valid query result could not be obtained!" % (connection), error=True)
+				else:
+					debug("Database.information(connection: %s) Unable to obtain a new database connection cursor!" % (connection), error=True)
+			else:
+				debug("Database.information(connection: %s) Unable to obtain a new database connection!" % (connection), error=True)
+			
+			self.disconnect(connection=connection)
+			
+			return information

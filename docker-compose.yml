@@ -90,6 +90,10 @@ services:
             FLASK_ENV:              ${MART_FLASK_ENV}
             FLASK_DEBUG:            ${MART_FLASK_DEBUG}
             FLASK_APP:              ${MART_FLASK_APP}
+            MART_WEB_SERVICE_PORT:  ${MART_WEB_SERVICE_PORT}
+            MART_WEB_DEBUG_HEADER:  ${MART_WEB_DEBUG_HEADER}
+            MART_UWSGI_PROCESSES:   ${MART_UWSGI_PROCESSES}
+            MART_UWSGI_THREADS:     ${MART_UWSGI_THREADS}
         volumes:
             # use a volume mount to dynamically bind the application's source code
             - ./source/web-service/startup.py:/startup.py

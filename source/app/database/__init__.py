@@ -87,9 +87,11 @@ class Database:
 				self.connections.append(connection)
 				
 				return connection
-		except:
+		except Exception as e:
 			debug("Database.connect() Failed to connect to the %s database!" % (self.configuration["database"]), error=True)
-			return None
+			debug(e, error=True, indent=1)
+		
+		return None
 	
 	def disconnect(self, connection=None):
 		"""Provide support for disconnecting the current database connection."""
@@ -104,8 +106,9 @@ class Database:
 					if(cursor):
 						try:
 							cursor.close()
-						except:
+						except Exception as e:
 							debug("Database.disconnect() Failed to close cursor (%s) for the %s database!" % (cursor, self.configuration["database"]), error=True)
+							debug(e, error=True, indent=1)
 					
 					del self.cursors[connection][index]
 				
@@ -113,8 +116,9 @@ class Database:
 			
 			try:
 				connection.close()
-			except:
+			except Exception as e:
 				debug("Database.disconnect() Failed to close connection for the %s database!" % (self.configuration["database"]), error=True)
+				debug(e, error=True, indent=1)
 			
 			index = self.connections.index(connection)
 			if(index >= 0):
@@ -127,8 +131,9 @@ class Database:
 							if(cursor):
 								try:
 									cursor.close()
-								except:
+								except Exception as e:
 									debug("Database.disconnect() Failed to close cursor (%s) for the %s database!" % (cursor, self.configuration["database"]), error=True)
+									debug(e, error=True, indent=1)
 							
 							del self.cursors[connection][cindex]
 						
@@ -136,8 +141,9 @@ class Database:
 					
 					try:
 						connection.close()
-					except:
+					except Exception as e:
 						debug("Database.disconnect() Failed to close connection for the %s database!" % (self.configuration["database"]), error=True)
+						debug(e, error=True, indent=1)
 				
 				del self.connections[index]
 	
@@ -166,7 +172,8 @@ class Database:
 					return None
 			except Exception as e:
 				debug("Database.cursor() Failed to create a new cursor for the %s database!" % (self.configuration["database"]), error=True)
-				debug(e)
+				debug(e, error=True, indent=1)
+				
 				traceback.print_exc()
 				
 				return None
@@ -190,7 +197,7 @@ class Database:
 					return True
 				except Exception as e:
 					debug("Database.commit() Failed!", error=True)
-					debug(e)
+					debug(e, error=True, indent=1)
 					
 					return False
 			else:
@@ -214,7 +221,7 @@ class Database:
 					return True
 				except Exception as e:
 					debug("Database.rollback() Failed!", error=True)
-					debug(e)
+					debug(e, error=True, indent=1)
 					
 					return False
 			else:

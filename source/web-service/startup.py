@@ -36,8 +36,12 @@ from app.database import Database
 # Initialise the dependency injector
 di = DI()
 
-# Instantiate and register the database service
-di.set("database", Database(shared=False))
+# Instantiate and register the database handler
+database = Database(shared=False)
+if(database):
+	di.set("database", database)
+else:
+	raise RuntimeError("The database handler could not be initialized!")
 
 # Instantiate and register the graph store service
 # di.set("graph", GraphStore(shared=False))

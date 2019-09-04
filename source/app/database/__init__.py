@@ -11,6 +11,8 @@ from app.utilities import has, get, sprintf, debug
 class Database:
 	
 	def __init__(self, shared=True):
+		"""Initialize the database handler class, including configuring the database connection and credential details, and if the connection will be shared or not."""
+		
 		debug("Database.__init__(shared: %s) called..." % (shared), level=1)
 		
 		self.configuration = {
@@ -26,6 +28,8 @@ class Database:
 		self.connection  = None
 		self.connections = []
 		self.cursors     = {}
+		self.connects    = 0
+		self.disconnects = 0
 		
 		# how should connections be managed? as a list or as a singular connection or should this be handled outside of the class?
 		# should the DI be able to handle it by providing a wrapper method that is called when the DI is 'got' that then creates a new DB instance,
@@ -41,6 +45,8 @@ class Database:
 				self.connections.append(connection)
 	
 	def __del__(self):
+		"""Provide support for cleaning up any database connections at garbage collection time."""
+		
 		# debug("Database.__del__() called...", level=1)
 		# if(self.connection):
 		# 	if(self.connection.closed == 0):
@@ -48,6 +54,8 @@ class Database:
 		pass
 	
 	def connect(self, autocommit=False):
+		"""Provide support for obtaining a new database connection."""
+		
 		debug("Database.connect(autocommit: %s) called..." % (autocommit), level=1)
 		
 		if(self.shared):
@@ -67,6 +75,8 @@ class Database:
 		
 		debug("Database.connect(autocommit: %s) service = %s" % (autocommit, service), level=2)
 		
+		self.connects += 1 # Increment the requested connections counter
+		
 		try:
 			connection = psycopg2.connect(service)
 			if(connection):
@@ -77,43 +87,69 @@ class Database:
 				self.connections.append(connection)
 				
 				return connection
-		except:
+		except Exception as e:
 			debug("Database.connect() Failed to connect to the %s database!" % (self.configuration["database"]), error=True)
-			return None
+			debug(e, error=True, indent=1)
+		
+		return None
 	
 	def disconnect(self, connection=None):
+		"""Provide support for disconnecting the current database connection."""
+		
 		debug("Database.disconnect(connection: %s) called..." % (connection), level=1)
+		
+		self.disconnects += 1 # Increment the requested disconnects counter
 		
 		if(connection):
 			if(connection in self.cursors):
-				for cursor in self.cursors[connection]:
+				for index, cursor in enumerate(self.cursors[connection]):
 					if(cursor):
 						try:
 							cursor.close()
-						except:
+						except Exception as e:
 							debug("Database.disconnect() Failed to close cursor (%s) for the %s database!" % (cursor, self.configuration["database"]), error=True)
+							debug(e, error=True, indent=1)
+					
+					del self.cursors[connection][index]
+				
+				del self.cursors[connection]
 			
 			try:
 				connection.close()
-			except:
+			except Exception as e:
 				debug("Database.disconnect() Failed to close connection for the %s database!" % (self.configuration["database"]), error=True)
+				debug(e, error=True, indent=1)
+			
+			index = self.connections.index(connection)
+			if(index >= 0):
+				del self.connections[index]
 		elif(self.connections and len(self.connections) > 0):
-			for connection in self.connections:
+			for index, connection in enumerate(self.connections):
 				if(connection):
 					if(connection in self.cursors):
-						for cursor in self.cursors[connection]:
+						for cindex, cursor in enumerate(self.cursors[connection]):
 							if(cursor):
 								try:
 									cursor.close()
-								except:
+								except Exception as e:
 									debug("Database.disconnect() Failed to close cursor (%s) for the %s database!" % (cursor, self.configuration["database"]), error=True)
+									debug(e, error=True, indent=1)
+							
+							del self.cursors[connection][cindex]
+						
+						del self.cursors[connection]
 					
 					try:
 						connection.close()
-					except:
+					except Exception as e:
 						debug("Database.disconnect() Failed to close connection for the %s database!" % (self.configuration["database"]), error=True)
+						debug(e, error=True, indent=1)
+				
+				del self.connections[index]
 	
 	def cursor(self, connection=None, factory=NamedTupleCursor):
+		"""Provide support for obtaining a new database cursor of the desired type. The default is a NamedTupleCursor. Other Pyscopg2 supported cursor types may be specified via the 'factory' named argument if needed."""
+		
 		debug("Database.cursor(connection: %s, factory: %s) called..." % (connection, factory), level=1)
 		
 		if(not connection):
@@ -136,7 +172,8 @@ class Database:
 					return None
 			except Exception as e:
 				debug("Database.cursor() Failed to create a new cursor for the %s database!" % (self.configuration["database"]), error=True)
-				debug(e)
+				debug(e, error=True, indent=1)
+				
 				traceback.print_exc()
 				
 				return None
@@ -145,6 +182,8 @@ class Database:
 			return None
 	
 	def commit(self, connection=None):
+		"""Provide support for committing the current database connection's transaction."""
+		
 		debug("Database.commit(connection: %s) called..." % (connection), level=1)
 		
 		if(not connection):
@@ -158,7 +197,7 @@ class Database:
 					return True
 				except Exception as e:
 					debug("Database.commit() Failed!", error=True)
-					debug(e)
+					debug(e, error=True, indent=1)
 					
 					return False
 			else:
@@ -167,6 +206,8 @@ class Database:
 			return None
 	
 	def rollback(self, connection=None):
+		"""Provide support for rolling back the current database connection's transaction."""
+		
 		debug("Database.rollback(connection: %s) called..." % (connection), level=1)
 		
 		if(not connection):
@@ -180,10 +221,59 @@ class Database:
 					return True
 				except Exception as e:
 					debug("Database.rollback() Failed!", error=True)
-					debug(e)
+					debug(e, error=True, indent=1)
 					
 					return False
 			else:
 				raise RuntimeError("The database connection is already closed!")
 		else:
 			return None
+	
+	def information(self):
+			"""Obtain information and statistics about the current state of the database for debugging purposes."""
+			
+			debug("Database.information() called...", level=1)
+			
+			information = {
+				"database": {
+					"connection": {
+						"host":   self.configuration["hostname"],
+						"port":   self.configuration["hostport"],
+						"name":   self.configuration["database"],
+						"user":   self.configuration["username"],
+						"shared": self.shared,
+					},
+					"connections": {
+						"requested": self.connects,
+						"known":     len(self.connections),
+						"active":    0,
+						"cursors":   len(self.cursors),
+					},
+					"disconnections": {
+						"requested": self.disconnects,
+					},
+				},
+			}
+			
+			connection = self.connect(autocommit=True)
+			if(connection):
+				cursor = self.cursor(connection=connection)
+				if(cursor):
+					cursor.execute("SELECT SUM(numbackends) AS connections FROM pg_stat_database")
+					
+					result = cursor.fetchone()
+					if(result):
+						if(result[0]):
+							information["database"]["connections"]["active"] = result[0]
+						else:
+							debug("Database.information(connection: %s) The query result did not contain a 'connections' property!" % (connection), error=True)
+					else:
+						debug("Database.information(connection: %s) A valid query result could not be obtained!" % (connection), error=True)
+				else:
+					debug("Database.information(connection: %s) Unable to obtain a new database connection cursor!" % (connection), error=True)
+			else:
+				debug("Database.information(connection: %s) Unable to obtain a new database connection!" % (connection), error=True)
+			
+			self.disconnect(connection=connection)
+			
+			return information

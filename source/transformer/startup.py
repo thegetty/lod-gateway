@@ -52,7 +52,7 @@ connection = database.connect(autocommit=False)
 if(connection):
 	di.set("connection", connection)
 else:
-	raise RuntimeError("No database connection could not be established!")
+	raise RuntimeError("The database connection could not be established!")
 
 # Import the transformers
 from app.transformers import *

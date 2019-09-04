@@ -68,7 +68,7 @@ app.register_blueprint(records)
 def welcome():
 	now = datetime.datetime.now()
 	
-	body = sprintf("Welcome to the Museum Linked Art Data Service at %02d:%02d:%02d on %02d/%02d/%04d" % (now.hour, now.minute, now.second, now.month, now.day, now.year))
+	body = sprintf("Welcome to the Getty's Linked Open Data Gateway Service at %02d:%02d:%02d on %02d/%02d/%04d" % (now.hour, now.minute, now.second, now.month, now.day, now.year))
 	
 	return Response(body, status=200)
 

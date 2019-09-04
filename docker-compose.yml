@@ -10,11 +10,9 @@ services:
             POSTGRES_USER:     ${MART_POSTGRES_USER}
             POSTGRES_PASSWORD: ${MART_POSTGRES_PASSWORD}
             POSTGRES_DB:       ${MART_POSTGRES_DB}
-            POSTGRES_PORT:     5432
+            POSTGRES_PORT:     ${MART_POSTGRES_PORT}
             PGDATA:            ${MART_PGDATA}
             TZ:                ${MART_TIMEZONE}
-        expose:
-            - "${MART_POSTGRES_PORT}"
         ports:
             - "${MART_POSTGRES_PORT}:5432"
         stop_grace_period: 10s
@@ -31,7 +29,7 @@ services:
             SHELL:                  ${SHELL}
             TZ:                     ${MART_TIMEZONE}
             MART_POSTGRES_HOST:     ${MART_POSTGRES_HOST}
-            MART_POSTGRES_PORT:     5432
+            MART_POSTGRES_PORT:     ${MART_POSTGRES_PORT}
             MART_POSTGRES_USER:     ${MART_POSTGRES_USER}
             MART_POSTGRES_PASSWORD: ${MART_POSTGRES_PASSWORD}
             MART_POSTGRES_DB:       ${MART_POSTGRES_DB}
@@ -80,7 +78,7 @@ services:
             SHELL:                  ${SHELL}
             TZ:                     ${MART_TIMEZONE}
             MART_POSTGRES_HOST:     ${MART_POSTGRES_HOST}
-            MART_POSTGRES_PORT:     5432
+            MART_POSTGRES_PORT:     ${MART_POSTGRES_PORT}
             MART_POSTGRES_USER:     ${MART_POSTGRES_USER}
             MART_POSTGRES_PASSWORD: ${MART_POSTGRES_PASSWORD}
             MART_POSTGRES_DB:       ${MART_POSTGRES_DB}

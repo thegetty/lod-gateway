@@ -1,10 +1,13 @@
 You will need to clone the museum-collections-data-to-linked-art repo and then this will all work. 
-AT this time (Sep 5, 2019) we're working on the staging-deploy branch. At some point in the future when the code will be stabilized and merged we're going to move to the master. 
+At this time (Sep 5, 2019) we're working on the staging-deploy branch. At some point in the future when the code will be stabilized and merged we're going to move to the master. 
 You can run something like the following:
 
 mkdir ~/checkouts
 cd ~/checkouts
 git clone git@github.com:thegetty/museum-collections-data-to-linked-art.git  #Note:  This is if you are using the ssh method w/ git.
+
+For the staging-deploy branch, when cloning the repo please use the option
+-b staging-deploy
 
 ##### You will need to first export the variables into  your local shell for VAULT.  These I am making available to the 
 developers by storing them inside the vault path that has been created for the project.  In this case they would be in 

@@ -1,4 +1,5 @@
 You will need to clone the museum-collections-data-to-linked-art repo and then this will all work. 
+AT this time (Sep 5, 2019) we're working on the staging-deploy branch. At some point in the future when the code will be stabilized and merged we're going to move to the master. 
 You can run something like the following:
 
 mkdir ~/checkouts

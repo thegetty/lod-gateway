@@ -1,4 +1,4 @@
-docker run --network=mart --name=mart-web-service -p 5100:5100 -d \
+docker run --network=mart --name=mart-web-service --rm -p 5100:5100 -d \
 -e VAULT_ADDR="${VAULT_ADDR}" \
 -e VAULT_TOKEN="${VAULT_TOKEN}" \
 -e VAULT_ENV="${VAULT_ENV}" \

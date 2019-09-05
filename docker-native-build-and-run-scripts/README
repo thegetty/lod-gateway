@@ -1,0 +1,68 @@
+You will need to clone the museum-collections-data-to-linked-art repo and then this will all work. 
+You can run something like the following:
+
+mkdir ~/checkouts
+cd ~/checkouts
+git clone git@github.com:thegetty/museum-collections-data-to-linked-art.git  #Note:  This is if you are using the ssh method w/ git.
+
+##### You will need to first export the variables into  your local shell for VAULT.  These I am making available to the 
+developers by storing them inside the vault path that has been created for the project.  In this case they would be in 
+dev/mart for development, or dev/staging for the staging environment.  You need to run the following:
+
+export VAULT_ADDR="replace with value up in vault" 
+export VAULT_TOKEN="replace with vault up in vault"
+export VAULT_ENV="replace with value up in vault"
+export VAULT_APP_NAME="replace with value up in vault"
+
+The scripts should be run in the following order for things to orchestrate and work properly.
+docker-network-create.sh  #(note, you should only need to run this the very first time and if it doesn't exist).
+build.sh
+run-db-service.sh
+run-web-service.sh
+run-transformer-service.sh
+
+
+##### Running things locally including all services but natively and translated from docker-compose ######
+
+If you are running and testing the db locally on the laptop then you will need to export the following var's first 
+for the db to run as the db is not using vault since it would require customization of the upstream image itself
+so that it could run as a sub-process of the envconsul.  So basically the env var's that you export should match
+the ones up in vault. 
+
+export MART_PGDATA="match value of what is in vault"
+export MART_POSTGRES_DB="match value of what is in vault"
+export MART_POSTGRES_HOST="match value of what is in vault"
+export MART_POSTGRES_PASSWORD="match value of what is in vault"
+export MART_POSTGRES_PORT="match value of what is in vault"
+export MART_POSTGRES_USER="match value of what is in vault"
+export MART_TIMEZONE="match value of what is in vault"
+
+
+Once you have done the above steps for VAULT and MART env var's to run locally, you can run something like the 
+following to verify that the shell is set to run things locally successfully:
+
+env | grep VAULT
+VAULT_ADDR="you should see the correct value here"
+VAULT_APP_NAME="you should see the correct value here"
+VAULT_ENV="you should see the correct value here"
+VAULT_TOKEN="you should see the correct value here"
+
+env | grep MART
+MART_POSTGRES_PORT="you should see the correct value here"
+MART_POSTGRES_HOST="you should see the correct value here"
+MART_PGDATA="you should see the correct value here"
+MART_POSTGRES_PASSWORD="you should see the correct value here"
+MART_TIMEZONE="you should see the correct value here"
+MART_POSTGRES_DB="you should see the correct value here"
+MART_POSTGRES_USER="you should see the correct value here"
+
+
+
+#####  Running things locally but against the staging backend endpoints #####
+If you are running the container services that will be hosted up in ECS eventually, locally, in this case this will 
+be the web and application containers.  The db in Staging and prod will be broken out into a backend endpoint and 
+therefore the endpoint will be stored up in Vault and the containers will have the Envconsul configuration added
+to the Dockerfile's so that at run-time the env var's will be pulled into the parent shell process , in this case,
+envconsul (running as docker pid 1), and then made available to the sub-process (in this case the container you are
+running).
+

@@ -165,7 +165,7 @@ class ConstituentTransformer(BaseTransformer):
 			classification = get(nationality, "classification")
 			if(classification):
 				type = Type()
-				type.id = get(classification, "uri")
+				type.id = get(classification, "id")
 				type._label = get(classification, "label")
 				type.classified_as = Type(ident="http://vocab.getty.edu/aat/300379842", label="Nationality")
 				

@@ -28,4 +28,3 @@ phases:
       - printf '[{"name":"staging-mart-transformer","imageUri":"%s"}]' $TRANSFORMER_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
     files: imagedefinitions.json
-© 2019 GitHub, Inc.

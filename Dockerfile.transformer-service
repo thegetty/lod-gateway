@@ -34,7 +34,7 @@ EXPOSE 5200
 
 # Later in preparation for deploying our container we need to integrate and test with envconsul...
 ENTRYPOINT [ "docker-entrypoint.sh" ]
-CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "-log-level=debug", "/startup.sh" ]
+CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "/startup.sh" ]
 # CMD [ "/bin/bash" ];
 
 # Run our application startup script...

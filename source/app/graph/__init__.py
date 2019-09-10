@@ -1,87 +1,98 @@
 import os
-import json, re, requests, rdflib
+import json
+import re
+import requests
+import rdflib
+
 from pyld import jsonld
 
 from app.utilities import has, get, sprintf, debug
-
-neptune_endpoint = os.getenv("MART_NEPTUNE_ENDPOINT", None)
-
 
 class GraphStore:
     def __init__(self):
         debug("GraphStore.__init__() called...", level=1)
 
-        self.connection = None
-
         self.configuration = {
-            "hostname": os.getenv("MART_NEPTUNE_HOST", None),
-            "hostport": os.getenv("MART_NEPTUNE_PORT", None),
             "endpoint": os.getenv("MART_NEPTUNE_ENDPOINT", None),
-            "graphname": os.getenv("MART_NEPTUNE_GRAPH", None),
             "username": os.getenv("MART_NEPTUNE_USERNAME", None),
             "password": os.getenv("MART_NEPTUNE_PASSWORD", None),
         }
-
+        
         debug("GraphStore.__init__() configuration = %o", self.configuration, level=2)
 
     @staticmethod
-    def update(entity_uri, json_data):
+    def update(entityURI, jsonData):
         try:
-            graph_name = (
-                entity_uri + "-graph"
+            graphName = (
+                entityURI + "-graph"
             )
 
-            debug("GraphStore.update(entity: %s) called..." % (graph_name), level=0)
-
-            json_obj = json.loads(json_data)
-            expanded = jsonld.expand(json_obj)
-            g = rdflib.ConjunctiveGraph()
-            g.parse(data=json.dumps(expanded), format="json-ld")
-            serialized_nt = g.serialize(format="nt").decode("UTF-8")
-
+            debug("GraphStore.update(entity: %s) called..." % (graphName), level=0)
+            
+            jsonObj  = json.loads(jsonData)
+            expanded = jsonld.expand(jsonObj)
+            
+            graph = rdflib.ConjunctiveGraph()
+            graph.parse(data=json.dumps(expanded), format="json-ld")
+            
+            serializedNT = graph.serialize(format="nt").decode("UTF-8")
+            
             # delete graph if it exists
-            GraphStore.delete(entity_uri)
-
+            GraphStore.delete(entityURI)
+            
             # insert graph
-            insert_stmt = (
-                "INSERT DATA {GRAPH <" + graph_name + "> {" + serialized_nt + "}}"
+            insertStatement = (
+                "INSERT DATA {GRAPH <" + graphName + "> {" + serializedNT + "}}"
             )
-            res = requests.post(neptune_endpoint, data={"update": insert_stmt})
-            if res.status_code == 200:
+            
+            response = requests.post(
+                self.configuration["endpoint"],
+                data={
+                    "update": insertStatement,
+                })
+            
+            if(response.status_code == 200):
                 return True
             else:
                 return False
         except Exception as e:
             debug(
                 "GraphStore.update() problem found with record %s, error: %s"
-                % (graph_name, str(e)),
+                % (graphName, str(e)),
                 error=True,
             )
+            
             return False
 
     @staticmethod
-    def delete(entity_uri):
-        graph_name = entity_uri + "-graph"
-
-        debug("GraphStore.delete(entity: %s) called..." % (graph_name), level=0)
-
+    def delete(entityURI):
+        graphName = entityURI + "-graph"
+        
+        debug("GraphStore.delete(entity: %s) called..." % (graphName), level=0)
+        
         # check to see if graph exists
-        res = requests.post(
-            neptune_endpoint,
+        response = requests.post(
+            self.configuration["endpoint"],
             data={
                 "query": "SELECT (count(?s) as ?count) { GRAPH <"
-                + graph_name
+                + graphName
                 + "> {?s ?p ?o}}"
             },
         )
-        count_json = json.loads(res.content)
-        if int(count_json["results"]["bindings"][0]["count"]["value"]) > 0:
-            # drop graph
-            res = requests.post(
-                neptune_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
-            )
-            if res.status_code == 200:
-                return True
-            else:
-                return False
+        
+        if(response.status_code == 200):
+            countObj = json.loads(response.content)
+            if(countObj):
+                if(int(countObj["results"]["bindings"][0]["count"]["value"]) > 0):
+                    # drop graph
+                    response = requests.post(
+                        self.configuration["endpoint"],
+                        data={
+                            "update": "DROP GRAPH <" + graphName + ">"
+                        }
+                    )
 
+                    if(response.status_code == 200):
+                        return True
+        
+        return False

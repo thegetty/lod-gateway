@@ -16,7 +16,7 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Building the Docker images...
-      - docker build -t $TRANSFORMER_REPOSITORY_URI:latest -f Dockerfile.transformer .
+      - docker build -t $TRANSFORMER_REPOSITORY_URI:latest -f Dockerfile.transformer-service .
       - docker tag $TRANSFORMER_REPOSITORY_URI:latest $TRANSFORMER_REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:

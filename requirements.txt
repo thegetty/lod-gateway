@@ -7,3 +7,6 @@ uWSGI==2.0.18
 psycopg2==2.8.3
 psutil==5.6.3
 pytz==2019.2
+rdflib==4.2.2
+rdflib-jsonld==0.4.0
+pyld==1.0.5

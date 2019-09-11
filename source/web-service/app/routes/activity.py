@@ -142,7 +142,7 @@ def activityStream(path=None):
 			response = Response(status=404, headers={**{
 				"X-Error": sprintf("Activity %s was not found!" % (UUID)),
 			}, **headers})
-	elif(count):
+	elif(isinstance(count, int)):
 		if(count > 0):
 			pages = math.ceil(count / limit)
 			first = 1

@@ -59,11 +59,12 @@ class Database:
 		debug("Database.connect(autocommit: %s) called..." % (autocommit), level=1)
 		
 		if(self.shared):
-			if(self.connection and self.connection.closed == 0):
-				if(isinstance(autocommit, bool)):
-					self.connection.autocommit = autocommit
-				
-				return self.connection
+			if(isinstance(self.connection, psycopg2.extensions.connection)):
+				if(self.connection.closed == 0):
+					if(isinstance(autocommit, bool)):
+						self.connection.autocommit = autocommit
+					
+					return self.connection
 		
 		service = sprintf("host=%s port=%s dbname=%s user=%s password=%s" % (
 			self.configuration["hostname"],
@@ -79,7 +80,7 @@ class Database:
 		
 		try:
 			connection = psycopg2.connect(service)
-			if(connection):
+			if(isinstance(connection, psycopg2.extensions.connection)):
 				if(isinstance(autocommit, bool)):
 					connection.autocommit = autocommit
 				
@@ -100,10 +101,10 @@ class Database:
 		
 		self.disconnects += 1 # Increment the requested disconnects counter
 		
-		if(connection):
+		if(isinstance(connection, psycopg2.extensions.connection)):
 			if(connection in self.cursors):
 				for index, cursor in enumerate(self.cursors[connection]):
-					if(cursor):
+					if(isinstance(cursor, psycopg2.extensions.cursor)):
 						try:
 							cursor.close()
 						except Exception as e:
@@ -120,15 +121,18 @@ class Database:
 				debug("Database.disconnect() Failed to close connection for the %s database!" % (self.configuration["database"]), error=True)
 				debug(e, error=True, indent=1)
 			
-			index = self.connections.index(connection)
-			if(index >= 0):
-				del self.connections[index]
+			try:
+				index = self.connections.index(connection)
+				if(index >= 0):
+					del self.connections[index]
+			except:
+				debug("Database.disconnect() The specified connection (%s) could not be found in the list of connections!" % (connection), error=True)
 		elif(self.connections and len(self.connections) > 0):
 			for index, connection in enumerate(self.connections):
 				if(connection):
 					if(connection in self.cursors):
 						for cindex, cursor in enumerate(self.cursors[connection]):
-							if(cursor):
+							if(isinstance(cursor, psycopg2.extensions.cursor)):
 								try:
 									cursor.close()
 								except Exception as e:
@@ -152,13 +156,13 @@ class Database:
 		
 		debug("Database.cursor(connection: %s, factory: %s) called..." % (connection, factory), level=1)
 		
-		if(not connection):
+		if(not isinstance(connection, psycopg2.extensions.connection)):
 			connection = self.connection
 		
-		if(connection):
+		if(isinstance(connection, psycopg2.extensions.connection)):
 			try:
 				cursor = connection.cursor(cursor_factory=factory)
-				if(cursor):
+				if(isinstance(cursor, psycopg2.extensions.cursor)):
 					debug("Database.cursor() Created cursor of type: %s" % (type(cursor)), level=2)
 					
 					if(connection in self.cursors):
@@ -186,10 +190,10 @@ class Database:
 		
 		debug("Database.commit(connection: %s) called..." % (connection), level=1)
 		
-		if(not connection):
+		if(not isinstance(connection, psycopg2.extensions.connection)):
 			connection = self.connection
 		
-		if(connection):
+		if(isinstance(connection, psycopg2.extensions.connection)):
 			if(connection.closed == 0):
 				try:
 					connection.commit()
@@ -210,10 +214,10 @@ class Database:
 		
 		debug("Database.rollback(connection: %s) called..." % (connection), level=1)
 		
-		if(not connection):
+		if(not isinstance(connection, psycopg2.extensions.connection)):
 			connection = self.connection
 		
-		if(connection):
+		if(isinstance(connection, psycopg2.extensions.connection)):
 			if(connection.closed == 0):
 				try:
 					connection.rollback()
@@ -256,9 +260,9 @@ class Database:
 			}
 			
 			connection = self.connect(autocommit=True)
-			if(connection):
+			if(isinstance(connection, psycopg2.extensions.connection)):
 				cursor = self.cursor(connection=connection)
-				if(cursor):
+				if(isinstance(cursor, psycopg2.extensions.cursor)):
 					cursor.execute("SELECT SUM(numbackends) AS connections FROM pg_stat_database")
 					
 					result = cursor.fetchone()

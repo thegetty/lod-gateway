@@ -1,3 +1,6 @@
+# All services have now been configured to use vault integration, for how, see the Dockerfile's in the root of the project, 
+# each is labeled accordingly, i.e.  Dockerfile.web-service, Dockerfile.transformer-service, Dockerfile.db-service
+
 You will need to clone the museum-collections-data-to-linked-art repo and then this will all work. 
 At this time (Sep 5, 2019) we're working on the staging-deploy branch. At some point in the future when the code will be stabilized and merged we're going to move to the master. 
 You can run something like the following:
@@ -16,7 +19,28 @@ dev/mart for development, or dev/staging for the staging environment.  You need 
 export VAULT_ADDR="replace with value up in vault" 
 export VAULT_TOKEN="replace with vault up in vault"
 export VAULT_ENV="replace with value up in vault"
+export VAULT_APP_NAME="replace with value up in vault if you are testing against staging, else replace with your ldap token"
+
+You can also create a environment file for the above to make things easier but you should make sure it's locked down
+and outside of the project root so that it doesn't accidentally get checked into git anywhere, otherwise we have 
+defeated the whole purpose.  You could do something like:
+
+cd ~
+touch mart_vault_env_vars
+
+# Lock down the permissions so they are read only by you.  You can use :wq! to force write even though the read permission 
+#for your user is set.
+
+chmod 400 mart_vault_env_vars 
+
+# Add the following to the file with vi or your editor
+export VAULT_ADDR="replace with value up in vault"
+export VAULT_TOKEN="replace with vault up in vault"
+export VAULT_ENV="replace with value up in vault"
 export VAULT_APP_NAME="replace with value up in vault"
+
+# Then source the file so it's read into your shell....
+source ~/mart_vault_env_vars
 
 The scripts should be run in the following order for things to orchestrate and work properly.
 docker-network-create.sh  #(note, you should only need to run this the very first time and if it doesn't exist).
@@ -24,23 +48,6 @@ build.sh
 run-db-service.sh
 run-web-service.sh
 run-transformer-service.sh
-
-
-##### Running things locally including all services but natively and translated from docker-compose ######
-
-If you are running and testing the db locally on the laptop then you will need to export the following var's first 
-for the db to run as the db is not using vault since it would require customization of the upstream image itself
-so that it could run as a sub-process of the envconsul.  So basically the env var's that you export should match
-the ones up in vault. 
-
-export MART_PGDATA="match value of what is in vault"
-export MART_POSTGRES_DB="match value of what is in vault"
-export MART_POSTGRES_HOST="match value of what is in vault"
-export MART_POSTGRES_PASSWORD="match value of what is in vault"
-export MART_POSTGRES_PORT="match value of what is in vault"
-export MART_POSTGRES_USER="match value of what is in vault"
-export MART_TIMEZONE="match value of what is in vault"
-
 
 Once you have done the above steps for VAULT and MART env var's to run locally, you can run something like the 
 following to verify that the shell is set to run things locally successfully:
@@ -50,16 +57,6 @@ VAULT_ADDR="you should see the correct value here"
 VAULT_APP_NAME="you should see the correct value here"
 VAULT_ENV="you should see the correct value here"
 VAULT_TOKEN="you should see the correct value here"
-
-env | grep MART
-MART_POSTGRES_PORT="you should see the correct value here"
-MART_POSTGRES_HOST="you should see the correct value here"
-MART_PGDATA="you should see the correct value here"
-MART_POSTGRES_PASSWORD="you should see the correct value here"
-MART_TIMEZONE="you should see the correct value here"
-MART_POSTGRES_DB="you should see the correct value here"
-MART_POSTGRES_USER="you should see the correct value here"
-
 
 
 #####  Running things locally but against the staging backend endpoints #####

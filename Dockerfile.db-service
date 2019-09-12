@@ -4,6 +4,15 @@ FROM postgres:10.7
 MAINTAINER Daniel Sissman <dsissman@getty.edu>
 MAINTAINER Viktor Grabarchuk <vgrabarchuk@getty.edu>
 
+# VAULT and envconsul related, need TLS cert chain to auth to vault.
+RUN apt-get update && apt-get install ca-certificates
+
+# Note: location of docker-entrypoint.sh needs to be in /tmp as the project upstream already 
+# has one in /usr/local/bin/docker-entrypoint.sh so they would conflict.
+COPY --from=getty/envconsul:latest /bin/envconsul /usr/local/bin/envconsul
+COPY --from=getty/envconsul:latest /usr/local/bin/docker-entrypoint.sh /tmp/docker-entrypoint.sh
+RUN chmod +x /tmp/docker-entrypoint.sh
+
 RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 ENV LANG en_US.utf8
 
@@ -31,3 +40,10 @@ COPY ./services/postgres/scripts/02-create-schema.sql /docker-entrypoint-initdb.
 
 COPY ./services/postgres/is_postgres_ready.sh /usr/local/bin/is_postgres_ready.sh
 RUN chmod +x /usr/local/bin/is_postgres_ready.sh
+
+# Set entrypoint to build out config.hcl based on vault env var's passed.
+ENTRYPOINT [ "/tmp/docker-entrypoint.sh" ]
+
+# Run the parent process owner as pid 1 of envconsul, yet pass it what the upstream project would run,
+# which is the entrypoint script and then the postgres command. 
+CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "-log-level=debug", "docker-entrypoint.sh", "postgres" ]

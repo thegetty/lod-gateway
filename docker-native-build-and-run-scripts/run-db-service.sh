@@ -1,4 +1,4 @@
-docker run --network=mart --name=mart-db-service --rm -p 5432:5432 \
+docker run --network=mart --name=mart-db-service --rm -p 5432:5432 -d \
 -e VAULT_ADDR=${VAULT_ADDR} \
 -e VAULT_ENV=${VAULT_ENV} \
 -e VAULT_APP_NAME=${VAULT_APP_NAME} \

@@ -46,4 +46,4 @@ ENTRYPOINT [ "/tmp/docker-entrypoint.sh" ]
 
 # Run the parent process owner as pid 1 of envconsul, yet pass it what the upstream project would run,
 # which is the entrypoint script and then the postgres command. 
-CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "-log-level=debug", "docker-entrypoint.sh", "postgres" ]
+CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "docker-entrypoint.sh", "postgres" ]

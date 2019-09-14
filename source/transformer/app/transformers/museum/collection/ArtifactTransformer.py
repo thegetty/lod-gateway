@@ -2,7 +2,7 @@ import os
 import json
 
 # Import our application utility functions
-from app.utilities import get, has, debug
+from app.utilities import get, has, debug, sprintf, hyphenatedStringFromSpacedString
 
 # Import our Museum Collection BaseTransformer class
 from app.transformers.museum.collection.BaseTransformer import BaseTransformer
@@ -142,7 +142,8 @@ class ArtifactTransformer(BaseTransformer):
 						id = get(title, "uuid")
 						if(id):
 							# Exclude the following title subtypes...
-							if(get(title, "subtype") not in [
+							subtype = get(title, "subtype")
+							if(subtype and subtype not in [
 								"PRIMARY TITLE",
 								"GETTYGUIDE SEARCH TITLE",
 								"GETTYGUIDE MIDDLE TITLE",
@@ -152,6 +153,32 @@ class ArtifactTransformer(BaseTransformer):
 								name.id = self.generateEntityURI(sub=["name", id])
 								name._label = get(title, "display.label", default="Alternate Title")
 								name.content = value
+								
+								# Classify the title as an Alternate Title
+								name.classified_as = Type(ident="http://vocab.getty.edu/aat/300417227", label="Alternate Title")
+								
+								# Classify the title using the subtype provided by TMS; in the future hopefully we can add or replace these
+								# home-grown classifications with something official from AAT or another controlled vocabulary...
+								name.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(subtype.lower()), label=subtype.title())
+								
+								# Classify the 
+								remarks = get(title, "remarks")
+								if(remarks):
+									name.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(remarks.lower()), label=remarks.title())
+								
+								related = get(title, "related")
+								if(related):
+									groups = get(related, "groups")
+									if(groups):
+										for group in groups:
+											if(get(group, "type") == "EXHIBITION"):
+												activity = Activity(ident=self.generateEntityURI(entity=Activity, id=get(group, "uuid")), label=get(group, "display.value"))
+												if(activity):
+													activity.classified_as = Type(ident="http://vocab.getty.edu/aat/300054766", label="Exhibitions (Events)")
+													
+													name.classified_as = Type(ident="http://vocab.getty.edu/aat/300417207", label="Exhibition Title (Work Title)")
+													
+													name.used_for = activity
 								
 								entity.identified_by = name
 	

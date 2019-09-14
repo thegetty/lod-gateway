@@ -161,7 +161,6 @@ class ArtifactTransformer(BaseTransformer):
 								# home-grown classifications with something official from AAT or another controlled vocabulary...
 								name.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(subtype.lower()), label=subtype.title())
 								
-								# Classify the 
 								remarks = get(title, "remarks")
 								if(remarks):
 									name.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(remarks.lower()), label=remarks.title())

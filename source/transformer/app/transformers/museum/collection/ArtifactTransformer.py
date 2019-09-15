@@ -85,6 +85,60 @@ class ArtifactTransformer(BaseTransformer):
 				
 				entity.referred_to_by = lobj
 	
+	# Map Copyright Statement
+	def mapCopyrightStatement(self, entity, data):
+		copyright = get(data, "display.copyright.display.value")
+		if(copyright):
+			lobj = LinguisticObject()
+			lobj.id = self.generateEntityURI(sub=["text", get(data, "display.copyright.uuid")])
+			lobj._label = "Copyright Statement"
+			lobj.content = copyright
+			
+			# Map the "Legal Statement" classification
+			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300055547", label="Legal Concept")
+			
+			# Map the "Copyright/Licensing Statement" classification
+			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435434", label="Copyright/Licensing Statement")
+			
+			# Map the "Brief Text" classification
+			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
+			
+			entity.referred_to_by = lobj
+	
+	# Map Object, Source & Reproduction Credit Line Statements
+	def mapCreditLineStatements(self, entity, data):
+		creditlines = get(data, "display.creditlines")
+		if(isinstance(creditlines, dict) and len(creditlines) > 0):
+			for index, key in enumerate(creditlines):
+				creditline = creditlines[key]
+				if(creditline):
+					statement = get(creditline, "display.value")
+					if(statement):
+						lobj = LinguisticObject()
+						lobj.id = self.generateEntityURI(sub=["text", get(data, "uuid")])
+						lobj.content = statement
+						
+						# Map the "Legal Statement" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300055547", label="Legal Concept")
+						
+						# Map the "Credit Line" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435418", label="Credit Line")
+						
+						if(get(creditline, "subtype") == "OBJECT CREDIT LINE"):
+							# Map the "Artifacts (Object Genre)" classification to denote this as the Object Credit Line
+							lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300117127", label="Artifacts (Object Genre)")
+						elif(get(creditline, "subtype") == "SOURCE CREDIT LINE"):
+							# Map the "Primary Sources" classification to denote this as the Source Credit Line
+							lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300311936", label="Primary Sources")
+						elif(get(creditline, "subtype") == "REPRODUCTION CREDIT LINE"):
+							# Map the "Reproductions (Derivative Items)" classification to denote this as the Reproduction Credit Line
+							lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300015643", label="Reproductions (Derivative Items)")
+						
+						# Map the "Brief Text" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
+						
+						entity.referred_to_by = lobj
+	
 	# Map Classifications
 	def mapClassifications(self, entity, data):
 		# Map the standard "Artwork" classification for all Objects (Artifacts) in this data set

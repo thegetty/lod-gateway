@@ -72,7 +72,11 @@ if(options["manager"] in ["records"]):
 else:
 	manager = ActivityStreamManager()
 
-if(manager):
+if(isinstance(manager, BaseManager)):
+	debug("The %s has been instantiated..." % (manager), level=1)
+	
+	DI.set("manager", manager)
+	
 	if(isinstance(manager, RecordsManager)): # manual/automatic records manager
 		manager.process(**options)
 	else: # automatic (activity streams polling) transform mode

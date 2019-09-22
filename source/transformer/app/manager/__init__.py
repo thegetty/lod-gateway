@@ -176,25 +176,58 @@ class BaseManager(ABC):
 		return response
 	
 	@finalmethod
-	def storeEntity(self, entity, data=None):
-		debug("%s.storeEntity(entity: %s) called..." % (self.__class__.__name__, entity), level=1)
+	def storeEntity(self, entity, data=None, **kwargs):
+		debug("%s.storeEntity(entity: %s, kwargs: %s) called..." % (self.__class__.__name__, entity, kwargs), level=1)
 		
 		if(not entity):
-			debug("%s.storeEntity() The entity parameter was invalid!" % (self.__class__.__name__), error=True)
+			debug("%s.storeEntity() The 'entity' parameter was invalid!" % (self.__class__.__name__), error=True)
 			return False
 		
-		namespace = entity.getNamespace()
-		name      = entity.getEntityName()
-		UUID      = entity.getUUID()
-		entityURI = entity.generateEntityURI()
+		if("namespace" in kwargs):
+			namespace = kwargs["namespace"]
+		else:
+			if(isinstance(entity, BaseTransformer)):
+				namespace = entity.getNamespace()
+			else:
+				debug("%s.storeEntity() The 'namespace' parameter was invalid!" % (self.__class__.__name__), error=True)
+				return False
+		
+		if("entityName" in kwargs):
+			entityName = kwargs["entityName"]
+		else:
+			if(isinstance(entity, BaseTransformer)):
+				entityName = entity.getEntityName()
+			else: # get cromulent type (class) name
+				entityName = entity.__class__.__name__
+		
+		if("UUID" in kwargs):
+			UUID = kwargs["UUID"]
+		else:
+			UUID = entity.getUUID()
+		
+		if("entityURI" in kwargs):
+			entityURI = kwargs["entityURI"]
+		else:
+			if(isinstance(entity, BaseTransformer)):
+				entityURI = entity.generateEntityURI()
+			else:
+				entityURI = BaseTransformer.assembleEntityURI(namespace=namespace, entityName=entityName, UUID=UUID)
 		
 		if(data == None):
-			data = entity.toJSON(compact=True)
+			if(isinstance(entity, BaseTransformer)):
+				data = entity.toJSON(compact=True)
+			else:
+				if("compact" in kwargs and isinstance(kwargs["compact"], bool)):
+					compact = kwargs["compact"]
+				else:
+					compact = True
+				
+				data = factory.toString(entity, compact=compact)
 		
-		record = Record.findFirstOrCreateNewInstance("namespace = :namespace: AND entity = :entity: AND uuid = :uuid:", bind={"namespace": namespace, "entity": name, "uuid": UUID})
+		record = Record.findFirstOrCreateNewInstance("namespace = :namespace: AND entity = :entity: AND uuid = :uuid:", bind={"namespace": namespace, "entity": entityName, "uuid": UUID})
 		if(record):
 			record.namespace = namespace
-			record.entity    = name
+			record.entity    = entityName
 			record.uuid      = UUID
 			record.data      = data
 			
@@ -551,6 +584,8 @@ class RecordsManager(BaseManager):
 								
 								line = handle.readline()
 						ids = _ids
+					else:
+						debug("Invalid ID file (%s) path!" % (ids), error=True)
 				else:
 					ids = [ids]
 			elif(isinstance(ids, int)):
@@ -562,6 +597,8 @@ class RecordsManager(BaseManager):
 				entity    = get(kwargs, "entity")
 				
 				for id in ids:
+					debug("%s.getItems() ID = %s" % (self.__class__.__name__, id), level=1)
+					
 					yield {
 						"event":     event,
 						"namespace": namespace,

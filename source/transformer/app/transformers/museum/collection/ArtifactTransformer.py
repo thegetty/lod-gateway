@@ -178,9 +178,13 @@ class ArtifactTransformer(BaseTransformer):
 				name._label = "Primary Title"
 				name.content = title
 				
-				# Map the "Primary Title" classification
+				# Map the "Title (General, Names)" classification to denote this as a title
 				# This is important as it denotes this title is the primary title associated with the work
-				name.classified_as = Type(ident="http://vocab.getty.edu/aat/300404670", label="Primary Title")
+				name.classified_as = Type(ident="http://vocab.getty.edu/aat/300417193", label="Titles (General, Names)")
+				
+				# Map the "Preferred Term" classification
+				# This is important as it denotes this title is the preferred (or primary) title associated with the work
+				name.classified_as = Type(ident="http://vocab.getty.edu/aat/300404670", label="Preferred Term")
 				
 				entity.identified_by = name
 	
@@ -207,6 +211,9 @@ class ArtifactTransformer(BaseTransformer):
 								name.id = self.generateEntityURI(sub=["name", id])
 								name._label = get(title, "display.label", default="Alternate Title")
 								name.content = value
+								
+								# Map the "Title (General, Names)" classification to denote this as a title
+								name.classified_as = Type(ident="http://vocab.getty.edu/aat/300417193", label="Titles (General, Names)")
 								
 								# Classify the title as an Alternate Title
 								name.classified_as = Type(ident="http://vocab.getty.edu/aat/300417227", label="Alternate Title")

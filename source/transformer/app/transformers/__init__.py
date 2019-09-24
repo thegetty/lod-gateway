@@ -292,10 +292,15 @@ class BaseTransformer(ABC):
 		elif(self.entity):
 			entity = self.entity
 		
-		if(not entity):
-			raise RuntimeError("Invalid CROM entity parameter! It must be an instance of a CROM model type!")
+		if(not (entity and getattr(entity, "__module__", None) == "cromulent.model")):
+			raise RuntimeError("Invalid entity parameter! It must be an instance of a CROM model type!")
 		
-		entityName = self.generateEntityName(entity=entity);
+		if("entityName" in kwargs):
+			entityName = kwargs["entityName"]
+			del kwargs["entityName"]
+		else:
+			entityName = self.generateEntityName(entity=entity);
+		
 		if(not (isinstance(entityName, str) and len(entityName) > 0)):
 			raise RuntimeError("Unable to generate name for CROM entity!")
 		

@@ -449,6 +449,9 @@ class ArtifactTransformer(BaseTransformer):
 						
 						# Map the "Signatures (Names)" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300028705", label="Signatures (Names)")
+
+						# Map the “Signatures Description" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435415", label="Signature Description")
 						
 						# Map the "Brief Text" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")

@@ -475,6 +475,9 @@ class ArtifactTransformer(BaseTransformer):
 						
 						# Map the "Watermarks" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300028749", label="Watermarks")
+
+						# Map the “Watermarks Description" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435421", label="Watermarks Description")
 						
 						# Map the "Brief Text" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")

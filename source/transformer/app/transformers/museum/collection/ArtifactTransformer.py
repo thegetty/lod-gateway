@@ -167,6 +167,31 @@ class ArtifactTransformer(BaseTransformer):
 				
 				entity.identified_by = identifier
 	
+	# Map Manuscript Number
+	def mapManuscriptNumber(self, entity, data):
+		department = get(data, "display.department.mnemonic")
+		if(isinstance(department, str) and department == "MANUSCRIPTS"):
+			numbers = get(data, "display.numbers")
+			if(isinstance(numbers, dict) and len(numbers) > 0):
+				for key in numbers:
+					number = numbers[key]
+					if(isinstance(number, dict)):
+						if(get(number, "mnemonic") == "MANUSCRIPT NUMBER"):
+							number_id = get(number, "uuid")
+							if(number_id):
+								identifier = Identifier()
+								identifier.id = self.generateEntityURI(sub=["identifier", number_id])
+								identifier._label = "Manuscript Number"
+								identifier.content = get(number, "display.value")
+								
+								# Map the "Accession Number" classification
+								identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300312355", label="Accession Number")
+								
+								# Map the "Getty Manuscript Number" classification
+								identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms/object/number/manuscript", label="Getty Manuscript Number")
+								
+								entity.identified_by = identifier
+	
 	# Map Primary Title
 	def mapPrimaryTitle(self, entity, data):
 		title = get(data, "display.title.display.value")

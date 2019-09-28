@@ -429,6 +429,9 @@ class ArtifactTransformer(BaseTransformer):
 						
 						# Map the "Marks (Symbols)" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300028744", label="Marks (Symbols)")
+
+						# Map the “Marks Description" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435420", label="Marks Description")
 						
 						# Map the "Brief Text" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")

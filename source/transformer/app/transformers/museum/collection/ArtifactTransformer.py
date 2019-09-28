@@ -735,6 +735,9 @@ class ArtifactTransformer(BaseTransformer):
 					
 					# Map the "Dimension Statement" classification
 					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300266036", label="Dimension Statement")
+
+					# Map the “Dimensions Description" classification
+					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435430", label="Dimensions Description")
 					
 					# Map the "Brief Text" classification
 					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")

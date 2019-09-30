@@ -49,6 +49,7 @@ services:
             - ./source/transformer/startup.py:/startup.py
             - ./source/transformer/startup.sh:/startup.sh
             - ./source/transformer/app:/app
+            - ./source/transformer/tests:/tests
             # use a volume mount to dynamically bind the shared dependency injector code
             - ./source/app/di:/app/di
             # use a volume mount to dynamically bind the shared database code

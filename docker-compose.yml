@@ -99,6 +99,7 @@ services:
             - ./source/web-service/startup.py:/startup.py
             - ./source/web-service/startup.sh:/startup.sh
             - ./source/web-service/app:/app
+            - ./source/web-service/tests:/tests
             # use a volume mount to dynamically bind the shared dependency injector code
             - ./source/app/di:/app/di
             # use a volume mount to dynamically bind the shared database code

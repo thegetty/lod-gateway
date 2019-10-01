@@ -383,7 +383,7 @@ class BaseTransformer(ABC):
 		
 		pass
 	
-	def getData(self):
+	def getData(self, **kwargs):
 		"""Obtain the data for the specified DOR entity resource"""
 		
 		debug("%s.getData() called..." % (self.__class__.__name__), level=1)

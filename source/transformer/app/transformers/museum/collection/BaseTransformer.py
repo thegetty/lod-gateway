@@ -114,6 +114,9 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			elif(options["cache"] == False):
 				headers["X-Request-Caching"] = "NO"
 			
+			# if(os.getenv("MART_DOR_BASE_URL", "").startswith("https://data.getty.edu")):
+			headers["X-Relay-To"] = "https://atlas7-1.getty.edu"
+			
 			return headers
 		
 		return None
@@ -173,7 +176,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		return None
 	
 	@finalmethod
-	def getData(self):
+	def getData(self, **kwargs):
 		"""Obtain the data for the specified DOR entity resource"""
 		
 		URL = self.generateURL()

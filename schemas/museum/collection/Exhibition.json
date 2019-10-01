@@ -1,0 +1,333 @@
+{
+	"$id": "https://mart.getty.edu/schemas/museum/collection/exhibition.json",
+	
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "Exhibition",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty MART JSON Schema Documentation for Exhibition Entity Documents",
+	
+	"description": "This document describes the structure and content of Exhibition entity documents stored within the Getty MART Linked Data system. The Exhibition entity documents follow the Exhibition entity schema defined at https://linked.art/model/place/",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty MART JSON Schema Documentation for Exhibition Entity Documents",
+				
+				"date": [
+					{
+						"date": "2019-07-01",
+						"dateType": "creation"
+					},
+					{
+						"date": "2019-08-23",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its Collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
+	
+	"definitions": {
+		
+		"id": {
+			"type": "string"
+		},
+		
+		"type": {
+			"type": "string"
+		},
+		
+		"_label": {
+			"type": "string"
+		},
+		
+		"content": {
+			"type": "string"
+		},
+		
+		"language" : {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		
+		"timespan": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				"identified_by": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/identified_by"
+					}
+				},
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					}
+				},
+				"begin_of_the_begin": {
+					"type": "string"
+				},
+				"end_of_the_begin": {
+					"type": "string"
+				},
+				"begin_of_the_end": {
+					"type": "string"
+				},
+				"end_of_the_end": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		
+		"identified_by" : {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				"classified_as": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/classified_as"
+					}
+				},
+				"language": {
+					"$ref": "#/definitions/language"
+				},
+				"content": {
+					"oneOf": [
+						{
+							"type": "string"
+						},
+						{
+							"type": "integer"
+						}
+					]
+				}
+			},
+			"required": [
+				"id",
+				"type",
+				"classified_as",
+				"content"
+			]
+		},
+		
+		"classified_as" : {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		
+		"carried_out_by" : {
+			"type": "object",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				"type": {
+					"$ref": "#/definitions/type"
+				},
+				"_label": {
+					"$ref": "#/definitions/_label"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		}
+	},
+	
+	"type": "object",
+	
+	"properties": {
+		
+		"id": {
+			"$ref": "#/definitions/id",
+			"title": "The Exhibition Document's ID",
+			"description": "This field contains the Exhibition's ID, expressed as an absolute URL."
+		},
+		
+		"type": {
+			"$ref": "#/definitions/type",
+			"title": "The Exhibition Document's Type",
+			"description": "This field contains the Exhibition document's type, expressed as a string. It will always be 'Exhibition' for Exhibition entity documents.",
+			"const": "Exhibition"
+		},
+		
+		"_label": {
+			"$ref": "#/definitions/_label",
+			"title": "The Exhibition Document's Developer-Friendly Label",
+			"description": "This field contains the document's developer-friendly label. This label is intended for reference purposes only as a development aid to provide a short human-readable summary of the contents of the current document or document fragment, and is not intended to be acted upon or displayed in any downstream system.",
+			"examples": [
+				"Los Angeles, California",
+				"Getty Center, Museum West Pavilion, Gallery W203"
+			]
+		},
+		
+		"classified_as": {
+			"type": "array",
+			"title": "The Exhibition's classified_as Property",
+			"description": "This field contains classifications associated with the Exhibition. These may include classifications related to the Exhibition's type, and other classifiable attributes, etc.",
+			"items": {
+				"$ref": "#/definitions/classified_as"
+			}
+		},
+		
+		"identified_by": {
+			"type": "array",
+			"title": "The Exhibition's identified_by Property",
+			"description": "This field contains identifiers associated with the Exhibition. These may include names used to refer to the Exhibition, alternative document IDs, alternative names, etc.",
+			"items": {
+				"$ref": "#/definitions/identified_by"
+			}
+		},
+		
+		"about": {
+			"type": "array",
+			"title": "The Exhibition's identified_by Property",
+			"description": "This field contains identifiers associated with the Exhibition. These may include names used to refer to the Exhibition, alternative document IDs, alternative names, etc.",
+			"items": {
+				"$ref": "#/definitions/identified_by"
+			}
+		},
+		
+		"motivated": {
+			"type": "array",
+			"title": "The Exhibition's identified_by Property",
+			"description": "This field contains identifiers associated with the Exhibition. These may include names used to refer to the Exhibition, alternative document IDs, alternative names, etc.",
+			"items": {
+				"$ref": "#/definitions/identified_by"
+			}
+		},
+		
+		"created_by": {
+			"type": "object",
+			"title": "The Exhibition's created_by Property",
+			"description": "This field contains information about who originated the concept for the Exhibition. This list usually comprises Museum curators or others, with references to the Actor instances representing those individuals or groups.",
+			"properties": {
+				"id": {
+					"$ref": "#/definitions/id"
+				},
+				
+				"type": {
+					"$ref": "#/definitions/type",
+					"const": "Creation",
+				},
+				
+				"_label": {
+					"$ref": "#/definitions/_label"
+				},
+				
+				"carried_out_by": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/carried_out_by"
+					}
+				}
+			},
+			
+			"required": [
+				"id",
+				"type"
+			]
+		}
+	},
+	
+	"required": [
+		"id",
+		"type"
+	]
+}

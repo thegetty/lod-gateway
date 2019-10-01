@@ -6,6 +6,7 @@ import inspect
 import copy
 import sys
 import re
+import glob
 
 # Import support for abstract classes and methods and final methods
 from abcplus import ABC, abstractmethod, finalmethod
@@ -115,7 +116,7 @@ class BaseManager(ABC):
 			if(transformerClass):
 				entity = transformerClass(id=id)
 				if(entity):
-					if(entity.getData()):
+					if(entity.getData(**item)):
 						entitySpace = entity.getNamespace()
 						if(not entitySpace):
 							raise RuntimeError("Unable to obtain transformer's namespace!")
@@ -675,5 +676,125 @@ class RecordsManager(BaseManager):
 				debug("%s.getItems() No IDs provided!" % (self.__class__.__name__), error=True)
 		else:
 			pass
+		
+		yield None
+
+class FileImportManager(BaseManager):
+	"""The FileImportManager handles importing JSON-LD files from a specified directory location."""
+	
+	def process(self, **kwargs):
+		debug("%s.process(%s) called..." % (self.__class__.__name__, kwargs), level=1)
+		
+		if(not ("namespace" in kwargs and isinstance(kwargs["namespace"], str) and len(kwargs["namespace"]) > 0)):
+			debug("When using the manual files import manager, one must also specify a valid namespace via the --namespace flag!", error=True)
+			exit()
+		
+		if(not ("path" in kwargs and isinstance(kwargs["namespace"], str) and len(kwargs["namespace"]) > 0)):
+			debug("When using the manual files import manager, one must also specify a valid absolute path to the directory of files to be imported via the --path flag!", error=True)
+			exit()
+		
+		self.processItems(**kwargs)
+	
+	def processItems(self, **kwargs):
+		debug("%s.processItems(%s) called..." % (self.__class__.__name__, kwargs), level=1)
+		
+		counter = 0
+		
+		for item in self.getItems(**kwargs):
+			if(isinstance(item, dict)):
+				counter += 1
+				
+				if("file" in item):
+					debug("Will now try to load: %s" % (item["file"]))
+					
+					with open(item["file"], encoding='utf-8') as file:
+						data = file.read()
+						
+						if(not (isinstance(data, str) and len(data) > 0)):
+							debug("%s.processItems() JSON data could not be loaded from file: %s!" % (self.__class__.__name__, file), error=True)
+							continue
+						
+						data = json.loads(data)
+						
+						if(not isinstance(data, dict)):
+							debug("%s.processItems() JSON data could not be loaded from file: %s!" % (self.__class__.__name__, file), error=True)
+							continue
+						
+						# debug(data, format="JSON")
+						
+						if(not ("id" in data and isinstance(data["id"], str) and len(data["id"]) > 0)):
+							debug("%s.processItems() Unable to find entity 'id' in JSON data for file: %s!" % (self.__class__.__name__, file), error=True)
+							continue
+						
+						if(not ("type" in data and isinstance(data["type"], str) and len(data["type"]) > 0)):
+							debug("%s.processItems() Unable to find entity 'type' in JSON data for file: %s!" % (self.__class__.__name__, file), error=True)
+							continue
+						
+						id     = data["id"]
+						entity = data["type"]
+						uuid   = None
+						
+						if(id.startswith("urn:uuid:")):
+							uuid = id[8:]
+						
+						item["entity"] = entity
+						item["uuid"]   = uuid
+						item["data"]   = data
+						
+						# debug(item, format="JSON")
+						
+						self.processItem(item)
+						
+						break
+			
+			pass
+		
+		debug("Processed %d items..." % (counter), level=1)
+	
+	def getItems(self, **kwargs):
+		"""Interface with the file system and yield each discovered file"""
+		
+		debug("%s.getItems(%s) called..." % (self.__class__.__name__, kwargs), level=1)
+		
+		if(not ("path" in kwargs and isinstance(kwargs["path"], str) and len(kwargs["path"]) > 0)):
+			debug("No path argument was specified! It should be an absolute path referencing the directory of files to import!", error=True)
+			return None
+		
+		path = kwargs["path"]
+		
+		if(not path.startswith("/")):
+			debug("An invalid path (%s) was specified! It should be an absolute path, starting with a forward slash (/)!" % (path), error=True)
+			return None
+		
+		if(not os.path.isdir(path)):
+			debug("An invalid path (%s) was specified! The path does not reference a directory!" % (path), error=True)
+			return None
+			
+		event     = get(kwargs, "event", "Created")
+		namespace = get(kwargs, "namespace")
+		entity    = get(kwargs, "entity")
+		
+		if(path.endswith("/")):
+			path = path[:-1]
+		
+		pattern = path + "/**/*.json"
+		
+		debug("%s.getItems() Ready to traverse: %s" % (self.__class__.__name__, pattern), level=1)
+		
+		for file in glob.glob(pattern, recursive=True):
+			if(file):
+				basename = os.path.basename(file)
+				if(basename):
+					id = os.path.splitext(basename)[0]
+					
+					debug("%s.getItems() File = %s (%s)" % (self.__class__.__name__, file, id), level=1)
+					
+					yield {
+						"event":     event,
+						"namespace": namespace,
+						"entity":    entity,
+						"id":        id,
+						"file":      file,
+					}
 		
 		yield None

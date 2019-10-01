@@ -16,6 +16,7 @@ options = commandOptions({
 	"entity":    None,
 	"id":        None,
 	"output":    None,
+	"path":      None,
 })
 
 # debug(options, format="JSON")
@@ -69,6 +70,8 @@ from app.manager import *
 # Instantiate the process manager
 if(options["manager"] in ["records"]):
 	manager = RecordsManager()
+elif(options["manager"] in ["files"]):
+	manager = FileImportManager()
 else:
 	manager = ActivityStreamManager()
 

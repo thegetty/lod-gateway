@@ -174,6 +174,6 @@ class ConstituentTransformer(BaseTransformer):
 			lobj = LinguisticObject()
 			lobj.id = self.generateEntityURI(sub=["biography"])
 			lobj.content = biography
-			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300080102/", label="Biography Statement")
+			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300080102", label="Biography Statement")
 			
 			entity.referred_to_by = lobj

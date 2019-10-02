@@ -447,11 +447,8 @@ class ArtifactTransformer(BaseTransformer):
 						lobj.id = self.generateEntityURI(sub=["signature", id])
 						lobj.content = value
 						
-						# Map the "Signatures (Names)" classification
-						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300028705", label="Signatures (Names)")
-
 						# Map the “Signatures Description" classification
-						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435415", label="Signature Description")
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435415", label="Signatures Description")
 						
 						# Map the "Brief Text" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")

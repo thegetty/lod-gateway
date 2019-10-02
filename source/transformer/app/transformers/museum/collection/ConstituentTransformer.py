@@ -104,8 +104,6 @@ class ConstituentTransformer(BaseTransformer):
 					name.content = value
 					place.identified_by = name
 					
-					place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
-					
 					birth.took_place_at = place
 					
 					entity.born = birth
@@ -137,8 +135,6 @@ class ConstituentTransformer(BaseTransformer):
 					name.id = self.generateEntityURI(sub=["death", "place", "name"])
 					name.content = value
 					place.identified_by = name
-					
-					place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
 					
 					death.took_place_at = place
 					

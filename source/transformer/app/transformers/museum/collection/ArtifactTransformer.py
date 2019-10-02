@@ -516,9 +516,6 @@ class ArtifactTransformer(BaseTransformer):
 				
 				place.identified_by = name
 				
-				# Map the "Inhabited Place" classification
-				place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
-				
 				visual.represents = place
 				
 				entity.shows = visual
@@ -858,9 +855,6 @@ class ArtifactTransformer(BaseTransformer):
 						
 						# Map the place name
 						place.identified_by = name
-						
-						# Map the "Inhabited Place" classification
-						place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
 						
 						production.took_place_at = place
 					

@@ -94,9 +94,6 @@ class ArtifactTransformer(BaseTransformer):
 			lobj._label = "Copyright Statement"
 			lobj.content = copyright
 			
-			# Map the "Legal Statement" classification
-			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300055547", label="Legal Concept")
-			
 			# Map the "Copyright/Licensing Statement" classification
 			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435434", label="Copyright/Licensing Statement")
 			
@@ -117,9 +114,6 @@ class ArtifactTransformer(BaseTransformer):
 						lobj = LinguisticObject()
 						lobj.id = self.generateEntityURI(sub=["text", get(data, "uuid")])
 						lobj.content = statement
-						
-						# Map the "Legal Statement" classification
-						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300055547", label="Legal Concept")
 						
 						# Map the "Credit Line" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435418", label="Credit Line")

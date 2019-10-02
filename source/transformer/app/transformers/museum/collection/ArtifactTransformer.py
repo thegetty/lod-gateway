@@ -633,9 +633,6 @@ class ArtifactTransformer(BaseTransformer):
 				group.id = self.generateEntityURI(entity=Group, UUID=id)
 				group._label = value + " (Curatorial Department)"
 				
-				# Obtain a copy of the J. Paul Getty Museum Group
-				group.member_of = self.createGettyMuseumGroup(); # defined in BaseTransformer.py
-				
 				# Map the "Department (Organizational Unit)" classification
 				group.classified_as = Type(ident="http://vocab.getty.edu/aat/300263534", label="Department (Organizational Unit)");
 				

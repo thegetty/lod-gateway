@@ -671,14 +671,6 @@ class ArtifactTransformer(BaseTransformer):
 				# Note that the Object is currently owned by the J. Paul Getty Museum
 				owner = self.createGettyMuseumGroup();
 				if(owner):
-					# Create the Acquisition activity
-					aquisition = Acquisition()
-					aquisition.id = self.generateEntityURI(sub=["activity", "acquisition"])
-					aquisition._label = "Acquisition"
-					
-					# Associate the Acquisition activity with the owner via the "acquired_title_through" property
-					owner.acquired_title_through = aquisition
-					
 					# Then assign the "current_owner" relationship for the Object
 					entity.current_owner = owner
 	

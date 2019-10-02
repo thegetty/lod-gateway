@@ -175,9 +175,12 @@ class ConstituentTransformer(BaseTransformer):
 	def mapBiography(self, entity, data):
 		biography = get(data, "display.biography.display.value")
 		if(biography):
-			lobj = LinguisticObject()
-			lobj.id = self.generateEntityURI(sub=["biography"])
+			lobj = LinguisticObject(ident=self.generateEntityURI(sub=["biography"]), label="Biography")
+			
 			lobj.content = biography
+			
+			lobj.format  = "text/html"
+			
 			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300080102/", label="Biography Statement")
 			
 			entity.referred_to_by = lobj

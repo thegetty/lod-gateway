@@ -301,9 +301,11 @@ class ArtifactTransformer(BaseTransformer):
 		if(description):
 			id = get(data, "display.description.uuid")
 			if(id):
-				lobj = LinguisticObject()
-				lobj.id = self.generateEntityURI(sub=["description", id])
+				lobj = LinguisticObject(ident=self.generateEntityURI(sub=["description", id]), label="Object Description")
+				
 				lobj.content = description
+				
+				lobj.format  = "text/html"
 				
 				# Map the "Description" classification
 				lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300080091", label="Description")

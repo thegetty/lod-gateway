@@ -789,15 +789,9 @@ class ArtifactTransformer(BaseTransformer):
 						name._label = "Date"
 						name.content = get(date, "display.value")
 						
-						# Map the "Dates (Spans of Time)" classification
-						name.classified_as = Type(ident="http://vocab.getty.edu/aat/300404439", label="Dates (Spans of Time)")
-						
 						timespan = TimeSpan()
 						timespan.id = self.generateEntityURI(sub=["activity", "production", id, "timespan"])
 						timespan.identified_by = name
-						
-						# NOTE Should we also classify the timespan? presumably it is implicit, but is it helpful to do so?
-						timespan.classified_as = Type(ident="http://vocab.getty.edu/aat/300404439", label="Dates (Spans of Time)")
 						
 						# Get the padded lower and upper date values
 						lower = get(date, "value.lower")

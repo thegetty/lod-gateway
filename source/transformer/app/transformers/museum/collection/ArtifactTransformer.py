@@ -730,9 +730,6 @@ class ArtifactTransformer(BaseTransformer):
 					lobj.id = self.generateEntityURI(sub=["dimensions", id])
 					lobj.content = statement
 					
-					# Map the "Dimension Statement" classification
-					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300266036", label="Dimension Statement")
-
 					# Map the “Dimensions Description" classification
 					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435430", label="Dimensions Description")
 					

@@ -355,9 +355,6 @@ class ArtifactTransformer(BaseTransformer):
 				lobj.id = self.generateEntityURI(sub=["material-statement", id])
 				lobj.content = medium
 				
-				# Map the "Material Statement" classification
-				lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300010358", label="Material Statement")
-
 				# Map the “Materials Description" classification
 				lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435429", label="Materials Description")
 				

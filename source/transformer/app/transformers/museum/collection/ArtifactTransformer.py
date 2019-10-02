@@ -94,9 +94,6 @@ class ArtifactTransformer(BaseTransformer):
 			lobj._label = "Copyright Statement"
 			lobj.content = copyright
 			
-			# Map the "Legal Statement" classification
-			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300055547", label="Legal Concept")
-			
 			# Map the "Copyright/Licensing Statement" classification
 			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435434", label="Copyright/Licensing Statement")
 			
@@ -117,9 +114,6 @@ class ArtifactTransformer(BaseTransformer):
 						lobj = LinguisticObject()
 						lobj.id = self.generateEntityURI(sub=["text", get(data, "uuid")])
 						lobj.content = statement
-						
-						# Map the "Legal Statement" classification
-						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300055547", label="Legal Concept")
 						
 						# Map the "Credit Line" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435418", label="Credit Line")
@@ -363,9 +357,6 @@ class ArtifactTransformer(BaseTransformer):
 				lobj.id = self.generateEntityURI(sub=["material-statement", id])
 				lobj.content = medium
 				
-				# Map the "Material Statement" classification
-				lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300010358", label="Material Statement")
-
 				# Map the “Materials Description" classification
 				lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435429", label="Materials Description")
 				
@@ -517,9 +508,6 @@ class ArtifactTransformer(BaseTransformer):
 				name.content = depicted
 				
 				place.identified_by = name
-				
-				# Map the "Inhabited Place" classification
-				place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
 				
 				visual.represents = place
 				
@@ -741,9 +729,6 @@ class ArtifactTransformer(BaseTransformer):
 					lobj.id = self.generateEntityURI(sub=["dimensions", id])
 					lobj.content = statement
 					
-					# Map the "Dimension Statement" classification
-					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300266036", label="Dimension Statement")
-
 					# Map the “Dimensions Description" classification
 					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435430", label="Dimensions Description")
 					
@@ -860,9 +845,6 @@ class ArtifactTransformer(BaseTransformer):
 						
 						# Map the place name
 						place.identified_by = name
-						
-						# Map the "Inhabited Place" classification
-						place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
 						
 						production.took_place_at = place
 					

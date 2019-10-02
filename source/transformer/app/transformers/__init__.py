@@ -99,6 +99,9 @@ def registerTransformers():
 											klass = getattr(module, modName)
 											if(klass):
 												transformer["module"]["class"] = klass
+
+												# Register the class globally
+												globals()[modName] = klass
 												
 												# Create an instance of the transformer class
 												instance = klass()

@@ -104,8 +104,6 @@ class ConstituentTransformer(BaseTransformer):
 					name.content = value
 					place.identified_by = name
 					
-					place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
-					
 					birth.took_place_at = place
 					
 					entity.born = birth
@@ -137,8 +135,6 @@ class ConstituentTransformer(BaseTransformer):
 					name.id = self.generateEntityURI(sub=["death", "place", "name"])
 					name.content = value
 					place.identified_by = name
-					
-					place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
 					
 					death.took_place_at = place
 					
@@ -178,9 +174,9 @@ class ConstituentTransformer(BaseTransformer):
 			lobj = LinguisticObject(ident=self.generateEntityURI(sub=["biography"]), label="Biography")
 			
 			lobj.content = biography
-			
-			lobj.format  = "text/html"
-			
-			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300080102/", label="Biography Statement")
-			
+      
+ 			lobj.format  = "text/html"
+      
+			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300080102", label="Biography Statement")
+  		
 			entity.referred_to_by = lobj

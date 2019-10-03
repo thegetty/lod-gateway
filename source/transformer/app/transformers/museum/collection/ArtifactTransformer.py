@@ -145,10 +145,27 @@ class ArtifactTransformer(BaseTransformer):
 			
 			entity.classified_as = Type(ident=get(classification, "classification.id"), label=get(classification, "classification.label"))
 	
+	def getNumber(self, mnemonic=None, keypath=None):
+		if(mnemonic):
+			numbers = get(self.data, "display.numbers")
+			if(isinstance(numbers, dict) and len(numbers) > 0):
+				for key in numbers:
+					number = numbers[key]
+					if(isinstance(number, dict)):
+						if(get(number, "mnemonic") == mnemonic):
+							if(isinstance(keypath, str) or isinstance(keypath, list)):
+								return get(number, keypath)
+							else:
+								return number
+		
+		return None
+	
 	# Map Accession Number
 	def mapAccessionNumber(self, entity, data):
 		numbers = get(data, "display.numbers")
 		if(isinstance(numbers, dict) and len(numbers) > 0):
+			display_number = self.getNumber(mnemonic="DISPLAY NUMBER", keypath="display.value")
+			
 			for key in numbers:
 				number = numbers[key]
 				if(isinstance(number, dict)):
@@ -160,8 +177,17 @@ class ArtifactTransformer(BaseTransformer):
 							identifier._label = "Accession Number"
 							identifier.content = get(number, "display.value")
 							
+							# Map the "Identification Number" classification
+							identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404626", label="Identification Number")
+							
 							# Map the "Accession Number" classification
 							identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300312355", label="Accession Number")
+							
+							# If the Accession and Display Numbers are the same, mark the Accession Number as the Preferred Term
+							if(isinstance(display_number, str) and (identifier.content == display_number)):
+								# Map the "Preferred Term" classification
+								# This is important as it denotes this number is the preferred number associated with the work
+								identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404670", label="Preferred Term")
 							
 							entity.identified_by = identifier
 	
@@ -169,6 +195,13 @@ class ArtifactTransformer(BaseTransformer):
 	def mapDisplayNumber(self, entity, data):
 		numbers = get(data, "display.numbers")
 		if(isinstance(numbers, dict) and len(numbers) > 0):
+			accession_number = self.getNumber(mnemonic="OBJECT NUMBER",  keypath="display.value")
+			display_number   = self.getNumber(mnemonic="DISPLAY NUMBER", keypath="display.value")
+			
+			# If the Accession and Display Numbers are the same, skip mapping the Display Number
+			if(accession_number == display_number):
+				return
+			
 			for key in numbers:
 				number = numbers[key]
 				if(isinstance(number, dict)):
@@ -180,8 +213,8 @@ class ArtifactTransformer(BaseTransformer):
 							identifier._label = "Display Number"
 							identifier.content = get(number, "display.value")
 							
-							# Map the "Accession Number" classification
-							identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300312355", label="Accession Number")
+							# Map the "Identification Number" classification
+							identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404626", label="Identification Number")
 							
 							# Map the "Preferred Term" classification
 							# This is important as it denotes this number is the preferred number associated with the work
@@ -206,8 +239,8 @@ class ArtifactTransformer(BaseTransformer):
 								identifier._label = "Manuscript Number"
 								identifier.content = get(number, "display.value")
 								
-								# Map the "Accession Number" classification
-								identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300312355", label="Accession Number")
+								# Map the "Identification Number" classification
+								identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404626", label="Identification Number")
 								
 								# Map the "Getty Manuscript Number" classification
 								identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms/object/number/manuscript", label="Getty Manuscript Number")

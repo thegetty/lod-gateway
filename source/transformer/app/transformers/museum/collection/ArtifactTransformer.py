@@ -585,6 +585,11 @@ class ArtifactTransformer(BaseTransformer):
 			# cannot set InformationObject.conforms_to due to CROM error! CROM and/or Linked.art documentation are wrong!
 			# info.conforms_to = Type(id="http://iiif.io/api/presentation")
 			
+			# Hack to get the "conforms_to" property into CROM's InformationObject instance data; attempting to set
+			# the "conforms_to" property via direct assignment or via the setattr() method fails, as these assignments
+			# are intercepted by CROM's __setattr__() method which rejects them; see DEV-1909 for more info; CROM needs fixing!
+			info.__dict__["conforms_to"] = [{"id": "http://iiif.io/api/presentation"}]
+			
 			info.format = "application/ld+json;profile=\"http://iiif.io/api/presentation/2/context.json\"",
 			
 			entity.subject_of = info

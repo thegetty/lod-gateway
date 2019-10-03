@@ -68,7 +68,7 @@ class BaseManager(ABC):
 		# debug(options, format="JSON", label="options")
 		# debug(headers, format="JSON", label="headers")
 		
-		response = requests.get(URL, headers=headers)
+		response = requests.get(URL, headers=headers, timeout=90)
 		if(isinstance(response, requests.models.Response)):
 			if(response.status_code == 200):
 				data = response.text

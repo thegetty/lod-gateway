@@ -398,7 +398,7 @@ class BaseTransformer(ABC):
 		if(isinstance(URL, str)):
 			headers = self.assembleHeaders()
 			if(isinstance(headers, dict)):
-				response = requests.get(URL, headers=headers)
+				response = requests.get(URL, headers=headers, timeout=90)
 				if(response):
 					if(response.status_code == 200):
 						data = json.loads(response.text)

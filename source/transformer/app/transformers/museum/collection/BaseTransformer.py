@@ -182,7 +182,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			
 			headers = self.assembleHeaders()
 			if(isinstance(headers, dict)):
-				response = requests.get(URL, headers=headers)
+				response = requests.get(URL, headers=headers, timeout=90)
 				if(isinstance(response, requests.models.Response)):
 					if(response.status_code == 200):
 						if(isinstance(response.text, str) and len(response.text) > 0):

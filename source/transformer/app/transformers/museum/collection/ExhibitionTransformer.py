@@ -1,5 +1,5 @@
 # Import our application utility functions
-from app.utilities import get, has, debug, sprintf
+from app.utilities import get, has, debug, sprintf, date
 
 # Import our dependency injector
 from app.di import DI
@@ -107,16 +107,17 @@ class ExhibitionTransformer(BaseTransformer):
 					
 					began = get(dates, "range.began.values.iso")
 					if(began):
-						timespan.begin_of_the_begin = began
+						timespan.begin_of_the_begin = date(format="%Y-%m-%dT%H:%M:%S", date=began, format_for_input_date="%Y-%m-%d")
 					
 					ended = get(dates, "range.ended.values.iso")
 					if(ended):
-						timespan.end_of_the_end = ended
+						timespan.end_of_the_end = date(format="%Y-%m-%dT%H:%M:%S", date=ended, format_for_input_date="%Y-%m-%d")
 					
 					travelling.timespan = timespan
 			
 			for venue in venues:
-				# debug(venue, format="JSON")
+				# 
+				debug(venue, format="JSON")
 				
 				# Create a venue exhibition activity instance for each venue
 				activity = Activity(ident=self.generateEntityURI(entity=Activity, UUID=get(venue, "activity.uuid")))
@@ -133,11 +134,11 @@ class ExhibitionTransformer(BaseTransformer):
 					
 					began = get(dates, "range.began.values.iso")
 					if(began):
-						timespan.begin_of_the_begin = began
+						timespan.begin_of_the_begin = date(format="%Y-%m-%dT%H:%M:%S", date=began, format_for_input_date="%Y-%m-%d")
 					
 					ended = get(dates, "range.ended.values.iso")
 					if(ended):
-						timespan.end_of_the_end = ended
+						timespan.end_of_the_end = date(format="%Y-%m-%dT%H:%M:%S", date=ended, format_for_input_date="%Y-%m-%d")
 					
 					activity.timespan = timespan
 				

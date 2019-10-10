@@ -1,5 +1,5 @@
 # Import our application utility functions
-from app.utilities import get, has, debug
+from app.utilities import get, has, debug, date
 
 # Import our Museum Collection BaseTransformer class
 from app.transformers.museum.collection.BaseTransformer import BaseTransformer
@@ -83,12 +83,12 @@ class ConstituentTransformer(BaseTransformer):
 				birth = Birth()
 				birth.id = self.generateEntityURI(sub=["birth", "activity"])
 				
-				date = get(data, "display.places.birth.date.iso")
-				if(date):
+				date_birth = get(data, "display.places.birth.date.iso")
+				if(date_birth):
 					timespan = TimeSpan()
 					timespan.id = self.generateEntityURI(sub=["birth", "timespan"])
-					timespan.begin_of_the_begin = date
-					timespan.end_of_the_begin   = date
+					timespan.begin_of_the_begin = date(format="%Y-%m-%dT%H:%M:%S", date=date_birth, format_for_input_date="%Y-%m-%d %H:%M:%S")
+					timespan.end_of_the_begin   = date(format="%Y-%m-%dT%H:%M:%S", date=date_birth, format_for_input_date="%Y-%m-%d %H:%M:%S")
 					birth.timespan = timespan
 				
 				value = get(data, "display.places.birth.display.value")
@@ -115,12 +115,12 @@ class ConstituentTransformer(BaseTransformer):
 				death = Death()
 				death.id = self.generateEntityURI(sub=["death", "activity"])
 				
-				date = get(data, "display.places.death.date.iso")
-				if(date):
+				date_death = get(data, "display.places.death.date.iso")
+				if(date_death):
 					timespan = TimeSpan()
 					timespan.id = self.generateEntityURI(sub=["death", "timespan"])
-					timespan.begin_of_the_begin = date
-					timespan.end_of_the_begin   = date
+					timespan.begin_of_the_begin = date(format="%Y-%m-%dT%H:%M:%S", date=date_death, format_for_input_date="%Y-%m-%d %H:%M:%S")
+					timespan.end_of_the_begin   = date(format="%Y-%m-%dT%H:%M:%S", date=date_death, format_for_input_date="%Y-%m-%d %H:%M:%S")
 					death.timespan = timespan
 				
 				value = get(data, "display.places.death.display.value")

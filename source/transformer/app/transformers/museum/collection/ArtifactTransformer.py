@@ -2,7 +2,7 @@ import os
 import json
 
 # Import our application utility functions
-from app.utilities import get, has, debug, sprintf, hyphenatedStringFromSpacedString
+from app.utilities import get, has, debug, sprintf, date, hyphenatedStringFromSpacedString
 
 # Import our Museum Collection BaseTransformer class
 from app.transformers.museum.collection.BaseTransformer import BaseTransformer
@@ -789,11 +789,11 @@ class ArtifactTransformer(BaseTransformer):
 		makers = get(data, "display.makers")
 		if(makers and len(makers) > 0):
 			# Obtain the Object's Date
-			date = get(data, "display.date")
+			dates = get(data, "display.date")
 			# debug(date, format="JSON")
 			
 			# Obtain the Object's Place Created (if available)
-			created = get(data, "display.places.created")
+			created = get(dates, "display.places.created")
 			# debug(created, format="JSON")
 			
 			for maker in makers:
@@ -806,31 +806,31 @@ class ArtifactTransformer(BaseTransformer):
 					person.id = self.generateEntityURI(entity=Person, UUID=id)
 					person._label = value
 					
-					if(date):
+					if(dates):
 						# Add a Name to the TimeSpan of the Prodction activity to store the display date string
 						name = Name();
 						name.id = self.generateEntityURI(sub=["activity", "production", id, "timespan", "name"])
 						name._label = "Date"
-						name.content = get(date, "display.value")
+						name.content = get(dates, "display.value")
 						
 						timespan = TimeSpan()
 						timespan.id = self.generateEntityURI(sub=["activity", "production", id, "timespan"])
 						timespan.identified_by = name
 						
 						# Get the padded lower and upper date values
-						lower = get(date, "value.lower")
-						upper = get(date, "value.upper")
+						lower = get(dates, "value.lower")
+						upper = get(dates, "value.upper")
 						
 						# Clarify if we should treat "begin_of_the_begin" and "end_of_the_begin"
 						# or "begin_of_the_end" and "end_of_the_end" differently than we do below
 						
 						if(lower):
-							timespan.begin_of_the_begin = lower
-							timespan.end_of_the_begin   = lower
+							timespan.begin_of_the_begin = date(format="%Y-%m-%dT%H:%M:%S", date=lower, format_for_input_date="%Y-%m-%d %H:%M:%S")
+							timespan.end_of_the_begin   = date(format="%Y-%m-%dT%H:%M:%S", date=lower, format_for_input_date="%Y-%m-%d %H:%M:%S")
 						
 						if(upper):
-							timespan.begin_of_the_end   = upper
-							timespan.end_of_the_end     = upper
+							timespan.begin_of_the_end   = date(format="%Y-%m-%dT%H:%M:%S", date=upper, format_for_input_date="%Y-%m-%d %H:%M:%S")
+							timespan.end_of_the_end     = date(format="%Y-%m-%dT%H:%M:%S", date=upper, format_for_input_date="%Y-%m-%d %H:%M:%S")
 					
 					# Create the Production activity instance
 					production = Production()

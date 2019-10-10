@@ -39,7 +39,7 @@ class GraphStore:
 		if(isinstance(cls.configuration["port"], str) and len(cls.configuration["port"]) > 0):
 			endpoint += ":" + cls.configuration["port"]
 		
-		return sprintf("https://%s/sparql" % (endpoint))
+		return sprintf("http://%s/sparql" % (endpoint))
 	
 	@classmethod
 	def query(cls, query):

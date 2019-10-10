@@ -1,6 +1,6 @@
 # Linked Open Data (LOD) Gateway Change Log
 
-This document details any significant changes to the LOD Gateway that affect either functionality or output. In most cases these changes will reference their related Jira tickets.
+Any notable changes to the LOD Gateway that affect either functionality or output will be documented in this file (the format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)).
 
 ## [Unreleased] 2019-10-07
 

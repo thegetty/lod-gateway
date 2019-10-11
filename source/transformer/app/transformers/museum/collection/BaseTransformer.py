@@ -103,20 +103,41 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		else:
 			raise RuntimeError("Missing DOR API User Environment Variable!")
 		
-		if(headers):
-			# Support cache toggling from the CLI
-			options = commandOptions({
-				"cache": None,
-			})
-			
-			if(options["cache"] == None and (os.getenv("MART_DOR_API_CACHING", "YES") == "NO")):
-				headers["X-Request-Caching"] = "NO"
-			elif(options["cache"] == False):
-				headers["X-Request-Caching"] = "NO"
-			
-			return headers
+		# Support cache toggling from the CLI
+		options = commandOptions({
+			"cache":  None,
+			"header": None,
+		})
 		
-		return None
+		if(options["cache"] == None and (os.getenv("MART_DOR_API_CACHING", "YES") == "NO")):
+			headers["X-Request-Caching"] = "NO"
+		elif(options["cache"] == False):
+			headers["X-Request-Caching"] = "NO"
+		
+		for key in os.environ:
+			if(key.startswith("MART_HTTP_HEADER_")):
+				var = os.environ[key]
+				if(isinstance(var, str) and len(var) > 0):
+					header, value = var.split(":", 1)
+					if(header and value):
+						header = header.strip()
+						value  = value.strip()
+						
+						headers[header] = value
+		
+		if(isinstance(options["header"], str) and len(options["header"]) > 0):
+			options["header"] = [options["header"]]
+		
+		if(isinstance(options["header"], list) and len(options["header"]) > 0):
+			for header in options["header"]:
+				header, value = header.split(":", 1)
+				if(header and value):
+					header = header.strip()
+					value  = value.strip()
+					
+					headers[header] = value
+		
+		return headers
 	
 	@finalmethod
 	def generateURI(self):

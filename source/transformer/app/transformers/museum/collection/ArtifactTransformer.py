@@ -243,7 +243,7 @@ class ArtifactTransformer(BaseTransformer):
 								identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404626", label="Identification Number")
 								
 								# Map the "Getty Manuscript Number" classification
-								identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms/object/number/manuscript", label="Getty Manuscript Number")
+								identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/number/manuscript", label="Getty Manuscript Number")
 								
 								entity.identified_by = identifier
 	
@@ -300,11 +300,11 @@ class ArtifactTransformer(BaseTransformer):
 								
 								# Classify the title using the subtype provided by TMS; in the future hopefully we can add or replace these
 								# home-grown classifications with something official from AAT or another controlled vocabulary...
-								name.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(subtype.lower()), label=subtype.title())
+								name.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(subtype.lower()), label=subtype.title())
 								
 								remarks = get(title, "remarks")
 								if(remarks):
-									name.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(remarks.lower()), label=remarks.title())
+									name.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(remarks.lower()), label=remarks.title())
 								
 								related = get(title, "related")
 								if(related):

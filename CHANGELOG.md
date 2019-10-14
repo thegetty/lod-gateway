@@ -2,6 +2,16 @@
 
 Any notable changes to the LOD Gateway that affect either functionality or output will be documented in this file (the format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)).
 
+## [Unreleased] 2019-10-14
+
+### Changed
+
+* Changed Custom Classification Ontology/Vocabulary Term Base URLs from `http://vocab.getty.edu/internal/ontologies/linked-data` to `https://data.getty.edu/museum/ontology/linked-data` [[DEV-2605](https://jira.getty.edu/browse/DEV-2605)].
+
+* Changed the `Source Credit Line` classification, removing the "Primary Sources" (300311936) AAT term, and replacing with the more suitable "Sources (General Concept)" (300404764) AAT term [[DEV-2631](https://jira.getty.edu/browse/DEV-2631)]. The `Source Credit Line` continues to carry the "Credit Line" (300435418) AAT term.
+
+* Modified date values expressed via `TimeSpan` entities to ensure they are compliant with the `xsd:Date` format. Thus a date previously expressed as `2019-10-14 01:02:03` will now be expressed as `2019-10-14T01:02:03` – notice the literal `T` now used as a separator between the date and time components of the string [[DEV-2610](https://jira.getty.edu/browse/DEV-2610)].
+
 ## [Unreleased] 2019-10-07
 
 ### Added

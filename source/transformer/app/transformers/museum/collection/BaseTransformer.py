@@ -241,7 +241,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			identifier = Identifier()
 			identifier.id = self.generateEntityURI(sub=["identifier", "dor-id"])
 			identifier._label = "Getty Digital Object Repository (DOR) ID"
-			identifier.content = number
+			identifier.content = str(number)
 			
 			identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/dor/identifier", label="Getty Digital Object Repository (DOR) ID")
 			
@@ -271,7 +271,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			identifier = Identifier()
 			identifier.id = self.generateEntityURI(sub=["identifier", "tms-id"])
 			identifier._label = "Gallery Systems' The Museum System (TMS) ID"
-			identifier.content = number
+			identifier.content = str(number)
 			
 			identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/identifier", label="Gallery Systems' The Museum System (TMS) ID")
 			

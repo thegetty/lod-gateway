@@ -119,12 +119,15 @@ class ArtifactTransformer(BaseTransformer):
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435418", label="Credit Line")
 						
 						if(get(creditline, "subtype") == "OBJECT CREDIT LINE"):
+							lobj._label = "Object Credit Line"
 							# Map the "Artifacts (Object Genre)" classification to denote this as the Object Credit Line
 							lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300117127", label="Artifacts (Object Genre)")
 						elif(get(creditline, "subtype") == "SOURCE CREDIT LINE"):
+							lobj._label = "Source Credit Line"
 							# Map the "Sources (General Concept)" classification to denote this as the Source Credit Line
 							lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300404764", label="Sources (General Concept)")
 						elif(get(creditline, "subtype") == "REPRODUCTION CREDIT LINE"):
+							lobj._label = "Reproduction Credit Line"
 							# Map the "Reproductions (Derivative Items)" classification to denote this as the Reproduction Credit Line
 							lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300015643", label="Reproductions (Derivative Items)")
 						

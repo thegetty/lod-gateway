@@ -33,11 +33,11 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 	def activityStreamEndpoint(self):
 		"""Provide a method for conveying the Activity Stream endpoint that this transformer will process"""
 		
-		baseURL = os.getenv("MART_DOR_BASE_URL", None)
+		baseURL = os.getenv("DOR_BASE_URL", None)
 		if(isinstance(baseURL, str) and len(baseURL) > 0):
 			return rewriteURL(baseURL + "/api/activity-stream/")
 		else:
-			raise RuntimeError("Unable to obtain MART_DOR_BASE_URL environment variable! Please check runtime environment configuration!")
+			raise RuntimeError("Unable to obtain DOR_BASE_URL environment variable! Please check runtime environment configuration!")
 		
 		return None
 	
@@ -50,7 +50,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		options["rewrite"] = BaseTransformer.activityStreamEndpointRewrite
 		
 		# Define the polling interval for our Activity Stream
-		interval = os.getenv("MART_DOR_POLL_INTERVAL", 60)
+		interval = os.getenv("DOR_POLL_INTERVAL", 60)
 		if(isNumeric(interval)):
 			options["interval"] = int(interval)
 		
@@ -68,8 +68,8 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 	@staticmethod
 	def activityStreamEndpointRewrite(URL):
 		if(isinstance(URL, str) and len(URL) > 0):
-			findURL = os.getenv("MART_DOR_FIND_URL", None)
-			baseURL = os.getenv("MART_DOR_BASE_URL", None)
+			findURL = os.getenv("DOR_FIND_URL", None)
+			baseURL = os.getenv("DOR_BASE_URL", None)
 			
 			return rewriteURL(URL, findURL=findURL, baseURL=baseURL)
 		
@@ -84,9 +84,9 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 	def assembleHeaders(self):
 		"""Assemble our HTTP Request Headers for the DOR API call"""
 		
-		apiUser    = os.getenv("MART_DOR_API_USER", None)
-		apiKey     = os.getenv("MART_DOR_API_KEY", None)
-		apiVersion = os.getenv("MART_DOR_API_VERSION", None)
+		apiUser    = os.getenv("DOR_API_USER", None)
+		apiKey     = os.getenv("DOR_API_KEY", None)
+		apiVersion = os.getenv("DOR_API_VERSION", None)
 		
 		headers = {}
 		
@@ -109,13 +109,13 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			"header": None,
 		})
 		
-		if(options["cache"] == None and (os.getenv("MART_DOR_API_CACHING", "YES") == "NO")):
+		if(options["cache"] == None and (os.getenv("DOR_API_CACHING", "YES") == "NO")):
 			headers["X-Request-Caching"] = "NO"
 		elif(options["cache"] == False):
 			headers["X-Request-Caching"] = "NO"
 		
 		for key in os.environ:
-			if(key.startswith("MART_HTTP_HEADER_")):
+			if(key.startswith("HTTP_HEADER_")):
 				var = os.environ[key]
 				if(isinstance(var, str) and len(var) > 0):
 					header, value = var.split(":", 1)
@@ -156,8 +156,8 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 	def generateURL(self):
 		"""Generate the absolute URL for a DOR API resource"""
 		
-		baseURL = os.getenv("MART_DOR_BASE_URL", None)
-		findURL = os.getenv("MART_DOR_FIND_URL", None)
+		baseURL = os.getenv("DOR_BASE_URL", None)
+		findURL = os.getenv("DOR_FIND_URL", None)
 		URL     = None
 		
 		# If the ID has been provided as an absolute URL, use it as-is

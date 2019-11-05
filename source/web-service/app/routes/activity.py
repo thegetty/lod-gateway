@@ -408,7 +408,7 @@ def generateActivityStreamItem(activity, **kwargs):
 def generateURL(**kwargs):
 	debug("generateURL(kwargs: %s) called..." % (kwargs), level=1)
 	
-	URL = os.getenv("MART_LOD_BASE_URL", None)
+	URL = os.getenv("LOD_BASE_URL", None)
 	
 	if(URL):
 		if(get(kwargs, "base", default=False) == False):

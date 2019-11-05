@@ -324,8 +324,8 @@ class BaseTransformer(ABC):
 		
 		debug("%s.assembleEntityURI(%s)" % (cls.__class__.__name__, kwargs), level=1)
 		
-		baseURL       = os.getenv("MART_LOD_BASE_URL", None);
-		trailingSlash = os.getenv("MART_LOD_SLASH_URL", "YES")
+		baseURL       = os.getenv("LOD_BASE_URL", None)
+		trailingSlash = os.getenv("LOD_SLASH_URL", "YES")
 		
 		options = commandOptions({
 			"slash": False,
@@ -336,7 +336,7 @@ class BaseTransformer(ABC):
 				trailingSlash = "YES"
 		
 		if(not (isinstance(baseURL, str) and len(baseURL) > 0)):
-			raise RuntimeError("Missing or invalid 'MART_LOD_BASE_URL' environment variable!")
+			raise RuntimeError("Missing or invalid 'LOD_BASE_URL' environment variable!")
 		
 		if(not (isinstance(namespace, str) and len(namespace) > 0)):
 			raise RuntimeError("Missing or invalid namespace parameter!")

@@ -13,8 +13,8 @@ from app.utilities import has, get, sprintf, debug
 class GraphStore:
 	
 	configuration = {
-		"host": os.getenv("MART_NEPTUNE_HOST", None),
-		"port": os.getenv("MART_NEPTUNE_PORT", None),
+		"host": os.getenv("NEPTUNE_HOST", None),
+		"port": os.getenv("NEPTUNE_PORT", None),
 	}
 	
 	@classmethod
@@ -27,7 +27,7 @@ class GraphStore:
 				return enabled
 		
 		# Determine enabled status based on environment variable
-		return (os.getenv("MART_NEPTUNE_ENABLED", "YES") == "YES")
+		return (os.getenv("NEPTUNE_ENABLED", "YES") == "YES")
 	
 	@classmethod
 	def endpoint(cls):

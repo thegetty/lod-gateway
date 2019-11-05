@@ -16,11 +16,11 @@ class Database:
 		debug("Database.__init__(shared: %s) called..." % (shared), level=1)
 		
 		self.configuration = {
-			"hostname": os.getenv("MART_POSTGRES_HOST", None),
-			"hostport": os.getenv("MART_POSTGRES_PORT", None),
-			"database": os.getenv("MART_POSTGRES_DB", None),
-			"username": os.getenv("MART_POSTGRES_USER", None),
-			"password": os.getenv("MART_POSTGRES_PASSWORD", None),
+			"hostname": os.getenv("POSTGRES_HOST", None),
+			"hostport": os.getenv("POSTGRES_PORT", None),
+			"database": os.getenv("POSTGRES_DB", None),
+			"username": os.getenv("POSTGRES_USER", None),
+			"password": os.getenv("POSTGRES_PASSWORD", None),
 		}
 		
 		debug("Database.__init__(shared: %s) configuration = %s" % (shared, self.configuration), level=2)

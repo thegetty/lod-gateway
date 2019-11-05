@@ -29,7 +29,7 @@ elif(options["debug"] == True):
 elif(options["debug"] == False):
 	debug(level=-1) # only display errors (level <= -1)
 else:
-	debug(level=os.getenv("MART_DEBUG_LEVEL", -1))
+	debug(level=os.getenv("DEBUG_LEVEL", -1))
 
 # Import the dependency injector
 from app.di import DI
@@ -84,7 +84,7 @@ if(isinstance(manager, BaseManager)):
 		
 		# count = 0
 		# 
-		# delay = os.getenv("MART_TRANSFORMER_STREAMS_POLL_INTERVAL", 60) # seconds
+		# delay = os.getenv("TRANSFORMER_STREAMS_POLL_INTERVAL", 60) # seconds
 		# 
 		# if(isInteger(delay)):
 		# 	delay = int(delay)

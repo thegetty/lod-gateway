@@ -99,6 +99,9 @@ def registerTransformers():
 											klass = getattr(module, modName)
 											if(klass):
 												transformer["module"]["class"] = klass
+
+												# Register the class globally
+												globals()[modName] = klass
 												
 												# Create an instance of the transformer class
 												instance = klass()
@@ -275,66 +278,86 @@ class BaseTransformer(ABC):
 		
 		debug("%s.generateEntityURI(%s)" % (self.__class__.__name__, kwargs), level=1)
 		
-		baseURL       = os.getenv("MART_LOD_BASE_URL", None);
-		trailingSlash = os.getenv("MART_LOD_SLASH_URL", "YES")
+		if("namespace" in kwargs):
+			namespace = kwargs["namespace"]
+			del kwargs["namespace"]
+		else:
+			namespace = self.getNamespace()
 		
-		if(not (isinstance(baseURL, str) and len(baseURL) > 0)):
-			raise RuntimeError("Missing/Invalid 'MART_LOD_BASE_URL' Environment Variable!")
-		
-		UUID = self.getUUID()
-		
-		if("UUID" in kwargs):
-			if(isinstance(kwargs["UUID"], str) and len(kwargs["UUID"]) > 0):
-				UUID = kwargs["UUID"]
-		
-		if(not (isinstance(UUID, str) and len(UUID) > 0)):
-			raise RuntimeError("Missing entity UUID!")
+		if(not (isinstance(namespace, str) and len(namespace) > 0)):
+			raise RuntimeError("Invalid namespace parameter! It must be a valid, non-empty string!")
 		
 		entity = None
 		
-		if(self.entity):
+		if("entity" in kwargs):
+			entity = kwargs["entity"]
+			del kwargs["entity"]
+		elif(self.entity):
 			entity = self.entity
 		
-		if("entity" in kwargs):
-			if(kwargs["entity"]):
-				entity = kwargs["entity"]
+		if(not (entity and getattr(entity, "__module__", None) == "cromulent.model")):
+			raise RuntimeError("Invalid entity parameter! It must be an instance of a CROM model type!")
 		
-		if(not entity):
-			raise RuntimeError("Missing CROM entity representation!")
+		if("entityName" in kwargs):
+			entityName = kwargs["entityName"]
+			del kwargs["entityName"]
+		else:
+			entityName = self.generateEntityName(entity=entity);
 		
-		# debug("UUID = %s; entity = %s; trailingSlash = %s" % (UUID, entity, trailingSlash), level=1)
+		if(not (isinstance(entityName, str) and len(entityName) > 0)):
+			raise RuntimeError("Unable to generate name for CROM entity!")
+		
+		if("UUID" in kwargs):
+			UUID = kwargs["UUID"]
+			del kwargs["UUID"]
+		else:
+			UUID = self.getUUID()
+		
+		if(not (isinstance(UUID, str) and len(UUID) > 0)):
+			raise RuntimeError("Invalid UUID parameter! It must be a valid UUIDv4 string representation!")
+		
+		return self.assembleEntityURI(namespace=namespace, entityName=entityName, UUID=UUID, **kwargs)
+	
+	@classmethod
+	def assembleEntityURI(cls, namespace=None, entityName=None, UUID=None, **kwargs):
+		"""Assemble an entity URI for the current or provided entity"""
+		
+		debug("%s.assembleEntityURI(%s)" % (cls.__class__.__name__, kwargs), level=1)
+		
+		baseURL       = os.getenv("LOD_BASE_URL", None)
+		trailingSlash = os.getenv("LOD_SLASH_URL", "YES")
 		
 		options = commandOptions({
 			"slash": False,
 		})
 		
 		if("slash" in options):
-			if(options["slash"]):
+			if(isinstance(options["slash"], bool) and options["slash"] == True):
 				trailingSlash = "YES"
 		
-		URI = baseURL
+		if(not (isinstance(baseURL, str) and len(baseURL) > 0)):
+			raise RuntimeError("Missing or invalid 'LOD_BASE_URL' environment variable!")
 		
-		namespace = self.getNamespace()
-		if(isinstance(namespace, str) and len(namespace) > 0):
-			URI += "/" + namespace
+		if(not (isinstance(namespace, str) and len(namespace) > 0)):
+			raise RuntimeError("Missing or invalid namespace parameter!")
 		
-		entityName = self.generateEntityName(entity=entity);
-		if(isinstance(entityName, str) and len(entityName) > 0):
-			URI += "/" + entityName + "/" + UUID + "/"
-			
-			if(("sub" in kwargs) and isinstance(kwargs["sub"], list)):
-				if(len(kwargs["sub"]) > 0):
-					URI += "/".join(kwargs["sub"]) + "/"
-			
-			if(trailingSlash != "YES"):
-				if(URI.endswith("/")):
-					URI = URI[0:-1]
-			
-			return URI
-		else:
-			raise RuntimeError("Missing CROM entity name!")
+		if(not (isinstance(entityName, str) and len(entityName) > 0)):
+			raise RuntimeError("Missing or invalid entity name parameter!")
 		
-		return None
+		if(not (isinstance(UUID, str) and len(UUID) > 0)):
+			raise RuntimeError("Missing or invalid UUID parameter!")
+		
+		URI = baseURL + "/" + namespace + "/" + entityName + "/" + UUID + "/"
+		
+		if("sub" in kwargs):
+			if(isinstance(kwargs["sub"], list) and len(kwargs["sub"]) > 0):
+				URI += "/".join(kwargs["sub"]) + "/"
+		
+		if(trailingSlash != "YES"):
+			if(URI.endswith("/")):
+				URI = URI[0:-1]
+		
+		return URI
 	
 	def getNamespace(self):
 		"""Get the transformer's namespace based on the location of the transformer in the module hierarchy"""
@@ -375,7 +398,7 @@ class BaseTransformer(ABC):
 		if(isinstance(URL, str)):
 			headers = self.assembleHeaders()
 			if(isinstance(headers, dict)):
-				response = requests.get(URL, headers=headers)
+				response = requests.get(URL, headers=headers, timeout=90)
 				if(response):
 					if(response.status_code == 200):
 						data = json.loads(response.text)

@@ -2,7 +2,7 @@ import os
 import json
 
 # Import our application utility functions
-from app.utilities import get, has, debug
+from app.utilities import get, has, debug, sprintf, date, hyphenatedStringFromSpacedString
 
 # Import our Museum Collection BaseTransformer class
 from app.transformers.museum.collection.BaseTransformer import BaseTransformer
@@ -85,6 +85,57 @@ class ArtifactTransformer(BaseTransformer):
 				
 				entity.referred_to_by = lobj
 	
+	# Map Copyright Statement
+	def mapCopyrightStatement(self, entity, data):
+		copyright = get(data, "display.copyright.display.value")
+		if(copyright):
+			lobj = LinguisticObject()
+			lobj.id = self.generateEntityURI(sub=["text", get(data, "display.copyright.uuid")])
+			lobj._label = "Copyright Statement"
+			lobj.content = copyright
+			
+			# Map the "Copyright/Licensing Statement" classification
+			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435434", label="Copyright/Licensing Statement")
+			
+			# Map the "Brief Text" classification
+			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
+			
+			entity.referred_to_by = lobj
+	
+	# Map Object, Source & Reproduction Credit Line Statements
+	def mapCreditLineStatements(self, entity, data):
+		creditlines = get(data, "display.creditlines")
+		if(isinstance(creditlines, dict) and len(creditlines) > 0):
+			for index, key in enumerate(creditlines):
+				creditline = creditlines[key]
+				if(creditline):
+					statement = get(creditline, "display.value")
+					if(statement):
+						lobj = LinguisticObject()
+						lobj.id = self.generateEntityURI(sub=["text", get(data, "uuid")])
+						lobj.content = statement
+						
+						# Map the "Credit Line" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435418", label="Credit Line")
+						
+						if(get(creditline, "subtype") == "OBJECT CREDIT LINE"):
+							lobj._label = "Object Credit Line"
+							# Map the "Artifacts (Object Genre)" classification to denote this as the Object Credit Line
+							lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300117127", label="Artifacts (Object Genre)")
+						elif(get(creditline, "subtype") == "SOURCE CREDIT LINE"):
+							lobj._label = "Source Credit Line"
+							# Map the "Sources (General Concept)" classification to denote this as the Source Credit Line
+							lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300404764", label="Sources (General Concept)")
+						elif(get(creditline, "subtype") == "REPRODUCTION CREDIT LINE"):
+							lobj._label = "Reproduction Credit Line"
+							# Map the "Reproductions (Derivative Items)" classification to denote this as the Reproduction Credit Line
+							lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300015643", label="Reproductions (Derivative Items)")
+						
+						# Map the "Brief Text" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
+						
+						entity.referred_to_by = lobj
+	
 	# Map Classifications
 	def mapClassifications(self, entity, data):
 		# Map the standard "Artwork" classification for all Objects (Artifacts) in this data set
@@ -97,21 +148,107 @@ class ArtifactTransformer(BaseTransformer):
 			
 			entity.classified_as = Type(ident=get(classification, "classification.id"), label=get(classification, "classification.label"))
 	
+	def getNumber(self, mnemonic=None, keypath=None):
+		if(mnemonic):
+			numbers = get(self.data, "display.numbers")
+			if(isinstance(numbers, dict) and len(numbers) > 0):
+				for key in numbers:
+					number = numbers[key]
+					if(isinstance(number, dict)):
+						if(get(number, "mnemonic") == mnemonic):
+							if(isinstance(keypath, str) or isinstance(keypath, list)):
+								return get(number, keypath)
+							else:
+								return number
+		
+		return None
+	
 	# Map Accession Number
 	def mapAccessionNumber(self, entity, data):
-		number = get(data, "display.number.display.value")
-		if(number):
-			number_id = get(data, "display.number.uuid")
-			if(number_id):
-				identifier = Identifier()
-				identifier.id = self.generateEntityURI(sub=["identifier", number_id])
-				identifier._label = "Accession Number"
-				identifier.content = number
-				
-				# Map the "Accession Number" classification
-				identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300312355", label="Accession Number")
-				
-				entity.identified_by = identifier
+		numbers = get(data, "display.numbers")
+		if(isinstance(numbers, dict) and len(numbers) > 0):
+			display_number = self.getNumber(mnemonic="DISPLAY NUMBER", keypath="display.value")
+			
+			for key in numbers:
+				number = numbers[key]
+				if(isinstance(number, dict)):
+					if(get(number, "mnemonic") == "OBJECT NUMBER"):
+						number_id = get(number, "uuid")
+						if(number_id):
+							identifier = Identifier()
+							identifier.id = self.generateEntityURI(sub=["identifier", number_id])
+							identifier._label = "Accession Number"
+							identifier.content = get(number, "display.value")
+							
+							# Map the "Identification Number" classification
+							identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404626", label="Identification Number")
+							
+							# Map the "Accession Number" classification
+							identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300312355", label="Accession Number")
+							
+							# If the Accession and Display Numbers are the same, mark the Accession Number as the Preferred Term
+							if(isinstance(display_number, str) and (identifier.content == display_number)):
+								# Map the "Preferred Term" classification
+								# This is important as it denotes this number is the preferred number associated with the work
+								identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404670", label="Preferred Term")
+							
+							entity.identified_by = identifier
+	
+	# Map Display Number
+	def mapDisplayNumber(self, entity, data):
+		numbers = get(data, "display.numbers")
+		if(isinstance(numbers, dict) and len(numbers) > 0):
+			accession_number = self.getNumber(mnemonic="OBJECT NUMBER",  keypath="display.value")
+			display_number   = self.getNumber(mnemonic="DISPLAY NUMBER", keypath="display.value")
+			
+			# If the Accession and Display Numbers are the same, skip mapping the Display Number
+			if(accession_number == display_number):
+				return
+			
+			for key in numbers:
+				number = numbers[key]
+				if(isinstance(number, dict)):
+					if(get(number, "mnemonic") == "DISPLAY NUMBER"):
+						number_id = get(number, "uuid")
+						if(number_id):
+							identifier = Identifier()
+							identifier.id = self.generateEntityURI(sub=["identifier", number_id])
+							identifier._label = "Display Number"
+							identifier.content = get(number, "display.value")
+							
+							# Map the "Identification Number" classification
+							identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404626", label="Identification Number")
+							
+							# Map the "Preferred Term" classification
+							# This is important as it denotes this number is the preferred number associated with the work
+							identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404670", label="Preferred Term")
+							
+							entity.identified_by = identifier
+	
+	# Map Manuscript Number
+	def mapManuscriptNumber(self, entity, data):
+		department = get(data, "display.department.mnemonic")
+		if(isinstance(department, str) and department == "MANUSCRIPTS"):
+			numbers = get(data, "display.numbers")
+			if(isinstance(numbers, dict) and len(numbers) > 0):
+				for key in numbers:
+					number = numbers[key]
+					if(isinstance(number, dict)):
+						if(get(number, "mnemonic") == "MANUSCRIPT NUMBER"):
+							number_id = get(number, "uuid")
+							if(number_id):
+								identifier = Identifier()
+								identifier.id = self.generateEntityURI(sub=["identifier", number_id])
+								identifier._label = "Manuscript Number"
+								identifier.content = get(number, "display.value")
+								
+								# Map the "Identification Number" classification
+								identifier.classified_as = Type(ident="http://vocab.getty.edu/aat/300404626", label="Identification Number")
+								
+								# Map the "Getty Manuscript Number" classification
+								identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/number/manuscript", label="Getty Manuscript Number")
+								
+								entity.identified_by = identifier
 	
 	# Map Primary Title
 	def mapPrimaryTitle(self, entity, data):
@@ -124,9 +261,13 @@ class ArtifactTransformer(BaseTransformer):
 				name._label = "Primary Title"
 				name.content = title
 				
-				# Map the "Primary Title" classification
+				# Map the "Title (General, Names)" classification to denote this as a title
 				# This is important as it denotes this title is the primary title associated with the work
-				name.classified_as = Type(ident="http://vocab.getty.edu/aat/300404670", label="Primary Title")
+				name.classified_as = Type(ident="http://vocab.getty.edu/aat/300417193", label="Titles (General, Names)")
+				
+				# Map the "Preferred Term" classification
+				# This is important as it denotes this title is the preferred (or primary) title associated with the work
+				name.classified_as = Type(ident="http://vocab.getty.edu/aat/300404670", label="Preferred Term")
 				
 				entity.identified_by = name
 	
@@ -142,7 +283,8 @@ class ArtifactTransformer(BaseTransformer):
 						id = get(title, "uuid")
 						if(id):
 							# Exclude the following title subtypes...
-							if(get(title, "subtype") not in [
+							subtype = get(title, "subtype")
+							if(subtype and subtype not in [
 								"PRIMARY TITLE",
 								"GETTYGUIDE SEARCH TITLE",
 								"GETTYGUIDE MIDDLE TITLE",
@@ -152,6 +294,34 @@ class ArtifactTransformer(BaseTransformer):
 								name.id = self.generateEntityURI(sub=["name", id])
 								name._label = get(title, "display.label", default="Alternate Title")
 								name.content = value
+								
+								# Map the "Title (General, Names)" classification to denote this as a title
+								name.classified_as = Type(ident="http://vocab.getty.edu/aat/300417193", label="Titles (General, Names)")
+								
+								# Classify the title as an Alternate Title
+								name.classified_as = Type(ident="http://vocab.getty.edu/aat/300417227", label="Alternate Title")
+								
+								# Classify the title using the subtype provided by TMS; in the future hopefully we can add or replace these
+								# home-grown classifications with something official from AAT or another controlled vocabulary...
+								name.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(subtype.lower()), label=subtype.title())
+								
+								remarks = get(title, "remarks")
+								if(remarks):
+									name.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/titles/" + hyphenatedStringFromSpacedString(remarks.lower()), label=remarks.title())
+								
+								related = get(title, "related")
+								if(related):
+									groups = get(related, "groups")
+									if(groups):
+										for group in groups:
+											if(get(group, "type") == "EXHIBITION"):
+												activity = Activity(ident=self.generateEntityURI(entity=Activity, id=get(group, "uuid")), label=get(group, "display.value"))
+												if(activity):
+													activity.classified_as = Type(ident="http://vocab.getty.edu/aat/300054766", label="Exhibitions (Events)")
+													
+													name.classified_as = Type(ident="http://vocab.getty.edu/aat/300417207", label="Exhibition Title (Work Title)")
+													
+													name.used_for = activity
 								
 								entity.identified_by = name
 	
@@ -221,8 +391,8 @@ class ArtifactTransformer(BaseTransformer):
 				lobj.id = self.generateEntityURI(sub=["material-statement", id])
 				lobj.content = medium
 				
-				# Map the "Material Statement" classification
-				lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300010358", label="Material Statement")
+				# Map the “Materials Description" classification
+				lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435429", label="Materials Description")
 				
 				# Map the "Brief Text" classification
 				lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
@@ -263,6 +433,9 @@ class ArtifactTransformer(BaseTransformer):
 						
 						# Map the "Inscription" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300028702", label="Inscriptions")
+
+						# Map the “Inscription Description" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435414", label="Inscription Description")
 						
 						# Map the "Brief Text" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
@@ -286,6 +459,9 @@ class ArtifactTransformer(BaseTransformer):
 						
 						# Map the "Marks (Symbols)" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300028744", label="Marks (Symbols)")
+
+						# Map the “Marks Description" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435420", label="Marks Description")
 						
 						# Map the "Brief Text" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
@@ -307,8 +483,8 @@ class ArtifactTransformer(BaseTransformer):
 						lobj.id = self.generateEntityURI(sub=["signature", id])
 						lobj.content = value
 						
-						# Map the "Signatures (Names)" classification
-						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300028705", label="Signatures (Names)")
+						# Map the “Signatures Description" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435415", label="Signatures Description")
 						
 						# Map the "Brief Text" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
@@ -332,6 +508,9 @@ class ArtifactTransformer(BaseTransformer):
 						
 						# Map the "Watermarks" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300028749", label="Watermarks")
+
+						# Map the “Watermarks Description" classification
+						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435421", label="Watermarks Description")
 						
 						# Map the "Brief Text" classification
 						lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
@@ -360,9 +539,6 @@ class ArtifactTransformer(BaseTransformer):
 				name.content = depicted
 				
 				place.identified_by = name
-				
-				# Map the "Inhabited Place" classification
-				place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
 				
 				visual.represents = place
 				
@@ -445,6 +621,11 @@ class ArtifactTransformer(BaseTransformer):
 			# cannot set InformationObject.conforms_to due to CROM error! CROM and/or Linked.art documentation are wrong!
 			# info.conforms_to = Type(id="http://iiif.io/api/presentation")
 			
+			# Hack to get the "conforms_to" property into CROM's InformationObject instance data; attempting to set
+			# the "conforms_to" property via direct assignment or via the setattr() method fails, as these assignments
+			# are intercepted by CROM's __setattr__() method which rejects them; see DEV-1909 for more info; CROM needs fixing!
+			info.__dict__["conforms_to"] = [{"id": "http://iiif.io/api/presentation"}]
+			
 			info.format = "application/ld+json;profile=\"http://iiif.io/api/presentation/2/context.json\"",
 			
 			entity.subject_of = info
@@ -493,9 +674,6 @@ class ArtifactTransformer(BaseTransformer):
 				group.id = self.generateEntityURI(entity=Group, UUID=id)
 				group._label = value + " (Curatorial Department)"
 				
-				# Obtain a copy of the J. Paul Getty Museum Group
-				group.member_of = self.createGettyMuseumGroup(); # defined in BaseTransformer.py
-				
 				# Map the "Department (Organizational Unit)" classification
 				group.classified_as = Type(ident="http://vocab.getty.edu/aat/300263534", label="Department (Organizational Unit)");
 				
@@ -519,14 +697,6 @@ class ArtifactTransformer(BaseTransformer):
 				# Note that the Object is currently owned by the J. Paul Getty Museum
 				owner = self.createGettyMuseumGroup();
 				if(owner):
-					# Create the Acquisition activity
-					aquisition = Acquisition()
-					aquisition.id = self.generateEntityURI(sub=["activity", "acquisition"])
-					aquisition._label = "Acquisition"
-					
-					# Associate the Acquisition activity with the owner via the "acquired_title_through" property
-					owner.acquired_title_through = aquisition
-					
 					# Then assign the "current_owner" relationship for the Object
 					entity.current_owner = owner
 	
@@ -584,8 +754,8 @@ class ArtifactTransformer(BaseTransformer):
 					lobj.id = self.generateEntityURI(sub=["dimensions", id])
 					lobj.content = statement
 					
-					# Map the "Dimension Statement" classification
-					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300266036", label="Dimension Statement")
+					# Map the “Dimensions Description" classification
+					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300435430", label="Dimensions Description")
 					
 					# Map the "Brief Text" classification
 					lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
@@ -622,11 +792,11 @@ class ArtifactTransformer(BaseTransformer):
 		makers = get(data, "display.makers")
 		if(makers and len(makers) > 0):
 			# Obtain the Object's Date
-			date = get(data, "display.date")
+			dates = get(data, "display.date")
 			# debug(date, format="JSON")
 			
 			# Obtain the Object's Place Created (if available)
-			created = get(data, "display.places.created")
+			created = get(dates, "display.places.created")
 			# debug(created, format="JSON")
 			
 			for maker in makers:
@@ -639,37 +809,31 @@ class ArtifactTransformer(BaseTransformer):
 					person.id = self.generateEntityURI(entity=Person, UUID=id)
 					person._label = value
 					
-					if(date):
+					if(dates):
 						# Add a Name to the TimeSpan of the Prodction activity to store the display date string
 						name = Name();
 						name.id = self.generateEntityURI(sub=["activity", "production", id, "timespan", "name"])
 						name._label = "Date"
-						name.content = get(date, "display.value")
-						
-						# Map the "Dates (Spans of Time)" classification
-						name.classified_as = Type(ident="http://vocab.getty.edu/aat/300404439", label="Dates (Spans of Time)")
+						name.content = get(dates, "display.value")
 						
 						timespan = TimeSpan()
 						timespan.id = self.generateEntityURI(sub=["activity", "production", id, "timespan"])
 						timespan.identified_by = name
 						
-						# NOTE Should we also classify the timespan? presumably it is implicit, but is it helpful to do so?
-						timespan.classified_as = Type(ident="http://vocab.getty.edu/aat/300404439", label="Dates (Spans of Time)")
-						
 						# Get the padded lower and upper date values
-						lower = get(date, "value.lower")
-						upper = get(date, "value.upper")
+						lower = get(dates, "value.lower")
+						upper = get(dates, "value.upper")
 						
 						# Clarify if we should treat "begin_of_the_begin" and "end_of_the_begin"
 						# or "begin_of_the_end" and "end_of_the_end" differently than we do below
 						
 						if(lower):
-							timespan.begin_of_the_begin = lower
-							timespan.end_of_the_begin   = lower
+							timespan.begin_of_the_begin = date(format="%Y-%m-%dT%H:%M:%S", date=lower, format_for_input_date="%Y-%m-%d %H:%M:%S")
+							timespan.end_of_the_begin   = date(format="%Y-%m-%dT%H:%M:%S", date=lower, format_for_input_date="%Y-%m-%d %H:%M:%S")
 						
 						if(upper):
-							timespan.begin_of_the_end   = upper
-							timespan.end_of_the_end     = upper
+							timespan.begin_of_the_end   = date(format="%Y-%m-%dT%H:%M:%S", date=upper, format_for_input_date="%Y-%m-%d %H:%M:%S")
+							timespan.end_of_the_end     = date(format="%Y-%m-%dT%H:%M:%S", date=upper, format_for_input_date="%Y-%m-%d %H:%M:%S")
 					
 					# Create the Production activity instance
 					production = Production()
@@ -700,9 +864,6 @@ class ArtifactTransformer(BaseTransformer):
 						
 						# Map the place name
 						place.identified_by = name
-						
-						# Map the "Inhabited Place" classification
-						place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
 						
 						production.took_place_at = place
 					

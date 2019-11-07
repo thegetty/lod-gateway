@@ -68,7 +68,7 @@ class BaseManager(ABC):
 		# debug(options, format="JSON", label="options")
 		# debug(headers, format="JSON", label="headers")
 		
-		response = requests.get(URL, headers=headers)
+		response = requests.get(URL, headers=headers, timeout=90)
 		if(isinstance(response, requests.models.Response)):
 			if(response.status_code == 200):
 				data = response.text
@@ -176,26 +176,59 @@ class BaseManager(ABC):
 		return response
 	
 	@finalmethod
-	def storeEntity(self, entity, data=None):
-		debug("%s.storeEntity(entity: %s) called..." % (self.__class__.__name__, entity), level=1)
+	def storeEntity(self, entity, data=None, **kwargs):
+		debug("%s.storeEntity(entity: %s, kwargs: %s) called..." % (self.__class__.__name__, entity, kwargs), level=1)
 		
 		if(not entity):
-			debug("%s.storeEntity() The entity parameter was invalid!" % (self.__class__.__name__), error=True)
+			debug("%s.storeEntity() The 'entity' parameter was invalid!" % (self.__class__.__name__), error=True)
 			return False
 		
-		namespace = entity.getNamespace()
-		name      = entity.getEntityName()
-		UUID      = entity.getUUID()
-		entityURI = entity.generateEntityURI()
+		namespace  = self.getEntityNamespace(entity, **kwargs)
+		entityName = self.getEntityName(entity, **kwargs)
+		entityUUID = self.getEntityUUID(entity, **kwargs)
+		entityURI  = self.getEntityURI(entity, **kwargs)
+		
+		if(not namespace):
+			debug("%s.storeEntity() The 'namespace' parameter was invalid!" % (self.__class__.__name__), error=True)
+			return False
+		
+		if(not entityName):
+			debug("%s.storeEntity() The 'entityName' parameter was invalid!" % (self.__class__.__name__), error=True)
+			return False
+		
+		if(not entityUUID):
+			debug("%s.storeEntity() The 'UUID' parameter was invalid!" % (self.__class__.__name__), error=True)
+			return False
+		
+		if(not entityURI):
+			entityURI = BaseTransformer.assembleEntityURI(namespace=namespace, entityName=entityName, UUID=UUID)
+		
+		if(entity.__module__ == "cromulent.model" and not entity.id):
+			entity.id = entityURI
+		
+		debug({
+			"namespace":  namespace,
+			"entityName": entityName,
+			"entityUUID": entityUUID,
+			"entityURI":  entityURI,
+		}, format="JSON", level=2)
 		
 		if(data == None):
-			data = entity.toJSON(compact=True)
+			if(isinstance(entity, BaseTransformer)):
+				data = entity.toJSON(compact=True)
+			else:
+				if("compact" in kwargs and isinstance(kwargs["compact"], bool)):
+					compact = kwargs["compact"]
+				else:
+					compact = True
+				
+				data = factory.toString(entity, compact=compact)
 		
-		record = Record.findFirstOrCreateNewInstance("namespace = :namespace: AND entity = :entity: AND uuid = :uuid:", bind={"namespace": namespace, "entity": name, "uuid": UUID})
+		record = Record.findFirstOrCreateNewInstance("namespace = :namespace: AND entity = :entity: AND uuid = :uuid:", bind={"namespace": namespace, "entity": entityName, "uuid": entityUUID})
 		if(record):
 			record.namespace = namespace
-			record.entity    = name
-			record.uuid      = UUID
+			record.entity    = entityName
+			record.uuid      = entityUUID
 			record.data      = data
 			
 			if(record.save()):
@@ -218,6 +251,72 @@ class BaseManager(ABC):
 			debug("Failed to find or create a Record instance for %s!" % (entity), error=True)
 		
 		return False
+	
+	@finalmethod
+	def getEntityNamespace(self, entity, **kwargs):
+		namespace = None
+		
+		if("namespace" in kwargs):
+			namespace = kwargs["namespace"]
+		else:
+			if(isinstance(entity, BaseTransformer)):
+				namespace = entity.getNamespace()
+			elif(entity.__module__ == "cromulent.model" and getattr(entity, "_namespace", None)):
+				namespace = entity._namespace
+				del entity._namespace
+		
+		return namespace
+	
+	@finalmethod
+	def getEntityName(self, entity, **kwargs):
+		debug("%s.getEntityName(%s, %s) called..." % (self.__class__.__name__, entity, kwargs))
+		
+		name = None
+		
+		if("name" in kwargs):
+			name = kwargs["name"]
+		elif("entityName" in kwargs):
+			name = kwargs["entityName"]
+		else:
+			if(isinstance(entity, BaseTransformer)):
+				name = entity.getEntityName()
+			elif(entity.__module__ == "cromulent.model"):
+				if(getattr(entity, "_name", None)):
+					name = entity._name
+					del entity._name
+				else:
+					name = entity.__class__.__name__
+		
+		return name
+	
+	@finalmethod
+	def getEntityUUID(self, entity, **kwargs):
+		UUID = None
+		
+		if("UUID" in kwargs):
+			UUID = kwargs["UUID"]
+		else:
+			if(isinstance(entity, BaseTransformer)):
+				UUID = entity.getUUID()
+			elif(entity.__module__ == "cromulent.model" and getattr(entity, "_uuid", None)):
+				UUID = entity._uuid
+				del entity._uuid
+		
+		return UUID
+	
+	@finalmethod
+	def getEntityURI(self, entity, **kwargs):
+		entityURI = None
+		
+		if("entityURI" in kwargs):
+			entityURI = kwargs["entityURI"]
+		else:
+			if(isinstance(entity, BaseTransformer)):
+				entityURI = entity.generateEntityURI()
+			elif(entity.__module__ == "cromulent.model" and getattr(entity, "id", None)):
+				entityURI = entity.id
+		
+		return entityURI
 
 class ActivityStreamManager(BaseManager):
 	
@@ -551,6 +650,8 @@ class RecordsManager(BaseManager):
 								
 								line = handle.readline()
 						ids = _ids
+					else:
+						debug("Invalid ID file (%s) path!" % (ids), error=True)
 				else:
 					ids = [ids]
 			elif(isinstance(ids, int)):
@@ -562,6 +663,8 @@ class RecordsManager(BaseManager):
 				entity    = get(kwargs, "entity")
 				
 				for id in ids:
+					debug("%s.getItems() ID = %s" % (self.__class__.__name__, id), level=1)
+					
 					yield {
 						"event":     event,
 						"namespace": namespace,

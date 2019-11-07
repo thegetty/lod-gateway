@@ -5,8 +5,6 @@ import datetime
 import os
 import psutil
 
-# os.environ["MART_LOD_BASE_URL"] = "http://localhost:5100"
-
 # Import the utility functions (commandOptions, get, has, put, debug, repeater, etc)
 from app.utilities import *
 
@@ -23,7 +21,7 @@ elif(options["debug"] == True):
 elif(options["debug"] == False):
 	debug(level=-1) # only display errors (level <= -1)
 else:
-	debug(level=os.getenv("MART_DEBUG_LEVEL", -1))
+	debug(level=os.getenv("DEBUG_LEVEL", -1))
 
 # debug(level=3)
 
@@ -107,7 +105,7 @@ def afterRequest(response):
 	
 	debug(information, format="JSON", label="Process Information", level=2)
 	
-	if(os.getenv("MART_WEB_DEBUG_HEADER", "NO") == "YES"):
+	if(os.getenv("WEB_DEBUG_HEADER", "NO") == "YES"):
 		# Obtain the headers
 		headers = response.headers
 		if(not headers):

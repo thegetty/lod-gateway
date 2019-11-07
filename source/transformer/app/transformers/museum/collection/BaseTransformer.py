@@ -33,11 +33,11 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 	def activityStreamEndpoint(self):
 		"""Provide a method for conveying the Activity Stream endpoint that this transformer will process"""
 		
-		baseURL = os.getenv("MART_DOR_BASE_URL", None)
+		baseURL = os.getenv("DOR_BASE_URL", None)
 		if(isinstance(baseURL, str) and len(baseURL) > 0):
 			return rewriteURL(baseURL + "/api/activity-stream/")
 		else:
-			raise RuntimeError("Unable to obtain MART_DOR_BASE_URL environment variable! Please check runtime environment configuration!")
+			raise RuntimeError("Unable to obtain DOR_BASE_URL environment variable! Please check runtime environment configuration!")
 		
 		return None
 	
@@ -50,7 +50,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		options["rewrite"] = BaseTransformer.activityStreamEndpointRewrite
 		
 		# Define the polling interval for our Activity Stream
-		interval = os.getenv("MART_DOR_POLL_INTERVAL", 60)
+		interval = os.getenv("DOR_POLL_INTERVAL", 60)
 		if(isNumeric(interval)):
 			options["interval"] = int(interval)
 		
@@ -68,8 +68,8 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 	@staticmethod
 	def activityStreamEndpointRewrite(URL):
 		if(isinstance(URL, str) and len(URL) > 0):
-			findURL = os.getenv("MART_DOR_FIND_URL", None)
-			baseURL = os.getenv("MART_DOR_BASE_URL", None)
+			findURL = os.getenv("DOR_FIND_URL", None)
+			baseURL = os.getenv("DOR_BASE_URL", None)
 			
 			return rewriteURL(URL, findURL=findURL, baseURL=baseURL)
 		
@@ -84,9 +84,9 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 	def assembleHeaders(self):
 		"""Assemble our HTTP Request Headers for the DOR API call"""
 		
-		apiUser    = os.getenv("MART_DOR_API_USER", None)
-		apiKey     = os.getenv("MART_DOR_API_KEY", None)
-		apiVersion = os.getenv("MART_DOR_API_VERSION", None)
+		apiUser    = os.getenv("DOR_API_USER", None)
+		apiKey     = os.getenv("DOR_API_KEY", None)
+		apiVersion = os.getenv("DOR_API_VERSION", None)
 		
 		headers = {}
 		
@@ -103,20 +103,41 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		else:
 			raise RuntimeError("Missing DOR API User Environment Variable!")
 		
-		if(headers):
-			# Support cache toggling from the CLI
-			options = commandOptions({
-				"cache": None,
-			})
-			
-			if(options["cache"] == None and (os.getenv("MART_DOR_API_CACHING", "YES") == "NO")):
-				headers["X-Request-Caching"] = "NO"
-			elif(options["cache"] == False):
-				headers["X-Request-Caching"] = "NO"
-			
-			return headers
+		# Support cache toggling from the CLI
+		options = commandOptions({
+			"cache":  None,
+			"header": None,
+		})
 		
-		return None
+		if(options["cache"] == None and (os.getenv("DOR_API_CACHING", "YES") == "NO")):
+			headers["X-Request-Caching"] = "NO"
+		elif(options["cache"] == False):
+			headers["X-Request-Caching"] = "NO"
+		
+		for key in os.environ:
+			if(key.startswith("HTTP_HEADER_")):
+				var = os.environ[key]
+				if(isinstance(var, str) and len(var) > 0):
+					header, value = var.split(":", 1)
+					if(header and value):
+						header = header.strip()
+						value  = value.strip()
+						
+						headers[header] = value
+		
+		if(isinstance(options["header"], str) and len(options["header"]) > 0):
+			options["header"] = [options["header"]]
+		
+		if(isinstance(options["header"], list) and len(options["header"]) > 0):
+			for header in options["header"]:
+				header, value = header.split(":", 1)
+				if(header and value):
+					header = header.strip()
+					value  = value.strip()
+					
+					headers[header] = value
+		
+		return headers
 	
 	@finalmethod
 	def generateURI(self):
@@ -135,8 +156,8 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 	def generateURL(self):
 		"""Generate the absolute URL for a DOR API resource"""
 		
-		baseURL = os.getenv("MART_DOR_BASE_URL", None)
-		findURL = os.getenv("MART_DOR_FIND_URL", None)
+		baseURL = os.getenv("DOR_BASE_URL", None)
+		findURL = os.getenv("DOR_FIND_URL", None)
 		URL     = None
 		
 		# If the ID has been provided as an absolute URL, use it as-is
@@ -182,7 +203,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			
 			headers = self.assembleHeaders()
 			if(isinstance(headers, dict)):
-				response = requests.get(URL, headers=headers)
+				response = requests.get(URL, headers=headers, timeout=90)
 				if(isinstance(response, requests.models.Response)):
 					if(response.status_code == 200):
 						if(isinstance(response.text, str) and len(response.text) > 0):
@@ -220,11 +241,11 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			identifier = Identifier()
 			identifier.id = self.generateEntityURI(sub=["identifier", "dor-id"])
 			identifier._label = "Getty Digital Object Repository (DOR) ID"
-			identifier.content = number
+			identifier.content = str(number)
 			
-			identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/dor-identifier", label="Getty Digital Object Repository (DOR) ID")
+			identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/dor/identifier", label="Getty Digital Object Repository (DOR) ID")
 			
-			identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/integer-identifier", label="Integer Identifier")
+			identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/integer-identifier", label="Integer Identifier")
 			
 			entity.identified_by = identifier
 		
@@ -235,9 +256,9 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			identifier._label = "Getty Digital Object Repository (DOR) UUID"
 			identifier.content = number
 			
-			identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/dor-identifier", label="Getty Digital Object Repository (DOR) ID")
+			identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/dor/identifier", label="Getty Digital Object Repository (DOR) ID")
 			
-			identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/universally-unique-identifier", label="Universally Unique Identifier (UUID)")
+			identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/universally-unique-identifier", label="Universally Unique Identifier (UUID)")
 			
 			entity.identified_by = identifier
 	
@@ -250,10 +271,10 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			identifier = Identifier()
 			identifier.id = self.generateEntityURI(sub=["identifier", "tms-id"])
 			identifier._label = "Gallery Systems' The Museum System (TMS) ID"
-			identifier.content = number
+			identifier.content = str(number)
 			
-			identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/tms-identifier", label="Gallery Systems' The Museum System (TMS) ID")
+			identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/identifier", label="Gallery Systems' The Museum System (TMS) ID")
 			
-			identifier.classified_as = Type(ident="http://vocab.getty.edu/internal/ontologies/linked-data/integer-identifier", label="Integer Identifier")
+			identifier.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/integer-identifier", label="Integer Identifier")
 			
 			entity.identified_by = identifier

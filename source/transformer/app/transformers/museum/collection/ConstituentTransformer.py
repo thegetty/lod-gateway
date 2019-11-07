@@ -1,5 +1,5 @@
 # Import our application utility functions
-from app.utilities import get, has, debug
+from app.utilities import get, has, debug, date
 
 # Import our Museum Collection BaseTransformer class
 from app.transformers.museum.collection.BaseTransformer import BaseTransformer
@@ -83,12 +83,12 @@ class ConstituentTransformer(BaseTransformer):
 				birth = Birth()
 				birth.id = self.generateEntityURI(sub=["birth", "activity"])
 				
-				date = get(data, "display.places.birth.date.iso")
-				if(date):
+				date_birth = get(data, "display.places.birth.date.iso")
+				if(date_birth):
 					timespan = TimeSpan()
 					timespan.id = self.generateEntityURI(sub=["birth", "timespan"])
-					timespan.begin_of_the_begin = date
-					timespan.end_of_the_begin   = date
+					timespan.begin_of_the_begin = date(format="%Y-%m-%dT%H:%M:%S", date=date_birth, format_for_input_date="%Y-%m-%d %H:%M:%S")
+					timespan.end_of_the_begin   = date(format="%Y-%m-%dT%H:%M:%S", date=date_birth, format_for_input_date="%Y-%m-%d %H:%M:%S")
 					birth.timespan = timespan
 				
 				value = get(data, "display.places.birth.display.value")
@@ -104,8 +104,6 @@ class ConstituentTransformer(BaseTransformer):
 					name.content = value
 					place.identified_by = name
 					
-					place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
-					
 					birth.took_place_at = place
 					
 					entity.born = birth
@@ -117,12 +115,12 @@ class ConstituentTransformer(BaseTransformer):
 				death = Death()
 				death.id = self.generateEntityURI(sub=["death", "activity"])
 				
-				date = get(data, "display.places.death.date.iso")
-				if(date):
+				date_death = get(data, "display.places.death.date.iso")
+				if(date_death):
 					timespan = TimeSpan()
 					timespan.id = self.generateEntityURI(sub=["death", "timespan"])
-					timespan.begin_of_the_begin = date
-					timespan.end_of_the_begin   = date
+					timespan.begin_of_the_begin = date(format="%Y-%m-%dT%H:%M:%S", date=date_death, format_for_input_date="%Y-%m-%d %H:%M:%S")
+					timespan.end_of_the_begin   = date(format="%Y-%m-%dT%H:%M:%S", date=date_death, format_for_input_date="%Y-%m-%d %H:%M:%S")
 					death.timespan = timespan
 				
 				value = get(data, "display.places.death.display.value")
@@ -137,8 +135,6 @@ class ConstituentTransformer(BaseTransformer):
 					name.id = self.generateEntityURI(sub=["death", "place", "name"])
 					name.content = value
 					place.identified_by = name
-					
-					place.classified_as = Type(ident="http://vocab.getty.edu/aat/300008347", label="Inhabited Place")
 					
 					death.took_place_at = place
 					
@@ -178,6 +174,6 @@ class ConstituentTransformer(BaseTransformer):
 			lobj = LinguisticObject()
 			lobj.id = self.generateEntityURI(sub=["biography"])
 			lobj.content = biography
-			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300080102/", label="Biography Statement")
+			lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300080102", label="Biography Statement")
 			
 			entity.referred_to_by = lobj

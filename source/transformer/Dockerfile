@@ -6,6 +6,9 @@ LABEL Authors="Daniel Sissman <dsissman@getty.edu>, Viktor Grabarchuk <vgrabarch
 # Set our working directory
 WORKDIR /
 
+# Install ca-certificates so that SSL/TLS can function from within the container
+RUN apt-get update && apt-get -y install ca-certificates
+
 # Later in preparation for deploying our container we need to integrate and test with envconsul...
 # COPY --from=getty/envconsul:latest /bin/envconsul /usr/local/bin/envconsul
 # COPY --from=getty/envconsul:latest /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
@@ -18,6 +21,7 @@ RUN pip install --upgrade pip
 RUN pip install -r /app/requirements.txt
 
 COPY ./source/transformer/app /app
+COPY ./source/transformer/tests /tests
 COPY ./source/app/di /app/di
 COPY ./source/app/database /app/database
 COPY ./source/app/graph /app/graph

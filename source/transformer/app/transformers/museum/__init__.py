@@ -19,15 +19,12 @@ class BaseTransformer(SharedBaseTransformer):
 	
 	# Create J. Paul Getty Museum Group Entity
 	def createGettyMuseumGroup(self):
-		JPGT = self.createGettyTrustGroup()
-		
 		JPGM = Group()
-		JPGM.id = "http://vocab.getty.edu/ulan/500115988"
-		JPGM._label = "J. Paul Getty Museum, Los Angeles, California"
-		JPGM.classified_as = Type(ident="http://vocab.getty.edu/aat/300312281", label="Museum")
 		
-		# Note that the Museum is a "member_of" (part of) the Trust
-		JPGM.member_of = JPGT
+		# The UUID c496a7b4-6087-4deb-a1ac-0f21bd3fd87b corresponds to the J. Paul Getty Museum TMS/DOR Constituent
+		JPGM.id = self.generateEntityURI(entity=Group, id="c496a7b4-6087-4deb-a1ac-0f21bd3fd87b")
+		
+		JPGM._label = "J. Paul Getty Museum, Los Angeles, California"
 		
 		# Return a copy of the Group so it can be modified without affecting the source
 		return copy.copy(JPGM)

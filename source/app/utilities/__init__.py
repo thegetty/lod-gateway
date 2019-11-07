@@ -241,6 +241,18 @@ def date(format=None, timestamp=None, **kwargs):
 	
 	# debug("date() format = %s" % (format))
 	
+	if("date" in kwargs and isinstance(kwargs["date"], str)):
+		if("format_for_input_date" in kwargs and isinstance(kwargs["format_for_input_date"], str)):
+			format_for_input_date = kwargs["format_for_input_date"]
+		else:
+			format_for_input_date = format
+		
+		try:
+			timestamp = datetime.strptime(kwargs["date"], format_for_input_date)
+		except Exception as e:
+			debug("Exception thrown (%s) while converting date string (%s) with format (%s) to timestamp!" % (str(e), kwargs["date"], format_for_input_date), error=True)
+			return None
+	
 	if(timestamp):
 		now = timestamp
 	else:
@@ -338,6 +350,20 @@ def hyphenatedStringFromCamelCasedString(string):
 	if(isinstance(string, str) and len(string) > 0):
 		# Split the string on uppercase characters
 		parts = re.findall("[A-Z][^A-Z]*", string)
+		if(parts and len(parts) > 0):
+			# Lowercase each part of the string
+			for index, part in enumerate(parts):
+				parts[index] = part.lower()
+			
+			# Hyphenate the parts
+			string = "-".join(parts)
+	
+	return string
+
+def hyphenatedStringFromSpacedString(string):
+	if(isinstance(string, str) and len(string) > 0):
+		# Split the string on spaces
+		parts = string.split(" ")
 		if(parts and len(parts) > 0):
 			# Lowercase each part of the string
 			for index, part in enumerate(parts):

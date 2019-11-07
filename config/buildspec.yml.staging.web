@@ -26,6 +26,6 @@ phases:
       - docker push $WEB_SERVICE_REPOSITORY_URI:latest
       - docker push $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definitions file...
-      - printf '[{"name":"staging-lod-gateway-web-service","imageUri":"%s"}]' $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - printf '[{"name":"Staging-LodGateway-Web-Service","imageUri":"%s"}]' $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
     files: imagedefinitions.json

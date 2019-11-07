@@ -25,6 +25,6 @@ phases:
       - docker push $TRANSFORMER_REPOSITORY_URI:latest
       - docker push $TRANSFORMER_REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definitions file...
-      - printf '[{"name":"staging-lod-gateway-transformer","imageUri":"%s"}]' $TRANSFORMER_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - printf '[{"name":"Staging-LodGateway-Transformer","imageUri":"%s"}]' $TRANSFORMER_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
     files: imagedefinitions.json

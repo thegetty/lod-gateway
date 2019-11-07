@@ -1,20 +1,20 @@
 # All services have now been configured to use vault integration, for how, see the Dockerfile's in the root of the project, 
 # each is labeled accordingly, i.e.  Dockerfile.web-service, Dockerfile.transformer-service, Dockerfile.db-service
 
-You will need to clone the museum-collections-data-to-linked-art repo and then this will all work. 
+You will need to clone the lod-gateway repo and then this will all work. 
 At this time (Sep 5, 2019) we're working on the staging-deploy branch. At some point in the future when the code will be stabilized and merged we're going to move to the master. 
 You can run something like the following:
 
 mkdir ~/checkouts
 cd ~/checkouts
-git clone git@github.com:thegetty/museum-collections-data-to-linked-art.git  #Note:  This is if you are using the ssh method w/ git.
+git clone git@github.com:thegetty/lod-gateway.git  #Note:  This is if you are using the ssh method w/ git.
 
 For the staging-deploy branch, when cloning the repo please use the option
 -b staging-deploy
 
 ##### You will need to first export the variables into  your local shell for VAULT.  These I am making available to the 
 developers by storing them inside the vault path that has been created for the project.  In this case they would be in 
-dev/mart for development, or dev/staging for the staging environment.  You need to run the following:
+dev/lod-gateway for development, or staging/lod-gateway for the staging environment.  You need to run the following:
 
 export VAULT_ADDR="replace with value up in vault" 
 export VAULT_TOKEN="replace with vault up in vault"
@@ -26,12 +26,12 @@ and outside of the project root so that it doesn't accidentally get checked into
 defeated the whole purpose.  You could do something like:
 
 cd ~
-touch mart_vault_env_vars
+touch lod-gateway_vault_env_vars
 
 # Lock down the permissions so they are read only by you.  You can use :wq! to force write even though the read permission 
 #for your user is set.
 
-chmod 400 mart_vault_env_vars 
+chmod 400 lod-gateway_vault_env_vars 
 
 # Add the following to the file with vi or your editor
 export VAULT_ADDR="replace with value up in vault"
@@ -40,7 +40,7 @@ export VAULT_ENV="replace with value up in vault"
 export VAULT_APP_NAME="replace with value up in vault"
 
 # Then source the file so it's read into your shell....
-source ~/mart_vault_env_vars
+source ~/lod-gateway_vault_env_vars
 
 The scripts should be run in the following order for things to orchestrate and work properly.
 docker-network-create.sh  #(note, you should only need to run this the very first time and if it doesn't exist).
@@ -49,7 +49,7 @@ run-db-service.sh
 run-web-service.sh
 run-transformer-service.sh
 
-Once you have done the above steps for VAULT and MART env var's to run locally, you can run something like the 
+Once you have done the above steps for VAULT and lod-gateway env var's to run locally, you can run something like the 
 following to verify that the shell is set to run things locally successfully:
 
 env | grep VAULT

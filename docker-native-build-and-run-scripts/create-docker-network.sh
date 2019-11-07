@@ -1,1 +1,1 @@
-docker network create mart
+docker network create lod-gateway

@@ -9,7 +9,7 @@ phases:
       - echo Logging in to Amazon ECR...
       - aws --version
       - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
-      - WEB_SERVICE_REPOSITORY_URI=936189880821.dkr.ecr.us-west-2.amazonaws.com/staging-mart-web-service
+      - WEB_SERVICE_REPOSITORY_URI=936189880821.dkr.ecr.us-west-2.amazonaws.com/staging-lod-gateway-web-service
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
   build:
@@ -26,6 +26,6 @@ phases:
       - docker push $WEB_SERVICE_REPOSITORY_URI:latest
       - docker push $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definitions file...
-      - printf '[{"name":"staging-mart-web-service","imageUri":"%s"}]' $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - printf '[{"name":"staging-lod-gateway-web-service","imageUri":"%s"}]' $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
     files: imagedefinitions.json

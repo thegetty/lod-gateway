@@ -17,8 +17,8 @@
 #export VAULT_ENV="replaceWithEnvironment"
 #export VAULT_APP_NAME="replaceWithAppName"
 
-# Build the museum-collections-data-to-linked-art
+# Build the lod-gateway services
 cd ../
-docker build -t mart-db-service -f Dockerfile.db-service .
-docker build -t mart-web-service -f Dockerfile.web-service .
-docker build -t mart-transformer-service -f Dockerfile.transformer-service .
+docker build -t lod-gateway-db-service -f Dockerfile.db-service .
+docker build -t lod-gateway-web-service -f Dockerfile.web-service .
+docker build -t lod-gateway-transformer-service -f Dockerfile.transformer-service .

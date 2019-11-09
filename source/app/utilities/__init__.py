@@ -27,7 +27,7 @@ def isCallable(klass=None, method=None):
 	return False
 
 def isURL(value):
-	if(isinstance(value, str) and len(value) > 0 and re.match(r"^http(s)://(.*)", value)):
+	if(isinstance(value, str) and len(value) > 0 and re.match(r"^http(s)?://(.*)", value)):
 		return True
 	
 	return False

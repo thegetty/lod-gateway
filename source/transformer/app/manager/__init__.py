@@ -68,27 +68,30 @@ class BaseManager(ABC):
 		# debug(options, format="JSON", label="options")
 		# debug(headers, format="JSON", label="headers")
 		
-		response = requests.get(URL, headers=headers, timeout=90)
-		if(isinstance(response, requests.models.Response)):
-			if(response.status_code == 200):
-				data = response.text
-				
-				if("process" in options and callable(options["process"])):
-					data = options["process"](data, response=response)
-				elif(callable(getattr(self, "processSourceData", None))):
-					data = self.processSourceData(data, response=response)
+		try:
+			response = requests.get(URL, headers=headers, timeout=90)
+			if(isinstance(response, requests.models.Response)):
+				if(response.status_code == 200):
+					data = response.text
+					
+					if("process" in options and callable(options["process"])):
+						data = options["process"](data, response=response)
+					elif(callable(getattr(self, "processSourceData", None))):
+						data = self.processSourceData(data, response=response)
+					else:
+						debug("No source data processor found!", error=True)
+					
+					return data
 				else:
-					debug("No source data processor found!", error=True)
-				
-				return data
+					debug("%s.getData(URL: %s) The response status code was invalid; expected HTTP/1.1 200 OK, instead received %s!" % (self.__class__.__name__, URL, response.status_code), error=True)
+					# debug(dir(response))
+					# debug(response.request.headers, label="response.request.headers")
+					# debug(response.headers, label="response.headers")
+					# debug(json.loads(response.text), format="JSON", label="\nresponse.text:\n")
 			else:
-				debug("%s.getData(URL: %s) The response status code was invalid; expected HTTP/1.1 200 OK, instead received %s!" % (self.__class__.__name__, URL, response.status_code), error=True)
-				# debug(dir(response))
-				# debug(response.request.headers, label="response.request.headers")
-				# debug(response.headers, label="response.headers")
-				# debug(json.loads(response.text), format="JSON", label="\nresponse.text:\n")
-		else:
-			debug("%s.getData(URL: %s) The response (%s) was invalid!" % (self.__class__.__name__, URL, type(response)), error=True)
+				debug("%s.getData(URL: %s) The response (%s) was invalid!" % (self.__class__.__name__, URL, type(response)), error=True)
+		except Exception as e:
+			debug("%s.getData(URL: %s) The request resulted in an exception being thrown: %s!" % (self.__class__.__name__, URL, str(e)), error=True)
 		
 		return None
 	
@@ -566,9 +569,9 @@ class ActivityStreamManager(BaseManager):
 					if(direction == "first" or direction == "forward"):
 						pageURL = get(data, "first.id")
 					elif(direction == "last" or direction == "backward"):
-						pageURL  = get(data, "last.id")
+						pageURL = get(data, "last.id")
 					elif(direction == "current"):
-						pageURL  = get(data, "current.id")
+						pageURL = get(data, "current.id")
 					
 					while(True):
 						if(pageURL):

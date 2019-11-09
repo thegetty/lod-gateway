@@ -1,8 +1,12 @@
 import os
 import json
+import uuid
 
 # Import our application utility functions
 from app.utilities import get, has, debug, sprintf, date, hyphenatedStringFromSpacedString
+
+# Import our dependency injector
+from app.di import DI
 
 # Import our Museum Collection BaseTransformer class
 from app.transformers.museum.collection.BaseTransformer import BaseTransformer
@@ -789,6 +793,11 @@ class ArtifactTransformer(BaseTransformer):
 	
 	# Map Object Artist/Maker Relationship(s)
 	def mapArtistMakerRelationships(self, entity, data):
+		manager = DI.get("manager")
+		
+		if(not manager):
+			raise RuntimeError(sprintf("%s.mapActivities() Failed to obtain Manager instance!" % (self.__class__.__name__)))
+		
 		makers = get(data, "display.makers")
 		if(makers and len(makers) > 0):
 			# Obtain the Object's Date
@@ -796,7 +805,7 @@ class ArtifactTransformer(BaseTransformer):
 			# debug(date, format="JSON")
 			
 			# Obtain the Object's Place Created (if available)
-			created = get(dates, "display.places.created")
+			created = get(data, "display.places.created")
 			# debug(created, format="JSON")
 			
 			for maker in makers:
@@ -853,19 +862,28 @@ class ArtifactTransformer(BaseTransformer):
 					# Object Place Created
 					# Add via the "took_place_at" property of the Production activity
 					if(created):
-						place = Place()
-						place.id = self.generateEntityURI(entity=Place, UUID=get(created, "uuid"))
-						place._label = get(created, "display.value")
-						
-						# Map the place name
-						name = Name()
-						name.id = self.generateEntityURI(entity=Place, UUID=get(created, "uuid"), sub=["name"])
-						name.content = get(created, "display.value")
-						
-						# Map the place name
-						place.identified_by = name
-						
-						production.took_place_at = place
+						placeName = get(created, "display.value")
+						if(placeName):
+							placeUUID = str(uuid.uuid5(uuid.UUID(os.getenv("LOD_UUID_NAMESPACE_PLACES")), placeName))
+							
+							place = Place()
+							
+							place._namespace = self.getNamespace()
+							place._uuid      = placeUUID
+							place._label     = placeName
+							
+							place.id = self.generateEntityURI(entity=Place, UUID=placeUUID)
+							
+							# Map the place name
+							name = Name()
+							name.id = self.generateEntityURI(entity=Place, UUID=placeUUID, sub=["name"])
+							name.content = placeName
+							
+							# Map the place name
+							place.identified_by = name
+							
+							if(manager.storeEntity(place)):
+								production.took_place_at = place
 					
 					entity.produced_by = production
 					

@@ -198,35 +198,38 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		"""Obtain the data for the specified DOR entity resource"""
 		
 		URL = self.generateURL()
-		if(isinstance(URL, str) and len(URL) > 0):
+		if(isURL(URL)):
 			debug("%s.getData() Attempt to obtain: %s" % (self.__class__.__name__, URL), level=1)
 			
 			headers = self.assembleHeaders()
 			if(isinstance(headers, dict)):
-				response = requests.get(URL, headers=headers, timeout=90)
-				if(isinstance(response, requests.models.Response)):
-					if(response.status_code == 200):
-						if(isinstance(response.text, str) and len(response.text) > 0):
-							if((response.text.startswith("{") and response.text.endswith("}")) or (response.text.startswith("[") and response.text.endswith("]")) or response.text == "null"):
-								data = json.loads(response.text)
-								if(isinstance(data, dict)):
-									self.id   = get(data, "id")
-									self.UUID = get(data, "uuid")
-									self.data = data
-									
-									return data
+				try:
+					response = requests.get(URL, headers=headers, timeout=90)
+					if(isinstance(response, requests.models.Response)):
+						if(response.status_code == 200):
+							if(isinstance(response.text, str) and len(response.text) > 0):
+								if((response.text.startswith("{") and response.text.endswith("}")) or (response.text.startswith("[") and response.text.endswith("]")) or response.text == "null"):
+									data = json.loads(response.text)
+									if(isinstance(data, dict)):
+										self.id   = get(data, "id")
+										self.UUID = get(data, "uuid")
+										self.data = data
+										
+										return data
+									else:
+										debug("%s.getData(%s) Invalid JSON Data!" % (self.__class__.__name__, URL), error=True)
 								else:
-									debug("%s.getData() Invalid JSON Data!" % (self.__class__.__name__), error=True)
+									debug("%s.getData(%s) Invalid JSON String!" % (self.__class__.__name__, URL), error=True)
 							else:
-								debug("%s.getData() Invalid JSON String!" % (self.__class__.__name__), error=True)
+								debug("%s.getData(%s) Invalid Response Text!" % (self.__class__.__name__, URL), error=True)
 						else:
-							debug("%s.getData() Invalid Response Text!" % (self.__class__.__name__), error=True)
+							debug("%s.getData(%s) Invalid HTTP Response Status Code! Expected HTTP/1.1 200 OK; Received %d!" % (self.__class__.__name__, URL, response.status_code), error=True)
 					else:
-						debug("%s.getData() Invalid HTTP Response Status Code! Expected HTTP/1.1 200 OK; Received %d!" % (self.__class__.__name__, response.status_code), error=True)
-				else:
-					debug("%s.getData() Invalid HTTP Response!" % (self.__class__.__name__), error=True)
+						debug("%s.getData(%s) Invalid HTTP Response!" % (self.__class__.__name__, URL), error=True)
+				except Exception as e:
+					debug("%s.getData(%s) HTTP Request Raised Exception: %s!" % (self.__class__.__name__, URL, str(e)), error=True)
 			else:
-				debug("%s.getData() Missing HTTP Request Headers!" % (self.__class__.__name__), error=True)
+				debug("%s.getData(%s) Missing HTTP Request Headers!" % (self.__class__.__name__, URL), error=True)
 		else:
 			debug("%s.getData() Invalid URL!" % (self.__class__.__name__), error=True)
 		

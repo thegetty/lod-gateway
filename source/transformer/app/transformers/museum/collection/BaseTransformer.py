@@ -3,6 +3,9 @@ import sys
 import requests
 import json
 
+from random import randint
+from time import sleep
+
 # Import support for abstract classes and methods and final methods
 from abcplus import ABC, abstractmethod, finalmethod
 
@@ -203,39 +206,53 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		
 		URL = self.generateURL()
 		if(isURL(URL)):
-			debug("%s.getData() Attempt to obtain: %s" % (self.__class__.__name__, URL), level=1)
+			debug("%s.getData(%s) Attempt to Obtain URL..." % (self.__class__.__name__, URL), level=1)
 			
 			headers = self.assembleHeaders()
 			if(isinstance(headers, dict)):
-				try:
-					response = requests.get(URL, headers=headers, timeout=90)
-					if(isinstance(response, requests.models.Response)):
-						if(response.status_code == 200):
-							if(isinstance(response.text, str) and len(response.text) > 0):
-								if((response.text.startswith("{") and response.text.endswith("}")) or (response.text.startswith("[") and response.text.endswith("]")) or response.text == "null"):
-									data = json.loads(response.text)
-									if(isinstance(data, dict)):
-										self.id   = get(data, "id")
-										self.UUID = get(data, "uuid")
-										self.data = data
-										
-										return data
+				retry   = 0;
+				retries = os.getenv("DOR_API_MAX_RETRIES", 5);
+				
+				while(True):
+					try:
+						response = requests.get(URL, headers=headers, timeout=90)
+						if(isinstance(response, requests.models.Response)):
+							if(response.status_code == 200):
+								if(isinstance(response.text, str) and len(response.text) > 0):
+									if((response.text.startswith("{") and response.text.endswith("}")) or (response.text.startswith("[") and response.text.endswith("]")) or response.text == "null"):
+										data = json.loads(response.text)
+										if(isinstance(data, dict)):
+											self.id   = get(data, "id")
+											self.UUID = get(data, "uuid")
+											self.data = data
+											
+											return data
+										else:
+											debug("%s.getData(%s) Invalid JSON Data!" % (self.__class__.__name__, URL), error=True)
 									else:
-										debug("%s.getData(%s) Invalid JSON Data!" % (self.__class__.__name__, URL), error=True)
+										debug("%s.getData(%s) Invalid JSON String!" % (self.__class__.__name__, URL), error=True)
 								else:
-									debug("%s.getData(%s) Invalid JSON String!" % (self.__class__.__name__, URL), error=True)
+									debug("%s.getData(%s) Invalid Response Text!" % (self.__class__.__name__, URL), error=True)
 							else:
-								debug("%s.getData(%s) Invalid Response Text!" % (self.__class__.__name__, URL), error=True)
+								debug("%s.getData(%s) Invalid HTTP Response Status Code! Expected HTTP/1.1 200 OK; Received %d!" % (self.__class__.__name__, URL, response.status_code), error=True)
 						else:
-							debug("%s.getData(%s) Invalid HTTP Response Status Code! Expected HTTP/1.1 200 OK; Received %d!" % (self.__class__.__name__, URL, response.status_code), error=True)
-					else:
-						debug("%s.getData(%s) Invalid HTTP Response!" % (self.__class__.__name__, URL), error=True)
-				except Exception as e:
-					debug("%s.getData(%s) HTTP Request Raised Exception: %s!" % (self.__class__.__name__, URL, str(e)), error=True)
+							debug("%s.getData(%s) Invalid HTTP Response!" % (self.__class__.__name__, URL), error=True)
+						
+						if(retry < retries):
+							debug("%s.getData(%s) HTTP Request Failed! Retry Attempt %d/%d..." % (self.__class__.__name__, URL, (retry + 1), retries), error=True)
+							
+							sleep(randint(3, 10)) # Sleep for 3 - 10 seconds before retrying
+							retry += 1
+						else: # The maximum number of retries has been exceeded, so break here...
+							debug("%s.getData(%s) Maximum Number of Retries (%d/%d) Reached for HTTP Request! Breaking Now!" % (self.__class__.__name__, URL, (retry + 1), retries), error=True)
+							break
+					except Exception as e:
+						debug("%s.getData(%s) HTTP Request Raised Exception: %s!" % (self.__class__.__name__, URL, str(e)), error=True)
+						break
 			else:
 				debug("%s.getData(%s) Missing HTTP Request Headers!" % (self.__class__.__name__, URL), error=True)
 		else:
-			debug("%s.getData() Invalid URL!" % (self.__class__.__name__), error=True)
+			debug("%s.getData(%s) Invalid URL!" % (self.__class__.__name__, URL), error=True)
 		
 		return None
 	

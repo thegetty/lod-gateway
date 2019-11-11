@@ -10,8 +10,8 @@ import re
 from random import randint
 from time import sleep
 
-# Import support for abstract classes and methods and final methods
-from abcplus import ABC, abstractmethod, finalmethod
+# Import support for abstract classes and methods
+from abc import ABC, abstractmethod
 
 # Import our application dependency injector (DI)
 from app.di import DI
@@ -41,7 +41,7 @@ class BaseManager(ABC):
 	def process(self, **kwargs):
 		pass
 	
-	@finalmethod
+	# final method; please do not override
 	def getSourceData(self, URL=None, options=None):
 		"""Provide support for calling a URL and obtaining its (expected) JSON response body"""
 		
@@ -101,7 +101,7 @@ class BaseManager(ABC):
 	def processSourceData(self, data, response=None):
 		return data
 	
-	@finalmethod
+	# final method; please do not override
 	def processItem(self, item, **kwargs):
 		debug("%s.processItem(item: %s) called..." % (self.__class__.__name__, item), level=1)
 		
@@ -181,7 +181,7 @@ class BaseManager(ABC):
 		
 		return response
 	
-	@finalmethod
+	# final method; please do not override
 	def storeEntity(self, entity, data=None, **kwargs):
 		debug("%s.storeEntity(entity: %s, kwargs: %s) called..." % (self.__class__.__name__, entity, kwargs), level=1)
 		
@@ -258,7 +258,7 @@ class BaseManager(ABC):
 		
 		return False
 	
-	@finalmethod
+	# final method; please do not override
 	def getEntityNamespace(self, entity, **kwargs):
 		namespace = None
 		
@@ -273,7 +273,7 @@ class BaseManager(ABC):
 		
 		return namespace
 	
-	@finalmethod
+	# final method; please do not override
 	def getEntityName(self, entity, **kwargs):
 		debug("%s.getEntityName(%s, %s) called..." % (self.__class__.__name__, entity, kwargs))
 		
@@ -295,7 +295,7 @@ class BaseManager(ABC):
 		
 		return name
 	
-	@finalmethod
+	# final method; please do not override
 	def getEntityUUID(self, entity, **kwargs):
 		UUID = None
 		
@@ -310,7 +310,7 @@ class BaseManager(ABC):
 		
 		return UUID
 	
-	@finalmethod
+	# final method; please do not override
 	def getEntityURI(self, entity, **kwargs):
 		entityURI = None
 		

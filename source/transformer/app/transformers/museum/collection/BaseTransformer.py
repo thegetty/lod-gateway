@@ -6,8 +6,8 @@ import json
 from random import randint
 from time import sleep
 
-# Import support for abstract classes and methods and final methods
-from abcplus import ABC, abstractmethod, finalmethod
+# Import support for abstract classes and methods
+from abc import ABC, abstractmethod
 
 # Import our application utility functions
 from app.utilities import get, has, debug, sprintf, commandOptions, isNumeric, isURL
@@ -87,7 +87,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		"""Provide a method for determining the correct target resource type name"""
 		pass
 	
-	@finalmethod
+	# final method; please do not override
 	def assembleHeaders(self):
 		"""Assemble our HTTP Request Headers for the DOR API call"""
 		
@@ -146,7 +146,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		
 		return headers
 	
-	@finalmethod
+	# final method; please do not override
 	def generateURI(self):
 		"""Generate the URI for a DOR API resource"""
 		
@@ -159,7 +159,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		
 		return None
 	
-	@finalmethod
+	# final method; please do not override
 	def generateURL(self):
 		"""Generate the absolute URL for a DOR API resource"""
 		
@@ -183,7 +183,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		
 		return None
 	
-	@finalmethod
+	# final method; please do not override
 	def getUUID(self):
 		# debug("%s.getUUID() called..." % (self.__class__.__name__))
 		
@@ -200,7 +200,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		
 		return None
 	
-	@finalmethod
+	# final method; please do not override
 	def getData(self):
 		"""Obtain the data for the specified DOR entity resource"""
 		
@@ -256,7 +256,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		
 		return None
 	
-	@finalmethod
+	# final method; please do not override
 	def mapDigitalObjectRepositoryRecordIDs(self, entity, data):
 		"""Map the record's DOR ID and UUID"""
 		
@@ -286,7 +286,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 			
 			entity.identified_by = identifier
 	
-	@finalmethod
+	# final method; please do not override
 	def mapTheMuseumSystemRecordIDs(self, entity, data):
 		"""Map the record's TMS ID"""
 		

@@ -6,7 +6,8 @@ import copy
 
 from datetime import datetime
 
-from abcplus import ABC, abstractmethod, finalmethod
+# Import support for abstract classes and methods
+from abc import ABC, abstractmethod
 
 from app.di import DI
 
@@ -22,7 +23,7 @@ class Model(ABC):
 	_related       = None
 	_snapshot      = None
 	
-	@finalmethod
+	# final method; please do not override
 	def __new__(cls, *args, **kwargs):
 		debug("%s.__new__() called..." % (cls.__name__), level=1)
 		
@@ -36,7 +37,7 @@ class Model(ABC):
 		
 		return super(Model, cls).__new__(cls)
 	
-	@finalmethod
+	# final method; please do not override
 	def __init__(self, attributes=None):
 		debug("%s.__init__(attributes: %s) called..." % (self.__class__.__name__, attributes), level=1)
 		
@@ -66,7 +67,7 @@ class Model(ABC):
 		
 		return sprintf("<%s(%s)>" % (self.__class__.__name__, id))
 	
-	@finalmethod
+	# final method; please do not override
 	def __getattr__(self, name):
 		debug("%s.__getattr__(name: %s) called..." % (self.__class__.__name__, name), level=2)
 		
@@ -89,7 +90,7 @@ class Model(ABC):
 			
 			return super().__getattr__(name)
 	
-	@finalmethod
+	# final method; please do not override
 	def __setattr__(self, name, value):
 		debug("%s.__setattr__(name: %s, value: %s) called..." % (self.__class__.__name__, name, value), level=2)
 		
@@ -121,7 +122,7 @@ class Model(ABC):
 	def getIDField(cls):
 		return "id"
 	
-	@finalmethod
+	# final method; please do not override
 	def getID(self):
 		field = self.getIDField()
 		if(isinstance(field, str) and len(field) > 0):
@@ -129,8 +130,8 @@ class Model(ABC):
 		
 		return None
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def getModelClass(cls):
 		# debug("%s.getModelClass() called..." % (cls.__name__), level=1)
 		
@@ -155,8 +156,8 @@ class Model(ABC):
 	def initialize(cls):
 		pass
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def __joinMethodName(cls, alias=None, model=None, to=None):
 		if(isinstance(alias, str) and len(alias) > 0):
 			_name_ = alias
@@ -175,8 +176,8 @@ class Model(ABC):
 		
 		return None
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def __joinFieldName(cls, field=None, model=None, to=None, alias=None):
 		if(isinstance(alias, str) and len(alias) > 0):
 			return alias
@@ -185,8 +186,8 @@ class Model(ABC):
 		
 		return None
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def hasOne(cls, field=None, model=None, to=None, alias=None, **kwargs):
 		debug("%s.hasOne(field: %s, model: %s, to: %s, alias: %s) called..." % (cls.__name__, field, model, to, alias), level=1)
 		
@@ -205,8 +206,8 @@ class Model(ABC):
 					"kwargs": kwargs,
 				}
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def hasMany(cls, field=None, model=None, to=None, alias=None, **kwargs):
 		debug("%s.hasMany(field: %s, model: %s, to: %s, alias: %s) called..." % (cls.__name__, field, model, to, alias), level=1)
 		
@@ -225,8 +226,8 @@ class Model(ABC):
 					"kwargs": kwargs,
 				}
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def hasManyToMany(cls, field=None, model=None, to=None, alias=None, **kwargs):
 		debug("%s.hasManyToMany(field: %s, model: %s, to: %s, alias: %s) called..." % (cls.__name__, field, model, to, alias), level=1)
 		
@@ -245,8 +246,8 @@ class Model(ABC):
 					"kwargs": kwargs,
 				}
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def belongsTo(cls, field=None, model=None, to=None, alias=None, **kwargs):
 		debug("%s.belongsTo(field: %s, model: %s, to: %s, alias: %s) called..." % (cls.__name__, field, model, to, alias), level=1)
 		
@@ -374,8 +375,8 @@ class Model(ABC):
 		else:
 			return cls()
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def __attributesFromResult(cls, result):
 		if(result):
 			dictionary = {}
@@ -396,7 +397,7 @@ class Model(ABC):
 		
 		return None
 	
-	@finalmethod
+	# final method; please do not override
 	def isNew(self):
 		"""Determine if the instance is new or not"""
 		
@@ -408,7 +409,7 @@ class Model(ABC):
 		
 		return True
 	
-	@finalmethod
+	# final method; please do not override
 	def save(self, **kwargs):
 		debug("%s.save(%s) called..." % (self.__class__.__name__, kwargs), level=1)
 		
@@ -424,7 +425,7 @@ class Model(ABC):
 		
 		return result
 	
-	@finalmethod
+	# final method; please do not override
 	def create(self, **kwargs):
 		debug("%s.create(%s) called..." % (self.__class__.__name__, kwargs), level=1)
 		
@@ -447,7 +448,7 @@ class Model(ABC):
 		
 		return result
 	
-	@finalmethod
+	# final method; please do not override
 	def update(self, **kwargs):
 		debug("%s.update(%s) called..." % (self.__class__.__name__, kwargs), level=1)
 		
@@ -472,7 +473,7 @@ class Model(ABC):
 		
 		return result
 	
-	@finalmethod
+	# final method; please do not override
 	def delete(self, **kwargs):
 		debug("%s.delete(%s) called..." % (self.__class__.__name__, kwargs), level=1)
 		
@@ -489,8 +490,8 @@ class Model(ABC):
 		
 		return result
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def autoPopulatedFields(cls, fields):
 		debug("%s.autoPopulatedFields() called..." % (cls.__name__), level=1)
 		
@@ -532,7 +533,7 @@ class Model(ABC):
 		
 		return False
 	
-	@finalmethod
+	# final method; please do not override
 	def __fireEvent(self, event=None, stage=None, **kwargs):
 		debug("%s.__fireEvent(event: %s, stage: %s, kwargs: %s) called..." % (self.__class__.__name__, event, stage, kwargs), level=1)
 		
@@ -570,7 +571,7 @@ class Model(ABC):
 		
 		return result
 	
-	@finalmethod
+	# final method; please do not override
 	def __getRelated(self, relationship):
 		debug("%s.__getRelated(relationship: %s) called..." % (self.__class__.__name__, relationship), level=1)
 		
@@ -638,7 +639,7 @@ class Model(ABC):
 		
 		return result
 	
-	@finalmethod
+	# final method; please do not override
 	def __setRelated(self, relationship, value):
 		debug("%s.__setRelated(relationship: %s, value: %s) called..." % (self.__class__.__name__, relationship, value), level=1)
 		
@@ -673,7 +674,7 @@ class Model(ABC):
 			else:
 				debug("%s.__setRelated(relationship: %s, value: %s) Related model (%s) is not an instance of %s!" % (self.__class__.__name__, relationship, value, model, Model), error=True)
 	
-	@finalmethod
+	# final method; please do not override
 	def __syncRelated(self, event=None, stage=None):
 		debug("%s.__syncRelated(event: %s, stage: %s) called..." % (self.__class__.__name__, event, stage), level=1)
 		
@@ -784,7 +785,7 @@ class Model(ABC):
 		debug("%s.afterDelete() called..." % (self.__class__.__name__), level=1)
 		pass
 	
-	@finalmethod
+	# final method; please do not override
 	def getAttributes(self, includePrivate=False):
 		debug("%s.getAttributes(includePrivate: %s) called..." % (self.__class__.__name__, includePrivate), level=1)
 		
@@ -797,7 +798,7 @@ class Model(ABC):
 		
 		return attributes
 	
-	@finalmethod
+	# final method; please do not override
 	def getAttributeValues(self):
 		debug("%s.getAttributeValues() called..." % (self.__class__.__name__), level=1)
 		
@@ -811,8 +812,8 @@ class Model(ABC):
 		
 		return None
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def getClassAttributes(cls):
 		debug("%s.getClassAttributes() called..." % (cls.__name__), level=1)
 		
@@ -833,8 +834,8 @@ class Model(ABC):
 		
 		return None
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def getClassAttributeValues(cls):
 		debug("%s.getClassAttributeValues() called..." % (cls.__name__), level=1)
 		
@@ -855,8 +856,8 @@ class Model(ABC):
 		
 		return None
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def prepareQuery(cls, event, id=None, params=None, self=None, **kwargs):
 		debug("%s.prepareQuery(event: %s, id: %s, params: %s, kwargs: %s) called..." % (cls.__name__, event, id, params, kwargs), level=1)
 		
@@ -1108,8 +1109,8 @@ class Model(ABC):
 		
 		return None
 	
+	# final method; please do not override
 	@classmethod
-	@finalmethod
 	def performQuery(cls, query):
 		debug("%s.performQuery(query: %s) called..." % (cls.__name__, query), level=1)
 		

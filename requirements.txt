@@ -1,4 +1,3 @@
-git+https://github.com/bluebinary/abcplus@master#egg=abcplus
 git+https://github.com/thegetty/crom.git@2fb4971f05aa2faa66c786ef185e2c5762151b92#egg=cromulent
 flask==1.1.1
 pytest==5.0.1

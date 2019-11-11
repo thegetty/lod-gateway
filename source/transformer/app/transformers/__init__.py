@@ -5,8 +5,8 @@ import os
 import requests
 import sys
 
-# Import abstract class/method extensions from the extended abcplus (abc) module
-from abcplus import ABC, abstractmethod, finalmethod
+# Import support for abstract classes and methods
+from abc import ABC, abstractmethod
 
 # Import our utility functions
 from app.utilities import *
@@ -208,7 +208,7 @@ class BaseTransformer(ABC):
 		"""Provide a method for determining the correct target entity type"""
 		pass
 	
-	@finalmethod
+	# final method; please do not override
 	def entityTypeName(self, **kwargs):
 		"""Provide a method for determining the correct target entity type name"""
 		

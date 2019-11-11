@@ -7,6 +7,9 @@ import copy
 import sys
 import re
 
+from random import randint
+from time import sleep
+
 # Import support for abstract classes and methods and final methods
 from abcplus import ABC, abstractmethod, finalmethod
 
@@ -573,12 +576,16 @@ class ActivityStreamManager(BaseManager):
 					elif(direction == "current"):
 						pageURL = get(data, "current.id")
 					
+					retry   = 0
+					retries = get(options, "retries", os.getenv("ACTIVITY_STREAM_MAX_RETRIES", 3))
+					
 					while(True):
 						if(pageURL):
 							debug("Ready to call: %s" % (pageURL), level=2)
 							
 							data = self.getSourceData(pageURL, options=options)
 							if(data):
+								retry = 0
 								items = get(data, "orderedItems")
 								if(items and len(items) > 0):
 									for item in items:
@@ -599,7 +606,13 @@ class ActivityStreamManager(BaseManager):
 									pageURL = None
 							else: # no data
 								debug("BaseManager.getActivityStreamItems() No data for %s!" % (pageURL), error=True)
-								break
+								
+								if(retry < retries):
+									sleep(randint(3, 10)) # Sleep for 3 - 10 seconds before retrying
+									retry += 1
+								else: # The maximum number of retries has been exceeded, so break here...
+									debug("BaseManager.getActivityStreamItems() Maximum Number of Retries (%d/%d) Reached for Activity Stream Page URL: %s! Breaking Now!" % ((retry + 1), retries, pageURL), error=True)
+									break
 						else: # no valid page URL
 							debug("BaseManager.getActivityStreamItems() No valid page URL!", error=True)
 							break

@@ -54,6 +54,10 @@ class BaseTransformer(SharedMuseumBaseTransformer):
 		if(isNumeric(interval)):
 			options["interval"] = int(interval)
 		
+		retries = os.getenv("DOR_API_MAX_RETRIES", 5)
+		if(isNumeric(retries)):
+			options["retries"] = int(retries)
+		
 		# Define the HTTP request headers needed to access our Activity Stream
 		headers = self.assembleHeaders()
 		if(headers):

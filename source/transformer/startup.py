@@ -7,29 +7,33 @@ import datetime
 from app.utilities import *
 
 # Configure the Transformer service
-options = commandOptions({
-	"debug":     False,
-	"mode":      None,
-	"manager":   None,
-	"event":     None,
-	"namespace": None,
-	"entity":    None,
-	"id":        None,
-	"output":    None,
-})
+options = commandOptions(
+    {
+        "debug": False,
+        "mode": None,
+        "manager": None,
+        "event": None,
+        "namespace": None,
+        "entity": None,
+        "id": None,
+        "output": None,
+    }
+)
 
 # debug(options, format="JSON")
 # exit()
 
 # Configure the debug level
-if(isinstance(options["debug"], int)):
-	debug(level=options["debug"]) # display debug messages with a level of or below the defined level
-elif(options["debug"] == True):
-	debug(level=1) # display informational messages and errors (level <= 1)
-elif(options["debug"] == False):
-	debug(level=-1) # only display errors (level <= -1)
+if isinstance(options["debug"], int):
+    debug(
+        level=options["debug"]
+    )  # display debug messages with a level of or below the defined level
+elif options["debug"] == True:
+    debug(level=1)  # display informational messages and errors (level <= 1)
+elif options["debug"] == False:
+    debug(level=-1)  # only display errors (level <= -1)
 else:
-	debug(level=os.getenv("DEBUG_LEVEL", -1))
+    debug(level=os.getenv("DEBUG_LEVEL", -1))
 
 # Import the dependency injector
 from app.di import DI
@@ -42,17 +46,17 @@ from app.database import Database
 
 # Instantiate and register the database handler
 database = Database(shared=True)
-if(database):
-	di.set("database", database)
+if database:
+    di.set("database", database)
 else:
-	raise RuntimeError("The database handler could not be initialized!")
+    raise RuntimeError("The database handler could not be initialized!")
 
 # Retrieve the shared database connection, without autocommit (the default)
 connection = database.connect(autocommit=False)
-if(connection):
-	di.set("connection", connection)
+if connection:
+    di.set("connection", connection)
 else:
-	raise RuntimeError("The database connection could not be established!")
+    raise RuntimeError("The database connection could not be established!")
 
 # Import the transformers
 from app.transformers import *
@@ -67,42 +71,42 @@ from app.manager import *
 # di.set("graph", GraphStore())
 
 # Instantiate the process manager
-if(options["manager"] in ["records"]):
-	manager = RecordsManager()
+if options["manager"] in ["records"]:
+    manager = RecordsManager()
 else:
-	manager = ActivityStreamManager()
+    manager = ActivityStreamManager()
 
-if(isinstance(manager, BaseManager)):
-	debug("The %s has been instantiated..." % (manager), level=1)
-	
-	DI.set("manager", manager)
-	
-	if(isinstance(manager, RecordsManager)): # manual/automatic records manager
-		manager.process(**options)
-	else: # automatic (activity streams polling) transform mode
-		manager.process(**options)
-		
-		# count = 0
-		# 
-		# delay = os.getenv("TRANSFORMER_STREAMS_POLL_INTERVAL", 60) # seconds
-		# 
-		# if(isInteger(delay)):
-		# 	delay = int(delay)
-		# else:
-		# 	delay = 60
-		# 
-		# def runManagerProcess():
-		# 	global count, manager, options
-		# 	
-		# 	now = datetime.datetime.now()
-		# 	count += 1
-		# 	
-		# 	debug("[%04d-%02d-%02d %02d:%02d:%02d] processActivityStreams() called (%d)" % (now.year, now.month, now.day, now.hour, now.minute, now.second, count))
-		# 	
-		# 	manager.process(**options)
-		# 
-		# repeater(delay, runManagerProcess)
+if isinstance(manager, BaseManager):
+    debug("The %s has been instantiated..." % (manager), level=1)
+
+    DI.set("manager", manager)
+
+    if isinstance(manager, RecordsManager):  # manual/automatic records manager
+        manager.process(**options)
+    else:  # automatic (activity streams polling) transform mode
+        manager.process(**options)
+
+        # count = 0
+        #
+        # delay = os.getenv("TRANSFORMER_STREAMS_POLL_INTERVAL", 60) # seconds
+        #
+        # if(isInteger(delay)):
+        # 	delay = int(delay)
+        # else:
+        # 	delay = 60
+        #
+        # def runManagerProcess():
+        # 	global count, manager, options
+        #
+        # 	now = datetime.datetime.now()
+        # 	count += 1
+        #
+        # 	debug("[%04d-%02d-%02d %02d:%02d:%02d] processActivityStreams() called (%d)" % (now.year, now.month, now.day, now.hour, now.minute, now.second, count))
+        #
+        # 	manager.process(**options)
+        #
+        # repeater(delay, runManagerProcess)
 else:
-	raise RuntimeError("Failed to initialise the process manager!")
+    raise RuntimeError("Failed to initialise the process manager!")
 
 exit()

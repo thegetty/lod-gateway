@@ -5,14 +5,8 @@ services:
         build:
             context: ./
             dockerfile: ./services/postgres/Dockerfile
-        environment:
-            POSTGRES_HOST:     ${POSTGRES_HOST}
-            POSTGRES_USER:     ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB:       ${POSTGRES_DB}
-            POSTGRES_PORT:     ${POSTGRES_PORT}
-            PGDATA:            ${POSTGRES_PGDATA}
-            TZ:                ${TIMEZONE}
+        env_file:
+            .env
         ports:
             - "${POSTGRES_PORT}:5432"
         stop_grace_period: 10s
@@ -24,26 +18,8 @@ services:
         build:
             context: ./
             dockerfile: ./source/transformer/Dockerfile
-        environment:
-            LD_LIBRARY_PATH:   /usr/local/lib:/usr/local/lib64
-            SHELL:             ${SHELL}
-            TZ:                ${TIMEZONE}
-            POSTGRES_HOST:     ${POSTGRES_HOST}
-            POSTGRES_PORT:     ${POSTGRES_PORT}
-            POSTGRES_USER:     ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB:       ${POSTGRES_DB}
-            NEPTUNE_HOST:      ${NEPTUNE_HOST}
-            NEPTUNE_PORT:      ${NEPTUNE_PORT}
-            NEPTUNE_ENDPOINT:  ${NEPTUNE_ENDPOINT}
-            DOR_BASE_URL:      ${DOR_BASE_URL}
-            DOR_FIND_URL:      ${DOR_FIND_URL}
-            DOR_API_USER:      ${DOR_API_USER}
-            DOR_API_KEY:       ${DOR_API_KEY}
-            DOR_API_VERSION:   ${DOR_API_VERSION}
-            DOR_API_CACHING:   ${DOR_API_CACHING}
-            LOD_BASE_URL:      ${LOD_BASE_URL}
-            LOD_SLASH_URL:     ${LOD_SLASH_URL}
+        env_file:
+            .env
         volumes:
             # use a volume mount to dynamically bind the application's source code
             - ./source/transformer/startup.py:/startup.py
@@ -75,25 +51,8 @@ services:
         build:
             context: ./
             dockerfile: ./source/web-service/Dockerfile
-        environment:
-            LD_LIBRARY_PATH:   /usr/local/lib:/usr/local/lib64
-            SHELL:             ${SHELL}
-            TZ:                ${TIMEZONE}
-            POSTGRES_HOST:     ${POSTGRES_HOST}
-            POSTGRES_PORT:     ${POSTGRES_PORT}
-            POSTGRES_USER:     ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB:       ${POSTGRES_DB}
-            NEPTUNE_HOST:      ${NEPTUNE_HOST}
-            NEPTUNE_PORT:      ${NEPTUNE_PORT}
-            LOD_BASE_URL:      ${LOD_BASE_URL}
-            FLASK_ENV:         ${FLASK_ENV}
-            FLASK_DEBUG:       ${FLASK_DEBUG}
-            FLASK_APP:         ${FLASK_APP}
-            WEB_SERVICE_PORT:  ${WEB_SERVICE_PORT}
-            WEB_DEBUG_HEADER:  ${WEB_DEBUG_HEADER}
-            UWSGI_PROCESSES:   ${UWSGI_PROCESSES}
-            UWSGI_THREADS:     ${UWSGI_THREADS}
+        env_file:
+            .env
         volumes:
             # use a volume mount to dynamically bind the application's source code
             - ./source/web-service/startup.py:/startup.py

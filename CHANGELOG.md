@@ -8,6 +8,10 @@ Any notable changes to the LOD Gateway that affect either functionality or outpu
 
 * Changed the mapping of an Object's "Place Created" property. This was formerly provided as a reference to an incomplete `Place` entity via the the `produced_by` property's `took_place_at` clause. However, as we do not currently have reconciled Place Created data, the verbatim Place Created display string is now more correctly provided via the `content` value of a `LinguisticObject` within the `produced_by` property's `referred_to_by` clause. This new Place Created `LinguisticObject` is classified with the AAT "Place Names" (300404655) and "Brief Text" (300418049) terms, as well as a custom "Place Created" classification. In the future when we have access to reconciled Place Created metadata that would allow linking to [The Getty Thesaurus of Geographic Names ® (TGN)](http://www.getty.edu/research/tools/vocabularies/tgn/about.html), we will do so via the `took_place_at` property, in addition to continuing to provide access to the Place Created display string via the newly added `LinguisticObject` [[DEV-2979](https://jira.getty.edu/browse/DEV-2979)].
 
+### Added
+
++ Added a mapping for an Object's Place Found verbatim display string. This has been provided, where available, via the `content` property of a new `LinguisticObject`, which has been added to an Object record's top-level `referred_to_by` property. The Place Found `LinguisticObject` has been classified with the AAT "Place Names" (300404655) and "Brief Text" (300418049) terms, as well as a custom "Place Found" classification, to allow it to be distinguished from other Place display strings and other `LinguisticObject` instances [[DEV-2980](https://jira.getty.edu/browse/DEV-2980)].
+
 ## [Unreleased] 2019-10-14
 
 ### Changed

@@ -749,8 +749,19 @@ class ArtifactTransformer(BaseTransformer):
                 entity.shows = visual
 
     # Map Object Place Found
-    def mapPlaceDepicted(self, entity, data):
-        pass
+    def mapPlaceFound(self, entity, data):
+        found = get(data, "display.places.found.display.value")
+        if found:
+            lobj = LinguisticObject()
+            lobj.id = self.generateEntityURI(sub=["object", "place", "found"])
+            lobj._label = "Place Found"
+            lobj.content = found
+
+            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300404655", label="Place Names")
+            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
+            lobj.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/found", label="Place Found")
+
+            entity.referred_to_by = lobj
 
     # Map Object Main Image
     def mapMainImage(self, entity, data):

@@ -1124,39 +1124,19 @@ class ArtifactTransformer(BaseTransformer):
                     # involved, one (or maybe more) for each maker, for different timespans of creation of the work?
 
                     # Object Place Created
-                    # Add via the "took_place_at" property of the Production activity
+                    # Add via a LinguisticObject on the referred_to_by property of the Production activity
                     if created:
                         placeName = get(created, "display.value")
-                        if placeName:
-                            placeUUID = str(
-                                uuid.uuid5(
-                                    uuid.UUID(os.getenv("LOD_UUID_NAMESPACE_PLACES")),
-                                    placeName,
-                                )
-                            )
+                        if isinstance(placeName, str) and len(placeName) > 0:
+                            lobj = LinguisticObject()
+                            lobj.id = self.generateEntityURI(sub=["place", "created"])
+                            lobj._label = "Place Created"
+                            lobj.content = placeName
+                            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300404655", label="Place Names")
+                            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
+                            lobj.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/created", label="Place Created")
 
-                            place = Place()
-
-                            place._namespace = self.getNamespace()
-                            place._uuid = placeUUID
-                            place._label = placeName
-
-                            place.id = self.generateEntityURI(
-                                entity=Place, UUID=placeUUID
-                            )
-
-                            # Map the place name
-                            name = Name()
-                            name.id = self.generateEntityURI(
-                                entity=Place, UUID=placeUUID, sub=["name"]
-                            )
-                            name.content = placeName
-
-                            # Map the place name
-                            place.identified_by = name
-
-                            if manager.storeEntity(place):
-                                production.took_place_at = place
+                            production.referred_to_by = lobj
 
                     entity.produced_by = production
 

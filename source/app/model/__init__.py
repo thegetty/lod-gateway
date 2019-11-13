@@ -320,7 +320,11 @@ class Model(ABC):
         records = None
 
         clause = None
-        if args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
+        if "clause" in kwargs:
+            if isinstance(kwargs["clause"], str) and len(kwargs["clause"]) > 0:
+                clause = kwargs["clause"]
+            del kwargs["clause"]
+        elif args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
             clause = args[0]
 
         params = None
@@ -350,7 +354,11 @@ class Model(ABC):
         records = None
 
         clause = None
-        if args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
+        if "clause" in kwargs:
+            if isinstance(kwargs["clause"], str) and len(kwargs["clause"]) > 0:
+                clause = kwargs["clause"]
+            del kwargs["clause"]
+        elif args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
             clause = args[0]
 
         params = None

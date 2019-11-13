@@ -10,6 +10,7 @@ _*
 !.gitignore
 !.gitattributes
 !.dockerignore
+!.editorconfig
 !.env.example
 *.pyc
 

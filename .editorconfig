@@ -1,0 +1,33 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+
+# Set default charset
+[*.{ini,json,md,py,sh,txt,yml,yaml},Dockerfile*]
+charset = utf-8
+trim_trailing_whitespace = true
+
+# Python files
+[*.py]
+indent_style = space
+indent_size = 4
+
+# JSON and YAML files
+[*.{json,yml,yaml}]
+indent_style = tab
+insert_final_newline = false
+
+# Shell script files
+[*.sh]
+indent_style = tab
+
+# Markdown files
+[*.md]
+indent_style = tab
+insert_final_newline = false

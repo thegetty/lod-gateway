@@ -721,10 +721,6 @@ class ArtifactTransformer(BaseTransformer):
 
                         entity.carries = lobj
 
-    # Map Object Place Created
-    def mapPlaceCreated(self, entity, data):
-        pass
-
     # Map Object Place Depicted
     def mapPlaceDepicted(self, entity, data):
         depicted = get(data, "display.places.depicted.display.value")

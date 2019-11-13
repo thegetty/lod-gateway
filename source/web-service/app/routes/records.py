@@ -21,6 +21,27 @@ from flask import Flask, Blueprint, Response
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
 
+@records.route("/<string:entity>/<string:UUID>")
+def obtainRecordWithDefaultNamespace(entity, UUID):
+    debug(
+        "obtainRecordWithDefaultNamespace(entity: %s; uuid: %s) called..."
+        % (entity, UUID),
+        level=1,
+    )
+
+    defaultNamespace = os.getenv("LOD_DEFAULT_URL_NAMESPACE", None)
+    if isinstance(defaultNamespace, str) and len(defaultNamespace) > 0:
+        response = obtainRecord(defaultNamespace, entity, UUID)
+    else:
+        response = Response(
+                status=404,
+                headers={
+                    **{"X-Error": "Unable to obtain matching record from database as no namespace has been defined!",},
+                    **headers,
+                },
+            )
+
+    return response
 
 @records.route("/<path:namespace>/<string:entity>/<string:UUID>")
 def obtainRecord(namespace, entity, UUID):

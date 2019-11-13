@@ -31,9 +31,9 @@ While the `Dockerfile` for each of the application's services copy in the necess
 As each service has its own default `ENTRYPOINT` / `CMD` configured, when working with the project in a development capacity, it is useful to interact with each container via the shell. This can be achieved using the `exec` subcommand of `docker-compose` as follows, with `bash` being the preferred shell for this project:
 
 	$ docker-compose exec <service> bash
-	
+
 One should replace `<service>` in the command above with the relevant name of one of the application's available services, which are currently comprised of the following:
-	
+
 - `postgres`
 - `transformer`
 - `web-service`
@@ -48,8 +48,18 @@ Overall the setup process would look something like this:
 To shut the application down at any time, from within the root of the project's source code repository run the following:
 
 	$ docker-compose down
-	
+
 This may take several seconds to complete, to allow the safe shutdown of the application's bundled PostgreSQL instance.
+
+**Deployment Options**
+
+The LOD Gateway currently supports two styles of deployment: being deployed as a single (optionally clustered) instance with a single (optionally clustered) data store, that hosts multiple datasets, or as many independent instances with their own endpoints and data stores to hold each data set independently. When the system is deployed as a single instance, the concept of a namespace becomes very useful as it allows the system to handle and segment the various data sets it may contain. The namespace becomes part of the unique record URL for each record in the system, along with the record's entity type name, and unique identifier. When multiple independent instances of the LOD Gateway are deployed, the namespace concept remains valuable as a way to uniquely associate any given LOD record URL with a particular LOD Gateway instance, where the namespaces present in the endpoint URLs can be used to help route requests to the relevant LOD Gateway instance. The **Configuration** section below contains more information on the various configuration options and how they are used by the deployments.
+
+**Configuration**
+
+The LOD Gateway supports a range of environment variables used as configuration parameters to configure the state of each deployment. These environment variables will usually be defined within the relevant HashiCorp Vault instance associated with the deployment, allowing that deployment to be configured as needed for its use. The environment variables currently supported are as follows:
+
+* `LOD_DEFAULT_URL_NAMESPACE` - This environment variable is used to configure the default namespace for a particular LOD Gateway instance. The namespace acts as an identifier associated with a particular data set, and will have a value such as `musuem/collection` or `provenance/sales`. The namespace forms part of the unique URL for each LOD record, along with the record's entity type name and its unique identifier. In cases where multiple instances of the LOD Gateway are deployed, each handling their own data set, it is possible to configure the default namespace used by the system via the `LOD_DEFAULT_URL_NAMESPACE` environment variable. By specifying a default namespace, the web service endpoints will substitute in the default namespace for any requests, allowing routing to be more easily managed. If a default namespace is not provided, it must be specified as part of the request URL against the web service endpoints.
 
 **Local Deployment Instructions**
 

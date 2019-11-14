@@ -311,9 +311,9 @@ class Model(ABC):
                 }
 
     @classmethod
-    def count(cls, *args, **kwargs):
+    def recordCount(cls, *args, **kwargs):
         debug(
-            "%s.count(args: %s, kwargs: %s) called..." % (cls.__name__, args, kwargs),
+            "%s.recordCount(args: %s, kwargs: %s) called..." % (cls.__name__, args, kwargs),
             level=1,
         )
 

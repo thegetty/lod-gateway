@@ -12,6 +12,8 @@ Any notable changes to the LOD Gateway that affect either functionality or outpu
 
 + Added a mapping for an Object's Place Found verbatim display string. This has been provided, where available, via the `content` property of a new `LinguisticObject`, which has been added to an Object record's top-level `referred_to_by` property. The Place Found `LinguisticObject` has been classified with the AAT "Place Names" (300404655) and "Brief Text" (300418049) terms, as well as a custom "Place Found" classification, to allow it to be distinguished from other Place display strings and other `LinguisticObject` instances [[DEV-2980](https://jira.getty.edu/browse/DEV-2980)].
 
++ Added a mapping for an Object's Place Depicted verbatim display string. This has been provided, where available, via the `content` property of a new `LinguisticObject`, which has been added to an Object record's top-level `shows` property, via its `VisualItem`. The Place Depicted `LinguisticObject` is associated with the `VisualItem` via its `referred_to_by` property, and has been classified with the AAT "Place Names" (300404655) and "Brief Text" (300418049) terms, as well as a custom "Place Depicted" classification, to allow it to be distinguished from other Place display strings and other `LinguisticObject` instances [[DEV-2981](https://jira.getty.edu/browse/DEV-2981)].
+
 ## [Unreleased] 2019-10-14
 
 ### Changed

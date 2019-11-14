@@ -316,9 +316,14 @@ class Model(ABC):
         if "clause" in kwargs:
             if isinstance(kwargs["clause"], str) and len(kwargs["clause"]) > 0:
                 clause = kwargs["clause"]
+            else:
+                raise RuntimeError("The clause must be a string, but instead was of type: " + type(kwargs["clause"]) + "!")
             del kwargs["clause"]
-        elif args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
-            clause = args[0]
+        elif args and args[0]:
+            if isinstance(args[0], str) and len(args[0]) > 0:
+                clause = args[0]
+            else:
+                raise RuntimeError("The clause must be a string, but instead was of type: " + type(args[0]) + "!")
         return clause
 
     @classmethod

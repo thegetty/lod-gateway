@@ -725,24 +725,21 @@ class ArtifactTransformer(BaseTransformer):
     def mapPlaceDepicted(self, entity, data):
         depicted = get(data, "display.places.depicted.display.value")
         if depicted:
-            id = get(data, "display.places.depicted.uuid")
-            if id:
-                visual = VisualItem()
-                visual.id = self.generateEntityURI(sub=["shows", id])
+            visual = VisualItem()
+            visual.id = self.generateEntityURI(sub=["shows"])
 
-                place = Place()
-                place.id = self.generateEntityURI(sub=["place", id])
-                place._label = depicted
+            lobj = LinguisticObject()
+            lobj.id = self.generateEntityURI(sub=["shows", "place", "depicted"])
+            lobj._label = "Place Depicted"
+            lobj.content = depicted
 
-                name = Name()
-                name.id = self.generateEntityURI(sub=["place", "name", id])
-                name.content = depicted
+            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300404655", label="Place Names")
+            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
+            lobj.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/depicted", label="Place Depicted")
 
-                place.identified_by = name
+            visual.referred_to_by = lobj
 
-                visual.represents = place
-
-                entity.shows = visual
+            entity.shows = visual
 
     # Map Object Place Found
     def mapPlaceFound(self, entity, data):

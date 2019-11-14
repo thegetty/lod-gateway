@@ -320,7 +320,7 @@ def activityStream(path=None, namespace=None):
                                 }
 
                             if previous:
-                                data["previous"] = {
+                                data["prev"] = {
                                     "id": generateURL(namespace=namespace, entity=entity, sub=["page", str(previous)]),
                                     "type": "OrderedCollectionPage",
                                 }

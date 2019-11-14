@@ -314,10 +314,7 @@ class Model(ABC):
     def __parse_params(*args, **kwargs):
         params = None
         if "bind" in kwargs:
-            if isinstance(kwargs["bind"], dict):
-                params = kwargs["bind"]
-            elif isinstance(kwargs["bind"], list):
-                params = kwargs["bind"]
+            params = kwargs["bind"]
 
         return params
 

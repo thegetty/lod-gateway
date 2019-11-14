@@ -311,6 +311,17 @@ class Model(ABC):
                 }
 
     @classmethod
+    def __parse_clause(*args, **kwargs):
+        clause = None
+        if "clause" in kwargs:
+            if isinstance(kwargs["clause"], str) and len(kwargs["clause"]) > 0:
+                clause = kwargs["clause"]
+            del kwargs["clause"]
+        elif args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
+            clause = args[0]
+        return clause
+
+    @classmethod
     def count(cls, *args, **kwargs):
         debug(
             "%s.count(args: %s, kwargs: %s) called..." % (cls.__name__, args, kwargs),
@@ -319,9 +330,7 @@ class Model(ABC):
 
         records = None
 
-        clause = None
-        if args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
-            clause = args[0]
+        clause = cls.__parse_clause(*args, **kwargs)
 
         params = None
         if "bind" in kwargs:
@@ -349,9 +358,7 @@ class Model(ABC):
 
         records = None
 
-        clause = None
-        if args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
-            clause = args[0]
+        clause = cls.__parse_clause(*args, **kwargs)
 
         params = None
         if "bind" in kwargs:

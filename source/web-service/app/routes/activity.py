@@ -117,7 +117,7 @@ def activityStream(path=None, namespace=None):
         query = {}
 
     start = 1
-    count = Activity.count(**query)
+    count = Activity.recordCount(**query)
     limit = request.args.get("limit", default=100, type=int)
     offset = request.args.get("offset", default=0, type=int)
     first = 0

@@ -311,6 +311,17 @@ class Model(ABC):
                 }
 
     @classmethod
+    def __parse_params(*args, **kwargs):
+        params = None
+        if "bind" in kwargs:
+            if isinstance(kwargs["bind"], dict):
+                params = kwargs["bind"]
+            elif isinstance(kwargs["bind"], list):
+                params = kwargs["bind"]
+
+        return params
+
+    @classmethod
     def count(cls, *args, **kwargs):
         debug(
             "%s.count(args: %s, kwargs: %s) called..." % (cls.__name__, args, kwargs),
@@ -323,12 +334,7 @@ class Model(ABC):
         if args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
             clause = args[0]
 
-        params = None
-        if "bind" in kwargs:
-            if isinstance(kwargs["bind"], dict):
-                params = kwargs["bind"]
-            elif isinstance(kwargs["bind"], list):
-                params = kwargs["bind"]
+        params = cls.__parse_params(*args, **kwargs)
 
         query = cls.prepareQuery("count", clause=clause, params=params, **kwargs)
         if query:
@@ -353,12 +359,7 @@ class Model(ABC):
         if args and args[0] and isinstance(args[0], str) and len(args[0]) > 0:
             clause = args[0]
 
-        params = None
-        if "bind" in kwargs:
-            if isinstance(kwargs["bind"], dict):
-                params = kwargs["bind"]
-            elif isinstance(kwargs["bind"], list):
-                params = kwargs["bind"]
+        params = cls.__parse_params(*args, **kwargs)
 
         query = cls.prepareQuery("find", clause=clause, params=params, **kwargs)
         if query:

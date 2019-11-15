@@ -311,7 +311,7 @@ class Model(ABC):
                 }
 
     @classmethod
-    def _parse_clause(*args, **kwargs):
+    def _parse_clause(cls, *args, **kwargs):
         clause = None
         if "clause" in kwargs:
             if isinstance(kwargs["clause"], str) and len(kwargs["clause"]) > 0:
@@ -335,7 +335,7 @@ class Model(ABC):
         return clause
 
     @classmethod
-    def _parse_params(*args, **kwargs):
+    def _parse_params(cls, *args, **kwargs):
         params = None
         if "bind" in kwargs:
             params = kwargs["bind"]

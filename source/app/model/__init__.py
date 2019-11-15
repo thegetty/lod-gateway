@@ -327,6 +327,14 @@ class Model(ABC):
         return clause
 
     @classmethod
+    def _parse_params(*args, **kwargs):
+        params = None
+        if "bind" in kwargs:
+            params = kwargs["bind"]
+
+        return params
+
+    @classmethod
     def recordCount(cls, *args, **kwargs):
         debug(
             "%s.recordCount(args: %s, kwargs: %s) called..." % (cls.__name__, args, kwargs),
@@ -337,12 +345,7 @@ class Model(ABC):
 
         clause = cls._parse_clause(*args, **kwargs)
 
-        params = None
-        if "bind" in kwargs:
-            if isinstance(kwargs["bind"], dict):
-                params = kwargs["bind"]
-            elif isinstance(kwargs["bind"], list):
-                params = kwargs["bind"]
+        params = cls._parse_params(*args, **kwargs)
 
         query = cls.prepareQuery("count", clause=clause, params=params, **kwargs)
         if query:
@@ -365,12 +368,7 @@ class Model(ABC):
 
         clause = cls._parse_clause(*args, **kwargs)
 
-        params = None
-        if "bind" in kwargs:
-            if isinstance(kwargs["bind"], dict):
-                params = kwargs["bind"]
-            elif isinstance(kwargs["bind"], list):
-                params = kwargs["bind"]
+        params = cls._parse_params(*args, **kwargs)
 
         query = cls.prepareQuery("find", clause=clause, params=params, **kwargs)
         if query:

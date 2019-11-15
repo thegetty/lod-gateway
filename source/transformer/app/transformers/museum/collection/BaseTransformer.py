@@ -366,13 +366,8 @@ class BaseTransformer(SharedMuseumBaseTransformer):
             identifier.content = str(number)
 
             identifier.classified_as = Type(
-                ident="https://data.getty.edu/museum/ontology/linked-data/dor/identifier",
-                label="Getty Digital Object Repository (DOR) ID",
-            )
-
-            identifier.classified_as = Type(
-                ident="https://data.getty.edu/museum/ontology/linked-data/integer-identifier",
-                label="Integer Identifier",
+                ident="https://data.getty.edu/museum/ontology/linked-data/dor/integer-identifier",
+                label="Getty Digital Object Repository (DOR) Integer Identifier (ID)",
             )
 
             entity.identified_by = identifier
@@ -385,13 +380,8 @@ class BaseTransformer(SharedMuseumBaseTransformer):
             identifier.content = number
 
             identifier.classified_as = Type(
-                ident="https://data.getty.edu/museum/ontology/linked-data/dor/identifier",
-                label="Getty Digital Object Repository (DOR) ID",
-            )
-
-            identifier.classified_as = Type(
-                ident="https://data.getty.edu/museum/ontology/linked-data/universally-unique-identifier",
-                label="Universally Unique Identifier (UUID)",
+                ident="https://data.getty.edu/museum/ontology/linked-data/dor/universally-unique-identifier",
+                label="Getty Digital Object Repository (DOR) Universally Unique Identifier (UUID)",
             )
 
             entity.identified_by = identifier
@@ -408,13 +398,8 @@ class BaseTransformer(SharedMuseumBaseTransformer):
             identifier.content = str(number)
 
             identifier.classified_as = Type(
-                ident="https://data.getty.edu/museum/ontology/linked-data/tms/identifier",
-                label="Gallery Systems' The Museum System (TMS) ID",
-            )
-
-            identifier.classified_as = Type(
-                ident="https://data.getty.edu/museum/ontology/linked-data/integer-identifier",
-                label="Integer Identifier",
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/integer-identifier",
+                label="Gallery Systems' The Museum System (TMS) Integer Identifier (ID)",
             )
 
             entity.identified_by = identifier

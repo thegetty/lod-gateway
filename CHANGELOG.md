@@ -2,6 +2,33 @@
 
 Any notable changes to the LOD Gateway that affect either functionality or output will be documented in this file (the format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)).
 
+## [Unreleased] 2019-11-15
+
+## Changed
+
+* Consolidate the `classified_as` IDs for the DOR and TMS record IDs emitted into the JSON-LD, using one unique `classified_as` ID for each of the three DOR and TMS ID types [[DEV-3020](https://jira.getty.edu/browse/DEV-3020)]:
+
+	* For the DOR integer ID, these will be consolidated from the current two IDs:
+		* https://data.getty.edu/museum/ontology/linked-data/dor/identifier
+		* https://data.getty.edu/museum/ontology/linked-data/integer-identifier
+
+	* Into a single `classified_as` ID combining the two concepts:
+		* https://data.getty.edu/museum/ontology/linked-data/dor/integer-identifier
+
+	* For the DOR UUID, these will be consolidated from the current two IDs:
+		* https://data.getty.edu/museum/ontology/linked-data/dor/identifier
+		* https://data.getty.edu/museum/ontology/linked-data/universally-unique-identifier
+
+	* Into a single `classified_as` ID combining the two concepts:
+		* https://data.getty.edu/museum/ontology/linked-data/dor/universally-unique-identifier
+
+	* For the TMS integer ID, these will be consolidated from the current two IDs:
+		* https://data.getty.edu/museum/ontology/linked-data/tms/identifier
+		* https://data.getty.edu/museum/ontology/linked-data/integer-identifier
+
+	* Into a single `classified_as` ID combining the two concepts:
+		* https://data.getty.edu/museum/ontology/linked-data/tms/integer-identifier
+
 ## [Unreleased] 2019-11-13
 
 ### Changed

@@ -26,7 +26,9 @@ activity = Blueprint("activity", __name__)
 @activity.route("/<path:namespace>/activity-stream")
 @activity.route("/<path:namespace>/activity-stream/<path:path>")
 def activityStream(path=None, namespace=None):
-    debug("activityStream(path: %s, namespace: %s) called..." % (path, namespace), level=0)
+    debug(
+        "activityStream(path: %s, namespace: %s) called..." % (path, namespace), level=0
+    )
 
     # Define our default headers to add to the response
     headers = {
@@ -110,9 +112,15 @@ def activityStream(path=None, namespace=None):
         if entity:
             _entity = camelCasedStringFromHyphenatedString(entity)
 
-            query = {"clause": "namespace = :namespace: AND entity = :entity:", "bind": {"namespace": namespace, "entity": _entity}}
+            query = {
+                "clause": "namespace = :namespace: AND entity = :entity:",
+                "bind": {"namespace": namespace, "entity": _entity},
+            }
         else:
-            query = {"clause": "namespace = :namespace:", "bind": {"namespace": namespace}}
+            query = {
+                "clause": "namespace = :namespace:",
+                "bind": {"namespace": namespace},
+            }
     else:
         query = {}
 
@@ -138,10 +146,15 @@ def activityStream(path=None, namespace=None):
         if activity:
             data = {
                 "@context": "https://www.w3.org/ns/activitystreams",
-                "partOf": {"id": generateURL(namespace=namespace, entity=entity), "type": "OrderedCollection",},
+                "partOf": {
+                    "id": generateURL(namespace=namespace, entity=entity),
+                    "type": "OrderedCollection",
+                },
             }
 
-            item = generateActivityStreamItem(activity, namespace=namespace, entity=entity)
+            item = generateActivityStreamItem(
+                activity, namespace=namespace, entity=entity
+            )
             if isinstance(item, dict):
                 data.update(item)
 
@@ -290,17 +303,29 @@ def activityStream(path=None, namespace=None):
                         if offset == 0:
                             if first:
                                 data["first"] = {
-                                    "id": generateURL(namespace=namespace, entity=entity, sub=["page", str(first)]),
+                                    "id": generateURL(
+                                        namespace=namespace,
+                                        entity=entity,
+                                        sub=["page", str(first)],
+                                    ),
                                     "type": "OrderedCollectionPage",
                                 }
 
                             if last:
                                 data["last"] = {
-                                    "id": generateURL(namespace=namespace, entity=entity, sub=["page", str(last)]),
+                                    "id": generateURL(
+                                        namespace=namespace,
+                                        entity=entity,
+                                        sub=["page", str(last)],
+                                    ),
                                     "type": "OrderedCollectionPage",
                                 }
                         else:
-                            data["id"] = generateURL(namespace=namespace, entity=entity, sub=["page", str(offset)])
+                            data["id"] = generateURL(
+                                namespace=namespace,
+                                entity=entity,
+                                sub=["page", str(offset)],
+                            )
 
                             data["partOf"] = {
                                 "id": generateURL(namespace=namespace, entity=entity),
@@ -309,25 +334,41 @@ def activityStream(path=None, namespace=None):
 
                             if first:
                                 data["first"] = {
-                                    "id": generateURL(namespace=namespace, entity=entity, sub=["page", str(first)]),
+                                    "id": generateURL(
+                                        namespace=namespace,
+                                        entity=entity,
+                                        sub=["page", str(first)],
+                                    ),
                                     "type": "OrderedCollectionPage",
                                 }
 
                             if last:
                                 data["last"] = {
-                                    "id": generateURL(namespace=namespace, entity=entity, sub=["page", str(last)]),
+                                    "id": generateURL(
+                                        namespace=namespace,
+                                        entity=entity,
+                                        sub=["page", str(last)],
+                                    ),
                                     "type": "OrderedCollectionPage",
                                 }
 
                             if previous:
                                 data["prev"] = {
-                                    "id": generateURL(namespace=namespace, entity=entity, sub=["page", str(previous)]),
+                                    "id": generateURL(
+                                        namespace=namespace,
+                                        entity=entity,
+                                        sub=["page", str(previous)],
+                                    ),
                                     "type": "OrderedCollectionPage",
                                 }
 
                             if next:
                                 data["next"] = {
-                                    "id": generateURL(namespace=namespace, entity=entity, sub=["page", str(next)]),
+                                    "id": generateURL(
+                                        namespace=namespace,
+                                        entity=entity,
+                                        sub=["page", str(next)],
+                                    ),
                                     "type": "OrderedCollectionPage",
                                 }
 
@@ -341,7 +382,9 @@ def activityStream(path=None, namespace=None):
                                     level=2,
                                 )
 
-                                item = generateActivityStreamItem(activity, namespace=namespace, entity=entity)
+                                item = generateActivityStreamItem(
+                                    activity, namespace=namespace, entity=entity
+                                )
                                 if item:
                                     items.append(item)
 

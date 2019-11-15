@@ -733,9 +733,16 @@ class ArtifactTransformer(BaseTransformer):
             lobj._label = "Place Depicted"
             lobj.content = depicted
 
-            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300404655", label="Place Names")
-            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
-            lobj.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/depicted", label="Place Depicted")
+            lobj.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300404655", label="Place Names"
+            )
+            lobj.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300418049", label="Brief Text"
+            )
+            lobj.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/depicted",
+                label="Place Depicted",
+            )
 
             visual.referred_to_by = lobj
 
@@ -750,9 +757,16 @@ class ArtifactTransformer(BaseTransformer):
             lobj._label = "Place Found"
             lobj.content = found
 
-            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300404655", label="Place Names")
-            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
-            lobj.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/found", label="Place Found")
+            lobj.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300404655", label="Place Names"
+            )
+            lobj.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300418049", label="Brief Text"
+            )
+            lobj.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/found",
+                label="Place Found",
+            )
 
             entity.referred_to_by = lobj
 
@@ -1136,9 +1150,18 @@ class ArtifactTransformer(BaseTransformer):
                             lobj.id = self.generateEntityURI(sub=["place", "created"])
                             lobj._label = "Place Created"
                             lobj.content = placeName
-                            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300404655", label="Place Names")
-                            lobj.classified_as = Type(ident="http://vocab.getty.edu/aat/300418049", label="Brief Text")
-                            lobj.classified_as = Type(ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/created", label="Place Created")
+                            lobj.classified_as = Type(
+                                ident="http://vocab.getty.edu/aat/300404655",
+                                label="Place Names",
+                            )
+                            lobj.classified_as = Type(
+                                ident="http://vocab.getty.edu/aat/300418049",
+                                label="Brief Text",
+                            )
+                            lobj.classified_as = Type(
+                                ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/created",
+                                label="Place Created",
+                            )
 
                             production.referred_to_by = lobj
 

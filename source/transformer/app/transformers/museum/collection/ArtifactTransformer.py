@@ -1068,14 +1068,14 @@ class ArtifactTransformer(BaseTransformer):
                         # Add a Name to the TimeSpan of the Prodction activity to store the display date string
                         name = Name()
                         name.id = self.generateEntityURI(
-                            sub=["activity", "production", id, "timespan", "name"]
+                            sub=["production", id, "timespan", "name"]
                         )
                         name._label = "Date"
                         name.content = get(dates, "display.value")
 
                         timespan = TimeSpan()
                         timespan.id = self.generateEntityURI(
-                            sub=["activity", "production", id, "timespan"]
+                            sub=["production", id, "timespan"]
                         )
                         timespan.identified_by = name
 
@@ -1113,7 +1113,7 @@ class ArtifactTransformer(BaseTransformer):
                     # Create the Production activity instance
                     production = Production()
                     production.id = self.generateEntityURI(
-                        sub=["activity", "production", id]
+                        sub=["production", id]
                     )
                     production._label = "Production of Artwork"
 

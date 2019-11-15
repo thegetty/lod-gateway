@@ -1106,18 +1106,8 @@ class ArtifactTransformer(BaseTransformer):
                                 date=lower,
                                 format_for_input_date="%Y-%m-%d %H:%M:%S",
                             )
-                            timespan.end_of_the_begin = date(
-                                format="%Y-%m-%dT%H:%M:%S",
-                                date=lower,
-                                format_for_input_date="%Y-%m-%d %H:%M:%S",
-                            )
 
                         if upper:
-                            timespan.begin_of_the_end = date(
-                                format="%Y-%m-%dT%H:%M:%S",
-                                date=upper,
-                                format_for_input_date="%Y-%m-%d %H:%M:%S",
-                            )
                             timespan.end_of_the_end = date(
                                 format="%Y-%m-%dT%H:%M:%S",
                                 date=upper,
@@ -1126,9 +1116,7 @@ class ArtifactTransformer(BaseTransformer):
 
                     # Create the Production activity instance
                     production = Production()
-                    production.id = self.generateEntityURI(
-                        sub=["production", id]
-                    )
+                    production.id = self.generateEntityURI(sub=["production", id])
                     production._label = "Production of Artwork"
 
                     # Associate the Production activity TimeSpan (this is overall timespan (dates) for the creation of the Object)

@@ -317,13 +317,21 @@ class Model(ABC):
             if isinstance(kwargs["clause"], str) and len(kwargs["clause"]) > 0:
                 clause = kwargs["clause"]
             else:
-                raise RuntimeError("The clause must be a string, but instead was of type: " + type(kwargs["clause"]) + "!")
+                raise RuntimeError(
+                    "The clause must be a string, but instead was of type: "
+                    + str(type(kwargs["clause"]))
+                    + "!"
+                )
             del kwargs["clause"]
         elif args and args[0]:
             if isinstance(args[0], str) and len(args[0]) > 0:
                 clause = args[0]
             else:
-                raise RuntimeError("The clause must be a string, but instead was of type: " + type(args[0]) + "!")
+                raise RuntimeError(
+                    "The clause must be a string, but instead was of type: "
+                    + str(type(args[0]))
+                    + "!"
+                )
         return clause
 
     @classmethod
@@ -337,7 +345,8 @@ class Model(ABC):
     @classmethod
     def recordCount(cls, *args, **kwargs):
         debug(
-            "%s.recordCount(args: %s, kwargs: %s) called..." % (cls.__name__, args, kwargs),
+            "%s.recordCount(args: %s, kwargs: %s) called..."
+            % (cls.__name__, args, kwargs),
             level=1,
         )
 

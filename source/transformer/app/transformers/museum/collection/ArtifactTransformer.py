@@ -223,7 +223,7 @@ class ArtifactTransformer(BaseTransformer):
 
         # Set defined Object Classification if available
         classification = get(data, "display.classification")
-        if classification:
+        if classification and has(classification, "classification.id"):
             # debug(classification, format="JSON")
 
             entity.classified_as = Type(

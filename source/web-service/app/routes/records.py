@@ -21,6 +21,7 @@ from flask import Flask, Blueprint, Response
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
 
+
 @records.route("/<string:entity>/<string:UUID>")
 def obtainRecordWithDefaultNamespace(entity, UUID):
     debug(
@@ -34,14 +35,17 @@ def obtainRecordWithDefaultNamespace(entity, UUID):
         response = obtainRecord(defaultNamespace, entity, UUID)
     else:
         response = Response(
-                status=404,
-                headers={
-                    **{"X-Error": "Unable to obtain matching record from database as no namespace has been defined!",},
-                    **headers,
+            status=404,
+            headers={
+                **{
+                    "X-Error": "Unable to obtain matching record from database as no namespace has been defined!",
                 },
-            )
+                **headers,
+            },
+        )
 
     return response
+
 
 @records.route("/<path:namespace>/<string:entity>/<string:UUID>")
 def obtainRecord(namespace, entity, UUID):

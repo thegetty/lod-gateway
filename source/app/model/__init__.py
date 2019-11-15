@@ -319,7 +319,7 @@ class Model(ABC):
             else:
                 raise RuntimeError(
                     "The clause must be a string, but instead was of type: "
-                    + type(kwargs["clause"])
+                    + str(type(kwargs["clause"]))
                     + "!"
                 )
             del kwargs["clause"]
@@ -329,7 +329,7 @@ class Model(ABC):
             else:
                 raise RuntimeError(
                     "The clause must be a string, but instead was of type: "
-                    + type(args[0])
+                    + str(type(args[0]))
                     + "!"
                 )
         return clause

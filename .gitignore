@@ -9,6 +9,7 @@ _*
 !.circleci
 !.gitignore
 !.gitattributes
+!.gitkeep
 !.dockerignore
 !.editorconfig
 !.env.example

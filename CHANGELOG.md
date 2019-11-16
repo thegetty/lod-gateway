@@ -12,21 +12,21 @@ Any notable changes to the LOD Gateway that affect either functionality or outpu
 		* https://data.getty.edu/museum/ontology/linked-data/dor/identifier
 		* https://data.getty.edu/museum/ontology/linked-data/integer-identifier
 
-	* Into a single `classified_as` ID combining the two concepts:
+	* Into a single `classified_as` ID combining the two concepts and shortening the URL:
 		* https://data.getty.edu/museum/ontology/linked-data/dor/id
 
 	* For the DOR UUID, these will be consolidated from the current two IDs:
 		* https://data.getty.edu/museum/ontology/linked-data/dor/identifier
 		* https://data.getty.edu/museum/ontology/linked-data/universally-unique-identifier
 
-	* Into a single `classified_as` ID combining the two concepts:
+	* Into a single `classified_as` ID combining the two concepts and shortening the URL:
 		* https://data.getty.edu/museum/ontology/linked-data/dor/uuid
 
 	* For the TMS integer ID, these will be consolidated from the current two IDs:
 		* https://data.getty.edu/museum/ontology/linked-data/tms/identifier
 		* https://data.getty.edu/museum/ontology/linked-data/integer-identifier
 
-	* Into a single `classified_as` ID combining the two concepts:
+	* Into a single `classified_as` ID combining the two concepts and shortening the URL:
 		* https://data.getty.edu/museum/ontology/linked-data/tms/id
 
 ## [Unreleased] 2019-11-13

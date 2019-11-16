@@ -21,7 +21,6 @@ RUN pip install --upgrade pip
 RUN pip install -r /app/requirements.txt
 
 COPY ./source/web-service/app /app
-# COPY ./source/web-service/tests /tests
 COPY ./source/app/di /app/di
 COPY ./source/app/database /app/database
 COPY ./source/app/graph /app/graph

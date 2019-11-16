@@ -24,6 +24,24 @@ To shut the application down:
 
 	$ docker-compose down
 
+**Testing the application**
+
+_Run the python unit tests_
+
+While the application is running,
+
+```bash
+docker-compose exec -w /app web pytest
+```
+will run the tests, and
+
+```bash
+docker-compose exec -w /app web ptw
+```
+
+will run `pywatch`, which will watch for file changes and re-run the tests automatically.
+
+
 **Deployment Options**
 
 For deployment, be sure to update the following ENV variables from their default values:

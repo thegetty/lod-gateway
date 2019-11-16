@@ -1,4 +1,4 @@
-version: "3.0"
+version: "3.7"
 
 services:
     postgres:
@@ -55,7 +55,6 @@ services:
             - ./source/web-service/startup.py:/startup.py
             - ./source/web-service/startup.sh:/startup.sh
             - ./source/web-service/app:/app
-            - ./source/web-service/tests:/tests
             # use a volume mount to dynamically bind the shared dependency injector code
             - ./source/app/di:/app/di
             # use a volume mount to dynamically bind the shared database code
@@ -68,7 +67,6 @@ services:
             - ./source/app/utilities:/app/utilities
             # use a volume mount to dynamically bind the data path
             - ./data:/usr/local/mart/data
-            # use a volume mount to dynamically bind the tests path
-            - ./tests:/usr/local/mart/tests
+
         ports:
             - "${WEB_SERVICE_PORT}:5100"

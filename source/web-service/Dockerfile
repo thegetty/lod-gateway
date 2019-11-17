@@ -24,7 +24,6 @@ COPY ./source/app/graph /app/graph
 COPY ./source/app/model /app/model
 COPY ./source/app/utilities /app/utilities
 
-COPY ./source/web-service/startup.py /startup.py
 COPY ./source/web-service/startup.sh /startup.sh
 RUN chmod +x /startup.sh
 

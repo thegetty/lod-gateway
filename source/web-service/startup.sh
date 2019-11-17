@@ -9,7 +9,7 @@ echo "startup.sh path: ${DIR}";
 uwsgi \
 	--http "0.0.0.0:${FLASK_RUN_PORT}" \
 	--manage-script-name \
-	--wsgi-file="${DIR}/startup.py" \
+	--wsgi-file="${DIR}/app/startup.py" \
 	--callable "app" \
 	--master \
 	--processes=${UWSGI_PROCESSES} \

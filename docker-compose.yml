@@ -48,6 +48,7 @@ services:
         build:
             context: ./
             dockerfile: ./source/web-service/Dockerfile
+        command: flask run --host=0.0.0.0
         env_file:
             .env
         volumes:
@@ -71,4 +72,4 @@ services:
             # use a volume mount to dynamically bind the tests path
             - ./tests:/usr/local/mart/tests
         ports:
-            - "${WEB_SERVICE_PORT}:5100"
+            - "${FLASK_RUN_PORT}:5100"

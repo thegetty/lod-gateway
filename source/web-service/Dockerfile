@@ -9,10 +9,6 @@ WORKDIR /
 # Install ca-certificates so that SSL/TLS can function from within the container
 RUN apt-get update && apt-get -y install ca-certificates
 
-# Later in preparation for deploying our container we need to integrate and test with envconsul...
-# COPY --from=getty/envconsul:latest /bin/envconsul /usr/local/bin/envconsul
-# COPY --from=getty/envconsul:latest /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-# RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Copy and install our dependencies from requirements.txt
 COPY requirements.txt /app/requirements.txt
@@ -37,11 +33,6 @@ SHELL ["/bin/bash", "--login", "-c"]
 
 # Tell Docker to open port 5100; this is the same port as we have configured for use by Flask
 EXPOSE 5100
-
-# Later in preparation for deploying our container we need to integrate and test with envconsul...
-# ENTRYPOINT [ "docker-entrypoint.sh" ]
-# CMD [ "/usr/local/bin/envconsul", "-config=/tmp/config.hcl", "uwsgi", "--http 0.0.0.0:5000", "--manage-script-name", "--mount /=museum-linked-art.app:app" ]
-# CMD [ "/bin/bash" ];
 
 # Run our application startup script...
 CMD [ "/startup.sh" ];

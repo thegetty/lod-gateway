@@ -1,107 +1,80 @@
-#!/usr/bin/env python3
-
 import sys
-import datetime
+from datetime import datetime
 import os
 import psutil
+import logging
 
-# Import the utility functions (commandOptions, get, has, put, debug, repeater, etc)
-from app.utilities import *
+from flask import Flask, Response
 
-# Configure the Transformer service
-options = commandOptions({"debug": False,})
-
-# Configure the debug level
-if isinstance(options["debug"], int):
-    debug(
-        level=options["debug"]
-    )  # display debug messages with a level of or below the defined level
-elif options["debug"] == True:
-    debug(level=1)  # display informational messages and errors (level <= 1)
-elif options["debug"] == False:
-    debug(level=-1)  # only display errors (level <= -1)
-else:
-    debug(level=os.getenv("DEBUG_LEVEL", -1))
-
-# debug(level=3)
-
-# Import the dependency injector
 from app.di import DI
-
-# Import the database service handler
 from app.database import Database
+from app.routes.activity import activity
+from app.routes.records import records
 
-# Import the graph store service handler
-# from app.graph import GraphStore
+# Set the debug level
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=os.getenv("DEBUG_LEVEL", logging.INFO))
 
-# Initialise the dependency injector
+
+# initialize the dependency injector
 di = DI()
 
-# Instantiate and register the database handler
 database = Database(shared=False)
 if database:
     di.set("database", database)
 else:
     raise RuntimeError("The database handler could not be initialized!")
 
-# Instantiate and register the graph store service
-# di.set("graph", GraphStore(shared=False))
-
-# Import the Flask web framework
-from flask import Flask, Response
-
-# Import our Flask route handlers
-from app.routes.activity import activity
-from app.routes.records import records
-
 # Initialise our Flask application
 app = Flask(__name__)
-
-# Register our Flask route handler "blueprints"
 app.register_blueprint(activity)
 app.register_blueprint(records)
 
-# Establish any default routes
+# Index Route
 @app.route("/")
 def welcome():
-    now = datetime.datetime.now()
 
-    body = sprintf(
-        "Welcome to the Getty's Linked Open Data Gateway Service at %02d:%02d:%02d on %02d/%02d/%04d"
-        % (now.hour, now.minute, now.second, now.month, now.day, now.year)
-    )
-
+    now = datetime.now().strftime("%H:%M:%S on %Y-%m-%d")
+    body = f"Welcome to the Getty's Linked Open Data Gateway Service at {now}"
     return Response(body, status=200)
-
-
-@app.before_request
-def beforeRequest():
-    debug("%s - beforeRequest() called..." % (__file__), level=1)
 
 
 @app.after_request
 def afterRequest(response):
-    """The after_request decorator allows us to augment responses after the request has completed, but before the response is returned to the client."""
+    if logger.isEnabledFor(logging.DEBUG):
+        response = _add_debug_to_headers(response)
+    return response
 
-    debug(
-        "%s - afterRequest() called... response.headers = %s"
-        % (__file__, type(response.headers)),
-        level=1,
-    )
+
+def _add_debug_to_headers(response):
+    """Include process information within the response header.
+
+    If there is an error obtaining information, the failure is logged
+    and the response is returned without modification.
+
+    Args:
+        response: The flash response object
+
+    Returns:
+        the flask response object with an X-Process-Information header
+        containing debug information
+    """
+
+    logger.debug(f"response.headers = {response.headers}")
 
     database = DI.get("database")
     if not database:
-        debug("No database connection could be established!", error=True)
+        logger.error("No database connection could be established!")
         return response
 
     information = database.information()
     if not isinstance(information, dict):
-        debug("No database information could be obtained!", error=True)
+        logger.error("No database information could be obtained!")
         return response
 
     process = psutil.Process()
     if not process:
-        debug("No process information instance could be obtained!", error=True)
+        logger.error("No process information instance could be obtained!")
         return response
 
     information["process"] = {
@@ -112,23 +85,17 @@ def afterRequest(response):
         },
     }
 
-    debug(information, format="JSON", label="Process Information", level=2)
+    logger.debug(information)
 
     if os.getenv("WEB_DEBUG_HEADER", "NO") == "YES":
         # Obtain the headers
         headers = response.headers
         if not headers:
-            debug("No response headers could be obtained!", error=True)
+            logger.error("No response headers could be obtained!")
             return response
 
         headers["X-Process-Information"] = json.dumps(information)
 
         # Adjust the headers
         response.headers = headers
-
     return response
-
-
-@app.teardown_request
-def teardownRequest(response):
-    debug("%s - teardownRequest() called..." % (__file__), level=1)

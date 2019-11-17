@@ -53,7 +53,7 @@ services:
             .env
         volumes:
             # use a volume mount to dynamically bind the application's source code
-            - ./source/web-service/startup.sh:/startup.sh
+
             - ./source/web-service/app:/app
             # use a volume mount to dynamically bind the shared dependency injector code
             - ./source/app/di:/app/di

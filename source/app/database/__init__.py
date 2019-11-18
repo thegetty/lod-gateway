@@ -306,8 +306,8 @@ class Database:
                     "active": 0,
                     "cursors": len(self.cursors),
                 },
-                "disconnections": {"requested": self.disconnects,},
-            },
+                "disconnections": {"requested": self.disconnects},
+            }
         }
 
         connection = self.connect(autocommit=True)

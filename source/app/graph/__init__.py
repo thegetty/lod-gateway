@@ -64,7 +64,7 @@ class GraphStore:
 
         try:
             # check to see if graph exists
-            response = requests.post(cls.endpoint(), data={"query": query,},)
+            response = requests.post(cls.endpoint(), data={"query": query})
 
             if response.status_code == 200:
                 content = json.loads(response.content)
@@ -116,9 +116,7 @@ class GraphStore:
                         return True
 
         except Exception as e:
-            debug(
-                "GraphStore.select() %s, error: %s" % (graphName, str(e)), error=True,
-            )
+            debug("GraphStore.select() %s, error: %s" % (graphName, str(e)), error=True)
 
             return False
 
@@ -155,7 +153,7 @@ class GraphStore:
                 "INSERT DATA {GRAPH <" + graphName + "> {" + serializedNT + "}}"
             )
 
-            response = requests.post(cls.endpoint(), data={"update": insertStatement,})
+            response = requests.post(cls.endpoint(), data={"update": insertStatement})
 
             if response.status_code == 200:
                 return True

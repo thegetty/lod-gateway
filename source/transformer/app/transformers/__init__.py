@@ -110,7 +110,7 @@ def registerTransformers():
                                         # debug()
 
                                         transformer = {
-                                            "file": {"path": dirName, "name": file,},
+                                            "file": {"path": dirName, "name": file},
                                             "module": {
                                                 "path": modPath,
                                                 "name": modName,
@@ -413,7 +413,7 @@ class BaseTransformer(ABC):
         baseURL = os.getenv("LOD_BASE_URL", None)
         trailingSlash = os.getenv("LOD_SLASH_URL", "YES")
 
-        options = commandOptions({"slash": False,})
+        options = commandOptions({"slash": False})
 
         if "slash" in options:
             if isinstance(options["slash"], bool) and options["slash"] == True:
@@ -522,7 +522,7 @@ class BaseTransformer(ABC):
                 # Assign entity ID
                 self.entity.id = self.generateEntityURI()
 
-                options = commandOptions({"source": False, "method": None,})
+                options = commandOptions({"source": False, "method": None})
 
                 if options["source"]:
                     if options["source"] == True:

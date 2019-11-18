@@ -52,9 +52,7 @@ from cromulent.model import (
 class GalleryTransformer(BaseTransformer):
     def activityStreamObjectTypes(self):
         """Provide a method for conveying the supported Activity Stream Object type names that this transformer will handle"""
-        return [
-            "Gallery",
-        ]
+        return ["Gallery"]
 
     def resourceType(self):
         return "gallery"

@@ -66,9 +66,7 @@ from cromulent.model import (
 class ArtifactTransformer(BaseTransformer):
     def activityStreamObjectTypes(self):
         """Provide a method for conveying the supported Activity Stream Object type names that this transformer will handle"""
-        return [
-            "Artifact",
-        ]
+        return ["Artifact"]
 
     def resourceType(self):
         return "artifact"
@@ -969,7 +967,9 @@ class ArtifactTransformer(BaseTransformer):
 
                 place.identified_by = name
         else:
-            id = "a03fec3c-c7a2-4b29-9995-5eddf3ceb0a4"  # maps to the unknown storage location, perfect for the generic storage location concept
+            id = (
+                "a03fec3c-c7a2-4b29-9995-5eddf3ceb0a4"
+            )  # maps to the unknown storage location, perfect for the generic storage location concept
 
             place = Place()
             place.id = self.generateEntityURI(entity=Place, UUID=id)
@@ -1126,9 +1126,7 @@ class ArtifactTransformer(BaseTransformer):
 
                     # Create the Production activity instance
                     production = Production()
-                    production.id = self.generateEntityURI(
-                        sub=["production", id]
-                    )
+                    production.id = self.generateEntityURI(sub=["production", id])
                     production._label = "Production of Artwork"
 
                     # Associate the Production activity TimeSpan (this is overall timespan (dates) for the creation of the Object)

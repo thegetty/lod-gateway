@@ -57,9 +57,7 @@ from cromulent.model import (
 class ExhibitionTransformer(BaseTransformer):
     def activityStreamObjectTypes(self):
         """Provide a method for conveying the supported Activity Stream Object type names that this transformer will handle"""
-        return [
-            "Exhibition",
-        ]
+        return ["Exhibition"]
 
     def resourceType(self):
         return "exhibition"

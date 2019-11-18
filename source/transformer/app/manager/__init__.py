@@ -128,7 +128,7 @@ class BaseManager(ABC):
 
         options = commandOptions(
             {
-                "output": None,  # output destination for generated/transformed records? (default: database, when not set)
+                "output": None  # output destination for generated/transformed records? (default: database, when not set)
             }
         )
 
@@ -464,7 +464,7 @@ class ActivityStreamManager(BaseManager):
 
         direction = None
 
-        options = commandOptions({"direction": None,})
+        options = commandOptions({"direction": None})
 
         if "direction" in options:
             if isinstance(options["direction"], str):
@@ -569,11 +569,7 @@ class ActivityStreamManager(BaseManager):
                 )
             )
 
-        eventTypes = [
-            "Create",
-            "Update",
-            "Delete",
-        ]
+        eventTypes = ["Create", "Update", "Delete"]
 
         lastID = None
         stream = Stream.findFirstOrCreateNewInstance(

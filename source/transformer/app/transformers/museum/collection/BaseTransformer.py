@@ -97,9 +97,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
         # Define the HTTP request headers needed to access our Activity Stream
         headers = self.assembleHeaders()
         if headers:
-            headers.update(
-                {"Accept": "application/activity+json",}
-            )
+            headers.update({"Accept": "application/activity+json"})
 
             options["headers"] = headers
 
@@ -146,7 +144,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
             raise RuntimeError("Missing DOR API User Environment Variable!")
 
         # Support cache toggling from the CLI
-        options = commandOptions({"cache": None, "header": None,})
+        options = commandOptions({"cache": None, "header": None})
 
         if options["cache"] == None and (os.getenv("DOR_API_CACHING", "YES") == "NO"):
             headers["X-Request-Caching"] = "NO"

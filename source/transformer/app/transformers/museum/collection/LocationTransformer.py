@@ -52,9 +52,7 @@ from cromulent.model import (
 class LocationTransformer(BaseTransformer):
     def activityStreamObjectTypes(self):
         """Provide a method for conveying the supported Activity Stream Object type names that this transformer will handle"""
-        return [
-            "Location",
-        ]
+        return ["Location"]
 
     def resourceType(self):
         return "location"

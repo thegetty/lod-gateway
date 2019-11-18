@@ -2,6 +2,12 @@
 
 Any notable changes to the LOD Gateway that affect either functionality or output will be documented in this file (the format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)).
 
+## [Unreleased] 2019-11-15
+
+### Changed
+
+* Removed `end_of_the_begin` and `begin_of_the_end` properties from `TimeSpan` as they implied accuracy beyond what is known [[DEV-3018](https://jira.getty.edu/browse/DEV-3018)].
+
 ## [Unreleased] 2019-11-13
 
 ### Changed

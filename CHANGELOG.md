@@ -4,7 +4,30 @@ Any notable changes to the LOD Gateway that affect either functionality or outpu
 
 ## [Unreleased] 2019-11-15
 
-### Changed
+## Changed
+
+* Consolidate the `classified_as` IDs for the DOR and TMS record IDs emitted into the JSON-LD, using one unique `classified_as` ID for each of the three DOR and TMS ID types [[DEV-3020](https://jira.getty.edu/browse/DEV-3020)]:
+
+	* For the DOR integer ID, these will be consolidated from the current two IDs:
+		* https://data.getty.edu/museum/ontology/linked-data/dor/identifier
+		* https://data.getty.edu/museum/ontology/linked-data/integer-identifier
+
+	* Into a single `classified_as` ID combining the two concepts and shortening the URL:
+		* https://data.getty.edu/museum/ontology/linked-data/dor/id
+
+	* For the DOR UUID, these will be consolidated from the current two IDs:
+		* https://data.getty.edu/museum/ontology/linked-data/dor/identifier
+		* https://data.getty.edu/museum/ontology/linked-data/universally-unique-identifier
+
+	* Into a single `classified_as` ID combining the two concepts and shortening the URL:
+		* https://data.getty.edu/museum/ontology/linked-data/dor/uuid
+
+	* For the TMS integer ID, these will be consolidated from the current two IDs:
+		* https://data.getty.edu/museum/ontology/linked-data/tms/identifier
+		* https://data.getty.edu/museum/ontology/linked-data/integer-identifier
+
+	* Into a single `classified_as` ID combining the two concepts and shortening the URL:
+		* https://data.getty.edu/museum/ontology/linked-data/tms/id
 
 * Removed `end_of_the_begin` and `begin_of_the_end` properties from `TimeSpan` as they implied accuracy beyond what is known [[DEV-3018](https://jira.getty.edu/browse/DEV-3018)].
 

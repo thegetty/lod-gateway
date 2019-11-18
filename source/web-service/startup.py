@@ -9,7 +9,7 @@ import psutil
 from app.utilities import *
 
 # Configure the Transformer service
-options = commandOptions({"debug": False,})
+options = commandOptions({"debug": False})
 
 # Configure the debug level
 if isinstance(options["debug"], int):

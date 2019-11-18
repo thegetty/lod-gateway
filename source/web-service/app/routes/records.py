@@ -38,7 +38,7 @@ def obtainRecordWithDefaultNamespace(entity, UUID):
             status=404,
             headers={
                 **{
-                    "X-Error": "Unable to obtain matching record from database as no namespace has been defined!",
+                    "X-Error": "Unable to obtain matching record from database as no namespace has been defined!"
                 },
                 **headers,
             },
@@ -58,10 +58,7 @@ def obtainRecord(namespace, entity, UUID):
     # return sprintf("You requested Namespace: %s for Entity: %s with UUID: %s" % (namespace, entity, UUID))
 
     # Define our default headers to add to the response
-    headers = {
-        "Server": "MART/1.0",
-        "Access-Control-Allow-Origin": "*",
-    }
+    headers = {"Server": "MART/1.0", "Access-Control-Allow-Origin": "*"}
 
     database = DI.get("database")
     if database:
@@ -72,7 +69,7 @@ def obtainRecord(namespace, entity, UUID):
             return Response(
                 status=500,
                 headers={
-                    **{"X-Error": "Unable to establish a database connection!",},
+                    **{"X-Error": "Unable to establish a database connection!"},
                     **headers,
                 },
             )
@@ -80,7 +77,7 @@ def obtainRecord(namespace, entity, UUID):
         return Response(
             status=500,
             headers={
-                **{"X-Error": "Unable to obtain the database handler!",},
+                **{"X-Error": "Unable to obtain the database handler!"},
                 **headers,
             },
         )
@@ -115,7 +112,7 @@ def obtainRecord(namespace, entity, UUID):
                 if isinstance(body, str) and len(body) > 0:
                     body = body.encode("utf-8")
 
-                    headers = {**{"Date": record.datetime_published,}, **headers}
+                    headers = {**{"Date": record.datetime_published}, **headers}
 
                     hasher = hashlib.sha1()
                     hasher.update(body)
@@ -140,7 +137,7 @@ def obtainRecord(namespace, entity, UUID):
                         status=404,
                         headers={
                             **{
-                                "X-Error": "The result.data could not be serialized to JSON!",
+                                "X-Error": "The result.data could not be serialized to JSON!"
                             },
                             **headers,
                         },
@@ -151,7 +148,7 @@ def obtainRecord(namespace, entity, UUID):
                 response = Response(
                     status=404,
                     headers={
-                        **{"X-Error": "The result.data attribute is empty!",},
+                        **{"X-Error": "The result.data attribute is empty!"},
                         **headers,
                     },
                 )
@@ -161,7 +158,7 @@ def obtainRecord(namespace, entity, UUID):
             response = Response(
                 status=404,
                 headers={
-                    **{"X-Error": "Unable to obtain matching record from database!",},
+                    **{"X-Error": "Unable to obtain matching record from database!"},
                     **headers,
                 },
             )
@@ -172,7 +169,7 @@ def obtainRecord(namespace, entity, UUID):
             "Bad Request",
             status=400,
             headers={
-                **{"X-Error": "No valid entity type name was specified!",},
+                **{"X-Error": "No valid entity type name was specified!"},
                 **headers,
             },
         )

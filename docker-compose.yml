@@ -48,11 +48,11 @@ services:
         build:
             context: ./
             dockerfile: ./source/web-service/Dockerfile
+        command: flask run --host=0.0.0.0
         env_file:
             .env
         volumes:
             # use a volume mount to dynamically bind the application's source code
-            - ./source/web-service/startup.py:/startup.py
             - ./source/web-service/startup.sh:/startup.sh
             - ./source/web-service/app:/app
             # use a volume mount to dynamically bind the shared dependency injector code
@@ -69,4 +69,4 @@ services:
             - ./data:/usr/local/mart/data
 
         ports:
-            - "${WEB_SERVICE_PORT}:5100"
+            - "${FLASK_RUN_PORT}:5100"

@@ -29,6 +29,8 @@ Any notable changes to the LOD Gateway that affect either functionality or outpu
 	* Into a single `classified_as` ID combining the two concepts and shortening the URL:
 		* https://data.getty.edu/museum/ontology/linked-data/tms/id
 
+* Removed `end_of_the_begin` and `begin_of_the_end` properties from `TimeSpan` as they implied accuracy beyond what is known [[DEV-3018](https://jira.getty.edu/browse/DEV-3018)].
+
 ## [Unreleased] 2019-11-13
 
 ### Changed

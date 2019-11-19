@@ -47,26 +47,12 @@ services:
     web:
         build:
             context: ./
-            dockerfile: ./source/web-service/Dockerfile
+            dockerfile: ./Dockerfile.web-service
         command: flask run --host=0.0.0.0
-        env_file:
-            .env
+        env_file: .env
         volumes:
-            # use a volume mount to dynamically bind the application's source code
-            - ./source/web-service/startup.sh:/startup.sh
-            - ./source/web-service/app:/app
-            # use a volume mount to dynamically bind the shared dependency injector code
-            - ./source/app/di:/app/di
-            # use a volume mount to dynamically bind the shared database code
-            - ./source/app/database:/app/database
-            # use a volume mount to dynamically bind the shared graph store code
-            - ./source/app/graph:/app/graph
-            # use a volume mount to dynamically bind the shared model code
-            - ./source/app/model:/app/model
-            # use a volume mount to dynamically bind the shared utilities code
-            - ./source/app/utilities:/app/utilities
-            # use a volume mount to dynamically bind the data path
-            - ./data:/usr/local/mart/data
-
+            - ./source/web-service/flaskapp:/app/flaskapp
+            - ./source/web-service/tests:/app/tests
+            - ./source/app:/app/app
         ports:
             - "${FLASK_RUN_PORT}:5100"

@@ -153,7 +153,7 @@ def activityStream(path=None, namespace=None):
             }
 
             item = generateActivityStreamItem(
-                activity, namespace=namespace, entity=entity
+                activity, namespace=namespace, entity=entity, record=activity.record
             )
             if isinstance(item, dict):
                 data.update(item)
@@ -161,7 +161,7 @@ def activityStream(path=None, namespace=None):
                 response = Response(
                     json.dumps(data, indent=4),
                     headers={
-                        **{"Content-Type": "application/activity+json;charset=UTF-8",},
+                        **{"Content-Type": "application/activity+json;charset=UTF-8"},
                         **headers,
                     },
                     status=200,
@@ -383,7 +383,10 @@ def activityStream(path=None, namespace=None):
                                 )
 
                                 item = generateActivityStreamItem(
-                                    activity, namespace=namespace, entity=entity
+                                    activity,
+                                    namespace=namespace,
+                                    entity=entity,
+                                    record=activity.record,
                                 )
                                 if item:
                                     items.append(item)
@@ -470,6 +473,7 @@ def generateActivityStreamItem(activity, **kwargs):
 
     namespace = get(kwargs, "namespace")
     entity = get(kwargs, "entity")
+    record = get(kwargs, "record")
 
     if isinstance(activity, Activity):
         item = {
@@ -525,7 +529,6 @@ def generateActivityStreamItem(activity, **kwargs):
             elif created:
                 item["published"] = created
 
-        record = activity.record
         if isinstance(record, Record):
             _entity = hyphenatedStringFromCamelCasedString(record.entity)
 

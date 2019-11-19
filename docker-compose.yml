@@ -47,7 +47,7 @@ services:
     web:
         build:
             context: ./
-            dockerfile: ./source/web-service/Dockerfile
+            dockerfile: ./Dockerfile.web-service
         command: flask run --host=0.0.0.0
         env_file: .env
         volumes:

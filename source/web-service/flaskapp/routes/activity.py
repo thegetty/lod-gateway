@@ -31,10 +31,7 @@ def activityStream(path=None, namespace=None):
     )
 
     # Define our default headers to add to the response
-    headers = {
-        "Server": "MART/1.0",
-        "Access-Control-Allow-Origin": "*",
-    }
+    headers = {"Server": "MART/1.0", "Access-Control-Allow-Origin": "*"}
 
     database = DI.get("database")
     if database:
@@ -45,14 +42,14 @@ def activityStream(path=None, namespace=None):
             return Response(
                 status=500,
                 headers={
-                    **{"X-Error": "Unable to obtain database connection!",},
+                    **{"X-Error": "Unable to obtain database connection!"},
                     **headers,
                 },
             )
     else:
         return Response(
             status=500,
-            headers={**{"X-Error": "Unable to obtain database handler!",}, **headers},
+            headers={**{"X-Error": "Unable to obtain database handler!"}, **headers},
         )
 
     response = None
@@ -173,7 +170,7 @@ def activityStream(path=None, namespace=None):
                         **{
                             "X-Error": sprintf(
                                 "Activity %s was not found!" % (UUID), error=True
-                            ),
+                            )
                         },
                         **headers,
                     },
@@ -182,7 +179,7 @@ def activityStream(path=None, namespace=None):
             response = Response(
                 status=404,
                 headers={
-                    **{"X-Error": sprintf("Activity %s was not found!" % (UUID)),},
+                    **{"X-Error": sprintf("Activity %s was not found!" % (UUID))},
                     **headers,
                 },
             )
@@ -204,7 +201,7 @@ def activityStream(path=None, namespace=None):
                 response = Response(
                     status=400,
                     headers={
-                        **{"X-Error": "Unsupported Pagination Mnemonic (Current)",},
+                        **{"X-Error": "Unsupported Pagination Mnemonic (Current)"},
                         **headers,
                     },
                 )
@@ -219,7 +216,7 @@ def activityStream(path=None, namespace=None):
                         response = Response(
                             status=400,
                             headers={
-                                **{"X-Error": "Page Offset Out Of Range",},
+                                **{"X-Error": "Page Offset Out Of Range"},
                                 **headers,
                             },
                         )
@@ -231,7 +228,7 @@ def activityStream(path=None, namespace=None):
                 else:
                     response = Response(
                         status=400,
-                        headers={**{"X-Error": "Invalid Page Offset",}, **headers},
+                        headers={**{"X-Error": "Invalid Page Offset"}, **headers},
                     )
             elif isinstance(position, str):
                 response = Response(
@@ -240,7 +237,7 @@ def activityStream(path=None, namespace=None):
                         **{
                             "X-Error": sprintf(
                                 "Unsupported Pagination Mnemonic (%s)" % (position)
-                            ),
+                            )
                         },
                         **headers,
                     },
@@ -276,21 +273,21 @@ def activityStream(path=None, namespace=None):
                 }
 
                 # data["meta"] = {
-                # 	"path":      path,
-                # 	"uuid":      UUID,
-                # 	"namespace": namespace,
-                # 	"entity":    entity,
-                # 	"position":  position,
-                # 	"count":     count,
-                # 	"offset":    offset,
-                # 	"limit":     limit,
-                # 	"previous":  previous,
-                # 	"current":   current,
-                # 	"next":      next,
-                # 	"first":     first,
-                # 	"last":      last,
-                # 	"page":      page,
-                # 	"query":     query,
+                #   "path":      path,
+                #   "uuid":      UUID,
+                #   "namespace": namespace,
+                #   "entity":    entity,
+                #   "position":  position,
+                #   "count":     count,
+                #   "offset":    offset,
+                #   "limit":     limit,
+                #   "previous":  previous,
+                #   "current":   current,
+                #   "next":      next,
+                #   "first":     first,
+                #   "last":      last,
+                #   "page":      page,
+                #   "query":     query,
                 # }
                 #
                 # debug(data, format="JSON")
@@ -396,7 +393,7 @@ def activityStream(path=None, namespace=None):
                                     json.dumps(data, indent=4),
                                     headers={
                                         **{
-                                            "Content-Type": "application/activity+json;charset=UTF-8",
+                                            "Content-Type": "application/activity+json;charset=UTF-8"
                                         },
                                         **headers,
                                     },
@@ -407,7 +404,7 @@ def activityStream(path=None, namespace=None):
                                     status=404,
                                     headers={
                                         **{
-                                            "X-Error": "Activity Stream Items Not Found",
+                                            "X-Error": "Activity Stream Items Not Found"
                                         },
                                         **headers,
                                     },
@@ -416,7 +413,7 @@ def activityStream(path=None, namespace=None):
                         response = Response(
                             status=404,
                             headers={
-                                **{"X-Error": "Activity Stream Items Not Found",},
+                                **{"X-Error": "Activity Stream Items Not Found"},
                                 **headers,
                             },
                         )
@@ -424,7 +421,7 @@ def activityStream(path=None, namespace=None):
                     response = Response(
                         status=404,
                         headers={
-                            **{"X-Error": "Activity Stream Items Not Found",},
+                            **{"X-Error": "Activity Stream Items Not Found"},
                             **headers,
                         },
                     )
@@ -434,7 +431,7 @@ def activityStream(path=None, namespace=None):
                         json.dumps(data, indent=4),
                         headers={
                             **{
-                                "Content-Type": "application/activity+json;charset=UTF-8",
+                                "Content-Type": "application/activity+json;charset=UTF-8"
                             },
                             **headers,
                         },
@@ -443,20 +440,17 @@ def activityStream(path=None, namespace=None):
         else:
             response = Response(
                 status=404,
-                headers={**{"X-Error": "No Activity Stream Items Found!",}, **headers},
+                headers={**{"X-Error": "No Activity Stream Items Found!"}, **headers},
             )
     else:
         response = Response(
             status=500,
-            headers={
-                **{"X-Error": "Invalid Activity Stream Record Count!",},
-                **headers,
-            },
+            headers={**{"X-Error": "Invalid Activity Stream Record Count!"}, **headers},
         )
 
     if not isinstance(response, Response):
         response = Response(
-            status=500, headers={**{"X-Error": "Invalid Response Data",}, **headers}
+            status=500, headers={**{"X-Error": "Invalid Response Data"}, **headers}
         )
 
     database.disconnect(connection=connection)

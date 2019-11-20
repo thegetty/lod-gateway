@@ -1048,25 +1048,9 @@ class ArtifactTransformer(BaseTransformer):
 
     # Map Object Artist/Maker Relationship(s)
     def mapArtistMakerRelationships(self, entity, data):
-        manager = DI.get("manager")
-
-        if not manager:
-            raise RuntimeError(
-                sprintf(
-                    "%s.mapActivities() Failed to obtain Manager instance!"
-                    % (self.__class__.__name__)
-                )
-            )
-
         makers = get(data, "display.makers")
         if makers and len(makers) > 0:
-            # Obtain the Object's Date
-            dates = get(data, "display.date")
-            # debug(date, format="JSON")
-
-            # Obtain the Object's Place Created (if available)
-            created = get(data, "display.places.created")
-            # debug(created, format="JSON")
+            activities = []  # Store one or more Production activities temporarily...
 
             for maker in makers:
                 # debug(maker, format="JSON")
@@ -1074,32 +1058,145 @@ class ArtifactTransformer(BaseTransformer):
                 id = get(maker, "uuid")  # Maker UUID
                 value = get(maker, "display.value")  # Maker name
                 if id and value:
-                    person = Person()
-                    person.id = self.generateEntityURI(entity=Person, UUID=id)
-                    person._label = value
+                    production = Production(  # Create the Production activity instance
+                        ident=self.generateEntityURI(sub=["production", id]),
+                        label="Production of Artwork",
+                    )
 
+                    person = Person(
+                        ident=self.generateEntityURI(entity=Person, UUID=id),
+                        label=value,
+                    )
+
+                    # (?) Artist/Maker Name Full - Mapped in the Person record
+                    name_full = get(maker, "display.value")
+                    if name_full:
+                        name = Name(
+                            ident=self.generateEntityURI(
+                                entity=Person, UUID=id, sub=["name"]
+                            ),
+                            label="Artist/Maker Full Name",
+                        )
+
+                        name.content = name_full
+
+                        name.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300404688",
+                            label="Full Names (Personal Names)",
+                        )
+
+                        person.referred_to_by = name
+
+                    # (?) Artist/Maker Life Dates - Mapped in the Person record
+
+                    # (?) Artist/Maker Nationality - Mapped in the Person record
+
+                    # Artist/Maker Name Prefix
+                    name_prefix = get(maker, "display.value_prefix")
+                    if name_prefix:
+                        name = Name(
+                            ident=self.generateEntityURI(
+                                entity=Person, UUID=id, sub=["name", "prefix"]
+                            ),
+                            label="Artist/Maker Name Prefix",
+                        )
+
+                        name.content = name_prefix
+
+                        name.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300404845",
+                            label="Prefixes (Name Additions)",
+                        )
+
+                        person.referred_to_by = name
+
+                    # Artist/Maker Name Suffix
+                    name_suffix = get(maker, "display.value_suffix")
+                    if name_suffix:
+                        name = Name(
+                            ident=self.generateEntityURI(
+                                entity=Person, UUID=id, sub=["name", "suffix"]
+                            ),
+                            label="Artist/Maker Name Suffix",
+                        )
+
+                        name.content = name_suffix
+
+                        name.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300404662",
+                            label="Suffixes (Name Additions)",
+                        )
+
+                        person.referred_to_by = name
+
+                    # Artist/Maker Display Name (including any specified prefix and/or suffix and culture and dates)
+                    name_display = get(maker, "display.value_combined")
+                    if name_display:
+                        name = Name(
+                            ident=self.generateEntityURI(
+                                entity=Person, UUID=id, sub=["name", "display"]
+                            ),
+                            label="Artist/Maker Display Name",
+                        )
+
+                        name.content = name_display
+
+                        name.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300404688",
+                            label="Full Names (Personal Names)",
+                        )
+
+                        name.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300404670",
+                            label="Preferred Term",
+                        )
+
+                        person.referred_to_by = name
+
+                    # Artist/Maker Artwork Production Role
+                    role = get(maker, "role")
+                    if role:
+                        classification = get(role, "classification")
+                        if classification and has(classification, "id"):
+                            roleType = Type(
+                                ident=get(classification, "id"),
+                                label=get(classification, "label"),
+                            )
+
+                            roleType.classified_as = Type(
+                                ident="http://vocab.getty.edu/aat/300435108",
+                                label="Roles",
+                            )
+
+                            person.classified_as = roleType
+
+                    # See https://linked.art/model/provenance/production.html#multiple-artists-with-roles
+                    production.carried_out_by = person
+
+                    # Artist/Maker Artwork Production Activity Dates
+                    dates = get(maker, "dates")
                     if dates:
-                        # Add a Name to the TimeSpan of the Prodction activity to store the display date string
-                        name = Name()
-                        name.id = self.generateEntityURI(
-                            sub=["production", id, "timespan", "name"]
+                        timespan = TimeSpan(
+                            ident=self.generateEntityURI(
+                                sub=["production", id, "timespan"]
+                            ),
+                            label="Production Dates",
                         )
-                        name._label = "Date"
-                        name.content = get(dates, "display.value")
 
-                        timespan = TimeSpan()
-                        timespan.id = self.generateEntityURI(
-                            sub=["production", id, "timespan"]
-                        )
-                        timespan.identified_by = name
+                        display = get(dates, "display.value")
+                        if display:
+                            name = Name(
+                                ident=self.generateEntityURI(
+                                    sub=["production", id, "timespan", "name"]
+                                ),
+                                label="Production Dates",
+                            )
 
-                        # Get the padded lower and upper date values
+                            name.content = display
+
+                            timespan.identified_by = name
+
                         lower = get(dates, "value.lower")
-                        upper = get(dates, "value.upper")
-
-                        # Clarify if we should treat "begin_of_the_begin" and "end_of_the_begin"
-                        # or "begin_of_the_end" and "end_of_the_end" differently than we do below
-
                         if lower:
                             timespan.begin_of_the_begin = date(
                                 format="%Y-%m-%dT%H:%M:%S",
@@ -1107,6 +1204,7 @@ class ArtifactTransformer(BaseTransformer):
                                 format_for_input_date="%Y-%m-%d %H:%M:%S",
                             )
 
+                        upper = get(dates, "value.upper")
                         if upper:
                             timespan.end_of_the_end = date(
                                 format="%Y-%m-%dT%H:%M:%S",
@@ -1114,47 +1212,125 @@ class ArtifactTransformer(BaseTransformer):
                                 format_for_input_date="%Y-%m-%d %H:%M:%S",
                             )
 
-                    # Create the Production activity instance
-                    production = Production()
-                    production.id = self.generateEntityURI(sub=["production", id])
-                    production._label = "Production of Artwork"
+                        production.timespan = timespan
+
+                    # Artist/Maker Artwork Production Took Place At
+                    created = get(maker, "place.created.display.value")
+                    if created:
+                        lobj = LinguisticObject(
+                            ident=self.generateEntityURI(
+                                sub=["production", id, "place", "created"]
+                            ),
+                            label="Place Created",
+                        )
+
+                        lobj.content = created
+
+                        lobj.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300404655",
+                            label="Place Names",
+                        )
+
+                        lobj.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300418049",
+                            label="Brief Text",
+                        )
+
+                        lobj.classified_as = Type(
+                            ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/created",
+                            label="Place Created",
+                        )
+
+                        production.referred_to_by = lobj
+
+                    activities.append(production)
+
+            production = None
+
+            if len(activities) == 1 and activities[0]:
+                production = activities[0]
+            elif len(activities) > 1:
+                production = Production(label="Production of Artwork",)
+
+                for activity in activities:
+                    production.part = activity
+
+            if production:
+                production.id = self.generateEntityURI(sub=["production"])
+
+                # Object Creation Dates
+                # Add via a TimeSpan on the `timespan` property of the Production activity
+                dates = get(data, "display.date")
+                if dates:
+                    timespan = TimeSpan(
+                        ident=self.generateEntityURI(sub=["production", "timespan"]),
+                    )
+
+                    # Add a Name to the TimeSpan of the Prodction activity to store the display date string
+                    name = Name(
+                        ident=self.generateEntityURI(
+                            sub=["production", "timespan", "name"]
+                        ),
+                        label="Date",
+                    )
+
+                    name.content = get(dates, "display.value")
+
+                    timespan.identified_by = name
+
+                    # Get the padded lower and upper date values
+                    lower = get(dates, "value.lower")
+                    upper = get(dates, "value.upper")
+
+                    if lower:
+                        timespan.begin_of_the_begin = date(
+                            format="%Y-%m-%dT%H:%M:%S",
+                            date=lower,
+                            format_for_input_date="%Y-%m-%d %H:%M:%S",
+                        )
+
+                    if upper:
+                        timespan.end_of_the_end = date(
+                            format="%Y-%m-%dT%H:%M:%S",
+                            date=upper,
+                            format_for_input_date="%Y-%m-%d %H:%M:%S",
+                        )
 
                     # Associate the Production activity TimeSpan (this is overall timespan (dates) for the creation of the Object)
                     production.timespan = timespan
 
-                    # TODO How do we add the timespan that this given artist (Person) was involved with the production of the Object?
-                    # See https://linked.art/model/provenance/production.html#multiple-artists-with-roles
-                    production.carried_out_by = person
+                # Object Place Created
+                # Add via a LinguisticObject on the `referred_to_by` property of the Production activity
+                created = get(data, "display.places.created")
+                if created:
+                    placeName = get(created, "display.value")
+                    if placeName:
+                        lobj = LinguisticObject(
+                            ident=self.generateEntityURI(sub=["place", "created"]),
+                            label="Place Created",
+                        )
 
-                    # TODO How do we assign a Place Created to each Maker's involvement, as mutliple creation places may be
-                    # involved, one (or maybe more) for each maker, for different timespans of creation of the work?
+                        lobj.content = placeName
 
-                    # Object Place Created
-                    # Add via a LinguisticObject on the referred_to_by property of the Production activity
-                    if created:
-                        placeName = get(created, "display.value")
-                        if isinstance(placeName, str) and len(placeName) > 0:
-                            lobj = LinguisticObject()
-                            lobj.id = self.generateEntityURI(sub=["place", "created"])
-                            lobj._label = "Place Created"
-                            lobj.content = placeName
-                            lobj.classified_as = Type(
-                                ident="http://vocab.getty.edu/aat/300404655",
-                                label="Place Names",
-                            )
-                            lobj.classified_as = Type(
-                                ident="http://vocab.getty.edu/aat/300418049",
-                                label="Brief Text",
-                            )
-                            lobj.classified_as = Type(
-                                ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/created",
-                                label="Place Created",
-                            )
+                        lobj.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300404655",
+                            label="Place Names",
+                        )
 
-                            production.referred_to_by = lobj
+                        lobj.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300418049",
+                            label="Brief Text",
+                        )
 
-                    entity.produced_by = production
+                        production.referred_to_by = lobj
 
-                    # TODO Fix this method for multiple makers!
-                    # For now, break out of the loop, ignoring additional makers
-                    break
+                    # If a TGN ID has been provided, map it via the `took_place_at` property
+                    if has(created, "classification.id"):
+                        place = Place(
+                            ident=get(created, "classification.id"),
+                            label=get(created, "classification.label"),
+                        )
+
+                        production.took_place_at = place
+
+                entity.produced_by = production

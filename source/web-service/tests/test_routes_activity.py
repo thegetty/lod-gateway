@@ -52,7 +52,7 @@ def sample_item():
 
 
 class TestGenerateActivityStreamItem:
-    def test_happy_path(self, activity, record, sample_item):
+    def test_typical_functionality(self, activity, record, sample_item):
 
         item = generateActivityStreamItem(activity, record=record)
         assert item == sample_item

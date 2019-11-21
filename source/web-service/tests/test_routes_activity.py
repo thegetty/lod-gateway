@@ -11,14 +11,8 @@ def base_url():
     return os.getenv("LOD_BASE_URL")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def activity():
-    record = Record()
-    record.id = 1
-    record.uuid = "2d4ae6a5-e77c-4c67-bc14-b1c6829c0f42"
-    record.entity = "Person"
-    record.namespace = "ns"
-
     activity = Activity()
     activity.id = 2
     activity.uuid = "8ed7abf6-b201-46f0-a2e4-3cc3a8512b1e"
@@ -30,7 +24,7 @@ def activity():
     return activity
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def record():
     record = Record()
     record.id = 1
@@ -41,24 +35,34 @@ def record():
     return record
 
 
+@pytest.fixture
+def sample_item():
+    return {
+        "id": "http://localhost:5100/activity-stream/8ed7abf6-b201-46f0-a2e4-3cc3a8512b1e",
+        "type": "Update",
+        "actor": None,
+        "object": {
+            "id": "http://localhost:5100/ns/person/2d4ae6a5-e77c-4c67-bc14-b1c6829c0f42",
+            "type": "Person",
+        },
+        "created": "2019-01-01T12:00:00+00:00",
+        "updated": "2019-07-04T12:00:00+00:00",
+        "published": "2019-12-25T12:00:00+00:00",
+    }
+
+
 class TestGenerateActivityStreamItem:
-    def test_happy_path(self, activity, record):
-        sample_item = {
-            "id": "http://localhost:5100/activity-stream/8ed7abf6-b201-46f0-a2e4-3cc3a8512b1e",
-            "type": "Update",
-            "actor": None,
-            "object": {
-                "id": "http://localhost:5100/ns/person/2d4ae6a5-e77c-4c67-bc14-b1c6829c0f42",
-                "type": "Person",
-            },
-            "created": "2019-01-01T12:00:00+00:00",
-            "updated": "2019-07-04T12:00:00+00:00",
-            "published": "2019-12-25T12:00:00+00:00",
-        }
+    def test_happy_path(self, activity, record, sample_item):
 
         item = generateActivityStreamItem(activity, record=record)
         assert item == sample_item
 
+    def test_namespace(self, activity, record):
+        item = generateActivityStreamItem(activity, namespace="ns", record=record)
+        assert "/ns/" in item["id"]
+        assert "/ns/" in item["object"]["id"]
+
+    # Date tests
     def test_creation_only(self, activity, record):
         activity.datetime_updated = None
         activity.datetime_published = None
@@ -70,6 +74,20 @@ class TestGenerateActivityStreamItem:
         activity.datetime_published = None
         item = generateActivityStreamItem(activity, record=record)
         assert item["published"] == item["updated"]
+
+    # Error state testing
+    def test_invalid_date(self, activity, record):
+        activity.datetime_published = "Banana"
+        with pytest.raises(ValueError):
+            item = generateActivityStreamItem(activity, record=record)
+
+    def test_missing_record(self, activity, record):
+        item = generateActivityStreamItem(activity, record=None)
+        assert item["object"] == None
+
+    def test_missing_activity(self, activity, record):
+        item = generateActivityStreamItem(None, record=record)
+        assert item == None
 
 
 class TestGenerateURL:

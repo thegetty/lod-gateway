@@ -31,10 +31,7 @@ def activityStream(path=None, namespace=None):
     )
 
     # Define our default headers to add to the response
-    headers = {
-        "Server": "MART/1.0",
-        "Access-Control-Allow-Origin": "*",
-    }
+    headers = {"Server": "MART/1.0", "Access-Control-Allow-Origin": "*"}
 
     database = DI.get("database")
     if database:
@@ -45,14 +42,14 @@ def activityStream(path=None, namespace=None):
             return Response(
                 status=500,
                 headers={
-                    **{"X-Error": "Unable to obtain database connection!",},
+                    **{"X-Error": "Unable to obtain database connection!"},
                     **headers,
                 },
             )
     else:
         return Response(
             status=500,
-            headers={**{"X-Error": "Unable to obtain database handler!",}, **headers},
+            headers={**{"X-Error": "Unable to obtain database handler!"}, **headers},
         )
 
     response = None
@@ -147,7 +144,7 @@ def activityStream(path=None, namespace=None):
             data = {
                 "@context": "https://www.w3.org/ns/activitystreams",
                 "partOf": {
-                    "id": generateURL(namespace=namespace, entity=entity),
+                    "id": _generateURL(namespace=namespace, entity=entity),
                     "type": "OrderedCollection",
                 },
             }
@@ -173,7 +170,7 @@ def activityStream(path=None, namespace=None):
                         **{
                             "X-Error": sprintf(
                                 "Activity %s was not found!" % (UUID), error=True
-                            ),
+                            )
                         },
                         **headers,
                     },
@@ -182,7 +179,7 @@ def activityStream(path=None, namespace=None):
             response = Response(
                 status=404,
                 headers={
-                    **{"X-Error": sprintf("Activity %s was not found!" % (UUID)),},
+                    **{"X-Error": sprintf("Activity %s was not found!" % (UUID))},
                     **headers,
                 },
             )
@@ -204,7 +201,7 @@ def activityStream(path=None, namespace=None):
                 response = Response(
                     status=400,
                     headers={
-                        **{"X-Error": "Unsupported Pagination Mnemonic (Current)",},
+                        **{"X-Error": "Unsupported Pagination Mnemonic (Current)"},
                         **headers,
                     },
                 )
@@ -219,7 +216,7 @@ def activityStream(path=None, namespace=None):
                         response = Response(
                             status=400,
                             headers={
-                                **{"X-Error": "Page Offset Out Of Range",},
+                                **{"X-Error": "Page Offset Out Of Range"},
                                 **headers,
                             },
                         )
@@ -231,7 +228,7 @@ def activityStream(path=None, namespace=None):
                 else:
                     response = Response(
                         status=400,
-                        headers={**{"X-Error": "Invalid Page Offset",}, **headers},
+                        headers={**{"X-Error": "Invalid Page Offset"}, **headers},
                     )
             elif isinstance(position, str):
                 response = Response(
@@ -240,7 +237,7 @@ def activityStream(path=None, namespace=None):
                         **{
                             "X-Error": sprintf(
                                 "Unsupported Pagination Mnemonic (%s)" % (position)
-                            ),
+                            )
                         },
                         **headers,
                     },
@@ -268,7 +265,7 @@ def activityStream(path=None, namespace=None):
                     "@context": "https://www.w3.org/ns/activitystreams",
                     "summary": "The Getty MART Repository's Recent Activity",
                     "type": "OrderedCollection",
-                    "id": generateURL(namespace=namespace, entity=entity),
+                    "id": _generateURL(namespace=namespace, entity=entity),
                     "startIndex": start,
                     "totalItems": count,
                     "totalPages": pages,
@@ -276,21 +273,21 @@ def activityStream(path=None, namespace=None):
                 }
 
                 # data["meta"] = {
-                # 	"path":      path,
-                # 	"uuid":      UUID,
-                # 	"namespace": namespace,
-                # 	"entity":    entity,
-                # 	"position":  position,
-                # 	"count":     count,
-                # 	"offset":    offset,
-                # 	"limit":     limit,
-                # 	"previous":  previous,
-                # 	"current":   current,
-                # 	"next":      next,
-                # 	"first":     first,
-                # 	"last":      last,
-                # 	"page":      page,
-                # 	"query":     query,
+                #   "path":      path,
+                #   "uuid":      UUID,
+                #   "namespace": namespace,
+                #   "entity":    entity,
+                #   "position":  position,
+                #   "count":     count,
+                #   "offset":    offset,
+                #   "limit":     limit,
+                #   "previous":  previous,
+                #   "current":   current,
+                #   "next":      next,
+                #   "first":     first,
+                #   "last":      last,
+                #   "page":      page,
+                #   "query":     query,
                 # }
                 #
                 # debug(data, format="JSON")
@@ -303,7 +300,7 @@ def activityStream(path=None, namespace=None):
                         if offset == 0:
                             if first:
                                 data["first"] = {
-                                    "id": generateURL(
+                                    "id": _generateURL(
                                         namespace=namespace,
                                         entity=entity,
                                         sub=["page", str(first)],
@@ -313,7 +310,7 @@ def activityStream(path=None, namespace=None):
 
                             if last:
                                 data["last"] = {
-                                    "id": generateURL(
+                                    "id": _generateURL(
                                         namespace=namespace,
                                         entity=entity,
                                         sub=["page", str(last)],
@@ -321,20 +318,20 @@ def activityStream(path=None, namespace=None):
                                     "type": "OrderedCollectionPage",
                                 }
                         else:
-                            data["id"] = generateURL(
+                            data["id"] = _generateURL(
                                 namespace=namespace,
                                 entity=entity,
                                 sub=["page", str(offset)],
                             )
 
                             data["partOf"] = {
-                                "id": generateURL(namespace=namespace, entity=entity),
+                                "id": _generateURL(namespace=namespace, entity=entity),
                                 "type": "OrderedCollection",
                             }
 
                             if first:
                                 data["first"] = {
-                                    "id": generateURL(
+                                    "id": _generateURL(
                                         namespace=namespace,
                                         entity=entity,
                                         sub=["page", str(first)],
@@ -344,7 +341,7 @@ def activityStream(path=None, namespace=None):
 
                             if last:
                                 data["last"] = {
-                                    "id": generateURL(
+                                    "id": _generateURL(
                                         namespace=namespace,
                                         entity=entity,
                                         sub=["page", str(last)],
@@ -354,7 +351,7 @@ def activityStream(path=None, namespace=None):
 
                             if previous:
                                 data["prev"] = {
-                                    "id": generateURL(
+                                    "id": _generateURL(
                                         namespace=namespace,
                                         entity=entity,
                                         sub=["page", str(previous)],
@@ -364,7 +361,7 @@ def activityStream(path=None, namespace=None):
 
                             if next:
                                 data["next"] = {
-                                    "id": generateURL(
+                                    "id": _generateURL(
                                         namespace=namespace,
                                         entity=entity,
                                         sub=["page", str(next)],
@@ -396,7 +393,7 @@ def activityStream(path=None, namespace=None):
                                     json.dumps(data, indent=4),
                                     headers={
                                         **{
-                                            "Content-Type": "application/activity+json;charset=UTF-8",
+                                            "Content-Type": "application/activity+json;charset=UTF-8"
                                         },
                                         **headers,
                                     },
@@ -407,7 +404,7 @@ def activityStream(path=None, namespace=None):
                                     status=404,
                                     headers={
                                         **{
-                                            "X-Error": "Activity Stream Items Not Found",
+                                            "X-Error": "Activity Stream Items Not Found"
                                         },
                                         **headers,
                                     },
@@ -416,7 +413,7 @@ def activityStream(path=None, namespace=None):
                         response = Response(
                             status=404,
                             headers={
-                                **{"X-Error": "Activity Stream Items Not Found",},
+                                **{"X-Error": "Activity Stream Items Not Found"},
                                 **headers,
                             },
                         )
@@ -424,7 +421,7 @@ def activityStream(path=None, namespace=None):
                     response = Response(
                         status=404,
                         headers={
-                            **{"X-Error": "Activity Stream Items Not Found",},
+                            **{"X-Error": "Activity Stream Items Not Found"},
                             **headers,
                         },
                     )
@@ -434,7 +431,7 @@ def activityStream(path=None, namespace=None):
                         json.dumps(data, indent=4),
                         headers={
                             **{
-                                "Content-Type": "application/activity+json;charset=UTF-8",
+                                "Content-Type": "application/activity+json;charset=UTF-8"
                             },
                             **headers,
                         },
@@ -443,20 +440,17 @@ def activityStream(path=None, namespace=None):
         else:
             response = Response(
                 status=404,
-                headers={**{"X-Error": "No Activity Stream Items Found!",}, **headers},
+                headers={**{"X-Error": "No Activity Stream Items Found!"}, **headers},
             )
     else:
         response = Response(
             status=500,
-            headers={
-                **{"X-Error": "Invalid Activity Stream Record Count!",},
-                **headers,
-            },
+            headers={**{"X-Error": "Invalid Activity Stream Record Count!"}, **headers},
         )
 
     if not isinstance(response, Response):
         response = Response(
-            status=500, headers={**{"X-Error": "Invalid Response Data",}, **headers}
+            status=500, headers={**{"X-Error": "Invalid Response Data"}, **headers}
         )
 
     database.disconnect(connection=connection)
@@ -464,96 +458,32 @@ def activityStream(path=None, namespace=None):
     return response
 
 
-def generateActivityStreamItem(activity, **kwargs):
-    debug(
-        "generateActivityStreamItem(activity: %s, kwargs: %s) called..."
-        % (activity, kwargs),
-        level=1,
-    )
+def generateActivityStreamItem(activity, namespace=None, entity=None, record=None):
 
-    namespace = get(kwargs, "namespace")
-    entity = get(kwargs, "entity")
-    record = get(kwargs, "record")
+    if activity == None:
+        return None
 
-    if isinstance(activity, Activity):
-        item = {
-            "id": generateURL(namespace=namespace, entity=entity, sub=[activity.uuid]),
-            "type": activity.event,
-            "actor": None,
-            "object": None,
-            "created": None,
-            "updated": None,
-            "published": None,
-        }
+    item = {
+        "id": _generateURL(namespace=namespace, entity=entity, sub=[activity.uuid]),
+        "type": activity.event,
+        "created": _formatDate(activity.datetime_created),
+        "actor": None,
+        "updated": _formatDate(activity.datetime_updated),
+        "published": _formatDate(activity.datetime_published),
+        "object": _generateActivityStreamObject(record),
+    }
 
-        created = activity.datetime_created
-        if created:
-            created = datetime.strptime(created, "%Y-%m-%d %H:%M:%S%z")
-            if created:
-                created = date("%Y-%m-%dT%H:%M:%S%z", timestamp=created)
-                if created:
-                    # Fix the timezone offset to add minute separator, as %Z does not work as documented for 3.7+
-                    created = created[:-2] + ":" + created[-2:]
+    if item["updated"] == None:
+        item["updated"] = item["created"]
 
-        updated = activity.datetime_updated
-        if updated:
-            updated = datetime.strptime(updated, "%Y-%m-%d %H:%M:%S%z")
-            if updated:
-                updated = date("%Y-%m-%dT%H:%M:%S%z", timestamp=updated)
-                if updated:
-                    # Fix the timezone offset to add minute separator, as %Z does not work as documented for 3.7+
-                    updated = updated[:-2] + ":" + updated[-2:]
+    if item["published"] == None:
+        item["published"] = item["updated"]
 
-        published = activity.datetime_published
-        if published:
-            published = datetime.strptime(published, "%Y-%m-%d %H:%M:%S%z")
-            if published:
-                published = date("%Y-%m-%dT%H:%M:%S%z", timestamp=published)
-                if published:
-                    # Fix the timezone offset to add minute separator, as %Z does not work as documented for 3.7+
-                    published = published[:-2] + ":" + published[-2:]
-
-        if created:
-            item["created"] = created
-
-        if updated:
-            item["updated"] = updated
-        elif created:
-            item["updated"] = created
-
-        if published:
-            item["published"] = published
-        else:
-            if updated:
-                item["published"] = updated
-            elif created:
-                item["published"] = created
-
-        if isinstance(record, Record):
-            _entity = hyphenatedStringFromCamelCasedString(record.entity)
-
-            item["object"] = {
-                "id": generateURL(
-                    sub=[record.namespace, _entity, record.uuid], base=True
-                ),
-                "type": record.entity,
-            }
-        else:
-            debug(
-                "generateActivityStreamItem() Related Record for %s was invalid!"
-                % (activity),
-                error=True,
-            )
-
-        return item
-    else:
-        debug("generateActivityStreamItem() Provided Activity was invalid!", error=True)
-
-    return None
+    return item
 
 
-def generateURL(**kwargs):
-    debug("generateURL(kwargs: %s) called..." % (kwargs), level=1)
+def _generateURL(**kwargs):
+    debug("_generateURL(kwargs: %s) called..." % (kwargs), level=1)
 
     URL = os.getenv("LOD_BASE_URL", None)
 
@@ -578,3 +508,49 @@ def generateURL(**kwargs):
         return URL
 
     return None
+
+
+def _formatDate(date_string):
+    """Convert a timestampz into a XML DateTime Object
+    
+    Args:
+        date_string (string): The timestamp representation
+    
+    Returns:
+        String: the XML DateTime Representation, or None if passed None
+
+    Raises:
+        ValueError on failure to parse a passed date
+    """
+    if date_string == None:
+        return None
+
+    try:
+        val = datetime.strptime(date_string, "%Y-%m-%d %H:%M:%S%z")
+        val = date("%Y-%m-%dT%H:%M:%S%z", timestamp=val)
+        # Fix the timezone offset to add minute separator, as %Z does not work as documented for 3.7+
+        val = val[:-2] + ":" + val[-2:]
+        return val
+    except:
+        raise ValueError()
+
+
+def _generateActivityStreamObject(record):
+    """Generate the AS representation of a Record
+    
+    Args:
+        record (Record): The object or generate
+    
+    Returns:
+        Dict: The AS representation of the object, or None if ther record is invalid
+    """
+    try:
+        record_type = hyphenatedStringFromCamelCasedString(record.entity)
+        return {
+            "id": _generateURL(
+                sub=[record.namespace, record_type, record.uuid], base=True
+            ),
+            "type": record.entity,
+        }
+    except Exception as e:
+        return None

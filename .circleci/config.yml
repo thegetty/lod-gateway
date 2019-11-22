@@ -3,18 +3,31 @@ version: 2
 # define our test jobs
 jobs:
     build:
-        machine: true
-        
-        environment:
-            TEST_RESULTS: /tmp/test-results
+        machine: 
+            docker_layer_caching: true
         
         steps:
-            # checkout the repository
             - checkout
-            # create test results folder
-            - run: mkdir -p $TEST_RESULTS
-            - store_artifacts:
-                path: /tmp/test-results
-                destination: raw-test-results
+            - run: mkdir -p /tmp/output
+            - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
+
+            # Validate code linting using Black 
+            - run: docker run lod-gateway-web-service black --check .
+
+            # Run unit tests using pytest
+            - run: >
+                docker run
+                --env-file .env.example 
+                --volume /tmp/output:/output 
+                lod-gateway-web-service 
+                pytest 
+                --junitxml=/output/test-results/pytest/junit.xml 
+                --cov=flaskapp 
+                --cov-report html:/output/test-reports/pytest
+
             - store_test_results:
-                path: /tmp/test-results
+                path: /tmp/output/test-results
+
+            - store_artifacts:
+                path: /tmp/output/test-reports
+                destination: reports

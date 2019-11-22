@@ -1,7 +1,9 @@
 git+https://github.com/thegetty/crom.git@2fb4971f05aa2faa66c786ef185e2c5762151b92#egg=cromulent
 flask==1.1.1
+black==19.10b0
 pytest==5.0.1
 pytest-watch==4.2.0
+pytest-cov==2.8.1
 requests==2.22.0
 uWSGI==2.0.18
 psycopg2==2.8.3

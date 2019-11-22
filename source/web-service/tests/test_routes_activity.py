@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from flaskapp.routes.activity import generateURL, generateActivityStreamItem
+from flaskapp.routes.activity import _generateURL, generateActivityStreamItem
 from app.model import Activity, Record
 
 
@@ -92,42 +92,42 @@ class TestGenerateActivityStreamItem:
 
 class TestGenerateURL:
     def test_without_params(self, base_url):
-        assert generateURL() == f"{base_url}/activity-stream"
+        assert _generateURL() == f"{base_url}/activity-stream"
 
     def test_with_namespace(self, base_url):
-        url = generateURL(namespace="namespace")
+        url = _generateURL(namespace="namespace")
         assert url == f"{base_url}/namespace/activity-stream"
 
     def test_with_blank_namespace(self, base_url):
-        url = generateURL(namespace="")
+        url = _generateURL(namespace="")
         assert url == f"{base_url}/activity-stream"
 
     def test_with_base(self, base_url):
-        url = generateURL(base=True)
+        url = _generateURL(base=True)
         assert url == f"{base_url}"
 
     def test_with_entity(self, base_url):
-        url = generateURL(entity="entity")
+        url = _generateURL(entity="entity")
         assert url == f"{base_url}/activity-stream/entity"
 
     def test_with_base_and_namepace(self, base_url):
-        url = generateURL(base=True, namespace="namespace")
+        url = _generateURL(base=True, namespace="namespace")
         assert url == f"{base_url}/namespace"
 
     def test_with_sub(self, base_url):
-        url = generateURL(sub=["a", "b"])
+        url = _generateURL(sub=["a", "b"])
         assert url == f"{base_url}/activity-stream/a/b"
 
     def test_with_entity_and_sub(self, base_url):
-        url = generateURL(entity="entity", sub=["a", "b"])
+        url = _generateURL(entity="entity", sub=["a", "b"])
         assert url == f"{base_url}/activity-stream/entity/a/b"
 
     def test_with_entity_namspace_sub(self, base_url):
-        url = generateURL(entity="entity", namespace="namespace", sub=["a", "b"])
+        url = _generateURL(entity="entity", namespace="namespace", sub=["a", "b"])
         assert url == f"{base_url}/namespace/activity-stream/entity/a/b"
 
     def test_with_everything(self, base_url):
-        url = generateURL(
+        url = _generateURL(
             base=True, entity="entity", namespace="namespace", sub=["a", "b"]
         )
         assert url == f"{base_url}/namespace/entity/a/b"
@@ -135,15 +135,15 @@ class TestGenerateURL:
     # These ones do not function the way I would have expected.
     @pytest.mark.xfail
     def test_with_non_string_namespace(self, base_url):
-        url = generateURL(namespace=5000)
+        url = _generateURL(namespace=5000)
         assert url == f"{base_url}/5000/activity-stream"
 
     @pytest.mark.xfail
     def test_with_non_string_entity(self, base_url):
-        url = generateURL(entity=5000)
+        url = _generateURL(entity=5000)
         assert url == f"{base_url}/activity-stream/5000"
 
     @pytest.mark.xfail
     def test_with_blank_entity(self, base_url):
         with pytest.raises(ValueError):
-            url = generateURL(entity="")
+            url = _generateURL(entity="")

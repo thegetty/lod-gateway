@@ -721,6 +721,26 @@ class ArtifactTransformer(BaseTransformer):
 
                         entity.carries = lobj
 
+    # Map Object Place Created
+    def mapPlaceCreated(self, entity, data):
+        created = get(data, "display.places.created.display.value")
+        if created:
+            lobj = LinguisticObject()
+            lobj.id = self.generateEntityURI(sub=["place", "created"])
+            lobj._label = "Place Created"
+            lobj.content = created
+
+            lobj.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300435448", label="Creation Place Description"
+            )
+
+            lobj.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300418049", label="Brief Text"
+            )
+
+            entity.referred_to_by = lobj
+
+
     # Map Object Place Depicted
     def mapPlaceDepicted(self, entity, data):
         depicted = get(data, "display.places.depicted.display.value")
@@ -1214,35 +1234,6 @@ class ArtifactTransformer(BaseTransformer):
 
                         production.timespan = timespan
 
-                    # Artist/Maker Artwork Production Took Place At
-                    created = get(maker, "place.created.display.value")
-                    if created:
-                        lobj = LinguisticObject(
-                            ident=self.generateEntityURI(
-                                sub=["production", id, "place", "created"]
-                            ),
-                            label="Place Created",
-                        )
-
-                        lobj.content = created
-
-                        lobj.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300404655",
-                            label="Place Names",
-                        )
-
-                        lobj.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300418049",
-                            label="Brief Text",
-                        )
-
-                        lobj.classified_as = Type(
-                            ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/place/created",
-                            label="Place Created",
-                        )
-
-                        production.referred_to_by = lobj
-
                     activities.append(production)
 
             production = None
@@ -1298,39 +1289,5 @@ class ArtifactTransformer(BaseTransformer):
 
                     # Associate the Production activity TimeSpan (this is overall timespan (dates) for the creation of the Object)
                     production.timespan = timespan
-
-                # Object Place Created
-                # Add via a LinguisticObject on the `referred_to_by` property of the Production activity
-                created = get(data, "display.places.created")
-                if created:
-                    placeName = get(created, "display.value")
-                    if placeName:
-                        lobj = LinguisticObject(
-                            ident=self.generateEntityURI(sub=["place", "created"]),
-                            label="Place Created",
-                        )
-
-                        lobj.content = placeName
-
-                        lobj.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300404655",
-                            label="Place Names",
-                        )
-
-                        lobj.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300418049",
-                            label="Brief Text",
-                        )
-
-                        production.referred_to_by = lobj
-
-                    # If a TGN ID has been provided, map it via the `took_place_at` property
-                    if has(created, "classification.id"):
-                        place = Place(
-                            ident=get(created, "classification.id"),
-                            label=get(created, "classification.label"),
-                        )
-
-                        production.took_place_at = place
 
                 entity.produced_by = production

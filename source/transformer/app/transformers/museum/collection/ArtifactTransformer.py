@@ -731,7 +731,8 @@ class ArtifactTransformer(BaseTransformer):
             lobj.content = created
 
             lobj.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300435448", label="Creation Place Description"
+                ident="http://vocab.getty.edu/aat/300435448",
+                label="Creation Place Description",
             )
 
             lobj.classified_as = Type(
@@ -739,7 +740,6 @@ class ArtifactTransformer(BaseTransformer):
             )
 
             entity.referred_to_by = lobj
-
 
     # Map Object Place Depicted
     def mapPlaceDepicted(self, entity, data):
@@ -1083,95 +1083,34 @@ class ArtifactTransformer(BaseTransformer):
                         label="Production of Artwork",
                     )
 
+                    # Artist/Maker Display Name (including any specified prefix and/or suffix and culture and dates)
+                    name_display = get(maker, "display.value_combined")
+                    if name_display:
+                        lobj = LinguisticObject(
+                            ident=self.generateEntityURI(
+                                sub=["production", id, "producer-description"]
+                            ),
+                            label="Artist/Maker (Producer) Description",
+                        )
+
+                        lobj.content = name_display
+
+                        lobj.classified_as = Type(
+                            ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/producer-description",
+                            label="Producer Description",
+                        )
+
+                        lobj.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300418049",
+                            label="Brief Text",
+                        )
+
+                        production.referred_to_by = lobj
+
                     person = Person(
                         ident=self.generateEntityURI(entity=Person, UUID=id),
                         label=value,
                     )
-
-                    # (?) Artist/Maker Name Full - Mapped in the Person record
-                    name_full = get(maker, "display.value")
-                    if name_full:
-                        name = Name(
-                            ident=self.generateEntityURI(
-                                entity=Person, UUID=id, sub=["name"]
-                            ),
-                            label="Artist/Maker Full Name",
-                        )
-
-                        name.content = name_full
-
-                        name.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300404688",
-                            label="Full Names (Personal Names)",
-                        )
-
-                        person.referred_to_by = name
-
-                    # (?) Artist/Maker Life Dates - Mapped in the Person record
-
-                    # (?) Artist/Maker Nationality - Mapped in the Person record
-
-                    # Artist/Maker Name Prefix
-                    name_prefix = get(maker, "display.value_prefix")
-                    if name_prefix:
-                        name = Name(
-                            ident=self.generateEntityURI(
-                                entity=Person, UUID=id, sub=["name", "prefix"]
-                            ),
-                            label="Artist/Maker Name Prefix",
-                        )
-
-                        name.content = name_prefix
-
-                        name.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300404845",
-                            label="Prefixes (Name Additions)",
-                        )
-
-                        person.referred_to_by = name
-
-                    # Artist/Maker Name Suffix
-                    name_suffix = get(maker, "display.value_suffix")
-                    if name_suffix:
-                        name = Name(
-                            ident=self.generateEntityURI(
-                                entity=Person, UUID=id, sub=["name", "suffix"]
-                            ),
-                            label="Artist/Maker Name Suffix",
-                        )
-
-                        name.content = name_suffix
-
-                        name.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300404662",
-                            label="Suffixes (Name Additions)",
-                        )
-
-                        person.referred_to_by = name
-
-                    # Artist/Maker Display Name (including any specified prefix and/or suffix and culture and dates)
-                    name_display = get(maker, "display.value_combined")
-                    if name_display:
-                        name = Name(
-                            ident=self.generateEntityURI(
-                                entity=Person, UUID=id, sub=["name", "display"]
-                            ),
-                            label="Artist/Maker Display Name",
-                        )
-
-                        name.content = name_display
-
-                        name.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300404688",
-                            label="Full Names (Personal Names)",
-                        )
-
-                        name.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300404670",
-                            label="Preferred Term",
-                        )
-
-                        person.referred_to_by = name
 
                     # Artist/Maker Artwork Production Role
                     role = get(maker, "role")

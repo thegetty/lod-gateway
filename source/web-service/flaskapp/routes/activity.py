@@ -542,7 +542,7 @@ def _generateActivityStreamObject(record):
         record (Record): The object or generate
     
     Returns:
-        Dict: The AS representation of the object, or None if ther record is invalid
+        Dict: The AS representation of the object, or None if the record is invalid
     """
     try:
         record_type = hyphenatedStringFromCamelCasedString(record.entity)

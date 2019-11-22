@@ -5,16 +5,11 @@ jobs:
     build:
         machine: true
         
-        environment:
-            TEST_RESULTS: /tmp/test-results
-        
         steps:
-            # checkout the repository
             - checkout
-            # create test results folder
-            - run: mkdir -p $TEST_RESULTS
-            - store_artifacts:
-                path: /tmp/test-results
-                destination: raw-test-results
+            - run: mkdir -p /tmp/test-results
+            - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
+            - run: docker run --env-file .env.example --volume /tmp/test-results:/test-results lod-gateway-web-service pytest --junitxml=/test-results/pytest/junit.xml
+
             - store_test_results:
                 path: /tmp/test-results

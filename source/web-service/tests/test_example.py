@@ -3,4 +3,4 @@ class TestTesting:
         assert 1 + 1 == 2
 
     def test_failure:
-        assert 1+1 = 5
+        assert 1 + 1 == 5

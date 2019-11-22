@@ -13,7 +13,7 @@ jobs:
             - run: docker run lod-gateway-web-service black --check .
             - run: 
                  command: >
-                    docker run \
+                    docker run
                         --env-file .env.example 
                         --volume /tmp/lod-gateway-web-service/output:/output 
                         lod-gateway-web-service 

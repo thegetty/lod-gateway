@@ -8,12 +8,12 @@ jobs:
         
         steps:
             - checkout
-            - run: mkdir -p /tmp/test-results
+            - run: mkdir -p /tmp/lod-gateway-web-service/output
             - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
-            - run: docker run --env-file .env.example --volume /tmp/test-results:/test-results lod-gateway-web-service pytest --junitxml=/test-results/pytest/junit.xml
+            - run: docker run --env-file .env.example --volume /tmp/lod-gateway-web-service/output:/output lod-gateway-web-service pytest --junitxml=/output/test-results/pytest/junit.xml
 
             - store_test_results:
-                path: /tmp/test-results
+                path: /tmp/lod-gateway-web-service/output/test-results
 
             - store_artifacts:
-                path: /tmp/test-reports
+                path: /tmp/lod-gateway-web-service/output/test-reports

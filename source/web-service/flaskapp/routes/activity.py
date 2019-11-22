@@ -482,32 +482,28 @@ def generateActivityStreamItem(activity, namespace=None, entity=None, record=Non
     return item
 
 
-def _generateURL(**kwargs):
-    debug("_generateURL(kwargs: %s) called..." % (kwargs), level=1)
+def _generateURL(namespace=None, entity=None, sub=[], base=False):
+    """Create a URL string from relevant fragments
+    
+    Args:
+        namespace (String, optional): A namespace for the URL
+        entity (String, optional): The ID of the entity
+        sub (list, optional): A list of additional URL parts
+        base (bool, optional): Should the "activity-stream" part be added?
+    
+    Returns:
+        String: The generated URL string
+    """
+    base_url = os.getenv("LOD_BASE_URL", "")
 
-    URL = os.getenv("LOD_BASE_URL", None)
+    if base:
+        as_prefix = None
+    else:
+        as_prefix = "activity-stream"
 
-    if URL:
-        if "namespace" in kwargs:
-            if isinstance(kwargs["namespace"], str) and len(kwargs["namespace"]) > 0:
-                URL += "/" + kwargs["namespace"]
-
-        if get(kwargs, "base", default=False) == False:
-            URL += "/activity-stream"
-
-        if "entity" in kwargs:
-            if isinstance(kwargs["entity"], str) and len(kwargs["entity"]) > 0:
-                URL += "/" + kwargs["entity"]
-
-        if "sub" in kwargs:
-            if isinstance(kwargs["sub"], list) and len(kwargs["sub"]) > 0:
-                for sub in kwargs["sub"]:
-                    if isinstance(sub, str) and len(sub) > 0:
-                        URL += "/" + sub
-
-        return URL
-
-    return None
+    parts = [base_url, namespace, as_prefix, entity, "/".join(sub)]
+    parts = [item for item in parts if item]
+    return "/".join(parts)
 
 
 def _formatDate(date_string):

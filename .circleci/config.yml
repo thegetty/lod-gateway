@@ -4,6 +4,7 @@ version: 2
 jobs:
     build:
         machine: true
+            docker_layer_caching: true
         
         steps:
             - checkout
@@ -13,3 +14,6 @@ jobs:
 
             - store_test_results:
                 path: /tmp/test-results
+
+            - store_artifacts:
+                path: /tmp/test-reports

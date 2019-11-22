@@ -8,13 +8,17 @@ jobs:
         
         steps:
             - checkout
-            - run: mkdir -p /tmp/lod-gateway-web-service/output
+            - run: mkdir -p /tmp/output
             - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
+
+            # Validate code linting using Black 
             - run: docker run lod-gateway-web-service black --check .
+
+            # Run unit tests using pytest
             - run: >
                 docker run
                 --env-file .env.example 
-                --volume /tmp/lod-gateway-web-service/output:/output 
+                --volume /tmp/output:/output 
                 lod-gateway-web-service 
                 pytest 
                 --junitxml=/output/test-results/pytest/junit.xml 
@@ -22,7 +26,8 @@ jobs:
                 --cov-report html:/output/test-reports/pytest
 
             - store_test_results:
-                path: /tmp/lod-gateway-web-service/output/test-results
+                path: /tmp/output/test-results
 
             - store_artifacts:
-                path: /tmp/lod-gateway-web-service/output/test-reports
+                path: /tmp/output/test-reports
+                destination: reports

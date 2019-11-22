@@ -14,13 +14,13 @@ jobs:
             - run: 
                  command: >
                     docker run
-                        --env-file .env.example 
-                        --volume /tmp/lod-gateway-web-service/output:/output 
-                        lod-gateway-web-service 
-                        pytest 
-                            --junitxml=/output/test-results/pytest/junit.xml 
-                            --cov=flaskapp 
-                            --cov-report html:/output/test-reports/pytest
+                    --env-file .env.example 
+                    --volume /tmp/lod-gateway-web-service/output:/output 
+                    lod-gateway-web-service 
+                    pytest 
+                    --junitxml=/output/test-results/pytest/junit.xml 
+                    --cov=flaskapp 
+                    --cov-report html:/output/test-reports/pytest
 
             - store_test_results:
                 path: /tmp/lod-gateway-web-service/output/test-results

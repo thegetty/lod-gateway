@@ -11,16 +11,15 @@ jobs:
             - run: mkdir -p /tmp/lod-gateway-web-service/output
             - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
             - run: docker run lod-gateway-web-service black --check .
-            - run: 
-                 command: >
-                    docker run
-                    --env-file .env.example 
-                    --volume /tmp/lod-gateway-web-service/output:/output 
-                    lod-gateway-web-service 
-                    pytest 
-                    --junitxml=/output/test-results/pytest/junit.xml 
-                    --cov=flaskapp 
-                    --cov-report html:/output/test-reports/pytest
+            - run: >
+                docker run
+                --env-file .env.example 
+                --volume /tmp/lod-gateway-web-service/output:/output 
+                lod-gateway-web-service 
+                pytest 
+                --junitxml=/output/test-results/pytest/junit.xml 
+                --cov=flaskapp 
+                --cov-report html:/output/test-reports/pytest
 
             - store_test_results:
                 path: /tmp/lod-gateway-web-service/output/test-results

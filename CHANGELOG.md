@@ -2,6 +2,12 @@
 
 Any notable changes to the LOD Gateway that affect either functionality or output will be documented in this file (the format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)).
 
+## [Unreleased] 2019-11-22
+
+## Changed
+
+* Changed the mapping of an Object's "Place Created" property. This is now available via the `content` property of a `LinguisticObject` mapped within the Object record's top-level `referred_to_by` property and is classified with the AAT "Creation Place Description" (300435448) and "Brief Text" (300418049) terms [[DEV-3104](https://jira.getty.edu/browse/DEV-3104)].
+
 ## [Unreleased] 2019-11-15
 
 ## Changed

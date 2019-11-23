@@ -8,6 +8,8 @@ Any notable changes to the LOD Gateway that affect either functionality or outpu
 
 * Changed the mapping of an Object's "Place Created" property. This is now available via the `content` property of a `LinguisticObject` mapped within the Object record's top-level `referred_to_by` property and is classified with the AAT "Creation Place Description" (300435448) and "Brief Text" (300418049) terms [[DEV-3104](https://jira.getty.edu/browse/DEV-3104)].
 
+* Changed the mapping of an Object's _Unknown_ artist/makers. These now use a non de-reference-able `unknown-maker` URL for the `Person` entity, and have a `close_match` relationship to the ULAN "Unknown Person (Concept)" (500125274) term to clearly distinguish these references as conceptual, rather than concrete, unlike the known artist/maker relationships [[DEV-3022](https://jira.getty.edu/browse/DEV-3022)].
+
 ## Added
 
 + Added a mapping for display strings for an Object's artist/makers; these have been added as a `LinguisticObject` within the Object's Production activity (for works with one maker) or activities (for works with multiple makers). These `LinguisticObject` entities are classified with a custom "Producer Description" and AAT "Brief Text" (300418049) terms [[DEV-3106](https://jira.getty.edu/browse/DEV-3106)].

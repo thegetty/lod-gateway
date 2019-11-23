@@ -1107,10 +1107,29 @@ class ArtifactTransformer(BaseTransformer):
 
                         production.referred_to_by = lobj
 
-                    person = Person(
-                        ident=self.generateEntityURI(entity=Person, UUID=id),
-                        label=value,
-                    )
+                    ulanID = get(maker, "ulan.id")
+                    if (
+                        ulanID == "http://vocab.getty.edu/ulan/500125274"
+                    ):  # Unknown maker
+                        person = Person(
+                            ident="https://data.getty.edu/museum/collection/person/unknown-maker",
+                            label=value,
+                        )
+
+                        person.classified_as = Type(
+                            ident="http://vocab.getty.edu/aat/300025103",
+                            label="Artists (Visual Artists)",
+                        )
+
+                        person.close_match = Type(
+                            ident="http://vocab.getty.edu/ulan/500125274",
+                            label="Unknown Person (Concept)",
+                        )
+                    else:
+                        person = Person(
+                            ident=self.generateEntityURI(entity=Person, UUID=id),
+                            label=value,
+                        )
 
                     # Artist/Maker Artwork Production Role
                     role = get(maker, "role")

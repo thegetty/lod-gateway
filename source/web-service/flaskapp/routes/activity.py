@@ -18,6 +18,11 @@ from app.utilities import (
 )
 from app.di import DI
 from app.model import Activity
+from flaskapp.routes.utilities import (
+    errorResponse,
+    DEFAULT_HEADERS,
+    instantiateDatabase,
+)
 
 
 # Create a new "activity" route blueprint
@@ -31,12 +36,12 @@ activity = Blueprint("activity", __name__)
 def activityStream(path=None, namespace=None):
 
     namespace = os.getenv("LOD_DEFAULT_URL_NAMESPACE", None)
-    headers = {"Server": "MART/1.0", "Access-Control-Allow-Origin": "*"}
+    headers = DEFAULT_HEADERS
     limit = _getLimit(request)
     offset = request.args.get("offset", default=0, type=int)
     paths, position, page, UUID, entity = _parsePath(path)
 
-    database, connection, error_response = _instantiateDatabase(headers)
+    database, connection, error_response = instantiateDatabase()
     if error_response:
         return error_response
 
@@ -151,29 +156,6 @@ def _generateActivityStreamObject(record):
         }
     except Exception as e:
         return None
-
-
-def _instantiateDatabase(headers):
-    response = None
-    database = DI.get("database")
-    if database:
-        connection = database.connect(autocommit=True)
-        if connection:
-            DI.set("connection", connection)
-        else:
-            response = Response(
-                status=500,
-                headers={
-                    **{"X-Error": "Unable to obtain database connection!"},
-                    **headers,
-                },
-            )
-    else:
-        response = Response(
-            status=500,
-            headers={**{"X-Error": "Unable to obtain database handler!"}, **headers},
-        )
-    return database, connection, response
 
 
 def _parsePath(path):

@@ -29,6 +29,9 @@ def create_app():
     app.config["DEFAULT_URL_NAMESPACE"] = os.environ["LOD_DEFAULT_URL_NAMESPACE"]
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["JSON_SORT_KEYS"] = False
+    app.config["ITEMS_PER_PAGE"] = 100
+    app.config["AS_DESC"] = os.environ["LOD_AS_DESC"]
 
     db.init_app(app)
 

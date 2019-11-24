@@ -1,9 +1,11 @@
 import os
+import json
 
 import pytest
 
 from flaskapp.routes.activity import _generateURL, generateActivityStreamItem
 from app.model import Activity, Record
+from flaskapp.models import Activities
 
 
 @pytest.fixture(scope="module")
@@ -49,6 +51,44 @@ def sample_item():
         "updated": "2019-07-04T12:00:00+00:00",
         "published": "2019-12-25T12:00:00+00:00",
     }
+
+
+class TestBaseRoute:
+    def test_typical_functonality(self, client, sample_data, current_app):
+        current_app.config["AS_DESC"] = "desc"
+        url = "/museum/collection/activity-stream"
+        response = client.get(url)
+        payload = json.loads(response.data)
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "application/json"
+        assert response.headers["Access-Control-Allow-Origin"] == "*"
+        assert payload["type"] == "OrderedCollection"
+        assert payload["summary"] == "desc"
+        assert url in payload["id"]
+        assert f"{url}/page/1" in payload["first"]["id"]
+
+    def test_default_namespace(self, client, current_app, test_db):
+        current_app.config["DEFAULT_URL_NAMESPACE"] = "ns"
+        response = client.get(f"/ns/activity-stream")
+        payload = json.loads(response.data)
+        assert response.status_code == 200
+        assert "/ns/activity-stream" in payload["id"]
+        assert "/ns/activity-stream" in payload["first"]["id"]
+
+    def test_item_count(self, client, sample_activity):
+        response = client.get(f"/ns/activity-stream")
+        assert json.loads(response.data)["totalItems"] == 0
+        sample_activity(1)
+        response = client.get(f"/ns/activity-stream")
+        assert json.loads(response.data)["totalItems"] == 1
+
+    def test_pagination(self, client, current_app, sample_activity):
+        current_app.config["ITEMS_PER_PAGE"] = 2
+        sample_activity(1)
+        sample_activity(2)
+        sample_activity(3)
+        response = client.get(f"/ns/activity-stream")
+        assert "page/2" in json.loads(response.data)["last"]["id"]
 
 
 class TestGenerateActivityStreamItem:

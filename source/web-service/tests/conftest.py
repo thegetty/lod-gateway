@@ -1,9 +1,10 @@
 from datetime import datetime
 
+from uuid import uuid4
 import pytest
 
 from flaskapp import create_app
-from flaskapp.models import db, Records
+from flaskapp.models import db, Records, Activities
 
 
 @pytest.fixture
@@ -31,19 +32,52 @@ def client(app):
 
 
 @pytest.fixture
-def sample_data(current_app):
+def test_db(current_app):
     if current_app.config["ENV"] == "production":
         pytest.exit("Do not run tests that blow away the database in production.")
     db.drop_all()
     db.create_all()
-    test_record = Records(
-        uuid="0e5e1a63-40ac-41a7-b055-e62ba173fa87",
-        datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
-        datetime_updated=datetime(2019, 11, 22, 13, 2, 53, 0),
-        namespace="museum/collection",
-        entity="Object",
-        data={"example": "data"},
-    )
-    db.session.add(test_record)
-    db.session.commit()
-    return test_record
+    return db
+
+
+@pytest.fixture
+def sample_record(test_db):
+    def _sample_record():
+        record = Records(
+            uuid=str(uuid4()),
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
+            datetime_updated=datetime(2019, 11, 22, 13, 2, 53, 0),
+            namespace="museum/collection",
+            entity="Object",
+            data={"example": "data"},
+        )
+        test_db.session.add(record)
+        test_db.session.commit()
+        return record
+
+    return _sample_record
+
+
+@pytest.fixture
+def sample_activity(test_db):
+    def _sample_activity(record_id):
+        activity = Activities(
+            uuid=str(uuid4()),
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
+            namespace="museum/collection",
+            entity="Object",
+            record_id=record_id,
+            event="Create",
+        )
+        test_db.session.add(activity)
+        test_db.session.commit()
+        return activity
+
+    return _sample_activity
+
+
+@pytest.fixture
+def sample_data(sample_record, sample_activity):
+    record = sample_record()
+    activity = sample_activity(record.id)
+    return record

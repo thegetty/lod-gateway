@@ -5,7 +5,9 @@ import hashlib
 import os
 import math
 
-from flask import Flask, Blueprint, Response, request
+from flask import Flask, Blueprint, Response, request, current_app
+from flaskapp.models import Activities
+
 
 from app.utilities import (
     debug,
@@ -29,9 +31,44 @@ from flaskapp.routes.utilities import (
 activity = Blueprint("activity", __name__)
 
 
-@activity.route("/activity-stream")
-@activity.route("/activity-stream/<path:path>")
+@activity.route("/activity-stream", defaults={"namespace": None})
 @activity.route("/<path:namespace>/activity-stream")
+def ordered_collection(namespace):
+    """Generate the root OrderedCollection for the stream
+
+    TODO: This does not currently filter against namespaces for the count.
+
+    Args:
+        namespace (String): The namespace of the application
+
+    Returns:
+        Response: A JSON-encoded OrderedCollection
+    """
+    if not namespace:
+        namespace = current_app.config["DEFAULT_URL_NAMESPACE"]
+
+    count = Activities.query.count()
+    pages = str(math.ceil(count / current_app.config["ITEMS_PER_PAGE"]))
+
+    data = {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "summary": current_app.config["AS_DESC"],
+        "type": "OrderedCollection",
+        "id": _generateURL(namespace=namespace),
+        "totalItems": count,
+        "first": {
+            "id": _generateURL(namespace=namespace, sub=["page", "1"]),
+            "type": "OrderedCollectionPage",
+        },
+        "last": {
+            "id": _generateURL(namespace=namespace, sub=["page", pages]),
+            "type": "OrderedCollectionPage",
+        },
+    }
+    return current_app.make_response((data, 200, DEFAULT_HEADERS))
+
+
+@activity.route("/activity-stream/<path:path>")
 @activity.route("/<path:namespace>/activity-stream/<path:path>")
 def activityStream(path=None, namespace=None):
 

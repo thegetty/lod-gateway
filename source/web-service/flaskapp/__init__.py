@@ -26,6 +26,7 @@ def create_app():
     app = Flask(__name__)
 
     # Setup global configuration
+    app.config["DEFAULT_URL_NAMESPACE"] = os.environ["LOD_DEFAULT_URL_NAMESPACE"]
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 

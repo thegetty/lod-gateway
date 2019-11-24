@@ -18,6 +18,7 @@ jobs:
             - run: >
                 docker run
                 --env-file .env.example 
+                --env DATABASE=sqlite://
                 --volume /tmp/output:/output 
                 lod-gateway-web-service 
                 pytest 

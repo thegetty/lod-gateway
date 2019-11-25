@@ -363,8 +363,6 @@ def _generatePage(
 
             if offset > 0:
                 _offset = offset - 1
-            elif offset == 0:
-                _offset = offset
             else:
                 _offset = 0
 

@@ -1,182 +1,45 @@
-import sys
-import datetime
-import json
-import hashlib
+from flask import Blueprint, current_app
 
-# Import the utility functions (commandOptions, get, has, put, debug, repeater, etc)
-from app.utilities import *
-
-# Import the dependency injector
-from app.di import DI
-
-# Import the database service handler
-from app.database import Database
-
-# Import the data model
-from app.model import *
-
-# Import the Flask web framework
-from flask import Flask, Blueprint, Response
+from app.utilities import camelCasedStringFromHyphenatedString
+from flaskapp.models import Records
+from flaskapp.utilities import error_response, validate_namespace, DEFAULT_HEADERS
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
 
 
-@records.route("/<string:entity>/<string:UUID>")
-def obtainRecordWithDefaultNamespace(entity, UUID):
-    debug(
-        "obtainRecordWithDefaultNamespace(entity: %s; uuid: %s) called..."
-        % (entity, UUID),
-        level=1,
-    )
-
-    defaultNamespace = os.getenv("LOD_DEFAULT_URL_NAMESPACE", None)
-    if isinstance(defaultNamespace, str) and len(defaultNamespace) > 0:
-        response = obtainRecord(defaultNamespace, entity, UUID)
-    else:
-        response = Response(
-            status=404,
-            headers={
-                **{
-                    "X-Error": "Unable to obtain matching record from database as no namespace has been defined!",
-                },
-                **headers,
-            },
-        )
-
-    return response
-
-
+@records.route("/<string:entity>/<string:UUID>", defaults={"namespace": None})
 @records.route("/<path:namespace>/<string:entity>/<string:UUID>")
-def obtainRecord(namespace, entity, UUID):
-    debug(
-        "obtainRecord(namespace: %s, entity: %s; uuid: %s) called..."
-        % (namespace, entity, UUID),
-        level=1,
+def entity_record(namespace, entity, UUID):
+    """Generate a page for a cached record
+
+    Args:
+        namespace (String): The namespace of record
+        entity (String): The entity type
+        UUID (String): The identifier for the record
+
+    Returns:
+        Response: The JSON-encoded record
+    """
+    namespace = validate_namespace(namespace)
+
+    record = (
+        Records.query.filter(Records.uuid == UUID)
+        .filter(Records.namespace == namespace)
+        .filter(Records.entity == camelCasedStringFromHyphenatedString(entity))
+        .first()
     )
 
-    # return sprintf("You requested Namespace: %s for Entity: %s with UUID: %s" % (namespace, entity, UUID))
+    if record and record.data:
+        response = current_app.make_response((record.data, 200, DEFAULT_HEADERS))
 
-    # Define our default headers to add to the response
-    headers = {
-        "Server": "MART/1.0",
-        "Access-Control-Allow-Origin": "*",
-    }
-
-    database = DI.get("database")
-    if database:
-        connection = database.connect(autocommit=True)
-        if connection:
-            DI.set("connection", connection)
-        else:
-            return Response(
-                status=500,
-                headers={
-                    **{"X-Error": "Unable to establish a database connection!",},
-                    **headers,
-                },
-            )
+        # TODO: This is spec-compliant, but the time is not actually GMT.
+        response.headers["Last-Modified"] = record.datetime_updated.strftime(
+            "%a, %d %b %Y %H:%M:%S GMT"
+        )
     else:
-        return Response(
-            status=500,
-            headers={
-                **{"X-Error": "Unable to obtain the database handler!",},
-                **headers,
-            },
+        response = error_response(
+            (404, "Unable to obtain matching record from database!")
         )
-
-    response = None
-
-    if entity:
-        _entity = camelCasedStringFromHyphenatedString(entity)
-
-        debug("Will now perform lookup for %s with UUID: %s" % (_entity, UUID), level=2)
-
-        record = Record.findFirst(
-            "namespace = :namespace: AND entity = :entity: AND uuid = :uuid:",
-            bind={"namespace": namespace, "entity": _entity, "uuid": UUID},
-        )
-        if record:
-            debug(record, level=3)
-
-            if isinstance(record.counter, int):
-                record.counter += 1
-            else:
-                record.counter = 1
-
-            record.update(quietly=True)
-
-            if record.data and len(record.data) >= 0:
-                # response = sprintf("Found record in the database with ID: %d of type %s" % (record.id, type(record.data)))
-
-                body = json.dumps(
-                    record.data, sort_keys=False, indent=4, ensure_ascii=False
-                )
-                if isinstance(body, str) and len(body) > 0:
-                    body = body.encode("utf-8")
-
-                    headers = {**{"Date": record.datetime_published,}, **headers}
-
-                    hasher = hashlib.sha1()
-                    hasher.update(body)
-                    hash = hasher.hexdigest()
-
-                    if hash:
-                        headers["E-Tag"] = hash
-
-                    # see https://werkzeug.palletsprojects.com/en/0.15.x/wrappers/
-                    response = Response(
-                        body,
-                        status=200,
-                        content_type="application/ld+json;charset=UTF-8",
-                        headers=headers,
-                    )
-                else:
-                    debug(
-                        "The result.data could not be serialized to JSON!", error=True
-                    )
-
-                    response = Response(
-                        status=404,
-                        headers={
-                            **{
-                                "X-Error": "The result.data could not be serialized to JSON!",
-                            },
-                            **headers,
-                        },
-                    )
-            else:
-                debug("The result.data attribute is empty!", error=True)
-
-                response = Response(
-                    status=404,
-                    headers={
-                        **{"X-Error": "The result.data attribute is empty!",},
-                        **headers,
-                    },
-                )
-        else:
-            debug("Unable to obtain matching record from database!", error=True)
-
-            response = Response(
-                status=404,
-                headers={
-                    **{"X-Error": "Unable to obtain matching record from database!",},
-                    **headers,
-                },
-            )
-    else:
-        debug("No valid entity type name was specified!", error=True)
-
-        response = Response(
-            "Bad Request",
-            status=400,
-            headers={
-                **{"X-Error": "No valid entity type name was specified!",},
-                **headers,
-            },
-        )
-
-    database.disconnect(connection=connection)
 
     return response

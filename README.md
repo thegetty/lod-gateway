@@ -31,7 +31,7 @@ _Run the python unit tests_
 While the application is running,
 
 ```bash
-docker-compose exec -w /app web pytest
+docker-compose run -env-file=.env.example -e DATABASE=sqlite:// web ptw
 ```
 will run the tests, and
 

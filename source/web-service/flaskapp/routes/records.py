@@ -2,7 +2,7 @@ from flask import Blueprint, current_app
 
 from app.utilities import camelCasedStringFromHyphenatedString
 from flaskapp.models import Records
-from flaskapp.routes.utilities import errorResponse, DEFAULT_HEADERS
+from flaskapp.utilities import error_response, validate_namespace, DEFAULT_HEADERS
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
@@ -10,10 +10,18 @@ records = Blueprint("records", __name__)
 
 @records.route("/<string:entity>/<string:UUID>", defaults={"namespace": None})
 @records.route("/<path:namespace>/<string:entity>/<string:UUID>")
-def obtainRecord(namespace, entity, UUID):
+def entity_record(namespace, entity, UUID):
+    """Generate a page for a cached record
 
-    if not namespace:
-        namespace = current_app.config["DEFAULT_URL_NAMESPACE"]
+    Args:
+        namespace (String): The namespace of record
+        entity (String): The entity type
+        UUID (String): The identifier for the record
+
+    Returns:
+        Response: The JSON-encoded record
+    """
+    namespace = validate_namespace(namespace)
 
     record = (
         Records.query.filter(Records.uuid == UUID)
@@ -30,7 +38,7 @@ def obtainRecord(namespace, entity, UUID):
             "%a, %d %b %Y %H:%M:%S GMT"
         )
     else:
-        response = errorResponse(
+        response = error_response(
             (404, "Unable to obtain matching record from database!")
         )
 

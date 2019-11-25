@@ -1,6 +1,6 @@
 from datetime import datetime
-
 from uuid import uuid4
+
 import pytest
 
 from flaskapp import create_app
@@ -59,8 +59,13 @@ def sample_record(test_db):
 
 
 @pytest.fixture
-def sample_activity(test_db):
+def sample_activity(test_db, sample_record):
     def _sample_activity(record_id):
+
+        if not Records.query.get(record_id):
+            record = sample_record()
+            record_id = record.id
+
         activity = Activities(
             uuid=str(uuid4()),
             datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
@@ -80,4 +85,4 @@ def sample_activity(test_db):
 def sample_data(sample_record, sample_activity):
     record = sample_record()
     activity = sample_activity(record.id)
-    return record
+    return {"record": record, "activity": activity}

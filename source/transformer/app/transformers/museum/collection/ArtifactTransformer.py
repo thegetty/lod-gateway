@@ -1075,11 +1075,12 @@ class ArtifactTransformer(BaseTransformer):
             for maker in makers:
                 # debug(maker, format="JSON")
 
+                rid = get(maker, "relationship.uuid")  # Object/Maker relationship UUID
                 id = get(maker, "uuid")  # Maker UUID
                 value = get(maker, "display.value")  # Maker name
-                if id and value:
+                if rid and id and value:
                     production = Production(  # Create the Production activity instance
-                        ident=self.generateEntityURI(sub=["production", id]),
+                        ident=self.generateEntityURI(sub=["production", rid]),
                         label="Production of Artwork",
                     )
 
@@ -1088,7 +1089,7 @@ class ArtifactTransformer(BaseTransformer):
                     if name_display:
                         lobj = LinguisticObject(
                             ident=self.generateEntityURI(
-                                sub=["production", id, "producer-description"]
+                                sub=["production", rid, "producer-description"]
                             ),
                             label="Artist/Maker (Producer) Description",
                         )
@@ -1112,13 +1113,20 @@ class ArtifactTransformer(BaseTransformer):
                         ulanID == "http://vocab.getty.edu/ulan/500125274"
                     ):  # Unknown maker
                         person = Person(
-                            ident="https://data.getty.edu/museum/collection/person/unknown-maker",
+                            ident=self.generateEntityURI(
+                                sub=["production", rid, "unknown-maker"]
+                            ),
                             label=value,
                         )
 
                         person.classified_as = Type(
                             ident="http://vocab.getty.edu/aat/300025103",
                             label="Artists (Visual Artists)",
+                        )
+
+                        person.classified_as = Type(
+                            ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/unknown-maker",
+                            label="Unknown Maker (Concept)",
                         )
 
                         person.close_match = Type(
@@ -1156,7 +1164,7 @@ class ArtifactTransformer(BaseTransformer):
                     if dates:
                         timespan = TimeSpan(
                             ident=self.generateEntityURI(
-                                sub=["production", id, "timespan"]
+                                sub=["production", rid, "timespan"]
                             ),
                             label="Production Dates",
                         )
@@ -1165,7 +1173,7 @@ class ArtifactTransformer(BaseTransformer):
                         if display:
                             name = Name(
                                 ident=self.generateEntityURI(
-                                    sub=["production", id, "timespan", "name"]
+                                    sub=["production", rid, "timespan", "name"]
                                 ),
                                 label="Production Dates",
                             )

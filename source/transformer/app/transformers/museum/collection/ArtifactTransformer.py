@@ -412,6 +412,7 @@ class ArtifactTransformer(BaseTransformer):
                                 "GETTYGUIDE SEARCH TITLE",
                                 "GETTYGUIDE MIDDLE TITLE",
                                 "GETTYGUIDE SHORT TITLE",
+                                "GETTYGUIDE PAGING SHORT TITLE",
                             ]:
                                 name = Name()
                                 name.id = self.generateEntityURI(sub=["name", id])

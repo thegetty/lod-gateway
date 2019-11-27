@@ -456,25 +456,8 @@ class ArtifactTransformer(BaseTransformer):
                                     if groups:
                                         for group in groups:
                                             if get(group, "type") == "EXHIBITION":
-                                                activity = Activity(
-                                                    ident=self.generateEntityURI(
-                                                        entity=Activity,
-                                                        id=get(group, "uuid"),
-                                                    ),
-                                                    label=get(group, "display.value"),
-                                                )
-                                                if activity:
-                                                    activity.classified_as = Type(
-                                                        ident="http://vocab.getty.edu/aat/300054766",
-                                                        label="Exhibitions (Events)",
-                                                    )
-
-                                                    name.classified_as = Type(
-                                                        ident="http://vocab.getty.edu/aat/300417207",
-                                                        label="Exhibition Title (Work Title)",
-                                                    )
-
-                                                    name.used_for = activity
+                                                name = None
+                                                break
 
                                 entity.identified_by = name
 

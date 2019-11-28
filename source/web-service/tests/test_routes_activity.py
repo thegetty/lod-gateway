@@ -5,7 +5,7 @@ import re
 import pytest
 
 from flaskapp.utilities import generate_url
-from flaskapp.models import Activities
+from flaskapp.models import Activity
 
 
 @pytest.fixture(scope="module")

@@ -28,5 +28,5 @@ class Activity(db.Model):
     namespace = db.Column(db.String, nullable=False)
     entity = db.Column(db.String, nullable=False)
     record_id = db.Column(db.Integer, db.ForeignKey("records.id"), nullable=False)
-    record = db.relationship("Records", backref=db.backref("activities", lazy=True))
+    record = db.relationship("Record", backref=db.backref("activities", lazy=True))
     event = db.Column(db.String, nullable=False)

@@ -412,6 +412,7 @@ class ArtifactTransformer(BaseTransformer):
                                 "GETTYGUIDE SEARCH TITLE",
                                 "GETTYGUIDE MIDDLE TITLE",
                                 "GETTYGUIDE SHORT TITLE",
+                                "GETTYGUIDE PAGING SHORT TITLE",
                             ]:
                                 name = Name()
                                 name.id = self.generateEntityURI(sub=["name", id])
@@ -1257,3 +1258,30 @@ class ArtifactTransformer(BaseTransformer):
                     production.timespan = timespan
 
                 entity.produced_by = production
+
+    # Map Related Exhibitions
+    def mapExhibitionRelationships(self, entity, data):
+        exhibitions = get(data, "display.related.exhibitions")
+        if exhibitions:
+            for exhibition in exhibitions:
+                venues = get(exhibition, "related.venues")
+                if venues:
+                    for venue in venues:
+                        set = Set(
+                            ident=self.generateEntityURI(
+                                entity=Activity,
+                                UUID=get(venue, "activity.uuid"),
+                                sub=["objects"],
+                            ),
+                            label=sprintf("Objects exhibited in %s at %s" % (get(exhibition, "display.value"), get(venue, "display.value"))),
+                        )
+
+                        set.used_for = Activity(
+                            ident=self.generateEntityURI(
+                                entity=Activity,
+                                UUID=get(venue, "activity.uuid"),
+                            ),
+                            label=sprintf("%s at %s" % (get(exhibition, "display.value"), get(venue, "display.value"))),
+                        )
+
+                        entity.member_of = set

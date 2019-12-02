@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app
 
 from app.utilities import camelCasedStringFromHyphenatedString
-from flaskapp.models import Records
+from flaskapp.models import Record
 from flaskapp.utilities import error_response, validate_namespace, DEFAULT_HEADERS
 
 # Create a new "records" route blueprint
@@ -24,9 +24,9 @@ def entity_record(namespace, entity, UUID):
     namespace = validate_namespace(namespace)
 
     record = (
-        Records.query.filter(Records.uuid == UUID)
-        .filter(Records.namespace == namespace)
-        .filter(Records.entity == camelCasedStringFromHyphenatedString(entity))
+        Record.query.filter(Record.uuid == UUID)
+        .filter(Record.namespace == namespace)
+        .filter(Record.entity == camelCasedStringFromHyphenatedString(entity))
         .first()
     )
 

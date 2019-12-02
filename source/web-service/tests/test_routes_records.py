@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from flaskapp.models import db, Records
+from flaskapp.models import db, Record
 
 
 class TestObtainRecord:
@@ -16,7 +16,7 @@ class TestObtainRecord:
         assert response.status_code == 404
 
     def test_empty_data_field(self, sample_data, client):
-        test_record = Records.query.get(1)
+        test_record = Record.query.get(1)
         test_record.data = None
         db.session.add(test_record)
         db.session.commit()

@@ -2,7 +2,7 @@ import math
 
 from flask import Blueprint, current_app
 
-from flaskapp.models import Activities
+from flaskapp.models import Activity
 from flaskapp.utilities import (
     error_response,
     generate_url,
@@ -31,7 +31,7 @@ def activity_stream_collection(namespace):
     """
     namespace = validate_namespace(namespace)
 
-    count = Activities.query.count()
+    count = Activity.query.count()
     total_pages = str(math.ceil(count / current_app.config["ITEMS_PER_PAGE"]))
 
     data = {
@@ -69,7 +69,7 @@ def activity_stream_collection_page(namespace, pagenum):
 
     limit = current_app.config["ITEMS_PER_PAGE"]
     offset = (pagenum - 1) * limit
-    count = Activities.query.count()
+    count = Activity.query.count()
     total_pages = math.ceil(count / limit)
 
     if pagenum == 0 or pagenum > total_pages:
@@ -97,7 +97,7 @@ def activity_stream_collection_page(namespace, pagenum):
             "type": "OrderedCollectionPage",
         }
 
-    activities = Activities.query.order_by("id").limit(limit).offset(offset)
+    activities = Activity.query.order_by("id").limit(limit).offset(offset)
     items = [_generate_item(namespace, a) for a in activities]
     data["orderedItems"] = items
 
@@ -118,7 +118,7 @@ def activity_stream_item(namespace, uuid):
     """
     namespace = validate_namespace(namespace)
 
-    activity = Activities.query.filter(Activities.uuid == uuid).first()
+    activity = Activity.query.filter(Activity.uuid == uuid).first()
     if not activity:
         return error_response((404, "Could not find ActivityStream record"))
 
@@ -132,7 +132,7 @@ def _generate_item(namespace, activity):
 
     Args:
         namespace (String): The namespace of the application
-        activity (Activities): The Activities record to generate
+        activity (Activity): The Activity record to generate
 
     Returns:
         Dict: The generated data structure

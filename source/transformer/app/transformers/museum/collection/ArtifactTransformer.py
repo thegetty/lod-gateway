@@ -1121,11 +1121,6 @@ class ArtifactTransformer(BaseTransformer):
                         )
 
                         person.classified_as = Type(
-                            ident="http://vocab.getty.edu/aat/300025103",
-                            label="Artists (Visual Artists)",
-                        )
-
-                        person.classified_as = Type(
                             ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/unknown-maker",
                             label="Unknown Maker (Concept)",
                         )
@@ -1273,15 +1268,26 @@ class ArtifactTransformer(BaseTransformer):
                                 UUID=get(venue, "activity.uuid"),
                                 sub=["objects"],
                             ),
-                            label=sprintf("Objects exhibited in %s at %s" % (get(exhibition, "display.value"), get(venue, "display.value"))),
+                            label=sprintf(
+                                "Objects exhibited in %s at %s"
+                                % (
+                                    get(exhibition, "display.value"),
+                                    get(venue, "display.value"),
+                                )
+                            ),
                         )
 
                         set.used_for = Activity(
                             ident=self.generateEntityURI(
-                                entity=Activity,
-                                UUID=get(venue, "activity.uuid"),
+                                entity=Activity, UUID=get(venue, "activity.uuid"),
                             ),
-                            label=sprintf("%s at %s" % (get(exhibition, "display.value"), get(venue, "display.value"))),
+                            label=sprintf(
+                                "%s at %s"
+                                % (
+                                    get(exhibition, "display.value"),
+                                    get(venue, "display.value"),
+                                )
+                            ),
                         )
 
                         entity.member_of = set

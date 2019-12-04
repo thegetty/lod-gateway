@@ -3,12 +3,7 @@ import math
 from flask import Blueprint, current_app
 
 from flaskapp.models import Activity
-from flaskapp.utilities import (
-    error_response,
-    generate_url,
-    validate_namespace,
-    DEFAULT_HEADERS,
-)
+from flaskapp.utilities import error_response, generate_url, validate_namespace
 from app.utilities import hyphenatedStringFromCamelCasedString
 
 
@@ -50,7 +45,7 @@ def activity_stream_collection(namespace):
         },
     }
 
-    return current_app.make_response((data, 200, DEFAULT_HEADERS))
+    return current_app.make_response((data, 200))
 
 
 @activity.route("/activity-stream/page/<int:pagenum>", defaults={"namespace": None})
@@ -101,7 +96,7 @@ def activity_stream_collection_page(namespace, pagenum):
     items = [_generate_item(namespace, a) for a in activities]
     data["orderedItems"] = items
 
-    return current_app.make_response((data, 200, DEFAULT_HEADERS))
+    return current_app.make_response((data, 200))
 
 
 @activity.route("/activity-stream/<string:uuid>", defaults={"namespace": None})
@@ -124,7 +119,7 @@ def activity_stream_item(namespace, uuid):
 
     data = _generate_item(namespace, activity)
 
-    return current_app.make_response((data, 200, DEFAULT_HEADERS))
+    return current_app.make_response((data, 200))
 
 
 def _generate_item(namespace, activity):

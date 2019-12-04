@@ -42,4 +42,9 @@ def create_app():
             body = f"Welcome to the Getty's Linked Open Data Gateway Service at {now}"
             return Response(body, status=200)
 
+        @app.after_request
+        def add_header(response):
+            response.headers["Server"] = "LOD Gateway/0.2"
+            return response
+
         return app

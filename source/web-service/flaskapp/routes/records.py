@@ -2,7 +2,7 @@ from flask import Blueprint, current_app
 
 from app.utilities import camelCasedStringFromHyphenatedString
 from flaskapp.models import Record
-from flaskapp.utilities import error_response, validate_namespace, DEFAULT_HEADERS
+from flaskapp.utilities import error_response, validate_namespace
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
@@ -31,7 +31,7 @@ def entity_record(namespace, entity, UUID):
     )
 
     if record and record.data:
-        response = current_app.make_response((record.data, 200, DEFAULT_HEADERS))
+        response = current_app.make_response((record.data, 200))
 
         # TODO: This is spec-compliant, but the time is not actually GMT.
         response.headers["Last-Modified"] = record.datetime_updated.strftime(

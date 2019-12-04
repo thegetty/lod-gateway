@@ -2,7 +2,7 @@ import os
 
 from flask import Response, current_app
 
-DEFAULT_HEADERS = {"Server": "LOD Gateway/0.2", "Access-Control-Allow-Origin": "*"}
+DEFAULT_HEADERS = {"Server": "LOD Gateway/0.2"}
 
 
 def error_response(error):

@@ -5,6 +5,7 @@ import psutil
 import logging
 
 from flask import Flask, Response
+from flask_cors import CORS
 
 from flaskapp.routes.activity import activity
 from flaskapp.routes.records import records
@@ -13,6 +14,7 @@ from flaskapp.models import db
 
 def create_app():
     app = Flask(__name__)
+    CORS(app)
 
     # Setup global configuration
     app.config["DEFAULT_URL_NAMESPACE"] = os.environ["LOD_DEFAULT_URL_NAMESPACE"]
@@ -38,6 +40,11 @@ def create_app():
         def welcome():
             now = datetime.now().strftime("%H:%M:%S on %Y-%m-%d")
             body = f"Welcome to the Getty's Linked Open Data Gateway Service at {now}"
-            return Response(body, status=200)
+            return app.make_response(body)
+
+        @app.after_request
+        def add_header(response):
+            response.headers["Server"] = "LOD Gateway/0.2"
+            return response
 
         return app

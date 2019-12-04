@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 
 from flaskapp import create_app
-from flaskapp.models import db, Records, Activities
+from flaskapp.models import db, Record, Activity
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def test_db(current_app):
 @pytest.fixture
 def sample_record(test_db):
     def _sample_record():
-        record = Records(
+        record = Record(
             uuid=str(uuid4()),
             datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
             datetime_updated=datetime(2019, 11, 22, 13, 2, 53, 0),
@@ -62,11 +62,11 @@ def sample_record(test_db):
 def sample_activity(test_db, sample_record):
     def _sample_activity(record_id):
 
-        if not Records.query.get(record_id):
+        if not Record.query.get(record_id):
             record = sample_record()
             record_id = record.id
 
-        activity = Activities(
+        activity = Activity(
             uuid=str(uuid4()),
             datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
             namespace="museum/collection",

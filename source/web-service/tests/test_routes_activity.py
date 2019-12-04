@@ -5,7 +5,7 @@ import re
 import pytest
 
 from flaskapp.utilities import generate_url
-from flaskapp.models import Activities
+from flaskapp.models import Activity
 
 
 @pytest.fixture(scope="module")
@@ -22,6 +22,7 @@ class TestBaseRoute:
         assert response.status_code == 200
         assert response.headers["Content-Type"] == "application/json"
         assert response.headers["Access-Control-Allow-Origin"] == "*"
+        assert "LOD Gateway" in response.headers["Server"]
         assert payload["type"] == "OrderedCollection"
         assert payload["summary"] == "desc"
         assert url in payload["id"]
@@ -59,6 +60,7 @@ class TestPageRoute:
         assert response.status_code == 200
         assert response.headers["Content-Type"] == "application/json"
         assert response.headers["Access-Control-Allow-Origin"] == "*"
+        assert "LOD Gateway" in response.headers["Server"]
         assert payload["type"] == "OrderedCollectionPage"
         assert re.search("/activity-stream$", payload["partOf"]["id"])
         assert re.search(f"{url}$", payload["id"])
@@ -156,6 +158,7 @@ class TestItemRoute:
         assert response.status_code == 200
         assert response.headers["Content-Type"] == "application/json"
         assert response.headers["Access-Control-Allow-Origin"] == "*"
+        assert "LOD Gateway" in response.headers["Server"]
         assert payload["type"] == "Create"
 
     def test_invalid_url(self, client, sample_data):

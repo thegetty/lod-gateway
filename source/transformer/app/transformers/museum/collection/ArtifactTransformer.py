@@ -508,6 +508,8 @@ class ArtifactTransformer(BaseTransformer):
 
                                 aa.identified_by = None
 
+                                aa.assigned_property = "identified_by"
+
                                 aa.assigned = name
 
                                 venues = get(group, "related.venues")

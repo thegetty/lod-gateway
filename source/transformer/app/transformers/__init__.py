@@ -55,6 +55,10 @@ from cromulent.model import (
     PropositionalObject as Exhibition,
 )
 
+from cromulent.vocab import add_attribute_assignment_check
+
+add_attribute_assignment_check()
+
 transformers = {}
 
 

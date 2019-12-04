@@ -28,7 +28,6 @@ from cromulent.model import (
     Group,
     Name,
     MonetaryAmount,
-    PropertyInterest,
     Destruction,
     AttributeAssignment,
     BaseResource,

@@ -1,6 +1,7 @@
 import os
 
 from flask import Response, current_app
+from datetime import datetime
 
 
 def error_response(error):
@@ -52,3 +53,13 @@ def generate_url(namespace=None, sub=[], base=False):
     parts = [base_url, namespace, as_prefix, "/".join(sub)]
     parts = [item for item in parts if item]
     return "/".join(parts)
+
+
+def format_datetime(dt):
+    if isinstance(dt, datetime):
+        formatted = dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+        if isinstance(formatted, str) and len(formatted) > 0:
+            formatted = formatted[:-2] + ":" + formatted[-2:]
+            return formatted
+
+    return None

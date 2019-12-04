@@ -3,7 +3,12 @@ import math
 from flask import Blueprint, current_app
 
 from flaskapp.models import Activity
-from flaskapp.utilities import error_response, generate_url, validate_namespace
+from flaskapp.utilities import (
+    error_response,
+    generate_url,
+    validate_namespace,
+    format_datetime,
+)
 from app.utilities import hyphenatedStringFromCamelCasedString
 
 
@@ -135,7 +140,7 @@ def _generate_item(namespace, activity):
     return {
         "id": generate_url(namespace=namespace, sub=[str(activity.uuid)]),
         "type": activity.event,
-        "created": activity.datetime_created.strftime("%Y-%m-%dT%H:%M:%S:%z"),
+        "created": format_datetime(activity.datetime_created),
         "object": _generate_object(activity.record),
     }
 

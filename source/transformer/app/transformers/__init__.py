@@ -35,7 +35,6 @@ from cromulent.model import (
     Group,
     Name,
     MonetaryAmount,
-    PropertyInterest,
     Destruction,
     AttributeAssignment,
     BaseResource,
@@ -54,6 +53,10 @@ from cromulent.model import (
     Production,
     PropositionalObject as Exhibition,
 )
+
+from cromulent.vocab import add_attribute_assignment_check
+
+add_attribute_assignment_check()
 
 transformers = {}
 

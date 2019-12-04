@@ -2,8 +2,6 @@ import os
 
 from flask import Response, current_app
 
-DEFAULT_HEADERS = {"Server": "LOD Gateway/0.2"}
-
 
 def error_response(error):
     """Construct a error message.
@@ -16,9 +14,7 @@ def error_response(error):
     Returns:
         Response: A error message
     """
-    return Response(
-        error[1], status=error[0], headers={**{"X-Error": error[1]}, **DEFAULT_HEADERS}
-    )
+    return Response(error[1], status=error[0], headers={"X-Error": error[1]})
 
 
 def validate_namespace(namespace):

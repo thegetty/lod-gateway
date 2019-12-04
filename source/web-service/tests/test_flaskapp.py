@@ -7,3 +7,8 @@ def test_home_page(client):
 def test_cors_response(client):
     response = client.options("/")
     assert response.headers.get("Access-Control-Allow-Origin") == "*"
+
+
+def test_cors_on_get(client):
+    response = client.get("/")
+    assert response.headers.get("Access-Control-Allow-Origin") == "*"

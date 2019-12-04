@@ -456,27 +456,118 @@ class ArtifactTransformer(BaseTransformer):
                                     if groups:
                                         for group in groups:
                                             if get(group, "type") == "EXHIBITION":
-                                                activity = Activity(
-                                                    ident=self.generateEntityURI(
-                                                        entity=Activity,
-                                                        id=get(group, "uuid"),
-                                                    ),
-                                                    label=get(group, "display.value"),
-                                                )
-                                                if activity:
-                                                    activity.classified_as = Type(
-                                                        ident="http://vocab.getty.edu/aat/300054766",
-                                                        label="Exhibitions (Events)",
-                                                    )
-
-                                                    name.classified_as = Type(
-                                                        ident="http://vocab.getty.edu/aat/300417207",
-                                                        label="Exhibition Title (Work Title)",
-                                                    )
-
-                                                    name.used_for = activity
+                                                name = None
+                                                break
 
                                 entity.identified_by = name
+
+    # Map Object Exhibition Titles
+    def mapExhibitionTitles(self, entity, data):
+        titles = get(data, "display.titles")
+        if titles and len(titles) > 0:
+            for key in titles:
+                title = titles[key]
+                if title:
+                    value = get(title, "display.value")
+                    id = get(title, "uuid")
+                    groups = get(title, "related.groups")
+                    if id and value and groups:
+                        for group in groups:
+                            if get(group, "type") == "EXHIBITION":
+                                name = Name(
+                                    ident=self.generateEntityURI(sub=["name", id]),
+                                    label=get(
+                                        title,
+                                        "display.label",
+                                        default="Alternate Title",
+                                    ),
+                                )
+
+                                name.content = value
+
+                                # Classify the title as a Title
+                                name.classified_as = Type(
+                                    ident="http://vocab.getty.edu/aat/300417193",
+                                    label="Titles (General, Names)",
+                                )
+
+                                classifications = get(title, "classifications")
+                                if classifications:
+                                    for classification in classifications:
+                                        name.classified_as = Type(
+                                            ident=get(classification, "id"),
+                                            label=get(classification, "label"),
+                                        )
+
+                                aa = AttributeAssignment(
+                                    ident=self.generateEntityURI(
+                                        sub=["name", id, "attribute-assignment"]
+                                    ),
+                                    label="Attribute Assignment",
+                                )
+
+                                aa.identified_by = None
+
+                                aa.assigned_property = "identified_by"
+
+                                aa.assigned = name
+
+                                venues = get(group, "related.venues")
+                                if venues:
+                                    for venue in venues:
+                                        objects = get(venue, "objects")
+                                        if objects and len(objects) > 0:
+                                            found = False
+
+                                            for object in objects:
+                                                if get(object, "uuid") == get(
+                                                    data, "uuid"
+                                                ):
+                                                    found = True
+                                                    break
+
+                                            if found:
+                                                set = Set(
+                                                    ident=self.generateEntityURI(
+                                                        entity=Activity,
+                                                        UUID=get(
+                                                            venue, "activity.uuid"
+                                                        ),
+                                                        sub=["objects"],
+                                                    ),
+                                                    label=sprintf(
+                                                        "%s at %s"
+                                                        % (
+                                                            get(group, "display.value"),
+                                                            get(venue, "display.value"),
+                                                        )
+                                                    ),
+                                                )
+
+                                                aa.involved = set
+
+                                curators = get(group, "related.curators")
+                                if curators:
+                                    for curator in curators:
+                                        if has(curator, "uuid"):
+                                            if get(curator, "type") == "INDIVIDUAL":
+                                                aa.carried_out_by = Person(
+                                                    ident=self.generateEntityURI(
+                                                        entity=Person,
+                                                        UUID=get(curator, "uuid"),
+                                                    ),
+                                                    label=get(curator, "display.value"),
+                                                )
+                                            else:
+                                                aa.carried_out_by = Group(
+                                                    ident=self.generateEntityURI(
+                                                        entity=Person,
+                                                        UUID=get(curator, "uuid"),
+                                                    ),
+                                                    label=get(curator, "display.value"),
+                                                )
+
+                                entity.attributed_by = aa
 
     # Map Object Description
     def mapDescription(self, entity, data):

@@ -9,6 +9,7 @@ class TestObtainRecord:
     def test_typical_functionality(self, sample_data, client):
         response = client.get(f"/museum/collection/object/{sample_data['record'].uuid}")
         assert response.status_code == 200
+        assert "LOD Gateway" in response.headers["Server"]
         assert json.loads(response.data) == sample_data["record"].data
 
     def test_missing_record(self, sample_data, client):

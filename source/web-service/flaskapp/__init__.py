@@ -40,7 +40,7 @@ def create_app():
         def welcome():
             now = datetime.now().strftime("%H:%M:%S on %Y-%m-%d")
             body = f"Welcome to the Getty's Linked Open Data Gateway Service at {now}"
-            return Response(body, status=200)
+            return app.make_response(body)
 
         @app.after_request
         def add_header(response):

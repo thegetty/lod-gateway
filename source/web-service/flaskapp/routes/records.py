@@ -31,7 +31,7 @@ def entity_record(namespace, entity, UUID):
     )
 
     if record and record.data:
-        response = current_app.make_response((record.data, 200))
+        response = current_app.make_response(record.data)
 
         # TODO: This is spec-compliant, but the time is not actually GMT.
         response.headers["Last-Modified"] = record.datetime_updated.strftime(

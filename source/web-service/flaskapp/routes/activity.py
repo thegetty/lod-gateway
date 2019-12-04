@@ -45,7 +45,7 @@ def activity_stream_collection(namespace):
         },
     }
 
-    return current_app.make_response((data, 200))
+    return current_app.make_response(data)
 
 
 @activity.route("/activity-stream/page/<int:pagenum>", defaults={"namespace": None})
@@ -96,7 +96,7 @@ def activity_stream_collection_page(namespace, pagenum):
     items = [_generate_item(namespace, a) for a in activities]
     data["orderedItems"] = items
 
-    return current_app.make_response((data, 200))
+    return current_app.make_response(data)
 
 
 @activity.route("/activity-stream/<string:uuid>", defaults={"namespace": None})
@@ -119,7 +119,7 @@ def activity_stream_item(namespace, uuid):
 
     data = _generate_item(namespace, activity)
 
-    return current_app.make_response((data, 200))
+    return current_app.make_response(data)
 
 
 def _generate_item(namespace, activity):

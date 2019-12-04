@@ -5,6 +5,7 @@ import psutil
 import logging
 
 from flask import Flask, Response
+from flask_cors import CORS
 
 from flaskapp.routes.activity import activity
 from flaskapp.routes.records import records
@@ -13,6 +14,7 @@ from flaskapp.models import db
 
 def create_app():
     app = Flask(__name__)
+    CORS(app)
 
     # Setup global configuration
     app.config["DEFAULT_URL_NAMESPACE"] = os.environ["LOD_DEFAULT_URL_NAMESPACE"]

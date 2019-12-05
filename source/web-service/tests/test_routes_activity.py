@@ -6,6 +6,8 @@ import pytest
 
 from flaskapp.utilities import generate_url
 from flaskapp.models import Activity
+from flaskapp.utilities import format_datetime
+from datetime import datetime
 
 
 @pytest.fixture(scope="module")
@@ -147,6 +149,13 @@ class TestPageRoute:
         url = "/museum/collection/activity-stream/page/0"
         response = client.get(url)
         assert response.status_code == 404
+
+    def test_format_datetime(self):
+        dt = datetime.fromisoformat("2019-12-04T15:36:12-08:00")
+        assert format_datetime(dt) == "2019-12-04T15:36:12-08:00"
+        assert format_datetime(None) == None
+        assert format_datetime(123) == None
+        assert format_datetime("abc") == None
 
 
 class TestItemRoute:

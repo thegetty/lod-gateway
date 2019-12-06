@@ -2,9 +2,10 @@ import math
 
 from flask import Blueprint, current_app
 from sqlalchemy.orm import joinedload, load_only
+from sqlalchemy.sql.functions import coalesce, max
 from sqlalchemy import desc
 
-from flaskapp.models import Activity
+from flaskapp.models import Activity, db
 from flaskapp.utilities import (
     error_response,
     generate_url,
@@ -125,7 +126,11 @@ def activity_stream_item(namespace, uuid):
     """
     namespace = validate_namespace(namespace)
 
-    activity = Activity.query.filter(Activity.uuid == uuid).first()
+    activity = (
+        Activity.query.options(joinedload(Activity.record, innerjoin=True))
+        .filter(Activity.uuid == uuid)
+        .first()
+    )
     if not activity:
         return error_response((404, "Could not find ActivityStream record"))
 
@@ -136,11 +141,8 @@ def activity_stream_item(namespace, uuid):
 
 def _compute_total_pages():
     limit = current_app.config["ITEMS_PER_PAGE"]
-
-    last = Activity.query.options(load_only("id")).order_by(desc("id")).first()
-    if last == None:
-        return 0
-    return math.ceil(last.id / limit)
+    last = db.session.query(coalesce(max(Activity.id), 0).label("num")).first()
+    return math.ceil(last.num / limit)
 
 
 def _generate_item(namespace, activity):

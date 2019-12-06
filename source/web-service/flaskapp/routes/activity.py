@@ -1,6 +1,7 @@
 import math
 
 from flask import Blueprint, current_app
+from sqlalchemy.orm import joinedload
 
 from flaskapp.models import Activity
 from flaskapp.utilities import (
@@ -97,7 +98,11 @@ def activity_stream_collection_page(namespace, pagenum):
             "type": "OrderedCollectionPage",
         }
 
-    activities = Activity.query.order_by("id").limit(limit).offset(offset)
+    activities = (
+        Activity.query.options(joinedload(Activity.record, innerjoin=True))
+        .filter(Activity.id > offset, Activity.id <= offset + limit)
+        .order_by("id")
+    )
     items = [_generate_item(namespace, a) for a in activities]
     data["orderedItems"] = items
 

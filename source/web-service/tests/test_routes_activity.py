@@ -30,7 +30,7 @@ class TestBaseRoute:
         assert url in payload["id"]
         assert f"{url}/page/1" in payload["first"]["id"]
 
-    def test_default_namespace(self, client, current_app, sample_datas):
+    def test_default_namespace(self, client, current_app, sample_data):
         current_app.config["DEFAULT_URL_NAMESPACE"] = "ns"
         response = client.get("/ns/activity-stream")
         payload = json.loads(response.data)

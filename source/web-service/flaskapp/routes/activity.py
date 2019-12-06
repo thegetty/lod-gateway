@@ -1,7 +1,7 @@
 import math
 
 from flask import Blueprint, current_app
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, load_only
 
 from flaskapp.models import Activity
 from flaskapp.utilities import (
@@ -69,7 +69,14 @@ def activity_stream_collection_page(namespace, pagenum):
     namespace = validate_namespace(namespace)
 
     limit = current_app.config["ITEMS_PER_PAGE"]
-    offset = (pagenum - 1) * limit
+
+    try:
+        first_id = Activity.query.options(load_only("id")).order_by("id").first().id
+    except Exception as e:
+        first_id = 0
+
+    offset = first_id - 1 + (pagenum - 1) * limit
+
     count = Activity.query.count()
     total_pages = math.ceil(count / limit)
 

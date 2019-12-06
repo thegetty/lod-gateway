@@ -71,14 +71,12 @@ def activity_stream_collection_page(namespace, pagenum):
 
     limit = current_app.config["ITEMS_PER_PAGE"]
 
-    first = Activity.query.options(load_only("id")).order_by("id").first()
-    if first == None:
+    last = Activity.query.options(load_only("id")).order_by(desc("id")).first()
+    if last == None:
         return error_response((404, "No records in system"))
 
-    first_id = first.id
-    last_id = Activity.query.options(load_only("id")).order_by(desc("id")).first().id
-    offset = first_id - 1 + (pagenum - 1) * limit
-    total_pages = math.ceil(last_id / limit)
+    offset = (pagenum - 1) * limit
+    total_pages = math.ceil(last.id / limit)
 
     if pagenum == 0 or pagenum > total_pages:
         return error_response((404, "Page number out of bounds"))

@@ -30,7 +30,7 @@ class TestBaseRoute:
         assert url in payload["id"]
         assert f"{url}/page/1" in payload["first"]["id"]
 
-    def test_default_namespace(self, client, current_app, test_db):
+    def test_default_namespace(self, client, current_app, sample_datas):
         current_app.config["DEFAULT_URL_NAMESPACE"] = "ns"
         response = client.get("/ns/activity-stream")
         payload = json.loads(response.data)
@@ -40,7 +40,11 @@ class TestBaseRoute:
 
     def test_item_count(self, client, sample_activity):
         response = client.get(f"/ns/activity-stream")
+
         assert json.loads(response.data)["totalItems"] == 0
+        assert "first" not in json.loads(response.data).keys()
+        assert "last" not in json.loads(response.data).keys()
+
         sample_activity(1)
         response = client.get(f"/ns/activity-stream")
         assert json.loads(response.data)["totalItems"] == 1
@@ -51,6 +55,22 @@ class TestBaseRoute:
         sample_activity(2)
         sample_activity(3)
         response = client.get(f"/ns/activity-stream")
+        assert "page/2" in json.loads(response.data)["last"]["id"]
+
+    def test_pagination_with_missing_records(
+        self, client, current_app, sample_activity, test_db
+    ):
+        current_app.config["ITEMS_PER_PAGE"] = 2
+        a1 = sample_activity(1)
+        a2 = sample_activity(2)
+        a3 = sample_activity(3)
+
+        test_db.session.delete(a1)
+        test_db.session.delete(a2)
+        test_db.session.commit()
+
+        response = client.get(f"/ns/activity-stream")
+        assert json.loads(response.data)["totalItems"] == 1
         assert "page/2" in json.loads(response.data)["last"]["id"]
 
 

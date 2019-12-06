@@ -175,6 +175,31 @@ class TestPageRoute:
         assert a2.record.uuid in response["orderedItems"][1]["object"]["id"]
         assert a3.record.uuid in response2["orderedItems"][0]["object"]["id"]
 
+    def test_id_missing(self, client, current_app, sample_activity, test_db):
+        current_app.config["ITEMS_PER_PAGE"] = 2
+
+        a1 = sample_activity(1)
+        a2 = sample_activity(2)
+        a3 = sample_activity(3)
+        a4 = sample_activity(4)
+        a5 = sample_activity(5)
+
+        test_db.session.delete(a3)
+        test_db.session.commit()
+
+        response = json.loads(client.get("/ns/activity-stream/page/1").data)
+        response2 = json.loads(client.get("/ns/activity-stream/page/2").data)
+        response3 = json.loads(client.get("/ns/activity-stream/page/3").data)
+
+        assert len(response["orderedItems"]) == 2
+        assert len(response2["orderedItems"]) == 1
+        assert len(response3["orderedItems"]) == 1
+
+        assert a1.record.uuid in response["orderedItems"][0]["object"]["id"]
+        assert a2.record.uuid in response["orderedItems"][1]["object"]["id"]
+        assert a4.record.uuid in response2["orderedItems"][0]["object"]["id"]
+        assert a5.record.uuid in response3["orderedItems"][0]["object"]["id"]
+
     def test_out_of_bounds_page(self, client, sample_data):
         url = "/museum/collection/activity-stream/page/99999"
         response = client.get(url)

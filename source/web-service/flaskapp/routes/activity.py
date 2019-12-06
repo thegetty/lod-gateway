@@ -1,7 +1,8 @@
 import math
 
 from flask import Blueprint, current_app
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, load_only
+from sqlalchemy import desc
 
 from flaskapp.models import Activity
 from flaskapp.utilities import (
@@ -69,9 +70,13 @@ def activity_stream_collection_page(namespace, pagenum):
     namespace = validate_namespace(namespace)
 
     limit = current_app.config["ITEMS_PER_PAGE"]
+
+    last = Activity.query.options(load_only("id")).order_by(desc("id")).first()
+    if last == None:
+        return error_response((404, "No records in system"))
+
     offset = (pagenum - 1) * limit
-    count = Activity.query.count()
-    total_pages = math.ceil(count / limit)
+    total_pages = math.ceil(last.id / limit)
 
     if pagenum == 0 or pagenum > total_pages:
         return error_response((404, "Page number out of bounds"))

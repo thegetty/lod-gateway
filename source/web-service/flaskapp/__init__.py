@@ -24,6 +24,9 @@ def create_app():
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = os.environ["LOD_AS_DESC"]
 
+    if app.env == "development":
+        app.config["SQLALCHEMY_ECHO"] = True
+
     db.init_app(app)
 
     # Set the debug level

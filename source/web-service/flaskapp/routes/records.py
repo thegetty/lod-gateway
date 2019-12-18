@@ -35,19 +35,15 @@ def entity_record(namespace, entity, UUID):
     if record and record.data:
         response = current_app.make_response(record.data)
 
-        last_modified = None
         if record.datetime_updated:  # Use 'datetime_updated' for updated records...
             last_modified = record.datetime_updated
-        elif (
-            record.datetime_created
-        ):  # Or use 'datetime_created' for newly created records...
+        else:  # Or use 'datetime_created' for newly created records...
             last_modified = record.datetime_created
 
-        if isinstance(last_modified, datetime):
-            # Adjust the timezone to UTC equivalent to GMT so that the date is correctly serialized
-            response.headers["Last-Modified"] = last_modified.astimezone(
-                timezone.utc
-            ).strftime("%a, %d %b %Y %H:%M:%S GMT")
+        # Adjust the timezone to UTC equivalent to GMT so that the date is correctly serialized
+        response.headers["Last-Modified"] = last_modified.astimezone(
+            timezone.utc
+        ).strftime("%a, %d %b %Y %H:%M:%S GMT")
     else:
         response = error_response(
             (404, "Unable to obtain matching record from database!")

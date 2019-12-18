@@ -42,11 +42,13 @@ def test_db(current_app):
 
 @pytest.fixture
 def sample_record(test_db):
-    def _sample_record():
+    def _sample_record(updated=True):
         record = Record(
             uuid=str(uuid4()),
             datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
-            datetime_updated=datetime(2019, 11, 22, 13, 2, 53, 0),
+            datetime_updated=datetime(2019, 12, 18, 11, 22, 7, 0)
+            if updated == True
+            else None,
             namespace="museum/collection",
             entity="Object",
             data={"example": "data"},
@@ -84,5 +86,7 @@ def sample_activity(test_db, sample_record):
 @pytest.fixture
 def sample_data(sample_record, sample_activity):
     record = sample_record()
+    # create a sample record without a populated datetime_updated attribute for testing the Last-Modified header
+    record_two = sample_record(updated=False)
     activity = sample_activity(record.id)
-    return {"record": record, "activity": activity}
+    return {"record": record, "record_two": record_two, "activity": activity}

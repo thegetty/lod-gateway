@@ -7,6 +7,7 @@ from flaskapp.models import db, Record
 from datetime import datetime, timezone
 from uuid import uuid4
 
+
 class TestObtainRecord:
     def test_typical_functionality(self, sample_data, client):
         response = client.get(f"/museum/collection/object/{sample_data['record'].uuid}")
@@ -56,16 +57,12 @@ class TestObtainRecord:
         db.session.add(record)
         db.session.commit()
 
-        response = client.get(
-            f"/museum/collection/object/{record.uuid}"
-        )
+        response = client.get(f"/museum/collection/object/{record.uuid}")
 
         # here we use the sample "record" created above which lacks a populated datetime_updated attribute,
         # thus the logic in ./flaskapp/routes/records.py will use the datetime_created for Last-Modified
-        last_modified = (
-            record
-            .datetime_created.astimezone(timezone.utc)
-            .strftime("%a, %d %b %Y %H:%M:%S GMT")
+        last_modified = record.datetime_created.astimezone(timezone.utc).strftime(
+            "%a, %d %b %Y %H:%M:%S GMT"
         )
 
         assert response.headers["Last-Modified"] == last_modified

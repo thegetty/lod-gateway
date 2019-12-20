@@ -1203,27 +1203,33 @@ class ArtifactTransformer(BaseTransformer):
                     if (
                         ulanID == "http://vocab.getty.edu/ulan/500125274"
                     ):  # Unknown maker
-                        person = Person(
+                        constituent = Person(
                             ident=self.generateEntityURI(
                                 sub=["production", rid, "unknown-maker"]
                             ),
                             label=value,
                         )
 
-                        person.classified_as = Type(
+                        constituent.classified_as = Type(
                             ident="https://data.getty.edu/museum/ontology/linked-data/tms/object/unknown-maker",
                             label="Unknown Maker (Concept)",
                         )
 
-                        person.close_match = Type(
+                        constituent.close_match = Type(
                             ident="http://vocab.getty.edu/ulan/500125274",
                             label="Unknown Person (Concept)",
                         )
                     else:
-                        person = Person(
-                            ident=self.generateEntityURI(entity=Person, UUID=id),
-                            label=value,
-                        )
+                        if get(maker, "type") == "INDIVIDUAL":
+                            constituent = Person(
+                                ident=self.generateEntityURI(entity=Person, UUID=id),
+                                label=value,
+                            )
+                        else:
+                            constituent = Group(
+                                ident=self.generateEntityURI(entity=Group, UUID=id),
+                                label=value,
+                            )
 
                     # Artist/Maker Artwork Production Role
                     role = get(maker, "role")
@@ -1240,10 +1246,10 @@ class ArtifactTransformer(BaseTransformer):
                                 label="Roles",
                             )
 
-                            person.classified_as = roleType
+                            constituent.classified_as = roleType
 
                     # See https://linked.art/model/provenance/production.html#multiple-artists-with-roles
-                    production.carried_out_by = person
+                    production.carried_out_by = constituent
 
                     # Artist/Maker Artwork Production Activity Dates
                     dates = get(maker, "dates")

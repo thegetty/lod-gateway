@@ -46,7 +46,7 @@ def sample_record(test_db):
         record = Record(
             uuid=str(uuid4()),
             datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
-            datetime_updated=datetime(2019, 11, 22, 13, 2, 53, 0),
+            datetime_updated=datetime(2019, 12, 18, 11, 22, 7, 0),
             namespace="museum/collection",
             entity="Object",
             data={"example": "data"},

@@ -86,6 +86,7 @@ class GalleryTransformer(BaseTransformer):
                 label="Full Names (Personal Names)",
             )
 
+            entity._label = content
             entity.identified_by = name
 
     def mapPavilion(self, entity, data):

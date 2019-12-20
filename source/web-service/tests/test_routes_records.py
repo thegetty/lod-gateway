@@ -4,6 +4,9 @@ import pytest
 
 from flaskapp.models import db, Record
 
+from datetime import datetime, timezone
+from uuid import uuid4
+
 
 class TestObtainRecord:
     def test_typical_functionality(self, sample_data, client):
@@ -32,7 +35,34 @@ class TestObtainRecord:
 
     def test_last_modified(self, sample_data, client):
         response = client.get(f"/museum/collection/object/{sample_data['record'].uuid}")
-        last_modified = sample_data["record"].datetime_updated.strftime(
+
+        last_modified = (
+            sample_data["record"]
+            .datetime_updated.astimezone(timezone.utc)
+            .strftime("%a, %d %b %Y %H:%M:%S GMT")
+        )
+
+        assert response.headers["Last-Modified"] == last_modified
+
+    def test_last_modified_created(self, sample_data, client):
+        record = Record(
+            uuid=str(uuid4()),
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
+            datetime_updated=None,
+            namespace="museum/collection",
+            entity="Object",
+            data={"example": "data"},
+        )
+
+        db.session.add(record)
+        db.session.commit()
+
+        response = client.get(f"/museum/collection/object/{record.uuid}")
+
+        # here we use the sample "record" created above which lacks a populated datetime_updated attribute,
+        # thus the logic in ./flaskapp/routes/records.py will use the datetime_created for Last-Modified
+        last_modified = record.datetime_created.astimezone(timezone.utc).strftime(
             "%a, %d %b %Y %H:%M:%S GMT"
         )
+
         assert response.headers["Last-Modified"] == last_modified

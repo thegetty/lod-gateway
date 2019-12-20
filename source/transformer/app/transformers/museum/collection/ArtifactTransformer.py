@@ -1066,19 +1066,6 @@ class ArtifactTransformer(BaseTransformer):
                 label="Galleries (Display Spaces) [Object On Display]",
             )
             place._label = "Gallery"
-
-            # Obtain the Object's current location display value (name)
-            value = get(
-                location, "display.value"
-            )  # e.g. "Getty Center, Museum West Pavilion, Gallery W204"
-            if value:
-                place._label = value
-
-                name = Name()
-                name.id = self.generateEntityURI(entity=Place, UUID=id, sub=["name"])
-                name.content = value
-
-                place.identified_by = name
         else:
             id = "a03fec3c-c7a2-4b29-9995-5eddf3ceb0a4"  # maps to the unknown storage location, perfect for the generic storage location concept
 

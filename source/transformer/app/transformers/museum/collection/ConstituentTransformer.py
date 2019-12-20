@@ -84,6 +84,7 @@ class ConstituentTransformer(BaseTransformer):
                 ident="http://vocab.getty.edu/aat/300404670", label="Primary Name"
             )
 
+            entity._label = value
             entity.identified_by = name
 
     # Map Alternate Names

@@ -95,6 +95,7 @@ class ExhibitionTransformer(BaseTransformer):
                 ident="http://vocab.getty.edu/aat/300404670", label="Preferred Term"
             )
 
+            entity._label = title
             entity.identified_by = name
 
     # Map Exhibition Curators

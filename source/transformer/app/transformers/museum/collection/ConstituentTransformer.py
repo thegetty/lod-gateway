@@ -117,18 +117,23 @@ class ConstituentTransformer(BaseTransformer):
                 birth = Birth()
                 birth.id = self.generateEntityURI(sub=["birth"])
 
-                date_birth = get(data, "display.places.birth.date.iso")
-                if date_birth:
+                date_birth_began = get(
+                    data, "display.places.birth.date.range.began.iso"
+                )
+                date_birth_ended = get(
+                    data, "display.places.birth.date.range.ended.iso"
+                )
+                if date_birth_began and date_birth_ended:
                     timespan = TimeSpan()
                     timespan.id = self.generateEntityURI(sub=["birth", "timespan"])
                     timespan.begin_of_the_begin = date(
                         format="%Y-%m-%dT%H:%M:%S",
-                        date=date_birth,
+                        date=date_birth_began,
                         format_for_input_date="%Y-%m-%d %H:%M:%S",
                     )
-                    timespan.end_of_the_begin = date(
+                    timespan.end_of_the_end = date(
                         format="%Y-%m-%dT%H:%M:%S",
-                        date=date_birth,
+                        date=date_birth_ended,
                         format_for_input_date="%Y-%m-%d %H:%M:%S",
                     )
                     birth.timespan = timespan
@@ -157,18 +162,23 @@ class ConstituentTransformer(BaseTransformer):
                 death = Death()
                 death.id = self.generateEntityURI(sub=["death"])
 
-                date_death = get(data, "display.places.death.date.iso")
-                if date_death:
+                date_death_began = get(
+                    data, "display.places.death.date.range.began.iso"
+                )
+                date_death_ended = get(
+                    data, "display.places.death.date.range.ended.iso"
+                )
+                if date_death_began and date_death_ended:
                     timespan = TimeSpan()
                     timespan.id = self.generateEntityURI(sub=["death", "timespan"])
                     timespan.begin_of_the_begin = date(
                         format="%Y-%m-%dT%H:%M:%S",
-                        date=date_death,
+                        date=date_death_began,
                         format_for_input_date="%Y-%m-%d %H:%M:%S",
                     )
-                    timespan.end_of_the_begin = date(
+                    timespan.end_of_the_end = date(
                         format="%Y-%m-%dT%H:%M:%S",
-                        date=date_death,
+                        date=date_death_ended,
                         format_for_input_date="%Y-%m-%d %H:%M:%S",
                     )
                     death.timespan = timespan

@@ -115,7 +115,7 @@ class ConstituentTransformer(BaseTransformer):
         if get(data, "type") == "INDIVIDUAL":
             if has(data, "display.places.birth"):
                 birth = Birth()
-                birth.id = self.generateEntityURI(sub=["birth", "activity"])
+                birth.id = self.generateEntityURI(sub=["birth"])
 
                 date_birth_began = get(data, "display.places.birth.date.range.began.iso")
                 date_birth_ended = get(data, "display.places.birth.date.range.ended.iso")
@@ -156,7 +156,7 @@ class ConstituentTransformer(BaseTransformer):
         if get(data, "type") == "INDIVIDUAL":
             if has(data, "display.places.death"):
                 death = Death()
-                death.id = self.generateEntityURI(sub=["death", "activity"])
+                death.id = self.generateEntityURI(sub=["death"])
 
                 date_death_began = get(data, "display.places.death.date.range.began.iso")
                 date_death_ended = get(data, "display.places.death.date.range.ended.iso")

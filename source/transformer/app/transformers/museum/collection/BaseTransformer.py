@@ -365,7 +365,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
             identifier.content = str(number)
 
             identifier.classified_as = Type(
-                ident="https://data.getty.edu/museum/ontology/linked-data/dor/id",
+                ident="https://data.getty.edu/museum/ontology/linked-data/dor-id",
                 label="Getty Digital Object Repository (DOR) Integer Identifier (ID)",
             )
 
@@ -379,7 +379,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
             identifier.content = number
 
             identifier.classified_as = Type(
-                ident="https://data.getty.edu/museum/ontology/linked-data/dor/uuid",
+                ident="https://data.getty.edu/museum/ontology/linked-data/dor-uuid",
                 label="Getty Digital Object Repository (DOR) Universally Unique Identifier (UUID)",
             )
 
@@ -397,7 +397,7 @@ class BaseTransformer(SharedMuseumBaseTransformer):
             identifier.content = str(number)
 
             identifier.classified_as = Type(
-                ident="https://data.getty.edu/museum/ontology/linked-data/tms/id",
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms-id",
                 label="Gallery Systems' The Museum System (TMS) Integer Identifier (ID)",
             )
 

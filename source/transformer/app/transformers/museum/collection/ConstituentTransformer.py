@@ -81,7 +81,7 @@ class ConstituentTransformer(BaseTransformer):
             name.content = value
 
             name.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404670", label="Primary Name"
+                ident="http://vocab.getty.edu/aat/300404670", label="Preferred Term"
             )
 
             entity._label = value
@@ -115,7 +115,7 @@ class ConstituentTransformer(BaseTransformer):
         if get(data, "type") == "INDIVIDUAL":
             if has(data, "display.places.birth"):
                 birth = Birth()
-                birth.id = self.generateEntityURI(sub=["birth", "activity"])
+                birth.id = self.generateEntityURI(sub=["birth"])
 
                 date_birth = get(data, "display.places.birth.date.iso")
                 if date_birth:
@@ -155,7 +155,7 @@ class ConstituentTransformer(BaseTransformer):
         if get(data, "type") == "INDIVIDUAL":
             if has(data, "display.places.death"):
                 death = Death()
-                death.id = self.generateEntityURI(sub=["death", "activity"])
+                death.id = self.generateEntityURI(sub=["death"])
 
                 date_death = get(data, "display.places.death.date.iso")
                 if date_death:

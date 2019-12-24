@@ -220,7 +220,7 @@ class ExhibitionTransformer(BaseTransformer):
                 activity._namespace = self.getNamespace()
                 activity._uuid = get(venue, "activity.uuid")
                 activity._label = sprintf(
-                    "Exhibting %s at %s"
+                    "Exhibiting %s at %s"
                     % (
                         get(data, "display.title.display.value"),
                         get(venue, "display.value"),
@@ -296,7 +296,7 @@ class ExhibitionTransformer(BaseTransformer):
 
                         actor.classified_as = Type(
                             ident="http://vocab.getty.edu/aat/300025633",
-                            label="Organizer",
+                            label="Curators",
                         )
 
                         activity.carried_out_by = actor

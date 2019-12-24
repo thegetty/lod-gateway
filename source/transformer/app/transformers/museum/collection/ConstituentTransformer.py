@@ -81,7 +81,7 @@ class ConstituentTransformer(BaseTransformer):
             name.content = value
 
             name.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404670", label="Primary Name"
+                ident="http://vocab.getty.edu/aat/300404670", label="Preferred Term"
             )
 
             entity._label = value

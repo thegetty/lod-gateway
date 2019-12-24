@@ -296,7 +296,7 @@ class ExhibitionTransformer(BaseTransformer):
 
                         actor.classified_as = Type(
                             ident="http://vocab.getty.edu/aat/300025633",
-                            label="Organizer",
+                            label="Curators",
                         )
 
                         activity.carried_out_by = actor

@@ -1067,7 +1067,7 @@ class ArtifactTransformer(BaseTransformer):
                 ident="http://vocab.getty.edu/aat/300240057",
                 label="Galleries (Display Spaces) [Object On Display]",
             )
-             place._label = get( location, "display.value")
+            place._label = get(location, "display.value")
         else:
             id = "a03fec3c-c7a2-4b29-9995-5eddf3ceb0a4"  # maps to the unknown storage location, perfect for the generic storage location concept
 

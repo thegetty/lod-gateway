@@ -589,6 +589,8 @@ class ArtifactTransformer(BaseTransformer):
                     ident="http://vocab.getty.edu/aat/300418049", label="Brief Text"
                 )
 
+                lobj.format = "text/html"
+
                 entity.referred_to_by = lobj
 
     # Map Object Culture Statement/Type

@@ -336,7 +336,9 @@ class BaseManager(ABC):
             record.entity = entityName
             record.uuid = entityUUID
             record.data = data
-            record.counter = 0
+
+            if record.counter == None:
+                record.counter = 0
 
             if record.save():
                 debug("Successfully saved %s" % (record), level=2)

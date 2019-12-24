@@ -117,8 +117,8 @@ class ConstituentTransformer(BaseTransformer):
                 birth = Birth()
                 birth.id = self.generateEntityURI(sub=["birth", "activity"])
 
-                date_birth_began = get(data, "display.places.birth.date.began.iso")
-                date_birth_ended = get(data, "display.places.birth.date.ended.iso")
+                date_birth_began = get(data, "display.places.birth.date.range.began.iso")
+                date_birth_ended = get(data, "display.places.birth.date.range.ended.iso")
                 if date_birth_began and date_birth_ended:
                     timespan = TimeSpan()
                     timespan.id = self.generateEntityURI(sub=["birth", "timespan"])
@@ -158,8 +158,8 @@ class ConstituentTransformer(BaseTransformer):
                 death = Death()
                 death.id = self.generateEntityURI(sub=["death", "activity"])
 
-                date_death_began = get(data, "display.places.death.date.began.iso")
-                date_death_ended = get(data, "display.places.death.date.ended.iso")
+                date_death_began = get(data, "display.places.death.date.range.began.iso")
+                date_death_ended = get(data, "display.places.death.date.range.ended.iso")
                 if date_death_began and date_death_ended:
                     timespan = TimeSpan()
                     timespan.id = self.generateEntityURI(sub=["death", "timespan"])

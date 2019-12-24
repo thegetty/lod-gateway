@@ -140,20 +140,23 @@ class ConstituentTransformer(BaseTransformer):
 
                 value = get(data, "display.places.birth.display.value")
                 if value:
-                    # Birth Place modeled via took_place_at: E21Person (P98) was born - E67 Birth (P7) took place at: E53 Place
-                    # See http://www.cidoc-crm.org/Issue/ID-29-how-to-model-a-persons-birthplace
-                    place = Place()
-                    place.id = self.generateEntityURI(sub=["birth", "place"])
-                    place._label = value
+                    lobj = LinguisticObject()
+                    lobj.id = self.generateEntityURI(sub=["birth", "place"])
+                    lobj._label = "Birth Place"
+                    lobj.content = value
 
-                    name = Name()
-                    name.id = self.generateEntityURI(sub=["birth", "place", "name"])
-                    name.content = value
-                    place.identified_by = name
+                    lobj.classified_as = Type(
+                        ident="https://data.getty.edu/museum/ontology/linked-data/person/birth-place-description",
+                        label="Birth Place Description",
+                    )
 
-                    birth.took_place_at = place
+                    lobj.classified_as = Type(
+                        ident="http://vocab.getty.edu/aat/300418049", label="Brief Text"
+                    )
 
-                    entity.born = birth
+                    entity.referred_to_by = lobj
+
+                entity.born = birth
 
     # Map Death Place/Time
     def mapDeathPlace(self, entity, data):
@@ -185,20 +188,23 @@ class ConstituentTransformer(BaseTransformer):
 
                 value = get(data, "display.places.death.display.value")
                 if value:
-                    # Death Place modeled via took_place_at: E21Person (P100) was death of (died in) - E69 Death (P7) took place at: E53 Place
-                    # See http://www.cidoc-crm.org/Issue/ID-29-how-to-model-a-persons-birthplace for concepts
-                    place = Place()
-                    place.id = self.generateEntityURI(sub=["death", "place"])
-                    place._label = value
+                    lobj = LinguisticObject()
+                    lobj.id = self.generateEntityURI(sub=["death", "place"])
+                    lobj._label = "Death Place"
+                    lobj.content = value
 
-                    name = Name()
-                    name.id = self.generateEntityURI(sub=["death", "place", "name"])
-                    name.content = value
-                    place.identified_by = name
+                    lobj.classified_as = Type(
+                        ident="https://data.getty.edu/museum/ontology/linked-data/person/death-place-description",
+                        label="Death Place Description",
+                    )
 
-                    death.took_place_at = place
+                    lobj.classified_as = Type(
+                        ident="http://vocab.getty.edu/aat/300418049", label="Brief Text"
+                    )
 
-                    entity.died = death
+                    entity.referred_to_by = lobj
+
+                entity.died = death
 
     # Map Activity Begin Date (If Known)
     def mapActivityBeginDate(self, entity, data):

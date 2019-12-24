@@ -71,7 +71,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "display_name")
         if content:
             name = Name(
-                ident=self.generateEntityURI(sub=["gallery", "name"]),
+                ident=self.generateEntityURI(sub=["gallery-name"]),
                 label="Gallery Name",
             )
 
@@ -93,7 +93,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "pavilion")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["pavilion", "mnemonic"]),
+                ident=self.generateEntityURI(sub=["pavilion-mnemonic"]),
                 label="Pavilion Mnemonic",
             )
 
@@ -117,7 +117,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "display_pavilion")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["pavilion", "name"]),
+                ident=self.generateEntityURI(sub=["pavilion-name"]),
                 label="Pavilion Name",
             )
 
@@ -137,7 +137,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "building")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["building", "mnemonic"]),
+                ident=self.generateEntityURI(sub=["building-mnemonic"]),
                 label="Building Mnemonic",
             )
 
@@ -161,7 +161,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "display_building")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["building", "name"]),
+                ident=self.generateEntityURI(sub=["building-name"]),
                 label="Building Name",
             )
 
@@ -181,7 +181,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "floor")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["floor", "id"]), label="Floor ID"
+                ident=self.generateEntityURI(sub=["floor-id"]), label="Floor ID"
             )
 
             identifier.content = content
@@ -201,7 +201,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "display_floor")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["floor", "name"]), label="Floor Name"
+                ident=self.generateEntityURI(sub=["floor-name"]), label="Floor Name"
             )
 
             identifier.content = content
@@ -225,7 +225,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "room")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["room", "mnemonic"]),
+                ident=self.generateEntityURI(sub=["room-mnemonic"]),
                 label="Room Mnemonic",
             )
 
@@ -249,7 +249,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "display_room")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["room", "name"]), label="Room Name"
+                ident=self.generateEntityURI(sub=["room-name"]), label="Room Name"
             )
 
             identifier.content = content
@@ -268,7 +268,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "site")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["site", "mnemonic"]),
+                ident=self.generateEntityURI(sub=["site-mnemonic"]),
                 label="Site Mnemonic",
             )
 
@@ -292,7 +292,7 @@ class GalleryTransformer(BaseTransformer):
         content = get(data, "display_site")
         if content:
             identifier = Identifier(
-                ident=self.generateEntityURI(sub=["site", "name"]), label="Site Name"
+                ident=self.generateEntityURI(sub=["site-name"]), label="Site Name"
             )
 
             identifier.content = content

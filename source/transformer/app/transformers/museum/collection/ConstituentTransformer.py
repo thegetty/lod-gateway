@@ -231,4 +231,6 @@ class ConstituentTransformer(BaseTransformer):
                 label="Biography Statement",
             )
 
+            lobj.format = "text/html"
+
             entity.referred_to_by = lobj

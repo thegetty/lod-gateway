@@ -220,7 +220,7 @@ class ExhibitionTransformer(BaseTransformer):
                 activity._namespace = self.getNamespace()
                 activity._uuid = get(venue, "activity.uuid")
                 activity._label = sprintf(
-                    "Exhibting %s at %s"
+                    "Exhibiting %s at %s"
                     % (
                         get(data, "display.title.display.value"),
                         get(venue, "display.value"),

@@ -1237,6 +1237,24 @@ class ArtifactTransformer(BaseTransformer):
 
                             constituent.classified_as = roleType
 
+                    # Artist/Maker Artwork Production Processes and Techniques
+                    techniques = get(maker, "techniques")
+                    if techniques and len(techniques) > 0:
+                        for technique in techniques:
+                            classification = get(technique, "classification")
+                            if classification and has(classification, "id"):
+                                techniqueType = Type(
+                                    ident=get(classification, "id"),
+                                    label=get(classification, "label"),
+                                )
+
+                                techniqueType.classified_as = Type(
+                                    ident="http://vocab.getty.edu/aat/300053588",
+                                    label="Object-Making Processes and Techniques",
+                                )
+
+                                constituent.classified_as = techniqueType
+
                     # See https://linked.art/model/provenance/production.html#multiple-artists-with-roles
                     production.carried_out_by = constituent
 

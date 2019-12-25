@@ -125,10 +125,16 @@ class ArtifactTransformer(BaseTransformer):
                 lobj._label = "RightsStatements.org Rights Assertion"
                 lobj.content = assertion
 
-                # Map the "Rights Statement" classification
+                # Map the custom "Rights Statement" classification
                 lobj.classified_as = Type(
-                    ident="http://vocab.getty.edu/aat/300055547",
+                    ident="https://data.getty.edu/museum/ontology/linked-data/object/rights-statement",
                     label="Rights Statement",
+                )
+
+                # Map the "Rights (Legal Concept)" classification
+                lobj.classified_as = Type(
+                    ident="http://vocab.getty.edu/aat/300417696",
+                    label="Rights (Legal Concept)",
                 )
 
                 # Map the "Brief Text" classification

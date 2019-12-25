@@ -241,6 +241,7 @@ class ConstituentTransformer(BaseTransformer):
         if biography:
             lobj = LinguisticObject()
             lobj.id = self.generateEntityURI(sub=["biography"])
+            lobj._label = "Artist/Maker Biography"
             lobj.content = biography
             lobj.classified_as = Type(
                 ident="http://vocab.getty.edu/aat/300080102",

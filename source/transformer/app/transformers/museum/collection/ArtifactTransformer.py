@@ -175,6 +175,7 @@ class ArtifactTransformer(BaseTransformer):
                         lobj.id = self.generateEntityURI(
                             sub=["text", get(data, "uuid")]
                         )
+                        lobj._label = "Object Creditline"
                         lobj.content = statement
 
                         # Map the "Credit Line" classification
@@ -577,6 +578,7 @@ class ArtifactTransformer(BaseTransformer):
             if id:
                 lobj = LinguisticObject()
                 lobj.id = self.generateEntityURI(sub=["description", id])
+                lobj._label = "Object Description"
                 lobj.content = description
 
                 # Map the "Description" classification
@@ -604,6 +606,7 @@ class ArtifactTransformer(BaseTransformer):
 
                 lobj = LinguisticObject()
                 lobj.id = self.generateEntityURI(sub=["culture", id])
+                lobj._label = "Culture Statement"
                 lobj.content = culture
 
                 # Map the "Culture" classification
@@ -646,6 +649,7 @@ class ArtifactTransformer(BaseTransformer):
             if id:
                 lobj = LinguisticObject()
                 lobj.id = self.generateEntityURI(sub=["material-statement", id])
+                lobj._label = "Materials Statement"
                 lobj.content = medium
 
                 # Map the “Materials Description" classification
@@ -693,6 +697,7 @@ class ArtifactTransformer(BaseTransformer):
                     if id:
                         lobj = LinguisticObject()
                         lobj.id = self.generateEntityURI(sub=["inscription", id])
+                        lobj._label = "Object Inscriptions"
                         lobj.content = value
 
                         # Map the "Inscription" classification
@@ -728,6 +733,7 @@ class ArtifactTransformer(BaseTransformer):
                     if id:
                         lobj = LinguisticObject()
                         lobj.id = self.generateEntityURI(sub=["mark", id])
+                        lobj._label = "Object Markings"
                         lobj.content = value
 
                         # Map the "Marks (Symbols)" classification
@@ -763,6 +769,7 @@ class ArtifactTransformer(BaseTransformer):
                     if id:
                         lobj = LinguisticObject()
                         lobj.id = self.generateEntityURI(sub=["signature", id])
+                        lobj._label = "Object Signatures"
                         lobj.content = value
 
                         # Map the “Signatures Description" classification
@@ -792,6 +799,7 @@ class ArtifactTransformer(BaseTransformer):
                     if id:
                         lobj = LinguisticObject()
                         lobj.id = self.generateEntityURI(sub=["watermark", id])
+                        lobj._label = "Object Watermarks"
                         lobj.content = value
 
                         # Map the "Watermarks" classification
@@ -1098,6 +1106,7 @@ class ArtifactTransformer(BaseTransformer):
                 if statement:
                     lobj = LinguisticObject()
                     lobj.id = self.generateEntityURI(sub=["dimensions", id])
+                    lobj._label = "Dimensions Statement"
                     lobj.content = statement
 
                     # Map the “Dimensions Description" classification

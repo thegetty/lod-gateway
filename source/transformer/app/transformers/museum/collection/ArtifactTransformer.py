@@ -175,7 +175,7 @@ class ArtifactTransformer(BaseTransformer):
                         lobj.id = self.generateEntityURI(
                             sub=["text", get(data, "uuid")]
                         )
-                        lobj._label = "Object Creditline"
+                        lobj._label = "Object Credit Line"
                         lobj.content = statement
 
                         # Map the "Credit Line" classification

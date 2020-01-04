@@ -974,9 +974,7 @@ class ArtifactTransformer(BaseTransformer):
             # are intercepted by CROM's __setattr__() method which rejects them; see DEV-1909 for more info; CROM needs fixing!
             info.__dict__["conforms_to"] = [{"id": "http://iiif.io/api/presentation"}]
 
-            info.format = (
-                'application/ld+json;profile="http://iiif.io/api/presentation/2/context.json"',
-            )
+            info.format = 'application/ld+json;profile="http://iiif.io/api/presentation/2/context.json"'
 
             entity.subject_of = info
 

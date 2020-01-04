@@ -1229,17 +1229,31 @@ class ArtifactTransformer(BaseTransformer):
                     if role:
                         classification = get(role, "classification")
                         if classification and has(classification, "id"):
-                            roleType = Type(
+                            lobj = LinguisticObject(
+                                ident=self.generateEntityURI(
+                                    sub=["production", rid, "role-statement"]
+                                ),
+                                label="Artist/Maker Role Statement"
+                            )
+
+                            lobj.content = get(classification, "label")
+
+                            lobj.classified_as = Type(
+                                ident="https://data.getty.edu/museum/ontology/linked-data/object/artist-maker-role-statement",
+                                label="Artist/Maker Role Statement",
+                            )
+
+                            lobj.classified_as = Type(
+                                ident="http://vocab.getty.edu/aat/300418049",
+                                label="Brief Text",
+                            )
+
+                            lobj.close_match = Type(
                                 ident=get(classification, "id"),
                                 label=get(classification, "label"),
                             )
 
-                            roleType.classified_as = Type(
-                                ident="http://vocab.getty.edu/aat/300435108",
-                                label="Roles",
-                            )
-
-                            constituent.classified_as = roleType
+                            constituent.referred_to_by = lobj
 
                     # Artist/Maker Artwork Production Processes and Techniques
                     techniques = get(maker, "techniques")

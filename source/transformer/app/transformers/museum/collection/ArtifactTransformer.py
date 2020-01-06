@@ -10,6 +10,7 @@ from app.utilities import (
     sprintf,
     date,
     hyphenatedStringFromSpacedString,
+    identifierManagementServiceLookup,
 )
 
 # Import our dependency injector
@@ -901,30 +902,25 @@ class ArtifactTransformer(BaseTransformer):
     def mapMainImage(self, entity, data):
         image = get(data, "display.images.display")
         if image:
-            derivative = None
+            if has(image, "hash"):
+                imageOTMMIdentifier = get(image, "hash")
+                imageServiceBaseURL = os.getenv("GCIS_IMAGE_SERVICE_BASE_URL", None)
 
-            if has(image, "derivatives.larger"):
-                derivative = get(image, "derivatives.larger")
-            elif has(image, "derivatives.enlarge"):
-                derivative = get(image, "derivatives.enlarge")
-            elif has(image, "derivatives.thumbnail"):
-                derivative = get(image, "derivatives.thumbnail")
+                imageUUID = identifierManagementServiceLookup(imageOTMMIdentifier)
+                if imageServiceBaseURL and imageUUID:
+                    # https://media.getty.edu/iiif/image/e5d29650-11f8-4897-9540-54a9dd65b04f/full/full/0/default.jpg
+                    assetImageServiceURL = imageServiceBaseURL + "/image/" + imageUUID + "/full/full/0/default.jpg"
 
-            # debug(derivative, format="JSON")
-
-            if derivative:
-                derivativeURL = get(derivative, "url")
-                if derivativeURL:
                     visual = VisualItem()
 
                     # Specify the image URL
-                    visual.id = derivativeURL
+                    visual.id = assetImageServiceURL
 
                     # Specify the image view label
                     visual._label = get(image, "view", default="Main View")
 
                     # Specify the image MIME type format
-                    visual.format = get(image, "mime")
+                    visual.format = "image/jpeg"
 
                     # Map the "Digital Image" classification
                     visual.classified_as = Type(
@@ -932,50 +928,21 @@ class ArtifactTransformer(BaseTransformer):
                         label="Digital Image",
                     )
 
-                    # TODO How do we add InformationObjects to images? How do we define administrative attributes this way?
-                    # info = InformationObject()
-                    # info.id = "http://media.getty.edu/museum/images/web/larger/00094701.jpg/information/"
-                    # info.content = "hello";
-                    # visual.information = info
-
                     entity.representation = visual
 
     # Map Object Main Image IIIF
     def mapMainImageIIIF(self, entity, data):
-        image = get(data, "display.images.display")
-        if image:
-            derivative = None
+        tmsObjectID = get(data, "record_identifier")
+        manifestUUID = identifierManagementServiceLookup(tmsObjectID)
+        imageServiceBaseURL = os.getenv("GCIS_IMAGE_SERVICE_BASE_URL", None)
+        if imageServiceBaseURL and manifestUUID:
+            # https://media.getty.edu/iiif/manifest/e5d29650-11f8-4897-9540-54a9dd65b04f.json
+            manifestURL = imageServiceBaseURL + "/manifest/" + manifestUUID + ".json"
 
-            if has(image, "iiif"):
-                manifest = get(image, "iiif.manifest")
-                profile = get(image, "iiif.profile")
-
-            # TODO How do we add InformationObjects to images? How do we define administrative attributes this way?
-            info = InformationObject()
-
-            info.id = (
-                "https://data.getty.edu/museum/api/iiif/"
-                + get(data, "uuid")
-                + "/manifest.json"
+            info = InformationObject(
+                ident=manifestURL,
+                label="IIIF Manifest URL",
             )
-
-            # Traceback (most recent call last):
-            # File "//startup.py", line 63, in <module>
-            # if(manager.processEntity(entity=options["entity"], id=options["id"], namespace=options["namespace"])):
-            # File "/app/manager/__init__.py", line 60, in processEntity
-            # if(entity.mapData()):
-            # File "/app/transformers/__init__.py", line 425, in mapData
-            # mapMethod(self.entity, self.data)
-            # File "/app/transformers/museum/collection/ArtifactTransformer.py", line 430, in mapMainImageIIIF
-            # info.conforms_to = Type(id="http://iiif.io/api/presentation")
-            # File "/usr/local/lib/python3.7/site-packages/cromulent/model.py", line 505, in __setattr__
-            # ok = self._check_prop(which, value)
-            # File "/usr/local/lib/python3.7/site-packages/cromulent/model.py", line 543, in _check_prop
-            # raise DataError("Can't set '%s' on resource of type '%s' to '%r'" % (which, self._type, value), self)
-            # cromulent.model.DataError: Can't set 'conforms_to' on resource of type 'crm:E73_Information_Object' to '<cromulent.model.Type object at 0x7f58c6a76a20>'
-
-            # cannot set InformationObject.conforms_to due to CROM error! CROM and/or Linked.art documentation are wrong!
-            # info.conforms_to = Type(id="http://iiif.io/api/presentation")
 
             # Hack to get the "conforms_to" property into CROM's InformationObject instance data; attempting to set
             # the "conforms_to" property via direct assignment or via the setattr() method fails, as these assignments

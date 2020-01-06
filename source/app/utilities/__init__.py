@@ -6,6 +6,7 @@ import io
 import os
 import sys
 import re
+import requests
 
 
 def isNumeric(value):
@@ -421,3 +422,23 @@ def hyphenatedStringFromSpacedString(string):
             string = "-".join(parts)
 
     return string
+
+# Performs a lookup against an existing local ID to discover any corresponding UUID
+def identifierManagementServiceLookup(localID):
+    # "https://staging-tools.getty.edu/id-management/resources/<local_id>"
+    serviceURL = os.getenv("ID_MANAGEMENT_SERVICE_BASE_URL", None)
+    if not serviceURL:
+        raise RuntimeError("ID Management Service Base URL not defined!")
+
+    if localID == None:
+        raise RuntimeError("Provided Local ID is invalid!")
+
+    response = requests.get(serviceURL + "/" + str(localID))
+    if response.status_code == 200:
+        data = json.loads(response.text)
+        if isinstance(data, list) and len(data) >= 1:
+            if isinstance(data[0], dict) and "uuid" in data[0]:
+                # Extract the UUID from the first entry in the response data
+                return data[0]["uuid"]
+
+    return None

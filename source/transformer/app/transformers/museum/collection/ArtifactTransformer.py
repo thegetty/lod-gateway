@@ -125,10 +125,16 @@ class ArtifactTransformer(BaseTransformer):
                 lobj._label = "RightsStatements.org Rights Assertion"
                 lobj.content = assertion
 
-                # Map the "Rights Statement" classification
+                # Map the custom "Rights Statement" classification
                 lobj.classified_as = Type(
-                    ident="http://vocab.getty.edu/aat/300055547",
+                    ident="https://data.getty.edu/museum/ontology/linked-data/object/rights-statement",
                     label="Rights Statement",
+                )
+
+                # Map the "Rights (Legal Concept)" classification
+                lobj.classified_as = Type(
+                    ident="http://vocab.getty.edu/aat/300417696",
+                    label="Rights (Legal Concept)",
                 )
 
                 # Map the "Brief Text" classification
@@ -976,9 +982,7 @@ class ArtifactTransformer(BaseTransformer):
             # are intercepted by CROM's __setattr__() method which rejects them; see DEV-1909 for more info; CROM needs fixing!
             info.__dict__["conforms_to"] = [{"id": "http://iiif.io/api/presentation"}]
 
-            info.format = (
-                'application/ld+json;profile="http://iiif.io/api/presentation/2/context.json"',
-            )
+            info.format = 'application/ld+json;profile="http://iiif.io/api/presentation/2/context.json"'
 
             entity.subject_of = info
 
@@ -1234,17 +1238,49 @@ class ArtifactTransformer(BaseTransformer):
                     if role:
                         classification = get(role, "classification")
                         if classification and has(classification, "id"):
-                            roleType = Type(
+                            lobj = LinguisticObject(
+                                ident=self.generateEntityURI(
+                                    sub=["production", rid, "role-statement"]
+                                ),
+                                label="Artist/Maker Role Statement"
+                            )
+
+                            lobj.content = get(classification, "label")
+
+                            lobj.classified_as = Type(
+                                ident="https://data.getty.edu/museum/ontology/linked-data/object/artist-maker-role-statement",
+                                label="Artist/Maker Role Statement",
+                            )
+
+                            lobj.classified_as = Type(
+                                ident="http://vocab.getty.edu/aat/300418049",
+                                label="Brief Text",
+                            )
+
+                            lobj.close_match = Type(
                                 ident=get(classification, "id"),
                                 label=get(classification, "label"),
                             )
 
-                            roleType.classified_as = Type(
-                                ident="http://vocab.getty.edu/aat/300435108",
-                                label="Roles",
-                            )
+                            constituent.referred_to_by = lobj
 
-                            constituent.classified_as = roleType
+                    # Artist/Maker Artwork Production Processes and Techniques
+                    techniques = get(maker, "techniques")
+                    if techniques and len(techniques) > 0:
+                        for technique in techniques:
+                            classification = get(technique, "classification")
+                            if classification and has(classification, "id"):
+                                techniqueType = Type(
+                                    ident=get(classification, "id"),
+                                    label=get(classification, "label"),
+                                )
+
+                                techniqueType.classified_as = Type(
+                                    ident="http://vocab.getty.edu/aat/300053588",
+                                    label="Object-Making Processes and Techniques",
+                                )
+
+                                constituent.classified_as = techniqueType
 
                     # See https://linked.art/model/provenance/production.html#multiple-artists-with-roles
                     production.carried_out_by = constituent

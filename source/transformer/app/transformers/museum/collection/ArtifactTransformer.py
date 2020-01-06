@@ -909,7 +909,12 @@ class ArtifactTransformer(BaseTransformer):
                 imageUUID = identifierManagementServiceLookup(imageOTMMIdentifier)
                 if imageServiceBaseURL and imageUUID:
                     # https://media.getty.edu/iiif/image/e5d29650-11f8-4897-9540-54a9dd65b04f/full/full/0/default.jpg
-                    assetImageServiceURL = imageServiceBaseURL + "/image/" + imageUUID + "/full/full/0/default.jpg"
+                    assetImageServiceURL = (
+                        imageServiceBaseURL
+                        + "/image/"
+                        + imageUUID
+                        + "/full/full/0/default.jpg"
+                    )
 
                     visual = VisualItem()
 
@@ -939,10 +944,7 @@ class ArtifactTransformer(BaseTransformer):
             # https://media.getty.edu/iiif/manifest/e5d29650-11f8-4897-9540-54a9dd65b04f.json
             manifestURL = imageServiceBaseURL + "/manifest/" + manifestUUID + ".json"
 
-            info = InformationObject(
-                ident=manifestURL,
-                label="IIIF Manifest URL",
-            )
+            info = InformationObject(ident=manifestURL, label="IIIF Manifest URL",)
 
             # Hack to get the "conforms_to" property into CROM's InformationObject instance data; attempting to set
             # the "conforms_to" property via direct assignment or via the setattr() method fails, as these assignments
@@ -1209,7 +1211,7 @@ class ArtifactTransformer(BaseTransformer):
                                 ident=self.generateEntityURI(
                                     sub=["production", rid, "role-statement"]
                                 ),
-                                label="Artist/Maker Role Statement"
+                                label="Artist/Maker Role Statement",
                             )
 
                             lobj.content = get(classification, "label")

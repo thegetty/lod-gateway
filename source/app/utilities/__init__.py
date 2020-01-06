@@ -423,6 +423,7 @@ def hyphenatedStringFromSpacedString(string):
 
     return string
 
+
 # Performs a lookup against an existing local ID to discover any corresponding UUID
 def identifierManagementServiceLookup(localID):
     # "https://staging-tools.getty.edu/id-management/resources/<local_id>"

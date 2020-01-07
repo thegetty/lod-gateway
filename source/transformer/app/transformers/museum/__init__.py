@@ -55,7 +55,7 @@ class BaseTransformer(SharedBaseTransformer):
 
         # The UUID c496a7b4-6087-4deb-a1ac-0f21bd3fd87b corresponds to the J. Paul Getty Museum TMS/DOR Constituent
         JPGM.id = self.generateEntityURI(
-            entity=Group, id="c496a7b4-6087-4deb-a1ac-0f21bd3fd87b"
+            entity=Group, UUID="c496a7b4-6087-4deb-a1ac-0f21bd3fd87b"
         )
 
         JPGM._label = "J. Paul Getty Museum, Los Angeles, California"

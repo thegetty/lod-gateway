@@ -1025,30 +1025,14 @@ class ArtifactTransformer(BaseTransformer):
         # for the Curatorial Department's oversight to be maintained even if the Object is on loan
         # and thus should temporarily have a different "current_keeper" assigned
 
+        id = get(data, "display.department.uuid")
         value = get(data, "display.department.display.value")
-        if value:
-            id = get(data, "display.department.uuid")
-            if id:
-                # Create a Group to represent the Curatorial Department
-                group = Group()
-                group.id = self.generateEntityURI(entity=Group, UUID=id)
-                group._label = value + " (Curatorial Department)"
-
-                # Map the "Department (Organizational Unit)" classification
-                group.classified_as = Type(
-                    ident="http://vocab.getty.edu/aat/300263534",
-                    label="Department (Organizational Unit)",
-                )
-
-                # Map the Curatorial Department's name for the Group
-                name = Name()
-                name.id = self.generateEntityURI(entity=Group, UUID=id, sub=["name"])
-                name.content = value
-
-                group.identified_by = name
-
-                # Map the Group to the Object's "current_keeper" property for now...
-                entity.current_keeper = group
+        if id and value:
+            # Referece the Group entity representing the Curatorial Department
+            entity.current_keeper = Group(
+                ident=self.generateEntityURI(entity=Group, UUID=id),
+                label=value + " (Curatorial Department)",
+            )
 
     # Map Object Current Owner
     def mapCurrentOwner(self, entity, data):

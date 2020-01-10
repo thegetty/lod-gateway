@@ -11,7 +11,7 @@ services:
             - "${POSTGRES_PORT}:5432"
         stop_grace_period: 10s
         volumes:
-            - ./data/postgres:/data
+            - data_postgres:/var/lib/postgresql/data
 
     transformer:
         build:
@@ -56,3 +56,6 @@ services:
             - ./source/app:/app/app
         ports:
             - "${FLASK_RUN_PORT}:5100"
+
+volumes:
+    data_postgres:

@@ -1,7 +1,5 @@
-import sys
 from datetime import datetime
 import os
-import psutil
 import logging
 
 from flask import Flask, Response

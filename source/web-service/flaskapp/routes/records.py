@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app
 
-from app.utilities import camelCasedStringFromHyphenatedString
+from flaskapp.utilities import camelCasedStringFromHyphenatedString
 from flaskapp.models import Record
 from flaskapp.utilities import error_response, validate_namespace
 

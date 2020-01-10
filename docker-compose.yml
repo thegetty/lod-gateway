@@ -4,45 +4,13 @@ services:
     postgres:
         build:
             context: ./
-            dockerfile: ./services/postgres/Dockerfile
-        env_file:
-            .env
-        ports:
-            - "${POSTGRES_PORT}:5432"
+            dockerfile: ./Dockerfile.db-service
+        env_file: .env
         stop_grace_period: 10s
         volumes:
             - data_postgres:/var/lib/postgresql/data
-
-    transformer:
-        build:
-            context: ./
-            dockerfile: ./source/transformer/Dockerfile
-        env_file:
-            .env
-        volumes:
-            # use a volume mount to dynamically bind the application's source code
-            - ./source/transformer/startup.py:/startup.py
-            - ./source/transformer/startup.sh:/startup.sh
-            - ./source/transformer/app:/app
-            - ./source/transformer/tests:/tests
-            # use a volume mount to dynamically bind the shared dependency injector code
-            - ./source/app/di:/app/di
-            # use a volume mount to dynamically bind the shared database code
-            - ./source/app/database:/app/database
-            # use a volume mount to dynamically bind the shared graph store code
-            - ./source/app/graph:/app/graph
-            # use a volume mount to dynamically bind the shared model code
-            - ./source/app/model:/app/model
-            # use a volume mount to dynamically bind the shared utilities code
-            - ./source/app/utilities:/app/utilities
-            # use a volume mount to dynamically bind the data path
-            - ./data:/usr/local/mart/data
-            # use a volume mount to dynamically bind the tests path
-            - ./tests:/usr/local/mart/tests
         ports:
-            - "${TRANSFORMER_PORT}:5200"
-        stdin_open: true
-        tty: true
+            - 5432:5432
 
     web:
         build:

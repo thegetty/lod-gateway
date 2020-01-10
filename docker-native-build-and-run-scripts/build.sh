@@ -21,4 +21,3 @@
 cd ../
 docker build -t lod-gateway-db-service -f Dockerfile.db-service .
 docker build -t lod-gateway-web-service -f Dockerfile.web-service .
-docker build -t lod-gateway-transformer-service -f Dockerfile.transformer-service .

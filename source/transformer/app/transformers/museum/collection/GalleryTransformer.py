@@ -61,15 +61,47 @@ class GalleryTransformer(BaseTransformer):
     def entityType(self):
         return Place
 
+    # final method; please do not override
+    def assembleHeaders(self):
+        """Assemble our HTTP Request Headers for the DOR API call"""
+
+        headers = super().assembleHeaders()
+
+        # Ask the DOR to respond with Gallery metadata structured hierarchically,
+        # rather than the 'flattened' structure provided usually; this ensures that
+        # the structuring and additional metadata attributes needed to assemble the
+        # LOD Gallery records is made available for use below.
+        headers["Accept"] += ";schema=HIERARCHICAL"
+
+        return headers
+
     def mapClassification(self, entity, data):
-        entity.classified_as = Type(
-            ident="http://vocab.getty.edu/aat/300240057",
-            label="Galleries (Display Spaces)",
-        )
+        subtype = get(data, "subtype")
+        if subtype == "GALLERY":
+            entity.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300240057",
+                label="Galleries (Display Spaces)",
+            )
+        elif subtype == "PAVILION":
+            entity.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300002660",
+                label="Pavilion (Subsidiary Buildings)",
+            )
+        elif subtype == "BUILDING":
+            entity.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300004792",
+                label="Buildings (Structures)",
+            )
+        elif subtype == "SITE":
+            entity.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300000809", label="Sites (Locations)",
+            )
 
     def mapName(self, entity, data):
-        content = get(data, "display_name")
+        content = get(data, "display.value")
         if content:
+            entity._label = content
+
             name = Name(
                 ident=self.generateEntityURI(sub=["gallery-name"]),
                 label="Gallery Name",
@@ -78,231 +110,173 @@ class GalleryTransformer(BaseTransformer):
             name.content = content
 
             name.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
-            )
-
-            name.classified_as = Type(
                 ident="http://vocab.getty.edu/aat/300404688",
                 label="Full Names (Personal Names)",
             )
 
-            entity._label = content
+            name.classified_as = Type(
+                ident="http://vocab.getty.edu/aat/300404650", label="Preferred Term"
+            )
+
             entity.identified_by = name
 
     def mapPavilion(self, entity, data):
         content = get(data, "pavilion")
         if content:
-            identifier = Identifier(
+            name = Name(
                 ident=self.generateEntityURI(sub=["pavilion-mnemonic"]),
                 label="Pavilion Mnemonic",
             )
 
-            identifier.content = content
+            name.content = content
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
+            name.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/pavilion-mnemonic",
+                label="Pavilion Mnemonic",
             )
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300263127", label="Mnemonic"
-            )
-
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300002660", label="Pavilion"
-            )
-
-            entity.identified_by = identifier
+            entity.identified_by = name
 
     def mapPavilionName(self, entity, data):
-        content = get(data, "display_pavilion")
+        content = get(data, "display.pavilion")
         if content:
-            identifier = Identifier(
+            name = Name(
                 ident=self.generateEntityURI(sub=["pavilion-name"]),
                 label="Pavilion Name",
             )
 
-            identifier.content = content
+            name.content = content
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
+            name.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/pavilion-name",
+                label="Pavilion Name",
             )
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300002660", label="Pavilion"
-            )
-
-            entity.identified_by = identifier
+            entity.identified_by = name
 
     def mapBuilding(self, entity, data):
         content = get(data, "building")
         if content:
-            identifier = Identifier(
+            name = Name(
                 ident=self.generateEntityURI(sub=["building-mnemonic"]),
                 label="Building Mnemonic",
             )
 
-            identifier.content = content
+            name.content = content
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
+            name.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/building-mnemonic",
+                label="Building Mnemonic",
             )
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300263127", label="Mnemonic"
-            )
-
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300004792", label="Building"
-            )
-
-            entity.identified_by = identifier
+            entity.identified_by = name
 
     def mapBuildingName(self, entity, data):
-        content = get(data, "display_building")
+        content = get(data, "display.building")
         if content:
-            identifier = Identifier(
+            name = Name(
                 ident=self.generateEntityURI(sub=["building-name"]),
                 label="Building Name",
             )
 
-            identifier.content = content
+            name.content = content
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
+            name.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/building-name",
+                label="Building Name",
             )
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300004792", label="Building"
-            )
-
-            entity.identified_by = identifier
+            entity.identified_by = name
 
     def mapFloor(self, entity, data):
         content = get(data, "floor")
         if content:
-            identifier = Identifier(
-                ident=self.generateEntityURI(sub=["floor-id"]), label="Floor ID"
+            name = Name(
+                ident=self.generateEntityURI(sub=["floor-mnemonic"]),
+                label="Floor Mnemonic",
             )
 
-            identifier.content = content
+            name.content = content
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
+            name.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/floor-mnemonic",
+                label="Floor Mnemonic",
             )
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300002060",
-                label="Floors (Surface Elements)",
-            )
-
-            entity.identified_by = identifier
+            entity.identified_by = name
 
     def mapFloorName(self, entity, data):
-        content = get(data, "display_floor")
+        content = get(data, "display.floor")
         if content:
-            identifier = Identifier(
+            name = Name(
                 ident=self.generateEntityURI(sub=["floor-name"]), label="Floor Name"
             )
 
-            identifier.content = content
+            name.content = content
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
+            name.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/floor-name",
+                label="Floor Name",
             )
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300002060",
-                label="Floors (Surface Elements)",
-            )
-
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404670", label="Preferred Term"
-            )
-
-            entity.identified_by = identifier
+            entity.identified_by = name
 
     def mapRoom(self, entity, data):
         content = get(data, "room")
         if content:
-            identifier = Identifier(
+            name = Name(
                 ident=self.generateEntityURI(sub=["room-mnemonic"]),
                 label="Room Mnemonic",
             )
 
-            identifier.content = content
+            name.content = content
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
+            name.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/room-mnemonic",
+                label="Room Mnemonic",
             )
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300263127", label="Mnemonic"
-            )
-
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300133704", label="Rooms and Spaces"
-            )
-
-            entity.identified_by = identifier
+            entity.identified_by = name
 
     def mapRoomName(self, entity, data):
-        content = get(data, "display_room")
+        content = get(data, "display.room")
         if content:
-            identifier = Identifier(
+            name = Name(
                 ident=self.generateEntityURI(sub=["room-name"]), label="Room Name"
             )
 
-            identifier.content = content
+            name.content = content
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
+            name.classified_as = Type(
+                ident="https://data.getty.edu/museum/ontology/linked-data/tms/room-name",
+                label="Room Name",
             )
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300133704", label="Rooms and Spaces"
-            )
+            entity.identified_by = name
 
-            entity.identified_by = identifier
+    # Map Gallery's Ancestor Places (if any)
+    def mapAncestors(self, entity, data):
+        # Map Gallery Parent Helper Method
+        def mapParent(entity, parent):
+            if parent:
+                entity.part_of = place = Place(
+                    ident=self.generateEntityURI(UUID=get(parent, "uuid")),
+                    label=get(parent, "display.value"),
+                )
 
-    def mapSite(self, entity, data):
-        content = get(data, "site")
-        if content:
-            identifier = Identifier(
-                ident=self.generateEntityURI(sub=["site-mnemonic"]),
-                label="Site Mnemonic",
-            )
+                # Map the current Place's Parent (if any) recursively
+                mapParent(place, get(parent, "parent"))
 
-            identifier.content = content
+        # Map the current Place's parent/ancestors (if any) recursively
+        mapParent(entity, get(data, "parent"))
 
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
-            )
-
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300263127", label="Mnemonic"
-            )
-
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300000809", label="Sites (Locations)"
-            )
-
-            entity.identified_by = identifier
-
-    def mapSiteName(self, entity, data):
-        content = get(data, "display_site")
-        if content:
-            identifier = Identifier(
-                ident=self.generateEntityURI(sub=["site-name"]), label="Site Name"
-            )
-
-            identifier.content = content
-
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300404650", label="Names"
-            )
-
-            identifier.classified_as = Type(
-                ident="http://vocab.getty.edu/aat/300000809", label="Sites (Locations)"
-            )
-
-            entity.identified_by = identifier
+    # Map Gallery's Child Places (if any)
+    def mapChildren(self, entity, data):
+        children = get(data, "children")
+        if children and len(children) > 0:
+            for child in children:
+                # Place.part maps to crm:P89i_contains
+                entity.part = Place(
+                    ident=self.generateEntityURI(UUID=get(child, "uuid")),
+                    label=get(child, "display.value"),
+                )

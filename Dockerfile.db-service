@@ -9,4 +9,4 @@ EXPOSE 5432
 COPY ./services/postgres/scripts/01-create-hstore.sql /docker-entrypoint-initdb.d/01-create-hstore.sql
 COPY ./services/postgres/scripts/02-create-schema.sql /docker-entrypoint-initdb.d/02-create-schema.sql
 
-CMD ["postgres" ]
+CMD [ "postgres" ]

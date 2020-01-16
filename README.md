@@ -14,9 +14,6 @@ The LOD Gateway is comprised of two primary services: the `transformer` and the 
     git clone https://github.com/thegetty/lod-gateway
     cd lod-gateway
     cp .env.example .env
-    # Update the following <REDACTED> values in the .env file from Vault:
-    #    DOR_API_USER
-    #    DOR_API_KEY
     docker-compose build
     docker-compose up
 

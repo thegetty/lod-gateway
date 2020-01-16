@@ -1,10 +1,14 @@
+from datetime import datetime, timezone
+
 from flask import Blueprint, current_app
 
-from flaskapp.utilities import camelCasedStringFromHyphenatedString
 from flaskapp.models import Record
-from flaskapp.utilities import error_response, validate_namespace
+from flaskapp.utilities import (
+    error_response,
+    validate_namespace,
+    camelCasedStringFromHyphenatedString,
+)
 
-from datetime import datetime, timezone
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)

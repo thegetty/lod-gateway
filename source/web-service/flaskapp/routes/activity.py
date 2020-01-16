@@ -11,8 +11,8 @@ from flaskapp.utilities import (
     generate_url,
     validate_namespace,
     format_datetime,
+    hyphenatedStringFromCamelCasedString,
 )
-from app.utilities import hyphenatedStringFromCamelCasedString
 
 
 # Create a new "activity" route blueprint

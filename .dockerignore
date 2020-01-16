@@ -9,6 +9,3 @@ _*
 .pytest_cache
 __pycache__/*
 Dockerfile*
-
-source/transformer/app/utilities
-source/web-service/app/utilities

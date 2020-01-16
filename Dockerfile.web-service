@@ -19,7 +19,6 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 COPY ./source/web-service .
-COPY ./source/app app
 RUN chmod +x startup.sh
 
 # Install our application 

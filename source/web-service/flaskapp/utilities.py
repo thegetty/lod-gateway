@@ -1,4 +1,5 @@
 import os
+import re
 
 from flask import Response, current_app
 from datetime import datetime
@@ -63,3 +64,30 @@ def format_datetime(dt):
             return formatted
 
     return None
+
+
+def camelCasedStringFromHyphenatedString(string):
+    if isinstance(string, str) and len(string) > 0:
+        parts = string.split("-")
+        if len(parts) > 0:
+            for index, part in enumerate(parts):
+                parts[index] = part.lower().capitalize()
+
+            string = "".join(parts)
+
+    return string
+
+
+def hyphenatedStringFromCamelCasedString(string):
+    if isinstance(string, str) and len(string) > 0:
+        # Split the string on uppercase characters
+        parts = re.findall("[A-Z][^A-Z]*", string)
+        if parts and len(parts) > 0:
+            # Lowercase each part of the string
+            for index, part in enumerate(parts):
+                parts[index] = part.lower()
+
+            # Hyphenate the parts
+            string = "-".join(parts)
+
+    return string

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, current_app
 
-from flaskapp.models import Record
+from flaskapp.models.record import Record
 from flaskapp.utilities import (
     error_response,
     validate_namespace,

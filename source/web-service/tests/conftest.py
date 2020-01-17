@@ -4,7 +4,9 @@ from uuid import uuid4
 import pytest
 
 from flaskapp import create_app
-from flaskapp.models import db, Record, Activity
+from flaskapp.models import db
+from flaskapp.models.activity import Activity
+from flaskapp.models.record import Record
 
 
 @pytest.fixture

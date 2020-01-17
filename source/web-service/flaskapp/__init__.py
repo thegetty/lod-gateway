@@ -12,7 +12,7 @@ from flaskapp.models import db
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    CORS(app, send_wildcard=True)
 
     # Setup global configuration
     app.config["DEFAULT_URL_NAMESPACE"] = environ["LOD_DEFAULT_URL_NAMESPACE"]

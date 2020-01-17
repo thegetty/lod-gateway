@@ -66,7 +66,7 @@ def format_datetime(dt):
     return None
 
 
-def camelCasedStringFromHyphenatedString(string):
+def camel_case(string):
     if isinstance(string, str) and len(string) > 0:
         parts = string.split("-")
         if len(parts) > 0:

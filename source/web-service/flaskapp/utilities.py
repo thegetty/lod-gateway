@@ -78,7 +78,7 @@ def camel_case(string):
     return string
 
 
-def hyphenatedStringFromCamelCasedString(string):
+def uncamel_case(string):
     if isinstance(string, str) and len(string) > 0:
         # Split the string on uppercase characters
         parts = re.findall("[A-Z][^A-Z]*", string)

@@ -55,6 +55,8 @@ LOD_DEFAULT_URL_NAMESPACE=  # This should be the 'vanity' portion of the URL
                             # for example, "museum/collection"
 ```
 
+Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port 5001 is opened for remote debugging of the Flask app. For details see: https://code.visualstudio.com/docs/remote/containers
+
 
 **Technical Architecture**
 

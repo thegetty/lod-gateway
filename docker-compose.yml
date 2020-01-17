@@ -24,6 +24,7 @@ services:
             - ./source/app:/app/app
         ports:
             - "${FLASK_RUN_PORT}:5100"
+            - "5001:5001"  # VS Code debugger
 
 volumes:
     data_postgres:

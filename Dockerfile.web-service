@@ -1,5 +1,4 @@
-# Base this image off the Debian ("stretch") release, using Python 3.7
-FROM python:3.7-stretch
+FROM python:3.7
 
 # Set our working directory
 WORKDIR /app

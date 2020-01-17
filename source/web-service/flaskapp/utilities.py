@@ -66,28 +66,28 @@ def format_datetime(dt):
     return None
 
 
-def camelCasedStringFromHyphenatedString(string):
-    if isinstance(string, str) and len(string) > 0:
-        parts = string.split("-")
+def camel_case(val):
+    if isinstance(val, str) and len(val) > 0:
+        parts = val.split("-")
         if len(parts) > 0:
             for index, part in enumerate(parts):
                 parts[index] = part.lower().capitalize()
 
-            string = "".join(parts)
+            val = "".join(parts)
 
-    return string
+    return val
 
 
-def hyphenatedStringFromCamelCasedString(string):
-    if isinstance(string, str) and len(string) > 0:
-        # Split the string on uppercase characters
-        parts = re.findall("[A-Z][^A-Z]*", string)
+def uncamel_case(val):
+    if isinstance(val, str) and len(val) > 0:
+        # Split the val on uppercase characters
+        parts = re.findall("[A-Z][^A-Z]*", val)
         if parts and len(parts) > 0:
-            # Lowercase each part of the string
+            # Lowercase each part of the val
             for index, part in enumerate(parts):
                 parts[index] = part.lower()
 
             # Hyphenate the parts
-            string = "-".join(parts)
+            val = "-".join(parts)
 
-    return string
+    return val

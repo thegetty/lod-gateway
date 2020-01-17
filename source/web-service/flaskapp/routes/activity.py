@@ -12,7 +12,7 @@ from flaskapp.utilities import (
     generate_url,
     validate_namespace,
     format_datetime,
-    hyphenatedStringFromCamelCasedString,
+    uncamel_case,
 )
 
 
@@ -173,7 +173,7 @@ def _generate_object(record):
     Returns:
         Dict: The AS representation of the object, or None if the record is invalid
     """
-    record_type = hyphenatedStringFromCamelCasedString(record.entity)
+    record_type = uncamel_case(record.entity)
     return {
         "id": generate_url(
             namespace=record.namespace, base=True, sub=[record_type, str(record.uuid)]

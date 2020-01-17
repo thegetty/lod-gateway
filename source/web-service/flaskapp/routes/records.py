@@ -3,11 +3,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, current_app
 
 from flaskapp.models.record import Record
-from flaskapp.utilities import (
-    error_response,
-    validate_namespace,
-    camelCasedStringFromHyphenatedString,
-)
+from flaskapp.utilities import error_response, validate_namespace, camel_case
 
 
 # Create a new "records" route blueprint
@@ -32,7 +28,7 @@ def entity_record(namespace, entity, UUID):
     record = (
         Record.query.filter(Record.uuid == UUID)
         .filter(Record.namespace == namespace)
-        .filter(Record.entity == camelCasedStringFromHyphenatedString(entity))
+        .filter(Record.entity == camel_case(entity))
         .first()
     )
 

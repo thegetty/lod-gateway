@@ -9,6 +9,7 @@ jobs:
         steps:
             - checkout
             - run: mkdir -p /tmp/output
+            - run: groupadd -r flask && useradd -r -g flask flask
             - run: chown -R flask:flask /tmp/output
             - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
 

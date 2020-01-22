@@ -5,7 +5,8 @@ from sqlalchemy.orm import joinedload, load_only
 from sqlalchemy.sql.functions import coalesce, max
 from sqlalchemy import desc
 
-from flaskapp.models import Activity, db
+from flaskapp.models import db
+from flaskapp.models.activity import Activity
 from flaskapp.utilities import (
     generate_url,
     validate_namespace,

@@ -2,9 +2,8 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, current_app
 
-from flaskapp.models import Record
+from flaskapp.models.record import Record
 from flaskapp.utilities import validate_namespace, camel_case
-
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)

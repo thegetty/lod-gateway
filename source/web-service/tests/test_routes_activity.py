@@ -5,7 +5,7 @@ import re
 import pytest
 
 from flaskapp.utilities import generate_url
-from flaskapp.models import Activity
+from flaskapp.models.activity import Activity
 from flaskapp.utilities import format_datetime
 from datetime import datetime
 

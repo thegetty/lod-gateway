@@ -6,7 +6,7 @@ from flaskapp.utilities import validate_namespace
 ingest = Blueprint("ingest", __name__)
 
 
-@ingest.route("/<path:namespace>/ingest", methods=['GET'])
+@ingest.route("/<path:namespace>/ingest", methods=["GET"])
 def ingest_get(namespace):
     """ Process 'GET' request
         Do not allow 'GET' on this route. Handle it here,
@@ -16,7 +16,7 @@ def ingest_get(namespace):
     return abort(405)
 
 
-@ingest.route("/<path:namespace>/ingest", methods=['POST'])
+@ingest.route("/<path:namespace>/ingest", methods=["POST"])
 def ingest_post(namespace):
 
     namespace = validate_namespace(namespace)

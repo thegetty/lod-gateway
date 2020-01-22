@@ -8,6 +8,8 @@ from flask_cors import CORS
 from flaskapp.routes.activity import activity
 from flaskapp.routes.records import records
 from flaskapp.models import db
+from flaskapp.models.activity import Activity
+from flaskapp.models.record import Record
 
 
 def create_app():

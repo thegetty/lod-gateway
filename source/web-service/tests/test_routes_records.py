@@ -2,7 +2,8 @@ import json
 
 import pytest
 
-from flaskapp.models import db, Record
+from flaskapp.models import db
+from flaskapp.models.record import Record
 
 from datetime import datetime, timezone
 from uuid import uuid4

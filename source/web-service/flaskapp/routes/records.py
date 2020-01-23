@@ -3,15 +3,15 @@ from datetime import datetime, timezone
 from flask import Blueprint, current_app
 
 from flaskapp.models.record import Record
-from flaskapp.utilities import validate_namespace, camel_case
+from flaskapp.utilities import camel_case
+
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
 
 
-@records.route("/<string:entity>/<string:UUID>", defaults={"namespace": None})
-@records.route("/<path:namespace>/<string:entity>/<string:UUID>")
-def entity_record(namespace, entity, UUID):
+@records.route("/<string:entity>/<string:UUID>")
+def entity_record(entity, UUID):
     """Generate a page for a cached record
 
     Args:
@@ -22,11 +22,9 @@ def entity_record(namespace, entity, UUID):
     Returns:
         Response: The JSON-encoded record
     """
-    namespace = validate_namespace(namespace)
 
     record = (
         Record.query.filter(Record.uuid == UUID)
-        .filter(Record.namespace == namespace)
         .filter(Record.entity == camel_case(entity))
         .first()
     )

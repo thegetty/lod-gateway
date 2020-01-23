@@ -10,6 +10,12 @@ from flaskapp.models.record import Record
 
 
 @pytest.fixture
+def setup_namespace(monkeypatch):
+    monkeypatch.setenv("APPLICATION_NAMESPACE", "namespace")
+    return "namespace"
+
+
+@pytest.fixture
 def app():
     flask_app = create_app()
     flask_app.config["TESTING"] = True

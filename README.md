@@ -29,12 +29,18 @@ _Run the python unit tests_
 While the application is running,
 
 ```bash
-docker-compose run -env-file=.env.example -e DATABASE=sqlite:// web pytest
+docker-compose run --rm \
+    -e APPLICATION_NAMESPACE="ns" \
+    -e DATABASE=sqlite:// \
+    web pytest
 ```
 will run the tests, and
 
 ```bash
-docker-compose run -env-file=.env.example -e DATABASE=sqlite:// web ptw
+docker-compose run --rm \
+    -e APPLICATION_NAMESPACE="ns" \
+    -e DATABASE=sqlite:// \
+    web ptw
 ```
 
 will run `pywatch`, which will watch for file changes and re-run the tests automatically.
@@ -51,7 +57,7 @@ DATABASE=                   # This should be the full URL to the database
 LOD_BASE_URL=               # This should be the base URL of the application
                             # for example, https://data.getty.edu
 
-LOD_DEFAULT_URL_NAMESPACE=  # This should be the 'vanity' portion of the URL
+APPLICATION_NAMESPACE=  # This should be the 'vanity' portion of the URL
                             # for example, "museum/collection"
 ```
 

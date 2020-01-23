@@ -8,7 +8,6 @@ from sqlalchemy import desc
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.utilities import (
-    error_response,
     generate_url,
     validate_namespace,
     format_datetime,
@@ -78,7 +77,7 @@ def activity_stream_collection_page(namespace, pagenum):
     total_pages = _compute_total_pages()
 
     if pagenum == 0 or pagenum > total_pages:
-        return error_response((404, "Page number out of bounds"))
+        return current_app.make_response(("Page number out of bounds", 404))
 
     data = {
         "@context": "https://www.w3.org/ns/activitystreams",
@@ -133,7 +132,7 @@ def activity_stream_item(namespace, uuid):
         .first()
     )
     if not activity:
-        return error_response((404, "Could not find ActivityStream record"))
+        return current_app.make_response(("Could not find ActivityStream record", 404))
 
     data = _generate_item(namespace, activity)
 

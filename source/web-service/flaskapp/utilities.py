@@ -5,20 +5,6 @@ from flask import Response, current_app
 from datetime import datetime
 
 
-def error_response(error):
-    """Construct a error message.
-
-    TODO: Evaluate if this is actually needed, or if we can just use the standard method
-
-    Args:
-        error (Tuple): (error core, error message)
-
-    Returns:
-        Response: A error message
-    """
-    return Response(error[1], status=error[0], headers={"X-Error": error[1]})
-
-
 def validate_namespace(namespace):
     """Ensure that each call has a namespace, returning the default if needed
 

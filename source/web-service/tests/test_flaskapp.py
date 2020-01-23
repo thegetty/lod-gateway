@@ -4,8 +4,8 @@ def test_home_page(client):
     assert b"Welcome to the Getty's Linked Open Data Gateway Service" in response.data
 
 
-def test_home_page_w_namespace(setup_namespace, client, current_app):
-    response = client.get("/namespace/")
+def test_home_page_w_namespace(setup_namespace, client):
+    response = client.get(f"/{setup_namespace}/")
     assert response.status_code == 200
     assert b"Welcome to the Getty's Linked Open Data Gateway Service" in response.data
 

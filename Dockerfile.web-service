@@ -32,7 +32,8 @@ SHELL ["/bin/bash", "--login", "-c"]
 # Tell Docker to open port 5100; this is the same port as we have configured for use by Flask
 EXPOSE 5100
 
-USER flask
+#USER flask
+USER root
 
 # Run our application startup script...
 CMD [ "./startup.sh" ];

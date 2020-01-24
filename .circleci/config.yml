@@ -20,6 +20,7 @@ jobs:
                 docker run
                 --env-file .env.example 
                 --env DATABASE=sqlite://
+                --env APPLICATION_NAMESPACE="ns"
                 --volume /tmp/output:/output 
                 lod-gateway-web-service 
                 pytest 

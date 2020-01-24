@@ -1,36 +1,22 @@
-import os
-import re
+from re import findall
+from os import environ
 
 from flask import Response, current_app
 from datetime import datetime
 
 
-def validate_namespace(namespace):
-    """Ensure that each call has a namespace, returning the default if needed
-
-    Args:
-        namespace (String): The namespace to test
-
-    Returns:
-        String: The provided namespace, or the default if none provided
-    """
-    if not namespace:
-        namespace = current_app.config["DEFAULT_URL_NAMESPACE"]
-    return namespace
-
-
-def generate_url(namespace=None, sub=[], base=False):
+def generate_url(sub=[], base=False):
     """Create a URL string from relevant fragments
 
     Args:
-        namespace (String, optional): A namespace for the URL
         sub (list, optional): A list of additional URL parts
         base (bool, optional): Should the "activity-stream" part be added?
 
     Returns:
         String: The generated URL string
     """
-    base_url = os.getenv("LOD_BASE_URL", "")
+    base_url = environ["LOD_BASE_URL"]
+    namespace = current_app.config["NAMESPACE"]
 
     if base:
         as_prefix = None
@@ -67,7 +53,7 @@ def camel_case(val):
 def uncamel_case(val):
     if isinstance(val, str) and len(val) > 0:
         # Split the val on uppercase characters
-        parts = re.findall("[A-Z][^A-Z]*", val)
+        parts = findall("[A-Z][^A-Z]*", val)
         if parts and len(parts) > 0:
             # Lowercase each part of the val
             for index, part in enumerate(parts):

@@ -9,7 +9,6 @@ from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.utilities import (
     generate_url,
-    validate_namespace,
     format_datetime,
     uncamel_case,
 )
@@ -19,20 +18,15 @@ from flaskapp.utilities import (
 activity = Blueprint("activity", __name__)
 
 
-@activity.route("/activity-stream", defaults={"namespace": None})
-@activity.route("/<path:namespace>/activity-stream")
-def activity_stream_collection(namespace):
+@activity.route("/activity-stream")
+def activity_stream_collection():
     """Generate the root OrderedCollection for the stream
 
     TODO: This does not currently filter against namespaces for the count. Should it?
 
-    Args:
-        namespace (String): The namespace of the application
-
     Returns:
         Response: A JSON-encoded OrderedCollection
     """
-    namespace = validate_namespace(namespace)
 
     count = Activity.query.count()
     total_pages = str(_compute_total_pages())
@@ -41,36 +35,33 @@ def activity_stream_collection(namespace):
         "@context": "https://www.w3.org/ns/activitystreams",
         "summary": current_app.config["AS_DESC"],
         "type": "OrderedCollection",
-        "id": generate_url(namespace=namespace),
+        "id": generate_url(),
         "totalItems": count,
     }
 
     if count:
         data["first"] = {
-            "id": generate_url(namespace=namespace, sub=["page", "1"]),
+            "id": generate_url(sub=["page", "1"]),
             "type": "OrderedCollectionPage",
         }
         data["last"] = {
-            "id": generate_url(namespace=namespace, sub=["page", total_pages]),
+            "id": generate_url(sub=["page", total_pages]),
             "type": "OrderedCollectionPage",
         }
 
     return current_app.make_response(data)
 
 
-@activity.route("/activity-stream/page/<int:pagenum>", defaults={"namespace": None})
-@activity.route("/<path:namespace>/activity-stream/page/<int:pagenum>")
-def activity_stream_collection_page(namespace, pagenum):
+@activity.route("/activity-stream/page/<int:pagenum>")
+def activity_stream_collection_page(pagenum):
     """Generate an OrderedCollectionPage of Activity Stream items.
 
     Args:
-        namespace (String): The namespace of the application
         pagenum (Integer): The page to generate
 
     Returns:
         TYPE: Response: a JSON-encoded OrderedCollectionPage
     """
-    namespace = validate_namespace(namespace)
 
     limit = current_app.config["ITEMS_PER_PAGE"]
     offset = (pagenum - 1) * limit
@@ -82,22 +73,19 @@ def activity_stream_collection_page(namespace, pagenum):
     data = {
         "@context": "https://www.w3.org/ns/activitystreams",
         "type": "OrderedCollectionPage",
-        "id": generate_url(namespace=namespace, sub=["page", str(pagenum)]),
-        "partOf": {
-            "id": generate_url(namespace=namespace),
-            "type": "OrderedCollection",
-        },
+        "id": generate_url(sub=["page", str(pagenum)]),
+        "partOf": {"id": generate_url(), "type": "OrderedCollection"},
     }
 
     if pagenum < total_pages:
         data["next"] = {
-            "id": generate_url(namespace=namespace, sub=["page", str(pagenum + 1)]),
+            "id": generate_url(sub=["page", str(pagenum + 1)]),
             "type": "OrderedCollectionPage",
         }
 
     if pagenum > 1:
         data["prev"] = {
-            "id": generate_url(namespace=namespace, sub=["page", str(pagenum - 1)]),
+            "id": generate_url(sub=["page", str(pagenum - 1)]),
             "type": "OrderedCollectionPage",
         }
 
@@ -106,25 +94,22 @@ def activity_stream_collection_page(namespace, pagenum):
         .filter(Activity.id > offset, Activity.id <= offset + limit)
         .order_by("id")
     )
-    items = [_generate_item(namespace, a) for a in activities]
+    items = [_generate_item(a) for a in activities]
     data["orderedItems"] = items
 
     return current_app.make_response(data)
 
 
-@activity.route("/activity-stream/<string:uuid>", defaults={"namespace": None})
-@activity.route("/<path:namespace>/activity-stream/<string:uuid>")
-def activity_stream_item(namespace, uuid):
+@activity.route("/activity-stream/<string:uuid>")
+def activity_stream_item(uuid):
     """Generate an ActivityStreams Create Response
 
     Args:
-        namespace (String): The namespace of the application
         uuid (String): The ID of the ActivityStream Create entity
 
     Returns:
         Response:  a JSON-encoded Create entity
     """
-    namespace = validate_namespace(namespace)
 
     activity = (
         Activity.query.options(joinedload(Activity.record, innerjoin=True))
@@ -134,7 +119,7 @@ def activity_stream_item(namespace, uuid):
     if not activity:
         return current_app.make_response(("Could not find ActivityStream record", 404))
 
-    data = _generate_item(namespace, activity)
+    data = _generate_item(activity)
 
     return current_app.make_response(data)
 
@@ -145,18 +130,17 @@ def _compute_total_pages():
     return math.ceil(last.num / limit)
 
 
-def _generate_item(namespace, activity):
+def _generate_item(activity):
     """Generate the ActivityStream Create record
 
     Args:
-        namespace (String): The namespace of the application
         activity (Activity): The Activity record to generate
 
     Returns:
         Dict: The generated data structure
     """
     return {
-        "id": generate_url(namespace=namespace, sub=[str(activity.uuid)]),
+        "id": generate_url(sub=[str(activity.uuid)]),
         "type": activity.event,
         "created": format_datetime(activity.datetime_created),
         "object": _generate_object(activity.record),
@@ -174,8 +158,6 @@ def _generate_object(record):
     """
     record_type = uncamel_case(record.entity)
     return {
-        "id": generate_url(
-            namespace=record.namespace, base=True, sub=[record_type, str(record.uuid)]
-        ),
+        "id": generate_url(base=True, sub=[record_type, str(record.uuid)]),
         "type": record.entity,
     }

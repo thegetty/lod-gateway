@@ -18,7 +18,7 @@ def create_app():
     CORS(app, send_wildcard=True)
 
     # Setup global configuration
-    app.config["DEFAULT_URL_NAMESPACE"] = environ["LOD_DEFAULT_URL_NAMESPACE"]
+    app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"]
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_SORT_KEYS"] = False
@@ -36,12 +36,14 @@ def create_app():
 
     with app.app_context():
 
-        app.register_blueprint(activity)
-        app.register_blueprint(records)
-        app.register_blueprint(ingest)
+        ns = app.config["NAMESPACE"]
+
+        app.register_blueprint(activity, url_prefix=f"/{ns}")
+        app.register_blueprint(records, url_prefix=f"/{ns}")
+        app.register_blueprint(ingest, url_prefix=f"/{ns}")
 
         # Index Route
-        @app.route("/")
+        @app.route(f"/{ns}/")
         def welcome():
             now = datetime.now().strftime("%H:%M:%S on %Y-%m-%d")
             body = f"Welcome to the Getty's Linked Open Data Gateway Service at {now}"

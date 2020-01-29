@@ -31,4 +31,3 @@ def ingest_post():
         return "success"
     else:
         return abort(422)
-

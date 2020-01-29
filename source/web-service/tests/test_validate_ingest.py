@@ -69,4 +69,3 @@ class TestIngestValidate:
             + "\n",
         )
         assert response.status_code == 422
-

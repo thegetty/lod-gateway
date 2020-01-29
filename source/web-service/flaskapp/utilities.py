@@ -1,3 +1,5 @@
+import json
+
 from re import findall
 from os import environ
 
@@ -63,3 +65,40 @@ def uncamel_case(val):
             val = "-".join(parts)
 
     return val
+
+
+# Ingest validation functions
+def validate_ingest_record(rec):
+    """
+        Validate a single json record.
+        Check valid json syntax plus some other params      
+    """
+    try:
+        # if json syntax is good, validate other params
+        data = json.loads(rec)
+        valid = True
+
+        # currently just the 'id'; in the future can be more
+        # check 'id' is present in the record
+        if "id" not in data.keys():
+            valid = False
+
+        # return True if all validations passed, False - otherwise
+        return valid
+
+    except:
+        # json syntax is not valid
+        return False
+
+
+def validate_ingest_record_set(record_list):
+    """
+        Validate a list of json records. 
+        Break and return False if at least one record is invalid
+    """
+    for rec in record_list:
+        if validate_ingest_record(rec) == False:
+            return False
+
+    else:
+        return True

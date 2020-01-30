@@ -1,6 +1,8 @@
+import json
+
 from flask import Blueprint, request, abort
 
-from flaskapp.utilities import validate_ingest_record_set
+from flaskapp.IngestClasses import IngestRecord
 
 
 # Create a new "ingest" route blueprint
@@ -21,13 +23,24 @@ def ingest_get():
 def ingest_post():
 
     # Get json record list by splitting lines
-    record_list = request.data.splitlines()
+    json_string_list = request.data.splitlines()
 
     # Validate all records
-    result = validate_ingest_record_set(record_list)
+    result = validate_ingest_record_set(json_string_list)
 
     # For now return a string if success
     if result == True:
         return "success"
     else:
-        return abort(422)
+        return abort(result.code)
+
+
+def validate_ingest_record_set(json_string_list):
+    for json_str in json_string_list:
+        ingest_rec = IngestRecord(json_str)
+        status = ingest_rec.validate()
+        if status != IngestRecord.status_ok:
+            return status
+
+    else:
+        return True

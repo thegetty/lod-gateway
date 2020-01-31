@@ -84,12 +84,12 @@ def validate_ingest_record_set(record_list):
         Break and return status if at least one record is invalid
         Return line number where the error occured
     """
-    counter = 0
+    line_number = 0
     for rec in record_list:
-        counter += 1
+        line_number += 1
         status = validate_ingest_record(rec)
         if status != status_ok:
-            return (status, counter)
+            return (status, line_number)
 
     else:
         return True

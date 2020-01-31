@@ -16,7 +16,7 @@ def ingest_get():
         otherwise it will go to 'records' route, producing misleading 404 error     
 
     """
-    return abort(405)
+    return abort(405, description="For the requested URL only 'POST' method is allowed")
 
 
 @ingest.route("/ingest", methods=["POST"])

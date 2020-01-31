@@ -25,6 +25,10 @@ def ingest_post():
     # Get json record list by splitting lines
     record_list = request.data.splitlines()
 
+    # No data in request body
+    if len(record_list) == 0:
+        return abort(status_data_missing[0], description=status_data_missing[1])
+
     # Validate all records
     result = validate_ingest_record_set(record_list)
 
@@ -45,6 +49,7 @@ status_nt = namedtuple("name", "code detail")
 status_ok = status_nt(200, "Ok")
 status_wrong_syntax = status_nt(422, "Could not parse JSON record")
 status_id_missing = status_nt(422, "ID for the JSON record not found")
+status_data_missing = status_nt(422, "No input data found")
 
 
 # Validation functions

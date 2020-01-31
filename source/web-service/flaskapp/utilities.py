@@ -1,5 +1,3 @@
-import json
-
 from re import findall
 from os import environ
 

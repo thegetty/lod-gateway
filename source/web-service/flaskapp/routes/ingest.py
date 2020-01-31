@@ -16,7 +16,7 @@ def ingest_get():
         otherwise it will go to 'records' route, producing misleading 404 error     
 
     """
-    return abort(405, description="For the requested URL only 'POST' method is allowed")
+    return abort(status_GET_not_allowed.code, description=status_GET_not_allowed.detail)
 
 
 @ingest.route("/ingest", methods=["POST"])
@@ -27,7 +27,7 @@ def ingest_post():
 
     # No data in request body
     if len(record_list) == 0:
-        return abort(status_data_missing[0], description=status_data_missing[1])
+        return abort(status_data_missing.code, description=status_data_missing.detail)
 
     # Validate all records
     result = validate_ingest_record_set(record_list)
@@ -50,6 +50,9 @@ status_ok = status_nt(200, "Ok")
 status_wrong_syntax = status_nt(422, "Could not parse JSON record")
 status_id_missing = status_nt(422, "ID for the JSON record not found")
 status_data_missing = status_nt(422, "No input data found")
+status_GET_not_allowed = status_nt(
+    405, "For the requested URL only 'POST' method is allowed"
+)
 
 
 # Validation functions

@@ -22,4 +22,3 @@ class TestIngestRoute:
         response = client.post(f"/{ns}/ingest")
         assert response.status_code == 422
         assert b"No input data found" in response.data
-

@@ -98,4 +98,3 @@ class TestIngestValidate:
         )
         assert response.status_code == 422
         assert b"Wrong ID format" in response.data
-

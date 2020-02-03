@@ -36,9 +36,15 @@ def ingest_post():
     if result == True:
         return "success"
     else:
+        # unpack result tuple into variables
+        status, line_number = result
+
         return abort(
-            result[0].code,
-            description="Record on line " + str(result[1]) + ": " + result[0].detail,
+            status.code,
+            # use list comprehensions to join - the fastest method
+            description="".join(
+                ["Record on line ", str(line_number), ": ", status.detail]
+            ),
         )
 
 
@@ -65,7 +71,6 @@ def validate_ingest_record(rec):
         # if json syntax is good, validate other params
         data = json.loads(rec)
 
-        # currently just the 'id'; in the future can be more
         # check 'id' is present in the record
         if "id" not in data.keys():
             return status_id_missing
@@ -84,12 +89,10 @@ def validate_ingest_record_set(record_list):
         Break and return status if at least one record is invalid
         Return line number where the error occured
     """
-    line_number = 0
-    for rec in record_list:
-        line_number += 1
+    for index, rec in enumerate(record_list, start=1):
         status = validate_ingest_record(rec)
         if status != status_ok:
-            return (status, line_number)
+            return (status, index)
 
     else:
         return True

@@ -9,9 +9,6 @@ mkdir ~/checkouts
 cd ~/checkouts
 git clone git@github.com:thegetty/lod-gateway.git  #Note:  This is if you are using the ssh method w/ git.
 
-For the staging-deploy branch, when cloning the repo please use the option
--b staging-deploy
-
 ##### You will need to first export the variables into  your local shell for VAULT.  These I am making available to the 
 developers by storing them inside the vault path that has been created for the project.  In this case they would be in 
 dev/lod-gateway for development, or staging/lod-gateway for the staging environment.  You need to run the following:

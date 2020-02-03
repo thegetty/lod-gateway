@@ -1,4 +1,5 @@
 import json
+import re
 
 from flask import Blueprint, request, abort
 
@@ -59,6 +60,10 @@ status_data_missing = status_nt(422, "No input data found")
 status_GET_not_allowed = status_nt(
     405, "For the requested URL only 'POST' method is allowed"
 )
+status_id_wrong_format = status_nt(
+    422,
+    "Wrong ID format. Must be a string literal + '/' + UUID or int. Example: object/12345",
+)
 
 
 # Validation functions
@@ -68,18 +73,24 @@ def validate_ingest_record(rec):
         Check valid json syntax plus some other params      
     """
     try:
-        # if json syntax is good, validate other params
+        # JSON syntax is good, validate other params
         data = json.loads(rec)
 
-        # check 'id' is present in the record
+        # return 'id_missing' if no 'id' present
         if "id" not in data.keys():
             return status_id_missing
+
+        # validate 'id' against RegEx. Required format is 'string' + '/' + int (or UUID)
+        # example: 'object/8fad1cd2-e274-49ef-87d7-7b75d030d74b'
+        match = re.match(r"^(?P<type>[a-z\-]+)\/(?P<id>[a-z0-9\-]+)$", data["id"])
+        if not match:
+            return status_id_wrong_format
 
         # return True if all validations passed, False - otherwise
         return status_ok
 
     except:
-        # json syntax is not valid
+        # JSON syntax is not valid
         return status_wrong_syntax
 
 

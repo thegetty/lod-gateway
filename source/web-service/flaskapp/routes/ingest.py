@@ -39,11 +39,7 @@ def ingest_post():
     else:
         # unpack result tuple into variables
         status, line_number = result
-
-        return abort(
-            status.code,
-            f"Record on line {line_number}: {status.detail}"
-        )
+        return abort(status.code, f"Record on line {line_number}: {status.detail}")
 
 
 # Vallidation status named tuple. Note the same status code (e.g. '422')

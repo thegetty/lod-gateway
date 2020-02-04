@@ -10,12 +10,6 @@ from flaskapp.models.record import Record
 
 
 @pytest.fixture
-def setup_namespace(monkeypatch):
-    monkeypatch.setenv("APPLICATION_NAMESPACE", "namespace")
-    return "namespace"
-
-
-@pytest.fixture
 def app():
     flask_app = create_app()
     flask_app.config["TESTING"] = True
@@ -31,6 +25,12 @@ def current_app(app):
 @pytest.fixture
 def namespace(current_app):
     yield current_app.config["NAMESPACE"]
+
+
+@pytest.fixture
+def base_url(current_app, namespace):
+    b_url = current_app.config["BASE_URL"]
+    return f"{b_url}/{namespace}"
 
 
 @pytest.fixture

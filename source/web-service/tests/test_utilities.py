@@ -1,13 +1,6 @@
-from os import getenv
-
 import pytest
 
 from flaskapp.utilities import generate_url
-
-
-@pytest.fixture(scope="module")
-def base_url():
-    return f"{getenv('LOD_BASE_URL')}/ns"
 
 
 class TestGenerateURL:

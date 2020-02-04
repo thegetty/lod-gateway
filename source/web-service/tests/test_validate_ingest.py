@@ -15,7 +15,7 @@ class TestIngestValidate:
     def test_ingest_validate_single_bad_syntax(self, client, namespace):
         response = client.post(
             f"/{namespace}/ingest",
-            data='{"id": "object/12345", "name": "COMA IS MISSING AFTER THIS" "age": 31, "city": "New York"}',
+            data='{"id": "object/12345", "name": "COMMA IS MISSING AFTER THIS" "age": 31, "city": "New York"}',
         )
         assert response.status_code == 422
         assert b"Could not parse JSON record" in response.data
@@ -57,7 +57,7 @@ class TestIngestValidate:
             f"/{namespace}/ingest",
             data='{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
             + "\n"
-            + '{"id": "object/12345", "name": "COMA IS MISSING AFTER THIS" "age": 31, "city": "New York"}'
+            + '{"id": "object/12345", "name": "COMMA IS MISSING AFTER THIS" "age": 31, "city": "New York"}'
             + "\n"
             + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
             + "\n",

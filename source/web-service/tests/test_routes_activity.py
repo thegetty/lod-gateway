@@ -23,7 +23,6 @@ class TestBaseRoute:
         assert url in payload["id"]
         assert f"{url}/page/1" in payload["first"]["id"]
 
-
     def test_item_count(self, client, sample_activity, namespace):
         response = client.get(f"/{namespace}/activity-stream")
 
@@ -199,7 +198,9 @@ class TestPageRoute:
         assert a4.record.uuid in response2["orderedItems"][0]["object"]["id"]
         assert a5.record.uuid in response3["orderedItems"][0]["object"]["id"]
 
-    def test_all_page_ids_missing(self, client, current_app, sample_activity, test_db, namespace):
+    def test_all_page_ids_missing(
+        self, client, current_app, sample_activity, test_db, namespace
+    ):
         current_app.config["ITEMS_PER_PAGE"] = 2
 
         a1 = sample_activity(1)

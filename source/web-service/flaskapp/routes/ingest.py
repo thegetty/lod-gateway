@@ -1,4 +1,9 @@
+import json
+import re
+
 from flask import Blueprint, request, abort
+
+from collections import namedtuple
 
 
 # Create a new "ingest" route blueprint
@@ -12,11 +17,93 @@ def ingest_get():
         otherwise it will go to 'records' route, producing misleading 404 error     
 
     """
-    return abort(405)
+    return abort(status_GET_not_allowed.code, description=status_GET_not_allowed.detail)
 
 
 @ingest.route("/ingest", methods=["POST"])
 def ingest_post():
 
-    result = request.data
-    return result
+    # Get json record list by splitting lines
+    record_list = request.data.splitlines()
+
+    # No data in request body
+    if len(record_list) == 0:
+        return abort(status_data_missing.code, description=status_data_missing.detail)
+
+    # Validate all records
+    result = validate_ingest_record_set(record_list)
+
+    # For now return a string if success and detailed error otherwise
+    if result == True:
+        return "success"
+    else:
+        # unpack result tuple into variables
+        status, line_number = result
+
+        return abort(
+            status.code,
+            # use list comprehensions to join - the fastest method
+            description="".join(
+                ["Record on line ", str(line_number), ": ", status.detail]
+            ),
+        )
+
+
+# Vallidation status named tuple. Note the same status code (e.g. '422')
+# can be used for different errors
+status_nt = namedtuple("name", "code detail")
+
+status_ok = status_nt(200, "Ok")
+status_wrong_syntax = status_nt(422, "Could not parse JSON record")
+status_id_missing = status_nt(422, "ID for the JSON record not found")
+status_data_missing = status_nt(422, "No input data found")
+status_GET_not_allowed = status_nt(
+    405, "For the requested URL only 'POST' method is allowed"
+)
+status_id_wrong_format = status_nt(
+    422,
+    "Wrong ID format. Must be a string literal + '/' + UUID or int. Example: object/12345",
+)
+
+
+# Validation functions
+def validate_ingest_record(rec):
+    """
+        Validate a single json record.
+        Check valid json syntax plus some other params      
+    """
+    try:
+        # JSON syntax is good, validate other params
+        data = json.loads(rec)
+
+        # return 'id_missing' if no 'id' present
+        if "id" not in data.keys():
+            return status_id_missing
+
+        # validate 'id' against RegEx. Required format is 'string' + '/' + int (or UUID)
+        # example: 'object/8fad1cd2-e274-49ef-87d7-7b75d030d74b'
+        match = re.match(r"^(?P<type>[a-z\-]+)\/(?P<id>[a-z0-9\-]+)$", data["id"])
+        if not match:
+            return status_id_wrong_format
+
+        # return True if all validations passed, False - otherwise
+        return status_ok
+
+    except:
+        # JSON syntax is not valid
+        return status_wrong_syntax
+
+
+def validate_ingest_record_set(record_list):
+    """
+        Validate a list of json records. 
+        Break and return status if at least one record is invalid
+        Return line number where the error occured
+    """
+    for index, rec in enumerate(record_list, start=1):
+        status = validate_ingest_record(rec)
+        if status != status_ok:
+            return (status, index)
+
+    else:
+        return True

@@ -29,6 +29,11 @@ def current_app(app):
 
 
 @pytest.fixture
+def namespace(current_app):
+    yield current_app.config["NAMESPACE"]
+
+
+@pytest.fixture
 def client(app):
 
     testing_client = app.test_client()

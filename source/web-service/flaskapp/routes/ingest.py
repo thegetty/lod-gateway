@@ -1,7 +1,7 @@
 import json
 import re
 
-from flask import Blueprint, request, abort
+from flask import Blueprint, current_app, request, abort
 
 from collections import namedtuple
 
@@ -17,7 +17,8 @@ def ingest_get():
         otherwise it will go to 'records' route, producing misleading 404 error     
 
     """
-    return abort(status_GET_not_allowed.code, description=status_GET_not_allowed.detail)
+    response = construct_response(status_GET_not_allowed)
+    return abort(response)
 
 
 @ingest.route("/ingest", methods=["POST"])
@@ -28,7 +29,8 @@ def ingest_post():
 
     # No data in request body
     if len(record_list) == 0:
-        return abort(status_data_missing.code, description=status_data_missing.detail)
+        response = construct_response(status_data_missing)
+        return abort(response)
 
     # Validate all records
     result = validate_ingest_record_set(record_list)
@@ -39,19 +41,50 @@ def ingest_post():
     else:
         # unpack result tuple into variables
         status, line_number = result
-        return abort(status.code, f"Record on line {line_number}: {status.detail}")
+
+        # if it is a single record, don't return line number
+        if len(record_list) < 2:
+            line_number = None
+
+        # create response object
+        response = construct_response(status, line_number)
+
+        # return detailed error
+        return abort(response)
+
+
+# Construct 'response' object
+def construct_response(status, line_number=None):
+
+    err = {}
+    err["status"] = status.code
+
+    # include 'line_number' only when needed
+    if line_number:
+        err["source"] = {"line number": line_number}
+
+    err["title"] = status.title
+    err["detail"] = status.detail
+    err = [err]
+    errors = {"errors": err}
+
+    response = current_app.response_class(
+        response=json.dumps(errors), mimetype="application/json", status=status.code,
+    )
+
+    return response
 
 
 # Vallidation status named tuple. Note the same status code (e.g. '422')
 # can be used for different errors
-status_nt = namedtuple("name", "code detail")
+status_nt = namedtuple("name", "code title detail")
 
-status_ok = status_nt(200, "Ok")
-status_wrong_syntax = status_nt(422, "Could not parse JSON record")
-status_id_missing = status_nt(422, "ID for the JSON record not found")
-status_data_missing = status_nt(422, "No input data found")
+status_ok = status_nt(200, "Ok", "Ok")
+status_wrong_syntax = status_nt(422, "Invalid JSON", "Could not parse JSON record")
+status_id_missing = status_nt(422, "ID Missing", "ID for the JSON record not found")
+status_data_missing = status_nt(422, "Data Missing", "No input data found")
 status_GET_not_allowed = status_nt(
-    405, "For the requested URL only 'POST' method is allowed"
+    405, "Forbidden Method", "For the requested URL only 'POST' method is allowed"
 )
 
 

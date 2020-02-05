@@ -10,26 +10,26 @@ from uuid import uuid4
 
 
 class TestObtainRecord:
-    def test_typical_functionality(self, sample_data, client):
-        response = client.get(f"/ns/object/{sample_data['record'].uuid}")
+    def test_typical_functionality(self, sample_data, client, namespace):
+        response = client.get(f"/{namespace}/object/{sample_data['record'].uuid}")
         assert response.status_code == 200
         assert "LOD Gateway" in response.headers["Server"]
         assert json.loads(response.data) == sample_data["record"].data
 
-    def test_missing_record(self, sample_data, client):
-        response = client.get("/ns/object/no-record")
+    def test_missing_record(self, sample_data, client, namespace):
+        response = client.get(f"/{namespace}/object/no-record")
         assert response.status_code == 404
 
-    def test_empty_data_field(self, sample_data, client):
+    def test_empty_data_field(self, sample_data, client, namespace):
         test_record = Record.query.get(1)
         test_record.data = None
         db.session.add(test_record)
         db.session.commit()
-        response = client.get(f"/ns/object/{sample_data['record'].uuid}")
+        response = client.get(f"/{namespace}/object/{sample_data['record'].uuid}")
         assert response.status_code == 404
 
-    def test_last_modified(self, sample_data, client):
-        response = client.get(f"/ns/object/{sample_data['record'].uuid}")
+    def test_last_modified(self, sample_data, client, namespace):
+        response = client.get(f"/{namespace}/object/{sample_data['record'].uuid}")
 
         last_modified = (
             sample_data["record"]
@@ -39,7 +39,7 @@ class TestObtainRecord:
 
         assert response.headers["Last-Modified"] == last_modified
 
-    def test_last_modified_created(self, sample_data, client):
+    def test_last_modified_created(self, sample_data, client, namespace):
         record = Record(
             uuid=str(uuid4()),
             datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
@@ -52,7 +52,7 @@ class TestObtainRecord:
         db.session.add(record)
         db.session.commit()
 
-        response = client.get(f"/ns/object/{record.uuid}")
+        response = client.get(f"/{namespace}/object/{record.uuid}")
 
         # here we use the sample "record" created above which lacks a populated datetime_updated attribute,
         # thus the logic in ./flaskapp/routes/records.py will use the datetime_created for Last-Modified

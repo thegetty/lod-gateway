@@ -39,14 +39,7 @@ def ingest_post():
     else:
         # unpack result tuple into variables
         status, line_number = result
-
-        return abort(
-            status.code,
-            # use list comprehensions to join - the fastest method
-            description="".join(
-                ["Record on line ", str(line_number), ": ", status.detail]
-            ),
-        )
+        return abort(status.code, f"Record on line {line_number}: {status.detail}")
 
 
 # Vallidation status named tuple. Note the same status code (e.g. '422')
@@ -59,10 +52,6 @@ status_id_missing = status_nt(422, "ID for the JSON record not found")
 status_data_missing = status_nt(422, "No input data found")
 status_GET_not_allowed = status_nt(
     405, "For the requested URL only 'POST' method is allowed"
-)
-status_id_wrong_format = status_nt(
-    422,
-    "Wrong ID format. Must be a string literal + '/' + UUID or int. Example: object/12345",
 )
 
 
@@ -80,11 +69,9 @@ def validate_ingest_record(rec):
         if "id" not in data.keys():
             return status_id_missing
 
-        # validate 'id' against RegEx. Required format is 'string' + '/' + int (or UUID)
-        # example: 'object/8fad1cd2-e274-49ef-87d7-7b75d030d74b'
-        match = re.match(r"^(?P<type>[a-z\-]+)\/(?P<id>[a-z0-9\-]+)$", data["id"])
-        if not match:
-            return status_id_wrong_format
+        # check 'id' is not empty
+        if not data["id"].strip():
+            return status_id_missing
 
         # return True if all validations passed, False - otherwise
         return status_ok

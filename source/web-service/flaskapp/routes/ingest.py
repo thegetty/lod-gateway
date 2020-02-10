@@ -75,7 +75,7 @@ def construct_error_response(status, line_number=None):
     return response
 
 
-# Construct 'success response' object 
+# Construct 'success response' object
 # Will figure params and implementation later
 def construct_success_response():
     pass
@@ -112,7 +112,7 @@ def validate_ingest_record(rec):
         if not data["id"].strip():
             return status_id_missing
 
-        # all validations succeeded, return OK        
+        # all validations succeeded, return OK
         return status_ok
 
     except:

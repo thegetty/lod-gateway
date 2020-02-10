@@ -17,7 +17,7 @@ def ingest_get():
         otherwise it will go to 'records' route, producing misleading 404 error     
 
     """
-    response = construct_response(status_GET_not_allowed)
+    response = construct_error_response(status_GET_not_allowed)
     return abort(response)
 
 
@@ -29,7 +29,7 @@ def ingest_post():
 
     # No data in request body
     if len(record_list) == 0:
-        response = construct_response(status_data_missing)
+        response = construct_error_response(status_data_missing)
         return abort(response)
 
     # Validate all records
@@ -46,15 +46,15 @@ def ingest_post():
         if len(record_list) < 2:
             line_number = None
 
-        # create response object
-        response = construct_response(status, line_number)
+        # create error response object
+        response = construct_error_response(status, line_number)
 
         # return detailed error
         return abort(response)
 
 
-# Construct 'response' object
-def construct_response(status, line_number=None):
+# Construct 'error response' object
+def construct_error_response(status, line_number=None):
 
     err = {}
     err["status"] = status.code
@@ -75,11 +75,17 @@ def construct_response(status, line_number=None):
     return response
 
 
+# Construct 'success response' object 
+# Will figure params and implementation later
+def construct_success_response():
+    pass
+
+
 # Vallidation status named tuple. Note the same status code (e.g. '422')
 # can be used for different errors
 status_nt = namedtuple("name", "code title detail")
 
-status_ok = status_nt(200, "Ok", "Ok")
+status_ok = status_nt(200, "OK", "OK")
 status_wrong_syntax = status_nt(422, "Invalid JSON", "Could not parse JSON record")
 status_id_missing = status_nt(422, "ID Missing", "ID for the JSON record not found")
 status_data_missing = status_nt(422, "Data Missing", "No input data found")
@@ -106,7 +112,7 @@ def validate_ingest_record(rec):
         if not data["id"].strip():
             return status_id_missing
 
-        # return True if all validations passed, False - otherwise
+        # all validations succeeded, return OK        
         return status_ok
 
     except:

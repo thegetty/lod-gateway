@@ -90,3 +90,24 @@ class TestIngestValidate:
         )
         assert response.status_code == 422
         assert b"ID for the JSON record not found" in response.data
+
+    def test_ingest_validate_error_response(self, client, namespace):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data='{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "     ", "name": "John", "age": 31, "city": "New York"}'
+            + "\n",
+        )
+        # check for correct 'error json'
+        assert json.loads(response.data)
+
+        # validate 'error json' details
+        data = json.loads(response.data)
+        assert data["errors"]
+        assert data["errors"][0]["status"] == 422
+        assert data["errors"][0]["source"]["line number"] == 3
+        assert data["errors"][0]["title"] == "ID Missing"
+        assert data["errors"][0]["detail"] == "ID for the JSON record not found"

@@ -12,13 +12,13 @@ class TestIngestRoute:
         response = client.get(f"/{namespace}/ingest")
         assert response.status_code == 405
 
-    def test_ingest_auth_token_missing(self, client, namespace):
+    def test_ingest_auth_token_wrong(self, client, namespace):
         response = client.post(
             f"/{namespace}/ingest", headers={"Authorization": "wrong token"}
         )
         assert response.status_code == 401
 
-    def test_ingest_auth_token_wrong(self, client, namespace):
+    def test_ingest_auth_token_missing(self, client, namespace):
         response = client.post(f"/{namespace}/ingest")
         assert response.status_code == 401
 

@@ -1,6 +1,7 @@
 import json
 import re
 
+
 from flask import Blueprint, current_app, request, abort
 
 from collections import namedtuple
@@ -23,6 +24,12 @@ def ingest_get():
 
 @ingest.route("/ingest", methods=["POST"])
 def ingest_post():
+
+    # Check Authorization header token
+    auth_header = request.headers.get("Authorization")
+    if not (auth_header and auth_header == current_app.config["AUTH_TOKEN"]):
+        response = construct_error_response(status_wrong_auth_token)
+        return abort(response)
 
     # Get json record list by splitting lines
     record_list = request.data.splitlines()
@@ -91,6 +98,9 @@ status_id_missing = status_nt(422, "ID Missing", "ID for the JSON record not fou
 status_data_missing = status_nt(422, "Data Missing", "No input data found")
 status_GET_not_allowed = status_nt(
     405, "Forbidden Method", "For the requested URL only 'POST' method is allowed"
+)
+status_wrong_auth_token = status_nt(
+    401, "Wrong Authorization Token", "Authorization token is wrong or missing"
 )
 
 

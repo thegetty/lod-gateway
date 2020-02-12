@@ -18,6 +18,7 @@ def create_app():
     CORS(app, send_wildcard=True)
 
     # Setup global configuration
+    app.config["AUTH_TOKEN"] = environ["AUTHORIZATION_TOKEN"]
     app.config["BASE_URL"] = environ["LOD_BASE_URL"]
     app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"]
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]

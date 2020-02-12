@@ -23,6 +23,11 @@ def current_app(app):
 
 
 @pytest.fixture
+def auth_token(current_app):
+    yield current_app.config["AUTH_TOKEN"]
+
+
+@pytest.fixture
 def namespace(current_app):
     yield current_app.config["NAMESPACE"]
 

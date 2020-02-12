@@ -14,7 +14,7 @@ class TestIngestRoute:
 
     def test_ingest_auth_token_wrong(self, client, namespace):
         response = client.post(
-            f"/{namespace}/ingest", headers={"Authorization": "wrong token"}
+            f"/{namespace}/ingest", headers={"Authorization": "Bearer WrongToken"}
         )
         assert response.status_code == 401
 
@@ -24,7 +24,7 @@ class TestIngestRoute:
 
     def test_ingest_POST(self, client, namespace, auth_token):
         response = client.post(
-            f"/{namespace}/ingest", headers={"Authorization": auth_token},
+            f"/{namespace}/ingest", headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
         assert b"No input data found" in response.data

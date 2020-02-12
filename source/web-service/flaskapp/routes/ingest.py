@@ -25,10 +25,10 @@ def ingest_get():
 @ingest.route("/ingest", methods=["POST"])
 def ingest_post():
 
-    # Check Authorization header token
-    auth_header = request.headers.get("Authorization")
-    if not (auth_header and auth_header == current_app.config["AUTH_TOKEN"]):
-        response = construct_error_response(status_wrong_auth_token)
+    # Authentication
+    status = authenticate_bearer(request)
+    if status != status_ok:
+        response = construct_error_response(status)
         return abort(response)
 
     # Get json record list by splitting lines
@@ -102,6 +102,33 @@ status_GET_not_allowed = status_nt(
 status_wrong_auth_token = status_nt(
     401, "Wrong Authorization Token", "Authorization token is wrong or missing"
 )
+
+# Authentication functions
+def authenticate_bearer(request):
+
+    # for now return the same error for all failing scenarios
+    error = status_wrong_auth_token
+
+    # get Authorization header token
+    auth_header = request.headers.get("Authorization")
+
+    # return error if auth header is not present
+    if not auth_header:
+        return error
+
+    else:
+        # get method (Bearer) and token
+        method, token = auth_header.split()
+
+        # check the method is correct
+        if method != "Bearer":
+            return error
+
+        # verify token
+        elif token != current_app.config["AUTH_TOKEN"]:
+            return error
+
+    return status_ok
 
 
 # Validation functions

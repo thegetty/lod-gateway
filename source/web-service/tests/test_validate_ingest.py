@@ -9,7 +9,7 @@ class TestIngestValidate:
             data=json.dumps(
                 {"id": "object/12345", "name": "John", "age": 31, "city": "New York"}
             ),
-            headers={"Authorization": auth_token},
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
@@ -17,7 +17,7 @@ class TestIngestValidate:
         response = client.post(
             f"/{namespace}/ingest",
             data='{"id": "object/12345", "name": "COMMA IS MISSING AFTER THIS" "age": 31, "city": "New York"}',
-            headers={"Authorization": auth_token},
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
         assert b"Could not parse JSON record" in response.data
@@ -28,7 +28,7 @@ class TestIngestValidate:
             data=json.dumps(
                 {"NO_ID": "object/12345", "name": "John", "age": 31, "city": "New York"}
             ),
-            headers={"Authorization": auth_token},
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
         assert b"ID for the JSON record not found"
@@ -39,7 +39,7 @@ class TestIngestValidate:
             data=json.dumps(
                 {"id": "     ", "name": "John", "age": 31, "city": "New York"}
             ),
-            headers={"Authorization": auth_token},
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
         assert b"ID for the JSON record not found" in response.data
@@ -53,7 +53,7 @@ class TestIngestValidate:
             + "\n"
             + '{"id": "group/12345", "name": "John", "age": 31, "city": "New York"}'
             + "\n",
-            headers={"Authorization": auth_token},
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
@@ -66,7 +66,7 @@ class TestIngestValidate:
             + "\n"
             + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
             + "\n",
-            headers={"Authorization": auth_token},
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
         assert b"Could not parse JSON record" in response.data
@@ -80,7 +80,7 @@ class TestIngestValidate:
             + "\n"
             + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
             + "\n",
-            headers={"Authorization": auth_token},
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
         assert b"ID for the JSON record not found" in response.data
@@ -94,7 +94,7 @@ class TestIngestValidate:
             + "\n"
             + '{"id": "     ", "name": "John", "age": 31, "city": "New York"}'
             + "\n",
-            headers={"Authorization": auth_token},
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
         assert b"ID for the JSON record not found" in response.data
@@ -108,7 +108,7 @@ class TestIngestValidate:
             + "\n"
             + '{"id": "     ", "name": "John", "age": 31, "city": "New York"}'
             + "\n",
-            headers={"Authorization": auth_token},
+            headers={"Authorization": "Bearer " + auth_token},
         )
         # check for correct 'error json'
         assert json.loads(response.data)

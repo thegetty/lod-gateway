@@ -15,7 +15,7 @@ def healthcheck_get():
         return "OK"
     else:
         status_db_error = status_nt(
-            503, "Data Base Error", "DB connection cannot be established"
+            500, "Data Base Error", "DB connection cannot be established"
         )
         response = construct_error_response(status_db_error)
         return abort(response)

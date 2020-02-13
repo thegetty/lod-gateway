@@ -1,8 +1,16 @@
 import json
-import re
-from collections import namedtuple
 
 from flask import Blueprint, current_app, request, abort
+
+from flaskapp.errors import (
+    status_ok,
+    status_data_missing,
+    status_GET_not_allowed,
+    status_id_missing,
+    status_wrong_auth_token,
+    status_wrong_syntax,
+    construct_error_response,
+)
 
 
 # Create a new "ingest" route blueprint
@@ -57,49 +65,6 @@ def ingest_post():
         # return detailed error
         return abort(response)
 
-
-# Construct 'error response' object
-def construct_error_response(status, line_number=None):
-
-    err = {}
-    err["status"] = status.code
-
-    # include 'line_number' only when needed
-    if line_number:
-        err["source"] = {"line number": line_number}
-
-    err["title"] = status.title
-    err["detail"] = status.detail
-    err = [err]
-    errors = {"errors": err}
-
-    response = current_app.response_class(
-        response=json.dumps(errors), mimetype="application/json", status=status.code,
-    )
-
-    return response
-
-
-# Construct 'success response' object
-# Will figure params and implementation later
-def construct_success_response():
-    pass
-
-
-# Vallidation status named tuple. Note the same status code (e.g. '422')
-# can be used for different errors
-status_nt = namedtuple("name", "code title detail")
-
-status_ok = status_nt(200, "OK", "OK")
-status_wrong_syntax = status_nt(422, "Invalid JSON", "Could not parse JSON record")
-status_id_missing = status_nt(422, "ID Missing", "ID for the JSON record not found")
-status_data_missing = status_nt(422, "Data Missing", "No input data found")
-status_GET_not_allowed = status_nt(
-    405, "Forbidden Method", "For the requested URL only 'POST' method is allowed"
-)
-status_wrong_auth_token = status_nt(
-    401, "Wrong Authorization Token", "Authorization token is wrong or missing"
-)
 
 # Authentication functions
 def authenticate_bearer(request):

@@ -1,8 +1,8 @@
 from re import findall
 from os import environ
+from datetime import datetime
 
 from flask import Response, current_app
-from datetime import datetime
 
 
 def generate_url(sub=[], base=False):

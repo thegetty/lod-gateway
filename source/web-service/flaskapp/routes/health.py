@@ -6,12 +6,12 @@ from flaskapp.routes.ingest import status_nt, construct_error_response
 
 
 # Create a new "health_check" route blueprint
-healthcheck = Blueprint("health_check", __name__)
+health = Blueprint("health", __name__)
 
 
-@healthcheck.route("/healthcheck", methods=["GET"])
+@health.route("/health", methods=["GET"])
 def healthcheck_get():
-    if healthcheck_db():
+    if health_db():
         return "OK"
     else:
         status_db_error = status_nt(
@@ -21,7 +21,7 @@ def healthcheck_get():
         return abort(response)
 
 
-def healthcheck_db():
+def health_db():
     try:
         db.session.execute("SELECT 1")
         return True

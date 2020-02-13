@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, abort
 
 from flaskapp.models import db
-from flaskapp.routes.ingest import status_nt, construct_error_response
+from flaskapp.errors import status_db_error, construct_error_response
 
 
 # Create a new "health_check" route blueprint
@@ -13,9 +13,6 @@ def healthcheck_get():
     if health_db():
         return "OK"
     else:
-        status_db_error = status_nt(
-            500, "Data Base Error", "DB connection cannot be established"
-        )
         response = construct_error_response(status_db_error)
         return abort(response)
 

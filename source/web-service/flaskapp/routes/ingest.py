@@ -1,10 +1,8 @@
 import json
 import re
-
+from collections import namedtuple
 
 from flask import Blueprint, current_app, request, abort
-
-from collections import namedtuple
 
 
 # Create a new "ingest" route blueprint

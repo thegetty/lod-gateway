@@ -1,6 +1,5 @@
 import pytest
 
-
 from flaskapp.models import db
 from flaskapp.models.record import Record
 
@@ -13,9 +12,19 @@ class TestIngestRoute:
         response = client.get(f"/{namespace}/ingest")
         assert response.status_code == 405
 
-    # Empty body should trigger 422 with 'no data' description
-    # Non empty request body is tested in 'validate_ingest' test
-    def test_ingest_POST(self, client, namespace):
+    def test_ingest_auth_token_wrong(self, client, namespace):
+        response = client.post(
+            f"/{namespace}/ingest", headers={"Authorization": "Bearer WrongToken"}
+        )
+        assert response.status_code == 401
+
+    def test_ingest_auth_token_missing(self, client, namespace):
         response = client.post(f"/{namespace}/ingest")
+        assert response.status_code == 401
+
+    def test_ingest_POST(self, client, namespace, auth_token):
+        response = client.post(
+            f"/{namespace}/ingest", headers={"Authorization": "Bearer " + auth_token},
+        )
         assert response.status_code == 422
         assert b"No input data found" in response.data

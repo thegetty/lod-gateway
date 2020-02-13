@@ -1,7 +1,6 @@
 from flask import Blueprint, current_app, abort
 
 from flaskapp.models import db
-
 from flaskapp.routes.ingest import status_nt, construct_error_response
 
 
@@ -23,7 +22,7 @@ def healthcheck_get():
 
 def health_db():
     try:
-        db.session.execute("SELECT 1")
+        db.session.execute("select id from records limit 1")
         return True
     except:
         return False

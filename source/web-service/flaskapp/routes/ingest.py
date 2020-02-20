@@ -175,7 +175,7 @@ def process_activity(prim_key, crud):
 
 
 def get_record(rec_id):
-    result = Record.query.filter(Record.uuid == rec_id).first()
+    result = Record.query.filter(Record.uuid == rec_id).one_or_none()
     return result
 
 

@@ -109,7 +109,7 @@ def process_record_set(record_list):
 
             # add to result dict pair ('id': 'None') which will signify to client no operation was done
             else:
-                result_dict[id] = "None"
+                result_dict[id] = "null"
 
     except BaseException as e:
         db.session.rollback()
@@ -177,7 +177,7 @@ def process_record(input_rec):
 
 def process_activity(prim_key, crud):
     a = Activity()
-    a.uuid = uuid.uuid1()
+    a.uuid = uuid.uuid4()
     a.datetime_created = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
     a.namespace = current_app.config["NAMESPACE"]
     a.entity = "entity"
@@ -196,6 +196,7 @@ def record_create(input_rec):
     r = Record()
     r.uuid = input_rec["id"]
     r.datetime_created = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    r.datetime_updated = r.datetime_created
     r.namespace = current_app.config["NAMESPACE"]
     r.data = input_rec
     r.entity = "Entity"

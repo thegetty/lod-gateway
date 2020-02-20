@@ -99,11 +99,17 @@ def process_record_set(record_list):
             # 'crud' - one of 3 operations ('create', 'update', 'delete')
             prim_key, id, crud = process_record(rec)
 
-            # process activities based on returned Record's primary key
-            process_activity(prim_key, crud)
+            # some operations may not return primary key e.g. 'delete' for non-existing record
+            # if primary key is valid, process 'Activities'
+            if prim_key:
+                process_activity(prim_key, crud)
 
-            # add pair of IDs to result dict
-            result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'
+                # add pair of IDs to result dict
+                result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'
+
+            # add to result dict pair ('id': 'None') which will signify to client no operation was done
+            else:
+                result_dict[id] = "None"
 
     except BaseException as e:
         db.session.rollback()
@@ -138,11 +144,17 @@ def process_record(input_rec):
     # find if Record with this 'id' exists
     db_rec = get_record(id)
 
-    # record with such 'id' does not exist. Create and return primary key for Activities
+    # record with such 'id' does not exist
     if db_rec == None:
+
+        # this is a 'delete' request for record that is not in DB
+        if "_delete" in data.keys() and data["_delete"] == "true":
+            return (None, id, "delete")
+
+        # create and return primary key for Activities
         prim_key = record_create(data)
 
-        # 'prim_id' - primary 'id' created by db
+        # 'prim_key' - primary key created by db
         # return record 'id' since it is not known to calling function
         # 'create' - return the exect CRUD operation (createed in this case)
         return (prim_key, id, "create")
@@ -210,9 +222,24 @@ def record_delete(db_rec, input_rec):
     db_rec.datetime_updated = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 
-# Do Neptune operation.
-# If fails, delete created/updated Neptune records and return False
+# Neptune processing
 def process_neptune_record_set(record_list):
+    """
+        This function will process the same list of records indepenently. 
+        See specs for details.
+
+        If one of the records fails, all inserted/updated records must be reverted:
+        newly inserted records must be deleted, updated records must be reverted to 
+        the previous state. And 'False' must be a return value.
+
+        If all operations succeded, then return 'True'.
+
+        In case of 'delete' request, there can be 2 possibilities:
+        - record exists. In this case delete and return 'True' or 'False' depending on the result
+        - record does not exist. In this scenario - don't do anything and return 'True'
+        
+    """
+
     return True
 
 

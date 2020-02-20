@@ -20,6 +20,9 @@ status_wrong_auth_token = status_nt(
 status_db_error = status_nt(
     500, "Data Base Error", "DB connection cannot be established"
 )
+status_db_save_error = status_nt(
+    503, "Service Unavalable", "Cannot perform database operation"
+)
 
 
 # Construct 'error response' object

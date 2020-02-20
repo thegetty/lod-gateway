@@ -32,6 +32,7 @@ While the application is running,
 docker-compose run --rm \
     -e APPLICATION_NAMESPACE="ns" \
     -e DATABASE=sqlite:// \
+    -e AUTHORIZATION_TOKEN=AuthToken \
     web pytest
 ```
 will run the tests, and
@@ -40,6 +41,7 @@ will run the tests, and
 docker-compose run --rm \
     -e APPLICATION_NAMESPACE="ns" \
     -e DATABASE=sqlite:// \
+    -e AUTHORIZATION_TOKEN=AuthToken \
     web ptw
 ```
 

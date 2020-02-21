@@ -1,6 +1,7 @@
 import json
 import uuid
 from datetime import datetime
+from enum import Enum
 
 from flask import Blueprint, current_app, request, abort, jsonify
 
@@ -81,6 +82,14 @@ def ingest_post():
 
 
 # CRUD FUNCTIONS
+
+# Enum with 3 possible events
+class Event(Enum):
+    CREATE = 1
+    UPDATE = 2
+    DELETE = 3
+
+
 def process_record_set(record_list):
     """
         Process the record set in a loop. Wrap into 'try-except'. 
@@ -97,12 +106,12 @@ def process_record_set(record_list):
             # 'prim_key' - primary key (integer) returned by db. Used in Activities
             # 'id' - string ID submitted by client. Used in result dict
             # 'crud' - one of 3 operations ('create', 'update', 'delete')
-            prim_key, id, crud = process_record(rec)
+            prim_key, id, crud_event = process_record(rec)
 
             # some operations may not return primary key e.g. 'delete' for non-existing record
             # if primary key is valid, process 'Activities'
             if prim_key:
-                process_activity(prim_key, crud)
+                process_activity(prim_key, crud_event)
 
                 # add pair of IDs to result dict
                 result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'
@@ -149,7 +158,7 @@ def process_record(input_rec):
 
         # this is a 'delete' request for record that is not in DB
         if "_delete" in data.keys() and data["_delete"] == "true":
-            return (None, id, "delete")
+            return (None, id, Event.DELETE)
 
         # create and return primary key for Activities
         prim_key = record_create(data)
@@ -157,7 +166,7 @@ def process_record(input_rec):
         # 'prim_key' - primary key created by db
         # return record 'id' since it is not known to calling function
         # 'create' - return the exect CRUD operation (createed in this case)
-        return (prim_key, id, "create")
+        return (prim_key, id, Event.CREATE)
 
     # record exists
     else:
@@ -167,22 +176,22 @@ def process_record(input_rec):
         # delete
         if "_delete" in data.keys() and data["_delete"] == "true":
             record_delete(db_rec, data)
-            return (prim_key, id, "delete")
+            return (prim_key, id, Event.DELETE)
 
         # update
         else:
             record_update(db_rec, data)
-            return (prim_key, id, "update")
+            return (prim_key, id, Event.UPDATE)
 
 
-def process_activity(prim_key, crud):
+def process_activity(prim_key, crud_event):
     a = Activity()
     a.uuid = uuid.uuid4()
     a.datetime_created = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
     a.namespace = current_app.config["NAMESPACE"]
     a.entity = "entity"
     a.record_id = prim_key
-    a.event = crud
+    a.event = crud_event.name
     db.session.add(a)
 
 

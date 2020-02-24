@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import Enum
 
 from flask import Blueprint, current_app, request, abort, jsonify
+from sqlalchemy import exc
 
 from flaskapp.models import db
 from flaskapp.models.record import Record
@@ -120,7 +121,8 @@ def process_record_set(record_list):
             else:
                 result_dict[id] = "null"
 
-    except BaseException as e:
+    # Catch only OperationalError exception (e.g. DB is down)
+    except exc.OperationalError as e:
         db.session.rollback()
         return status_db_save_error
 

@@ -7,10 +7,7 @@ from sqlalchemy import desc
 
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
-from flaskapp.utilities import (
-    generate_url,
-    format_datetime,
-)
+from flaskapp.utilities import format_datetime
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
@@ -135,6 +132,29 @@ def compute_total_pages():
     limit = current_app.config["ITEMS_PER_PAGE"]
     last = db.session.query(coalesce(max(Activity.id), 0).label("num")).one_or_none()
     return math.ceil(last.num / limit)
+
+
+def generate_url(sub=[], base=False):
+    """Create a URL string from relevant fragments
+
+    Args:
+        sub (list, optional): A list of additional URL parts
+        base (bool, optional): Should the "activity-stream" part be added?
+
+    Returns:
+        String: The generated URL string
+    """
+    base_url = current_app.config["BASE_URL"]
+    namespace = current_app.config["NAMESPACE"]
+
+    if base:
+        as_prefix = None
+    else:
+        as_prefix = "activity-stream"
+
+    parts = [base_url, namespace, as_prefix, "/".join(sub)]
+    parts = [item for item in parts if item]
+    return "/".join(parts)
 
 
 def generate_item(activity):

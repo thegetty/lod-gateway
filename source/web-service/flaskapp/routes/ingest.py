@@ -21,6 +21,7 @@ from flaskapp.errors import (
     status_wrong_syntax,
     construct_error_response,
 )
+from flaskapp.utilities import format_datetime
 
 
 # Create a new "ingest" route blueprint
@@ -189,28 +190,24 @@ def process_record(input_rec):
 def process_activity(prim_key, crud_event):
     a = Activity()
     a.uuid = uuid.uuid4()
-    a.datetime_created = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
-    a.namespace = current_app.config["NAMESPACE"]
-    a.entity = "entity"
+    a.datetime_created = format_datetime(datetime.utcnow())
     a.record_id = prim_key
     a.event = crud_event.name
     db.session.add(a)
 
 
 def get_record(rec_id):
-    result = Record.query.filter(Record.uuid == rec_id).one_or_none()
+    result = Record.query.filter(Record.entity_id == rec_id).one_or_none()
     return result
 
 
 # There is no entry with this 'id'. Create a new record
 def record_create(input_rec):
     r = Record()
-    r.uuid = input_rec["id"]
-    r.datetime_created = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    r.entity_id = input_rec["id"]
+    r.datetime_created = format_datetime(datetime.utcnow())
     r.datetime_updated = r.datetime_created
-    r.namespace = current_app.config["NAMESPACE"]
     r.data = input_rec
-    r.entity = "Entity"
 
     db.session.add(r)
     db.session.flush()
@@ -221,7 +218,7 @@ def record_create(input_rec):
 
 # Do not return anything. Calling function has all the info
 def record_update(db_rec, input_rec):
-    db_rec.datetime_updated = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    db_rec.datetime_updated = format_datetime(datetime.utcnow())
     db_rec.namespace = current_app.config["NAMESPACE"]
     db_rec.data = input_rec
 
@@ -229,9 +226,7 @@ def record_update(db_rec, input_rec):
 # For now just delete json from 'data' column
 def record_delete(db_rec, input_rec):
     db_rec.data = None
-
-    # for now insert into 'data_updated' as there is no 'data_deleted'
-    db_rec.datetime_updated = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    db_rec.datetime_deleted = format_datetime(datetime.utcnow())
 
 
 # Neptune processing

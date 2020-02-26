@@ -1,5 +1,5 @@
 from re import findall
-from os import environ
+
 from datetime import datetime
 
 from flask import Response, current_app
@@ -15,7 +15,7 @@ def generate_url(sub=[], base=False):
     Returns:
         String: The generated URL string
     """
-    base_url = environ["LOD_BASE_URL"]
+    base_url = current_app.config["BASE_URL"]
     namespace = current_app.config["NAMESPACE"]
 
     if base:
@@ -29,13 +29,7 @@ def generate_url(sub=[], base=False):
 
 
 def format_datetime(dt):
-    if isinstance(dt, datetime):
-        formatted = dt.strftime("%Y-%m-%dT%H:%M:%S%z")
-        if isinstance(formatted, str) and len(formatted) > 0:
-            formatted = formatted[:-2] + ":" + formatted[-2:]
-            return formatted
-
-    return None
+    return dt.strftime("%a, %d %b %Y %H:%M:%S")
 
 
 def camel_case(val):

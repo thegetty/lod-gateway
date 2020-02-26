@@ -11,6 +11,7 @@ from flaskapp.utilities import format_datetime
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
+    status_pagenum_not_integer,
     status_page_not_found,
 )
 
@@ -53,8 +54,15 @@ def activity_stream_collection():
     return current_app.make_response(data)
 
 
+# Abort if 'pagenum' is not integer
+@activity.route("/activity-stream/page/<string:pagenum>")
+def activity_stream_wrong_page_format(pagenum):
+    response = construct_error_response(status_pagenum_not_integer)
+    return abort(response)
+
+
 @activity.route("/activity-stream/page/<int:pagenum>")
-def activity_stream_collection_page(pagenum):
+def activity_stream_page(pagenum):
     """Generate an OrderedCollectionPage of Activity Stream items.
 
     Args:

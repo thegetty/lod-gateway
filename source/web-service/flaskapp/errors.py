@@ -19,6 +19,8 @@ status_record_not_found = status_nt(
 
 status_page_not_found = status_nt(404, "Page Not Found", "Page number out of bounds")
 
+status_pagenum_not_integer = status_nt(404, "Page Not Found", "Wrong page number")
+
 status_GET_not_allowed = status_nt(
     405, "Forbidden Method", "For the requested URL only 'POST' method is allowed"
 )

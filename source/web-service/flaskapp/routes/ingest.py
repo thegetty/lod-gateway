@@ -205,6 +205,11 @@ def get_record(rec_id):
 def record_create(input_rec):
     r = Record()
     r.entity_id = input_rec["id"]
+
+    # 'entity_type' is not required
+    if "type" in input_rec.keys():
+        r.entity_type = input_rec["type"]
+        
     r.datetime_created = format_datetime(datetime.utcnow())
     r.datetime_updated = r.datetime_created
     r.data = input_rec

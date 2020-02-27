@@ -1,9 +1,8 @@
 import json
 
-import pytest
-
 from flaskapp.models import db
 from flaskapp.models.record import Record
+from flaskapp.utilities import format_datetime
 
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -11,7 +10,7 @@ from uuid import uuid4
 
 class TestObtainRecord:
     def test_typical_functionality(self, sample_data, client, namespace):
-        response = client.get(f"/{namespace}/object/{sample_data['record'].uuid}")
+        response = client.get(f"/{namespace}/{sample_data['record'].entity_id}")
         assert response.status_code == 200
         assert "LOD Gateway" in response.headers["Server"]
         assert json.loads(response.data) == sample_data["record"].data
@@ -25,39 +24,27 @@ class TestObtainRecord:
         test_record.data = None
         db.session.add(test_record)
         db.session.commit()
-        response = client.get(f"/{namespace}/object/{sample_data['record'].uuid}")
+        response = client.get(f"/{namespace}/{sample_data['record'].entity_id}")
         assert response.status_code == 404
 
     def test_last_modified(self, sample_data, client, namespace):
-        response = client.get(f"/{namespace}/object/{sample_data['record'].uuid}")
-
-        last_modified = (
-            sample_data["record"]
-            .datetime_updated.astimezone(timezone.utc)
-            .strftime("%a, %d %b %Y %H:%M:%S GMT")
-        )
-
+        response = client.get(f"/{namespace}/{sample_data['record'].entity_id}")
+        last_modified = format_datetime(sample_data["record"].datetime_updated)
         assert response.headers["Last-Modified"] == last_modified
 
     def test_last_modified_created(self, sample_data, client, namespace):
         record = Record(
-            uuid=str(uuid4()),
+            entity_id=str(uuid4()),
+            entity_type="Object",
             datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
-            datetime_updated=None,
-            namespace="museum/collection",
-            entity="Object",
+            datetime_updated=datetime(2019, 11, 22, 13, 2, 53, 0),
             data={"example": "data"},
         )
 
         db.session.add(record)
         db.session.commit()
 
-        response = client.get(f"/{namespace}/object/{record.uuid}")
+        response = client.get(f"/{namespace}/{record.entity_id}")
 
-        # here we use the sample "record" created above which lacks a populated datetime_updated attribute,
-        # thus the logic in ./flaskapp/routes/records.py will use the datetime_created for Last-Modified
-        last_modified = record.datetime_created.astimezone(timezone.utc).strftime(
-            "%a, %d %b %Y %H:%M:%S GMT"
-        )
-
+        last_modified = format_datetime(record.datetime_updated)
         assert response.headers["Last-Modified"] == last_modified

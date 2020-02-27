@@ -1,6 +1,3 @@
-import pytest
-
-
 class TestHealthRoute:
     def test_health_ok(self, client, namespace, test_db):
         response = client.get(f"/{namespace}/health")

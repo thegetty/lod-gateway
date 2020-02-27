@@ -1,7 +1,6 @@
 import json
 import uuid
 from datetime import datetime
-from enum import Enum
 
 from flask import Blueprint, current_app, request, abort, jsonify
 from sqlalchemy import exc
@@ -21,7 +20,7 @@ from flaskapp.errors import (
     status_wrong_syntax,
     construct_error_response,
 )
-from flaskapp.utilities import format_datetime
+from flaskapp.utilities import format_datetime, Event
 
 
 # Create a new "ingest" route blueprint
@@ -84,12 +83,6 @@ def ingest_post():
 
 
 # CRUD FUNCTIONS
-
-# Enum with 3 possible events
-class Event(Enum):
-    CREATE = 1
-    UPDATE = 2
-    DELETE = 3
 
 
 def process_record_set(record_list):
@@ -161,7 +154,7 @@ def process_record(input_rec):
 
         # this is a 'delete' request for record that is not in DB
         if "_delete" in data.keys() and data["_delete"] == "true":
-            return (None, id, Event.DELETE)
+            return (None, id, Event.Delete)
 
         # create and return primary key for Activities
         prim_key = record_create(data)
@@ -169,7 +162,7 @@ def process_record(input_rec):
         # 'prim_key' - primary key created by db
         # return record 'id' since it is not known to calling function
         # 'create' - return the exect CRUD operation (createed in this case)
-        return (prim_key, id, Event.CREATE)
+        return (prim_key, id, Event.Create)
 
     # record exists
     else:
@@ -179,12 +172,12 @@ def process_record(input_rec):
         # delete
         if "_delete" in data.keys() and data["_delete"] == "true":
             record_delete(db_rec, data)
-            return (prim_key, id, Event.DELETE)
+            return (prim_key, id, Event.Delete)
 
         # update
         else:
             record_update(db_rec, data)
-            return (prim_key, id, Event.UPDATE)
+            return (prim_key, id, Event.Update)
 
 
 def process_activity(prim_key, crud_event):
@@ -206,10 +199,10 @@ def record_create(input_rec):
     r = Record()
     r.entity_id = input_rec["id"]
 
-    # 'entity_type' is not required
+    # 'entity_type' is not required, so check if exists
     if "type" in input_rec.keys():
         r.entity_type = input_rec["type"]
-        
+
     r.datetime_created = format_datetime(datetime.utcnow())
     r.datetime_updated = r.datetime_created
     r.data = input_rec

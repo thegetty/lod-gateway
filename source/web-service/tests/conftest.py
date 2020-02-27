@@ -1,12 +1,13 @@
+import pytest
+
 from datetime import datetime
 from uuid import uuid4
-
-import pytest
 
 from flaskapp import create_app
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
+from flaskapp.utilities import Event
 
 
 @pytest.fixture
@@ -62,11 +63,10 @@ def test_db(current_app):
 def sample_record(test_db):
     def _sample_record():
         record = Record(
-            uuid=str(uuid4()),
-            datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
-            datetime_updated=datetime(2019, 12, 18, 11, 22, 7, 0),
-            namespace="museum/collection",
-            entity="Object",
+            entity_id=str(uuid4()),
+            entity_type="Object",
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53),
+            datetime_updated=datetime(2019, 12, 18, 11, 22, 7),
             data={"example": "data"},
         )
         test_db.session.add(record)
@@ -86,11 +86,9 @@ def sample_activity(test_db, sample_record):
 
         activity = Activity(
             uuid=str(uuid4()),
-            datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
-            namespace="museum/collection",
-            entity="Object",
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53),
             record_id=record_id,
-            event="Create",
+            event=Event.Create.name,
         )
         test_db.session.add(activity)
         test_db.session.commit()

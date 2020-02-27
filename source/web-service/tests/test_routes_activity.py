@@ -287,7 +287,7 @@ class TestPageRoute:
 
     def test_format_datetime(self):
         dt = datetime(2019, 11, 22, 13, 2, 53)
-        assert format_datetime(dt) == "2019-11-22 13:02:53"
+        assert format_datetime(dt) == "2019-11-22T13:02:53"
 
 
 class TestItemRoute:

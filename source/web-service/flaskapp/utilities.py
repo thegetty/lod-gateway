@@ -14,4 +14,4 @@ class Event(Enum):
 # Format datetime in form 'yyyy-mm-dd hh:mm:ss'
 # Used across the app
 def format_datetime(dt):
-    return dt.strftime("%Y-%m-%d %H:%M:%S")
+    return dt.strftime("%Y-%m-%dT%H:%M:%S%z")

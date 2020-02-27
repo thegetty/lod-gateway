@@ -20,7 +20,7 @@ from flaskapp.errors import (
     status_wrong_syntax,
     construct_error_response,
 )
-from flaskapp.utilities import format_datetime, Event
+from flaskapp.utilities import Event
 
 
 # Create a new "ingest" route blueprint
@@ -183,7 +183,7 @@ def process_record(input_rec):
 def process_activity(prim_key, crud_event):
     a = Activity()
     a.uuid = uuid.uuid4()
-    a.datetime_created = format_datetime(datetime.utcnow())
+    a.datetime_created = datetime.utcnow()
     a.record_id = prim_key
     a.event = crud_event.name
     db.session.add(a)
@@ -203,7 +203,7 @@ def record_create(input_rec):
     if "type" in input_rec.keys():
         r.entity_type = input_rec["type"]
 
-    r.datetime_created = format_datetime(datetime.utcnow())
+    r.datetime_created = datetime.utcnow()
     r.datetime_updated = r.datetime_created
     r.data = input_rec
 
@@ -216,7 +216,7 @@ def record_create(input_rec):
 
 # Do not return anything. Calling function has all the info
 def record_update(db_rec, input_rec):
-    db_rec.datetime_updated = format_datetime(datetime.utcnow())
+    db_rec.datetime_updated = datetime.utcnow()
     db_rec.namespace = current_app.config["NAMESPACE"]
     db_rec.data = input_rec
 
@@ -224,7 +224,7 @@ def record_update(db_rec, input_rec):
 # For now just delete json from 'data' column
 def record_delete(db_rec, input_rec):
     db_rec.data = None
-    db_rec.datetime_deleted = format_datetime(datetime.utcnow())
+    db_rec.datetime_deleted = datetime.utcnow()
 
 
 # Neptune processing

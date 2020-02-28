@@ -129,8 +129,9 @@ class TestIngestSuccess:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
+        assert b"object/12345" in response.data
 
-    def test_ingest_multiple(self, client, namespace, auth_token):
+    def test_ingest_multiple(self, client, namespace, auth_token, test_db):
         response = client.post(
             f"/{namespace}/ingest",
             data='{"id": "person/12345", "name": "John", "age": 31, "city": "New York"}'
@@ -142,3 +143,4 @@ class TestIngestSuccess:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
+        assert b"group/12345" in response.data

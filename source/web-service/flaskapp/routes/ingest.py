@@ -182,7 +182,7 @@ def process_record(input_rec):
 
 def process_activity(prim_key, crud_event):
     a = Activity()
-    a.uuid = uuid.uuid4()
+    a.uuid = str(uuid.uuid4())
     a.datetime_created = datetime.utcnow()
     a.record_id = prim_key
     a.event = crud_event.name

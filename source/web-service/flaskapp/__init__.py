@@ -4,6 +4,7 @@ from datetime import datetime
 
 from flask import Flask, Response
 from flask_cors import CORS
+from flask_migrate import Migrate
 
 from flaskapp.routes.activity import activity
 from flaskapp.routes.records import records
@@ -32,6 +33,7 @@ def create_app():
         app.config["SQLALCHEMY_ECHO"] = True
 
     db.init_app(app)
+    migrate = Migrate(app, db)
 
     # Set the debug level
     logger = logging.getLogger(__name__)

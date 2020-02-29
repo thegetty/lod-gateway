@@ -21,6 +21,7 @@ services:
         volumes:
             - ./source/web-service/flaskapp:/app/flaskapp
             - ./source/web-service/tests:/app/tests
+            - ./source/web-service/migrations:/app/migrations
         ports:
             - "${FLASK_RUN_PORT}:5100"
             - "5001:5001"  # VS Code debugger

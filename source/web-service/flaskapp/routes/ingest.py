@@ -44,7 +44,7 @@ def ingest_post():
         return abort(response)
 
     # Get json record list by splitting lines
-    record_list = request.data.splitlines()
+    record_list = request.get_data(as_text=True).splitlines()
 
     # No data in request body, abort with 422
     if len(record_list) == 0:

@@ -29,6 +29,7 @@ def create_app():
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
     app.config["NEPTUNE"] = environ["PROCESS_NEPTUNE"]
+    app.config["JSON_AS_ASCII"] = False
 
     if app.env == "development":
         app.config["SQLALCHEMY_ECHO"] = True

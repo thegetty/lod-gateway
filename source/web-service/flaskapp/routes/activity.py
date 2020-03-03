@@ -138,7 +138,7 @@ def activity_stream_item(uuid):
 
 def compute_total_pages():
     limit = current_app.config["ITEMS_PER_PAGE"]
-    last = db.session.query(coalesce(max(Activity.id), 0).label("num")).one_or_none()
+    last = db.session.query(coalesce(max(Activity.id), 0).label("num")).one()
     return math.ceil(last.num / limit)
 
 

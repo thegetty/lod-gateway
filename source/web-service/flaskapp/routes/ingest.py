@@ -120,8 +120,11 @@ def process_record_set(record_list):
         db.session.rollback()
         return status_db_save_error
 
-    # process Neptune entries
-    neptune_result = process_neptune_record_set(record_list)
+    # Process Neptune entries. Check the Neptune flag
+    # If flag is not set, do not process, return 'True'
+    neptune_result = True
+    if current_app.config["NEPTUNE"] == "Yes":
+        neptune_result = process_neptune_record_set(record_list)
 
     # if success, commit the whole transaction
     if neptune_result == True:

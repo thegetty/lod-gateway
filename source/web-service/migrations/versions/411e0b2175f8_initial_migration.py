@@ -34,7 +34,7 @@ def upgrade():
         "activities",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("uuid", sa.String(), nullable=False),
-        sa.Column("datetime_created", sa.TIMESTAMP(), nullable=True),
+        sa.Column("datetime_created", sa.TIMESTAMP(), nullable=False),
         sa.Column("record_id", sa.Integer(), nullable=False),
         sa.Column("event", sa.String(), nullable=False),
         sa.ForeignKeyConstraint(["record_id"], ["records.id"],),

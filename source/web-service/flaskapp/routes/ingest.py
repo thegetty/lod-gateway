@@ -54,7 +54,7 @@ def ingest_post():
     # Validation
     validates = validate_record_set(record_list)
 
-    # validation error
+    # Validation error
     if validates != True:
 
         # unpack result tuple into variables
@@ -73,12 +73,12 @@ def ingest_post():
     # Process record set to create/update/delete in Record, Activities and Neptune
     result = process_record_set(record_list)
 
-    # the result is an error (derived from 'status_nt'). Abort with 503
+    # The result is an error (derived from 'status_nt'). Abort with 503
     if isinstance(result, status_nt):
         response = construct_error_response(result)
         return abort(response)
 
-    # finished normally - return 200 and result dict
+    # Finished normally - return 200 and result dict
     return jsonify(result), 200
 
 
@@ -92,7 +92,7 @@ def process_record_set(record_list):
         Record, Activity or Neptune fails.        
     """
 
-    #  this dict will be returned by function. key: 'id', value: 'namespace/id'
+    #  This dict will be returned by function. key: 'id', value: 'namespace/id'
     result_dict = {}
 
     try:
@@ -120,22 +120,24 @@ def process_record_set(record_list):
         db.session.rollback()
         return status_db_save_error
 
-    # Process Neptune entries. Check the Neptune flag
+    # Process Neptune entries. Check the Neptune flag.
     # If flag is not set, do not process, return 'True'
     neptune_result = True
-    if current_app.config["NEPTUNE"] == "Yes":
+
+    # Notice we compare to a string 'True' or 'False' passed from .evn file, not a boolean
+    if current_app.config["NEPTUNE"] == "True":
         neptune_result = process_neptune_record_set(record_list)
 
     # if success, commit the whole transaction
     if neptune_result == True:
         db.session.commit()
 
-    # if Neptune fails, roll back
+    # if Neptune fails, roll back and return Neptune specific error
     else:
         db.session.rollback()
-        return status_db_save_error
+        return netpute_result
 
-    # everything went fine
+    # Everything went fine
     return result_dict
 
 
@@ -149,10 +151,10 @@ def process_record(input_rec):
     data = json.loads(input_rec)
     id = data["id"]
 
-    # find if Record with this 'id' exists
+    # Find if Record with this 'id' exists
     db_rec = get_record(id)
 
-    # record with such 'id' does not exist
+    # Record with such 'id' does not exist
     if db_rec == None:
 
         # this is a 'delete' request for record that is not in DB
@@ -167,7 +169,7 @@ def process_record(input_rec):
         # 'create' - return the exect CRUD operation (createed in this case)
         return (prim_key, id, Event.Create)
 
-    # record exists
+    # Record exists
     else:
         # get primary key of existing record
         prim_key = db_rec.id
@@ -238,7 +240,8 @@ def process_neptune_record_set(record_list):
 
         If one of the records fails, all inserted/updated records must be reverted:
         newly inserted records must be deleted, updated records must be reverted to 
-        the previous state. And 'False' must be a return value.
+        the previous state. And Neptune specific error derived from 'status_nt' 
+        (see 'errors.py' for examples and how to create) must be returned.
 
         If all operations succeded, then return 'True'.
 
@@ -254,13 +257,13 @@ def process_neptune_record_set(record_list):
 # AUTHENTICATION FUNCTIONS
 def authenticate_bearer(request):
 
-    # for now return the same error for all failing scenarios
+    # For now return the same error for all failing scenarios
     error = status_wrong_auth_token
 
-    # get Authorization header token
+    # Get Authorization header token
     auth_header = request.headers.get("Authorization")
 
-    # return error if auth header is not present
+    # Return error if auth header is not present
     if not auth_header:
         return error
 

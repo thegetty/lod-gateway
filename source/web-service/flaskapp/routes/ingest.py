@@ -135,7 +135,7 @@ def process_record_set(record_list):
     # if Neptune fails, roll back and return Neptune specific error
     else:
         db.session.rollback()
-        return netpute_result
+        return neptune_result
 
     # Everything went fine
     return result_dict
@@ -242,6 +242,10 @@ def process_neptune_record_set(record_list):
         newly inserted records must be deleted, updated records must be reverted to 
         the previous state. And Neptune specific error derived from 'status_nt' 
         (see 'errors.py' for examples and how to create) must be returned.
+        If it is desireable to include failing record number, then 'status_nt' 
+        could be created on the fly like this:
+
+        return status_nt(500, "Title goes here", "Description including rec number goes here")
 
         If all operations succeded, then return 'True'.
 
@@ -250,7 +254,7 @@ def process_neptune_record_set(record_list):
         - record does not exist. In this scenario - don't do anything and return 'True'
         
     """
-
+    # return status_nt(500, "Neptune error", "rec num 222")
     return True
 
 

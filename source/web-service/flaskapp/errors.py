@@ -35,6 +35,10 @@ status_db_error = status_nt(
     500, "Data Base Error", "DB connection cannot be established"
 )
 
+status_neptune_error = status_nt(
+    500, "Neptune Error", "Neptune connection cannot be established"
+)
+
 status_db_save_error = status_nt(
     503, "Service Unavalable", "Cannot perform database operation"
 )

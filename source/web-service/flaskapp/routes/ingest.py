@@ -12,6 +12,7 @@ from flaskapp.errors import (
     status_nt,
     status_data_missing,
     status_db_error,
+    status_neptune_error,
     status_db_save_error,
     status_GET_not_allowed,
     status_id_missing,
@@ -27,6 +28,7 @@ from flaskapp.utilities import Event
 ingest = Blueprint("ingest", __name__)
 
 
+# ### ROUTES ###
 # 'GET' method is forbidden. Abort with 405
 @ingest.route("/ingest", methods=["GET"])
 def ingest_get():
@@ -82,9 +84,7 @@ def ingest_post():
     return jsonify(result), 200
 
 
-# CRUD FUNCTIONS
-
-
+# ### CRUD FUNCTIONS ###
 def process_record_set(record_list):
     """
         Process the record set in a loop. Wrap into 'try-except'. 
@@ -234,31 +234,38 @@ def record_delete(db_rec, input_rec):
 
 # Neptune processing
 def process_neptune_record_set(record_list):
-    """
-        This function will process the same list of records indepenently. 
-        See specs for details.
+    try:
 
-        If one of the records fails, all inserted/updated records must be reverted:
-        newly inserted records must be deleted, updated records must be reverted to 
-        the previous state. And Neptune specific error derived from 'status_nt' 
-        (see 'errors.py' for examples and how to create) must be returned.
-        If it is desireable to include failing record number, then 'status_nt' 
-        could be created on the fly like this:
+        """
+            This function will process the same list of records indepenently. 
+            See specs for details.
 
-        return status_nt(500, "Title goes here", "Description including rec number goes here")
+            If one of the records fails, all inserted/updated records must be reverted:
+            newly inserted records must be deleted, updated records must be reverted to 
+            the previous state. And Neptune specific error derived from 'status_nt' 
+            (see 'errors.py' for examples and how to create) must be returned.
+            If it is desireable to include failing record number, then 'status_nt' 
+            could be created on the fly like this:
 
-        If all operations succeded, then return 'True'.
+            return status_nt(500, "Title goes here", "Description including rec number goes here")
 
-        In case of 'delete' request, there can be 2 possibilities:
-        - record exists. In this case delete and return 'True' or 'False' depending on the result
-        - record does not exist. In this scenario - don't do anything and return 'True'
-        
-    """
+            If all operations succeded, then return 'True'.
+
+            In case of 'delete' request, there can be 2 possibilities:
+            - record exists. In this case delete and return 'True' or 'False' depending on the result
+            - record does not exist. In this scenario - don't do anything and return 'True'
+            
+        """
+
+    # Catch only OperationalError exception (e.g. no Neptune connection)
+    except exc.OperationalError as e:
+        return status_neptune_error
+
     # return status_nt(500, "Neptune error", "rec num 222")
     return True
 
 
-# AUTHENTICATION FUNCTIONS
+# ### AUTHENTICATION FUNCTIONS ###
 def authenticate_bearer(request):
 
     # For now return the same error for all failing scenarios
@@ -286,7 +293,7 @@ def authenticate_bearer(request):
     return status_ok
 
 
-# VALIDATION FUNCTIONS
+# ### VALIDATION FUNCTIONS ###
 def validate_record(rec):
     """
         Validate a single json record.

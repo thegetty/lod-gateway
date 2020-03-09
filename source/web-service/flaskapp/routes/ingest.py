@@ -120,24 +120,19 @@ def process_record_set(record_list):
         db.session.rollback()
         return status_db_save_error
 
-    # Process Neptune entries. Check the Neptune flag.
-    # If flag is not set, do not process, return 'True'
+    # Process Neptune entries. Check the Neptune flag - if not set, do not process, return 'True'
+    # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
     neptune_result = True
-
-    # Notice we compare to a string 'True' or 'False' passed from .evn file, not a boolean
     if current_app.config["NEPTUNE"] == "True":
         neptune_result = process_neptune_record_set(record_list)
 
-    # if success, commit the whole transaction
-    if neptune_result == True:
-        db.session.commit()
-
     # if Neptune fails, roll back and return Neptune specific error
-    else:
+    if isinstance(neptune_result, status_nt):
         db.session.rollback()
         return neptune_result
 
-    # Everything went fine
+    # Everything went fine - commit the transaction
+    db.session.commit()
     return result_dict
 
 

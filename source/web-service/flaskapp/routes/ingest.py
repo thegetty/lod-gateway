@@ -180,20 +180,6 @@ def process_record(input_rec):
             return (prim_key, id, Event.Update)
 
 
-def process_activity(prim_key, crud_event):
-    a = Activity()
-    a.uuid = str(uuid.uuid4())
-    a.datetime_created = datetime.utcnow()
-    a.record_id = prim_key
-    a.event = crud_event.name
-    db.session.add(a)
-
-
-def get_record(rec_id):
-    result = Record.query.filter(Record.entity_id == rec_id).one_or_none()
-    return result
-
-
 # There is no entry with this 'id'. Create a new record
 def record_create(input_rec):
     r = Record()
@@ -217,7 +203,6 @@ def record_create(input_rec):
 # Do not return anything. Calling function has all the info
 def record_update(db_rec, input_rec):
     db_rec.datetime_updated = datetime.utcnow()
-    db_rec.namespace = current_app.config["NAMESPACE"]
     db_rec.data = input_rec
 
 
@@ -225,6 +210,20 @@ def record_update(db_rec, input_rec):
 def record_delete(db_rec, input_rec):
     db_rec.data = None
     db_rec.datetime_deleted = datetime.utcnow()
+
+
+def process_activity(prim_key, crud_event):
+    a = Activity()
+    a.uuid = str(uuid.uuid4())
+    a.datetime_created = datetime.utcnow()
+    a.record_id = prim_key
+    a.event = crud_event.name
+    db.session.add(a)
+
+
+def get_record(rec_id):
+    result = Record.query.filter(Record.entity_id == rec_id).one_or_none()
+    return result
 
 
 # Neptune processing

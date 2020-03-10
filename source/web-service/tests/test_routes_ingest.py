@@ -1,13 +1,7 @@
-import pytest
-
-from flaskapp.models import db
-from flaskapp.models.record import Record
-
-from datetime import datetime, timezone
-from uuid import uuid4
+import json
 
 
-class TestIngestRoute:
+class TestIngestErrors:
     def test_ingest_GET_not_allowed(self, client, namespace):
         response = client.get(f"/{namespace}/ingest")
         assert response.status_code == 405
@@ -22,9 +16,131 @@ class TestIngestRoute:
         response = client.post(f"/{namespace}/ingest")
         assert response.status_code == 401
 
-    def test_ingest_POST(self, client, namespace, auth_token):
+    def test_ingest_data_missing(self, client, namespace, auth_token):
         response = client.post(
             f"/{namespace}/ingest", headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
         assert b"No input data found" in response.data
+
+    def test_ingest_single_bad_syntax(self, client, namespace, auth_token):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data='{"id": "object/12345", "name": "COMMA IS MISSING AFTER THIS" "age": 31, "city": "New York"}',
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 422
+        assert b"Could not parse JSON record" in response.data
+
+    def test_ingest_single_id_missing(self, client, namespace, auth_token):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {"NO_ID": "object/12345", "name": "John", "age": 31, "city": "New York"}
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 422
+        assert b"ID for the JSON record not found"
+
+    def test_ingest_single_id_empty(self, client, namespace, auth_token):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {"id": "     ", "name": "John", "age": 31, "city": "New York"}
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 422
+        assert b"ID for the JSON record not found" in response.data
+
+    def test_ingest_multiple_bad_syntax(self, client, namespace, auth_token):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data='{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "object/12345", "name": "COMMA IS MISSING AFTER THIS" "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 422
+        assert b"Could not parse JSON record" in response.data
+
+    def test_ingest_multiple_id_missing(self, client, namespace, auth_token):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data='{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"NO_ID": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 422
+        assert b"ID for the JSON record not found" in response.data
+
+    def test_ingest_multiple_id_empty(self, client, namespace, auth_token):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data='{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "     ", "name": "John", "age": 31, "city": "New York"}'
+            + "\n",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 422
+        assert b"ID for the JSON record not found" in response.data
+
+    def test_ingest_error_response_json(self, client, namespace, auth_token):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data='{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "     ", "name": "John", "age": 31, "city": "New York"}'
+            + "\n",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        # check for correct 'error json'
+        assert json.loads(response.data)
+
+        # validate 'error json' details
+        data = json.loads(response.data)
+        assert data["errors"]
+        assert data["errors"][0]["status"] == 422
+        assert data["errors"][0]["source"]["line number"] == 3
+        assert data["errors"][0]["title"] == "ID Missing"
+        assert data["errors"][0]["detail"] == "ID for the JSON record not found"
+
+
+class TestIngestSuccess:
+    def test_ingest_single(self, client, namespace, auth_token, test_db):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {"id": "object/12345", "name": "John", "age": 31, "city": "New York"}
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert b"object/12345" in response.data
+
+    def test_ingest_multiple(self, client, namespace, auth_token, test_db):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data='{"id": "person/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n"
+            + '{"id": "group/12345", "name": "John", "age": 31, "city": "New York"}'
+            + "\n",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert b"group/12345" in response.data

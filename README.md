@@ -53,14 +53,18 @@ will run `pywatch`, which will watch for file changes and re-run the tests autom
 Configuration is managed through environment variables.  In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault.  In testing environments, the .env.example file is used directly.
 
 ```
+AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality
+
 DATABASE=                   # This should be the full URL to the database
                             # for example, postgresql://mart:mart@postgres/mart
 
 LOD_BASE_URL=               # This should be the base URL of the application
                             # for example, https://data.getty.edu
 
-APPLICATION_NAMESPACE=  # This should be the 'vanity' portion of the URL
+APPLICATION_NAMESPACE=      # This should be the 'vanity' portion of the URL
                             # for example, "museum/collection"
+
+PROCESS_NEPTUNE=            # The value must be "True" if Neptune processing required                            
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port 5001 is opened for remote debugging of the Flask app. For details see: https://code.visualstudio.com/docs/remote/containers

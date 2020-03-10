@@ -1,7 +1,6 @@
 import json
 import uuid
 from datetime import datetime
-from enum import Enum
 
 from flask import Blueprint, current_app, request, abort, jsonify
 from sqlalchemy import exc
@@ -13,6 +12,7 @@ from flaskapp.errors import (
     status_nt,
     status_data_missing,
     status_db_error,
+    status_neptune_error,
     status_db_save_error,
     status_GET_not_allowed,
     status_id_missing,
@@ -21,12 +21,14 @@ from flaskapp.errors import (
     status_wrong_syntax,
     construct_error_response,
 )
+from flaskapp.utilities import Event
 
 
 # Create a new "ingest" route blueprint
 ingest = Blueprint("ingest", __name__)
 
 
+# ### ROUTES ###
 # 'GET' method is forbidden. Abort with 405
 @ingest.route("/ingest", methods=["GET"])
 def ingest_get():
@@ -44,7 +46,7 @@ def ingest_post():
         return abort(response)
 
     # Get json record list by splitting lines
-    record_list = request.data.splitlines()
+    record_list = request.get_data(as_text=True).splitlines()
 
     # No data in request body, abort with 422
     if len(record_list) == 0:
@@ -54,7 +56,7 @@ def ingest_post():
     # Validation
     validates = validate_record_set(record_list)
 
-    # validation error
+    # Validation error
     if validates != True:
 
         # unpack result tuple into variables
@@ -73,24 +75,16 @@ def ingest_post():
     # Process record set to create/update/delete in Record, Activities and Neptune
     result = process_record_set(record_list)
 
-    # the result is an error (derived from 'status_nt'). Abort with 503
+    # The result is an error (derived from 'status_nt'). Abort with 503
     if isinstance(result, status_nt):
         response = construct_error_response(result)
         return abort(response)
 
-    # finished normally - return 200 and result dict
+    # Finished normally - return 200 and result dict
     return jsonify(result), 200
 
 
-# CRUD FUNCTIONS
-
-# Enum with 3 possible events
-class Event(Enum):
-    CREATE = 1
-    UPDATE = 2
-    DELETE = 3
-
-
+# ### CRUD FUNCTIONS ###
 def process_record_set(record_list):
     """
         Process the record set in a loop. Wrap into 'try-except'. 
@@ -98,7 +92,7 @@ def process_record_set(record_list):
         Record, Activity or Neptune fails.        
     """
 
-    #  this dict will be returned by function. key: 'id', value: 'namespace/id'
+    #  This dict will be returned by function. key: 'id', value: 'namespace/id'
     result_dict = {}
 
     try:
@@ -126,19 +120,19 @@ def process_record_set(record_list):
         db.session.rollback()
         return status_db_save_error
 
-    # process Neptune entries
-    neptune_result = process_neptune_record_set(record_list)
+    # Process Neptune entries. Check the Neptune flag - if not set, do not process, return 'True'
+    # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
+    neptune_result = True
+    if current_app.config["NEPTUNE"] == "True":
+        neptune_result = process_neptune_record_set(record_list)
 
-    # if success, commit the whole transaction
-    if neptune_result == True:
-        db.session.commit()
-
-    # if Neptune fails, roll back
-    else:
+    # if Neptune fails, roll back and return Neptune specific error
+    if isinstance(neptune_result, status_nt):
         db.session.rollback()
-        return status_db_save_error
+        return neptune_result
 
-    # everything went fine
+    # Everything went fine - commit the transaction
+    db.session.commit()
     return result_dict
 
 
@@ -152,15 +146,15 @@ def process_record(input_rec):
     data = json.loads(input_rec)
     id = data["id"]
 
-    # find if Record with this 'id' exists
+    # Find if Record with this 'id' exists
     db_rec = get_record(id)
 
-    # record with such 'id' does not exist
+    # Record with such 'id' does not exist
     if db_rec == None:
 
         # this is a 'delete' request for record that is not in DB
         if "_delete" in data.keys() and data["_delete"] == "true":
-            return (None, id, Event.DELETE)
+            return (None, id, Event.Delete)
 
         # create and return primary key for Activities
         prim_key = record_create(data)
@@ -168,9 +162,9 @@ def process_record(input_rec):
         # 'prim_key' - primary key created by db
         # return record 'id' since it is not known to calling function
         # 'create' - return the exect CRUD operation (createed in this case)
-        return (prim_key, id, Event.CREATE)
+        return (prim_key, id, Event.Create)
 
-    # record exists
+    # Record exists
     else:
         # get primary key of existing record
         prim_key = db_rec.id
@@ -178,39 +172,26 @@ def process_record(input_rec):
         # delete
         if "_delete" in data.keys() and data["_delete"] == "true":
             record_delete(db_rec, data)
-            return (prim_key, id, Event.DELETE)
+            return (prim_key, id, Event.Delete)
 
         # update
         else:
             record_update(db_rec, data)
-            return (prim_key, id, Event.UPDATE)
-
-
-def process_activity(prim_key, crud_event):
-    a = Activity()
-    a.uuid = uuid.uuid4()
-    a.datetime_created = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
-    a.namespace = current_app.config["NAMESPACE"]
-    a.entity = "entity"
-    a.record_id = prim_key
-    a.event = crud_event.name
-    db.session.add(a)
-
-
-def get_record(rec_id):
-    result = Record.query.filter(Record.uuid == rec_id).one_or_none()
-    return result
+            return (prim_key, id, Event.Update)
 
 
 # There is no entry with this 'id'. Create a new record
 def record_create(input_rec):
     r = Record()
-    r.uuid = input_rec["id"]
-    r.datetime_created = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    r.entity_id = input_rec["id"]
+
+    # 'entity_type' is not required, so check if exists
+    if "type" in input_rec.keys():
+        r.entity_type = input_rec["type"]
+
+    r.datetime_created = datetime.utcnow()
     r.datetime_updated = r.datetime_created
-    r.namespace = current_app.config["NAMESPACE"]
     r.data = input_rec
-    r.entity = "Entity"
 
     db.session.add(r)
     db.session.flush()
@@ -221,50 +202,73 @@ def record_create(input_rec):
 
 # Do not return anything. Calling function has all the info
 def record_update(db_rec, input_rec):
-    db_rec.datetime_updated = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
-    db_rec.namespace = current_app.config["NAMESPACE"]
+    db_rec.datetime_updated = datetime.utcnow()
     db_rec.data = input_rec
 
 
 # For now just delete json from 'data' column
 def record_delete(db_rec, input_rec):
     db_rec.data = None
+    db_rec.datetime_deleted = datetime.utcnow()
 
-    # for now insert into 'data_updated' as there is no 'data_deleted'
-    db_rec.datetime_updated = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+def process_activity(prim_key, crud_event):
+    a = Activity()
+    a.uuid = str(uuid.uuid4())
+    a.datetime_created = datetime.utcnow()
+    a.record_id = prim_key
+    a.event = crud_event.name
+    db.session.add(a)
+
+
+def get_record(rec_id):
+    result = Record.query.filter(Record.entity_id == rec_id).one_or_none()
+    return result
 
 
 # Neptune processing
 def process_neptune_record_set(record_list):
-    """
-        This function will process the same list of records indepenently. 
-        See specs for details.
+    try:
 
-        If one of the records fails, all inserted/updated records must be reverted:
-        newly inserted records must be deleted, updated records must be reverted to 
-        the previous state. And 'False' must be a return value.
+        """
+            This function will process the same list of records indepenently. 
+            See specs for details.
 
-        If all operations succeded, then return 'True'.
+            If one of the records fails, all inserted/updated records must be reverted:
+            newly inserted records must be deleted, updated records must be reverted to 
+            the previous state. And Neptune specific error derived from 'status_nt' 
+            (see 'errors.py' for examples and how to create) must be returned.
+            If it is desireable to include failing record number, then 'status_nt' 
+            could be created on the fly like this:
 
-        In case of 'delete' request, there can be 2 possibilities:
-        - record exists. In this case delete and return 'True' or 'False' depending on the result
-        - record does not exist. In this scenario - don't do anything and return 'True'
-        
-    """
+            return status_nt(500, "Title goes here", "Description including rec number goes here")
 
+            If all operations succeded, then return 'True'.
+
+            In case of 'delete' request, there can be 2 possibilities:
+            - record exists. In this case delete and return 'True' or 'False' depending on the result
+            - record does not exist. In this scenario - don't do anything and return 'True'
+            
+        """
+
+    # Catch only OperationalError exception (e.g. no Neptune connection)
+    except exc.OperationalError as e:
+        return status_neptune_error
+
+    # return status_nt(500, "Neptune error", "rec num 222")
     return True
 
 
-# AUTHENTICATION FUNCTIONS
+# ### AUTHENTICATION FUNCTIONS ###
 def authenticate_bearer(request):
 
-    # for now return the same error for all failing scenarios
+    # For now return the same error for all failing scenarios
     error = status_wrong_auth_token
 
-    # get Authorization header token
+    # Get Authorization header token
     auth_header = request.headers.get("Authorization")
 
-    # return error if auth header is not present
+    # Return error if auth header is not present
     if not auth_header:
         return error
 
@@ -283,7 +287,7 @@ def authenticate_bearer(request):
     return status_ok
 
 
-# VALIDATION FUNCTIONS
+# ### VALIDATION FUNCTIONS ###
 def validate_record(rec):
     """
         Validate a single json record.

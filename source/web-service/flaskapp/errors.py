@@ -8,18 +8,37 @@ from flask import current_app
 status_nt = namedtuple("name", "code title detail")
 
 status_ok = status_nt(200, "OK", "OK")
-status_wrong_syntax = status_nt(422, "Invalid JSON", "Could not parse JSON record")
-status_id_missing = status_nt(422, "ID Missing", "ID for the JSON record not found")
-status_data_missing = status_nt(422, "Data Missing", "No input data found")
-status_GET_not_allowed = status_nt(
-    405, "Forbidden Method", "For the requested URL only 'POST' method is allowed"
-)
+
 status_wrong_auth_token = status_nt(
     401, "Wrong Authorization Token", "Authorization token is wrong or missing"
 )
+
+status_record_not_found = status_nt(
+    404, "Record Not Found", "Unable to obtain matching record from database"
+)
+
+status_page_not_found = status_nt(404, "Page Not Found", "Page number out of bounds")
+
+status_pagenum_not_integer = status_nt(404, "Page Not Found", "Wrong page number")
+
+status_GET_not_allowed = status_nt(
+    405, "Forbidden Method", "For the requested URL only 'POST' method is allowed"
+)
+
+status_wrong_syntax = status_nt(422, "Invalid JSON", "Could not parse JSON record")
+
+status_id_missing = status_nt(422, "ID Missing", "ID for the JSON record not found")
+
+status_data_missing = status_nt(422, "Data Missing", "No input data found")
+
 status_db_error = status_nt(
     500, "Data Base Error", "DB connection cannot be established"
 )
+
+status_neptune_error = status_nt(
+    500, "Neptune Error", "Neptune connection cannot be established"
+)
+
 status_db_save_error = status_nt(
     503, "Service Unavalable", "Cannot perform database operation"
 )

@@ -1,11 +1,29 @@
 import json
 import re
 
-import pytest
-
-from flaskapp.models.activity import Activity
-from flaskapp.utilities import format_datetime
 from datetime import datetime
+
+from flaskapp.routes.activity import generate_url
+from flaskapp.models.activity import Activity
+
+from flaskapp.utilities import format_datetime, Event
+
+
+class TestGenerateURL:
+    def test_without_params(self, current_app, base_url):
+        assert generate_url() == f"{base_url}/activity-stream"
+
+    def test_with_base(self, current_app, base_url):
+        url = generate_url(base=True)
+        assert url == f"{base_url}"
+
+    def test_with_sub(self, current_app, base_url):
+        url = generate_url(sub=["a", "b"])
+        assert url == f"{base_url}/activity-stream/a/b"
+
+    def test_with_both(self, current_app, base_url):
+        url = generate_url(base=True, sub=["a", "b"])
+        assert url == f"{base_url}/a/b"
 
 
 class TestBaseRoute:
@@ -148,9 +166,9 @@ class TestPageRoute:
         assert len(response["orderedItems"]) == 2
         assert len(response2["orderedItems"]) == 1
 
-        assert a1.record.uuid in response["orderedItems"][0]["object"]["id"]
-        assert a2.record.uuid in response["orderedItems"][1]["object"]["id"]
-        assert a3.record.uuid in response2["orderedItems"][0]["object"]["id"]
+        assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
+        assert a2.record.entity_id in response["orderedItems"][1]["object"]["id"]
+        assert a3.record.entity_id in response2["orderedItems"][0]["object"]["id"]
 
     def test_id_offset(self, client, current_app, sample_activity, test_db, namespace):
         current_app.config["ITEMS_PER_PAGE"] = 2
@@ -169,9 +187,9 @@ class TestPageRoute:
         assert len(response["orderedItems"]) == 1
         assert len(response2["orderedItems"]) == 2
 
-        assert a1.record.uuid in response["orderedItems"][0]["object"]["id"]
-        assert a2.record.uuid in response2["orderedItems"][0]["object"]["id"]
-        assert a3.record.uuid in response2["orderedItems"][1]["object"]["id"]
+        assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
+        assert a2.record.entity_id in response2["orderedItems"][0]["object"]["id"]
+        assert a3.record.entity_id in response2["orderedItems"][1]["object"]["id"]
 
     def test_id_missing(self, client, current_app, sample_activity, test_db, namespace):
         current_app.config["ITEMS_PER_PAGE"] = 2
@@ -193,10 +211,10 @@ class TestPageRoute:
         assert len(response2["orderedItems"]) == 1
         assert len(response3["orderedItems"]) == 1
 
-        assert a1.record.uuid in response["orderedItems"][0]["object"]["id"]
-        assert a2.record.uuid in response["orderedItems"][1]["object"]["id"]
-        assert a4.record.uuid in response2["orderedItems"][0]["object"]["id"]
-        assert a5.record.uuid in response3["orderedItems"][0]["object"]["id"]
+        assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
+        assert a2.record.entity_id in response["orderedItems"][1]["object"]["id"]
+        assert a4.record.entity_id in response2["orderedItems"][0]["object"]["id"]
+        assert a5.record.entity_id in response3["orderedItems"][0]["object"]["id"]
 
     def test_all_page_ids_missing(
         self, client, current_app, sample_activity, test_db, namespace
@@ -221,9 +239,9 @@ class TestPageRoute:
         assert len(response2["orderedItems"]) == 0
         assert len(response3["orderedItems"]) == 1
 
-        assert a1.record.uuid in response["orderedItems"][0]["object"]["id"]
-        assert a2.record.uuid in response["orderedItems"][1]["object"]["id"]
-        assert a5.record.uuid in response3["orderedItems"][0]["object"]["id"]
+        assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
+        assert a2.record.entity_id in response["orderedItems"][1]["object"]["id"]
+        assert a5.record.entity_id in response3["orderedItems"][0]["object"]["id"]
 
     def test_all_first_page_ids_missing(
         self, client, current_app, sample_activity, test_db, namespace
@@ -248,9 +266,9 @@ class TestPageRoute:
         assert len(response2["orderedItems"]) == 2
         assert len(response3["orderedItems"]) == 1
 
-        assert a3.record.uuid in response2["orderedItems"][0]["object"]["id"]
-        assert a4.record.uuid in response2["orderedItems"][1]["object"]["id"]
-        assert a5.record.uuid in response3["orderedItems"][0]["object"]["id"]
+        assert a3.record.entity_id in response2["orderedItems"][0]["object"]["id"]
+        assert a4.record.entity_id in response2["orderedItems"][1]["object"]["id"]
+        assert a5.record.entity_id in response3["orderedItems"][0]["object"]["id"]
 
     def test_out_of_bounds_page(self, client, sample_data, namespace):
         url = f"/{namespace}/activity-stream/page/99999"
@@ -268,11 +286,8 @@ class TestPageRoute:
         assert response.status_code == 404
 
     def test_format_datetime(self):
-        dt = datetime.fromisoformat("2019-12-04T15:36:12-08:00")
-        assert format_datetime(dt) == "2019-12-04T15:36:12-08:00"
-        assert format_datetime(None) == None
-        assert format_datetime(123) == None
-        assert format_datetime("abc") == None
+        dt = datetime(2019, 11, 22, 13, 2, 53)
+        assert format_datetime(dt) == "2019-11-22T13:02:53"
 
 
 class TestItemRoute:
@@ -285,7 +300,7 @@ class TestItemRoute:
         assert response.headers["Content-Type"] == "application/json"
         assert response.headers["Access-Control-Allow-Origin"] == "*"
         assert "LOD Gateway" in response.headers["Server"]
-        assert payload["type"] == "Create"
+        assert payload["type"] == Event.Create.name
 
     def test_invalid_url(self, client, sample_data, namespace):
         activity = sample_data["activity"]

@@ -2,6 +2,10 @@ import json
 import uuid
 from datetime import datetime
 
+import rdflib
+import requests
+from pyld import jsonld
+
 from flask import Blueprint, current_app, request, abort, jsonify
 from sqlalchemy import exc
 
@@ -250,6 +254,30 @@ def process_neptune_record_set(record_list):
             - record does not exist. In this scenario - don't do anything and return 'True'
             
         """
+        neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+        graph_uri_prefix = (
+            current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"] + "/"
+        )
+        graph_rollback_save = {}
+        for record in record_list:
+            data = json.loads(record)
+            id = data["id"]
+            graph_uri = graph_uri_prefix + id
+
+            if graph_exists(graph_uri, neptune_endpoint):
+                graph_backup = graph_delete(graph_uri, neptune_endpoint)
+                graph_rollback_save[id] = graph_backup  # saved as serialized n-triples
+            else:
+                graph_rollback_save["id"] = "new created"
+
+            serialized_nt = graph_expand(record)
+            if isinstance(serialized_nt, bool) and serialized_nt == False:
+                graph_transaction_rollback(graph_rollback_save)
+                return status_neptune_error
+            insert_resp = graph_insert(graph_uri, serialized_nt, neptune_endpoint)
+            if insert_resp == False:
+                graph_transaction_rollback(graph_rollback_save)
+                return status_neptune_error
 
     # Catch only OperationalError exception (e.g. no Neptune connection)
     except exc.OperationalError as e:
@@ -257,6 +285,79 @@ def process_neptune_record_set(record_list):
 
     # return status_nt(500, "Neptune error", "rec num 222")
     return True
+
+
+def graph_expand(json_data):
+    try:
+        json_obj = json.loads(json_data)
+        expanded = jsonld.expand(json_obj)
+        g = rdflib.ConjunctiveGraph()
+        g.parse(data=json.dumps(expanded), format="json-ld")
+        serialized_nt = g.serialize(format="nt").decode("UTF-8")
+    except Exception as e:
+        return False
+
+    return serialized_nt
+
+
+def graph_exists(graph_name, neptune_endpoint):
+    res = requests.post(
+        neptune_endpoint,
+        data={
+            "query": "SELECT (count(?s) as ?count) { GRAPH <"
+            + graph_name
+            + "> {?s ?p ?o}}"
+        },
+    )
+    count_json = json.loads(res.content)
+    if int(count_json["results"]["bindings"][0]["count"]["value"]) > 0:
+        return True
+    else:
+        return False
+
+
+def graph_insert(graph_name, serialized_nt, neptune_endpoint):
+    insert_stmt = "INSERT DATA {GRAPH <" + graph_name + "> {" + serialized_nt + "}}"
+    res = requests.post(neptune_endpoint, data={"update": insert_stmt})
+    if res.status_code == 200:
+        return True
+    else:
+        return False
+
+
+def graph_delete(graph_name, neptune_endpoint):
+    # save copy of graph in case of rollback
+    res = requests.post(
+        neptune_endpoint,
+        data={
+            "query": "CONSTRUCT{ ?s ?p ?o } WHERE { GRAPH <"
+            + graph_name
+            + "> {?s ?p ?o}}"
+        },
+        headers={"Accept": "application/n-triples"},
+    )
+    graph_ntriples = res.content.decode("utf-8")
+
+    # drop graph
+    res = requests.post(
+        neptune_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
+    )
+    if res.status_code == 200:
+        return graph_ntriples
+    else:
+        return False
+
+
+def graph_transaction_rollback(graph_rollback_save):
+    neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+    graph_uri_prefix = (
+        current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"] + "/"
+    )
+    for id in graph_rollback_save.keys():
+        graph_uri = graph_uri_prefix + id
+        graph_delete(graph_uri, neptune_endpoint)
+        if graph_rollback_save[id] != "new created":
+            graph_insert(graph_uri, graph_rollback_save[id], neptune_endpoint)
 
 
 # ### AUTHENTICATION FUNCTIONS ###

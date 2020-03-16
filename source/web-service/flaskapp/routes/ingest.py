@@ -270,7 +270,15 @@ def process_neptune_record_set(record_list):
 
             if graph_exists(graph_uri, neptune_endpoint):
                 graph_backup = graph_delete(graph_uri, neptune_endpoint)
-                graph_rollback_save[id] = graph_backup  # saved as serialized n-triples
+                if isinstance(graph_backup, bool) and graph_backup == False:
+                    graph_transaction_rollback(graph_rollback_save)
+                    return status_nt(
+                        422, "Graph delete error", "Could not delete id " + id
+                    )
+                else:
+                    graph_rollback_save[
+                        id
+                    ] = graph_backup  # saved as serialized n-triples
             else:
                 graph_rollback_save[id] = "no backup"
 
@@ -281,7 +289,9 @@ def process_neptune_record_set(record_list):
             if isinstance(serialized_nt, bool) and serialized_nt == False:
                 graph_transaction_rollback(graph_rollback_save)
                 return status_nt(
-                    422, "Graph expansion error", "Could not expand id " + id
+                    422,
+                    "Graph expansion error",
+                    "Could not convert JSON-LD to RDF, id " + id,
                 )
             insert_resp = graph_insert(graph_uri, serialized_nt, neptune_endpoint)
             if insert_resp == False:

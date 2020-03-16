@@ -255,6 +255,10 @@ def process_neptune_record_set(record_list):
             
         """
         neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+        # check endpoint
+        if graph_check_endpoint(neptune_endpoint) == False:
+            return status_neptune_error
+
         graph_uri_prefix = (
             current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"] + "/"
         )
@@ -268,7 +272,7 @@ def process_neptune_record_set(record_list):
                 graph_backup = graph_delete(graph_uri, neptune_endpoint)
                 graph_rollback_save[id] = graph_backup  # saved as serialized n-triples
             else:
-                graph_rollback_save["id"] = "new created"
+                graph_rollback_save[id] = "no backup"
 
             if "_delete" in data.keys() and data["_delete"] == "true":
                 continue
@@ -276,11 +280,13 @@ def process_neptune_record_set(record_list):
             serialized_nt = graph_expand(record)
             if isinstance(serialized_nt, bool) and serialized_nt == False:
                 graph_transaction_rollback(graph_rollback_save)
-                return status_neptune_error
+                return status_nt(
+                    422, "Graph expansion error", "Could not expand id " + id
+                )
             insert_resp = graph_insert(graph_uri, serialized_nt, neptune_endpoint)
             if insert_resp == False:
                 graph_transaction_rollback(graph_rollback_save)
-                return status_neptune_error
+                return status_nt(500, "Graph insert error", "Could not insert id " + id)
 
     # Catch only OperationalError exception (e.g. no Neptune connection)
     except exc.OperationalError as e:
@@ -359,8 +365,17 @@ def graph_transaction_rollback(graph_rollback_save):
     for id in graph_rollback_save.keys():
         graph_uri = graph_uri_prefix + id
         graph_delete(graph_uri, neptune_endpoint)
-        if graph_rollback_save[id] != "new created":
+        if graph_rollback_save[id] != "no backup":
             graph_insert(graph_uri, graph_rollback_save[id], neptune_endpoint)
+
+
+def graph_check_endpoint(neptune_endpoint):
+    res = requests.get(neptune_endpoint.replace("sparql", "status"))
+    res_json = json.loads(res.content)
+    if res_json["status"] == "healthy":
+        return True
+    else:
+        return False
 
 
 # ### AUTHENTICATION FUNCTIONS ###

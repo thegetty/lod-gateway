@@ -270,6 +270,9 @@ def process_neptune_record_set(record_list):
             else:
                 graph_rollback_save["id"] = "new created"
 
+            if "_delete" in data.keys() and data["_delete"] == "true":
+                continue
+
             serialized_nt = graph_expand(record)
             if isinstance(serialized_nt, bool) and serialized_nt == False:
                 graph_transaction_rollback(graph_rollback_save)

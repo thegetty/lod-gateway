@@ -280,7 +280,7 @@ def process_neptune_record_set(record_list):
                         id
                     ] = graph_backup  # saved as serialized n-triples
             else:
-                graph_rollback_save[id] = "no backup"
+                graph_rollback_save[id] = None
 
             if "_delete" in data.keys() and data["_delete"] == "true":
                 continue
@@ -375,7 +375,7 @@ def graph_transaction_rollback(graph_rollback_save):
     for id in graph_rollback_save.keys():
         graph_uri = graph_uri_prefix + id
         graph_delete(graph_uri, neptune_endpoint)
-        if graph_rollback_save[id] != "no backup":
+        if graph_rollback_save[id] is not None:
             graph_insert(graph_uri, graph_rollback_save[id], neptune_endpoint)
 
 

@@ -127,7 +127,7 @@ def process_record_set(record_list):
     # Process Neptune entries. Check the Neptune flag - if not set, do not process, return 'True'
     # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
     neptune_result = True
-    if current_app.config["NEPTUNE"] == "True":
+    if current_app.config["PROCESS_NEPTUNE"] == "True":
         neptune_result = process_neptune_record_set(record_list)
 
     # if Neptune fails, roll back and return Neptune specific error
@@ -271,7 +271,7 @@ def process_neptune_record_set(record_list):
             if graph_exists(graph_uri, neptune_endpoint):
                 graph_backup = graph_delete(graph_uri, neptune_endpoint)
                 if isinstance(graph_backup, bool) and graph_backup == False:
-                    graph_transaction_rollback(graph_rollback_save)
+                    graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
                     return status_nt(
                         422, "Graph delete error", "Could not delete id " + id
                     )
@@ -287,7 +287,7 @@ def process_neptune_record_set(record_list):
 
             serialized_nt = graph_expand(record)
             if isinstance(serialized_nt, bool) and serialized_nt == False:
-                graph_transaction_rollback(graph_rollback_save)
+                graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
                 return status_nt(
                     422,
                     "Graph expansion error",
@@ -295,7 +295,7 @@ def process_neptune_record_set(record_list):
                 )
             insert_resp = graph_insert(graph_uri, serialized_nt, neptune_endpoint)
             if insert_resp == False:
-                graph_transaction_rollback(graph_rollback_save)
+                graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
                 return status_nt(500, "Graph insert error", "Could not insert id " + id)
 
     # Catch only OperationalError exception (e.g. no Neptune connection)
@@ -367,8 +367,7 @@ def graph_delete(graph_name, neptune_endpoint):
         return False
 
 
-def graph_transaction_rollback(graph_rollback_save):
-    neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+def graph_transaction_rollback(graph_rollback_save, neptune_endpoint):
     graph_uri_prefix = (
         current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"] + "/"
     )

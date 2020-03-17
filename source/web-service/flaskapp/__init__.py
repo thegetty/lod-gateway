@@ -28,7 +28,8 @@ def create_app():
     app.config["JSON_SORT_KEYS"] = False
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
-    app.config["NEPTUNE"] = environ["PROCESS_NEPTUNE"]
+    app.config["PROCESS_NEPTUNE"] = environ["PROCESS_NEPTUNE"]
+    app.config["NEPTUNE_ENDPOINT"] = environ["NEPTUNE_ENDPOINT"]
     app.config["JSON_AS_ASCII"] = False
 
     if app.env == "development":

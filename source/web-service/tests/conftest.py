@@ -11,7 +11,9 @@ from flaskapp.utilities import Event
 
 
 @pytest.fixture
-def app():
+def app(mocker):
+    mocker.patch("flaskapp.routes.ingest.process_neptune_record_set", return_value=True)
+    mocker.patch("flaskapp.routes.ingest.graph_check_endpoint", return_value=True)
     flask_app = create_app()
     flask_app.config["TESTING"] = True
     yield flask_app

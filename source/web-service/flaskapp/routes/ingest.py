@@ -299,7 +299,7 @@ def process_neptune_record_set(record_list):
                 return status_nt(500, "Graph insert error", "Could not insert id " + id)
 
     # Catch only OperationalError exception (e.g. no Neptune connection)
-    except Exception as e:
+    except requests.exceptions.ConnectionError as e:
         return status_neptune_error
 
     # return status_nt(500, "Neptune error", "rec num 222")

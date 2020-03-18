@@ -91,9 +91,9 @@ def ingest_post():
 # ### CRUD FUNCTIONS ###
 def process_record_set(record_list):
     """
-        Process the record set in a loop. Wrap into 'try-except'. 
-        Roll back and abort with 503 if any of 3 operations: 
-        Record, Activity or Neptune fails.        
+        Process the record set in a loop. Wrap into 'try-except'.
+        Roll back and abort with 503 if any of 3 operations:
+        Record, Activity or Neptune fails.
     """
 
     #  This dict will be returned by function. key: 'id', value: 'namespace/id'
@@ -235,14 +235,14 @@ def process_neptune_record_set(record_list):
     try:
 
         """
-            This function will process the same list of records indepenently. 
+            This function will process the same list of records indepenently.
             See specs for details.
 
             If one of the records fails, all inserted/updated records must be reverted:
-            newly inserted records must be deleted, updated records must be reverted to 
-            the previous state. And Neptune specific error derived from 'status_nt' 
+            newly inserted records must be deleted, updated records must be reverted to
+            the previous state. And Neptune specific error derived from 'status_nt'
             (see 'errors.py' for examples and how to create) must be returned.
-            If it is desireable to include failing record number, then 'status_nt' 
+            If it is desireable to include failing record number, then 'status_nt'
             could be created on the fly like this:
 
             return status_nt(500, "Title goes here", "Description including rec number goes here")
@@ -252,7 +252,7 @@ def process_neptune_record_set(record_list):
             In case of 'delete' request, there can be 2 possibilities:
             - record exists. In this case delete and return 'True' or 'False' depending on the result
             - record does not exist. In this scenario - don't do anything and return 'True'
-            
+
         """
         neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
         # check endpoint
@@ -299,7 +299,7 @@ def process_neptune_record_set(record_list):
                 return status_nt(500, "Graph insert error", "Could not insert id " + id)
 
     # Catch only OperationalError exception (e.g. no Neptune connection)
-    except exc.OperationalError as e:
+    except Exception as e:
         return status_neptune_error
 
     # return status_nt(500, "Neptune error", "rec num 222")
@@ -419,7 +419,7 @@ def authenticate_bearer(request):
 def validate_record(rec):
     """
         Validate a single json record.
-        Check valid json syntax plus some other params      
+        Check valid json syntax plus some other params
     """
     try:
         # JSON syntax is good, validate other params
@@ -443,7 +443,7 @@ def validate_record(rec):
 
 def validate_record_set(record_list):
     """
-        Validate a list of json records. 
+        Validate a list of json records.
         Break and return status if at least one record is invalid
         Return line number where the error occured
     """

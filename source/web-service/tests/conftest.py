@@ -155,6 +155,7 @@ def requests_mocker(requests_mock):
     # Configure the default mock handlers; these rely on the `mocker_text_callback()` method defined above
     pattern = re.compile(neptune.replace("/sparql", "/(.*)"))
 
+    requests_mock.options(pattern, text=mocker_text_callback)
     requests_mock.head(pattern, text=mocker_text_callback)
     requests_mock.get(pattern, text=mocker_text_callback)
     requests_mock.post(pattern, text=mocker_text_callback)
@@ -164,6 +165,7 @@ def requests_mocker(requests_mock):
         neptune.replace("http://", "mock-pass://").replace("/sparql", "/(.*)")
     )
 
+    requests_mock.options(pattern, text=mocker_text_callback)
     requests_mock.head(pattern, text=mocker_text_callback)
     requests_mock.get(pattern, text=mocker_text_callback)
     requests_mock.post(pattern, text=mocker_text_callback)
@@ -173,8 +175,19 @@ def requests_mocker(requests_mock):
         neptune.replace("http://", "mock-fail://").replace("/sparql", "/(.*)")
     )
 
+    requests_mock.options(pattern, exc=requests.exceptions.ConnectionError)
     requests_mock.head(pattern, exc=requests.exceptions.ConnectionError)
     requests_mock.get(pattern, exc=requests.exceptions.ConnectionError)
     requests_mock.post(pattern, exc=requests.exceptions.ConnectionError)
+
+    # Allow all other non-matched URL patterns to be routed to real HTTP requests
+    pattern = re.compile("http(s)://(.*)")
+    requests_mock.options(pattern, real_http=True)
+    requests_mock.head(pattern, real_http=True)
+    requests_mock.get(pattern, real_http=True)
+    requests_mock.post(pattern, real_http=True)
+    requests_mock.put(pattern, real_http=True)
+    requests_mock.patch(pattern, real_http=True)
+    requests_mock.delete(pattern, real_http=True)
 
     yield requests_mock

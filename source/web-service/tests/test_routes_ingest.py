@@ -154,7 +154,7 @@ class TestNeptuneConnection:
         endpoint = current_app.config["NEPTUNE_ENDPOINT"]
         records = [
             json.dumps(
-                {"id": "object/12345", "type": "HumanMadeObject", "_label": "Irises"}
+                {"@context": "https://linked.art/ns/v1/linked-art.json", "id": "object/12345", "type": "HumanMadeObject", "_label": "Irises"}
             )
         ]
         asserted = process_neptune_record_set(
@@ -166,7 +166,7 @@ class TestNeptuneConnection:
         endpoint = current_app.config["NEPTUNE_ENDPOINT"]
         records = [
             json.dumps(
-                {"id": "object/12345", "type": "HumanMadeObject", "_label": "Irises"}
+                {"@context": "https://linked.art/ns/v1/linked-art.json", "id": "object/12345", "type": "HumanMadeObject", "_label": "Irises"}
             )
         ]
         asserted = process_neptune_record_set(

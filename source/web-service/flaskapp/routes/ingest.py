@@ -231,30 +231,32 @@ def get_record(rec_id):
 
 
 # Neptune processing
-def process_neptune_record_set(record_list):
+def process_neptune_record_set(record_list, neptune_endpoint=None):
+    """
+        This function will process the same list of records indepenently.
+        See specs for details.
+
+        If one of the records fails, all inserted/updated records must be reverted:
+        newly inserted records must be deleted, updated records must be reverted to
+        the previous state. And Neptune specific error derived from 'status_nt'
+        (see 'errors.py' for examples and how to create) must be returned.
+        If it is desireable to include failing record number, then 'status_nt'
+        could be created on the fly like this:
+
+        return status_nt(500, "Title goes here", "Description including rec number goes here")
+
+        If all operations succeded, then return 'True'.
+
+        In case of 'delete' request, there can be 2 possibilities:
+        - record exists. In this case delete and return 'True' or 'False' depending on the result
+        - record does not exist. In this scenario - don't do anything and return 'True'
+
+    """
+
     try:
+        if neptune_endpoint == None:
+            neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
 
-        """
-            This function will process the same list of records indepenently.
-            See specs for details.
-
-            If one of the records fails, all inserted/updated records must be reverted:
-            newly inserted records must be deleted, updated records must be reverted to
-            the previous state. And Neptune specific error derived from 'status_nt'
-            (see 'errors.py' for examples and how to create) must be returned.
-            If it is desireable to include failing record number, then 'status_nt'
-            could be created on the fly like this:
-
-            return status_nt(500, "Title goes here", "Description including rec number goes here")
-
-            If all operations succeded, then return 'True'.
-
-            In case of 'delete' request, there can be 2 possibilities:
-            - record exists. In this case delete and return 'True' or 'False' depending on the result
-            - record does not exist. In this scenario - don't do anything and return 'True'
-
-        """
-        neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
         # check endpoint
         if graph_check_endpoint(neptune_endpoint) == False:
             return status_neptune_error
@@ -298,7 +300,7 @@ def process_neptune_record_set(record_list):
                 graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
                 return status_nt(500, "Graph insert error", "Could not insert id " + id)
 
-    # Catch only OperationalError exception (e.g. no Neptune connection)
+    # Catch request connection errors
     except requests.exceptions.ConnectionError as e:
         return status_neptune_error
 

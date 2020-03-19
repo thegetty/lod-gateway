@@ -61,6 +61,9 @@ def create_app():
         @app.after_request
         def add_header(response):
             response.headers["Server"] = "LOD Gateway/0.2"
+
+            if response.headers["Content-Type"] == "application/json":
+                response.headers["Content-Type"] = "application/json;charset=UTF-8"
             return response
 
         return app

@@ -1,5 +1,8 @@
 import json
 
+from flask import current_app
+from flaskapp.routes.ingest import process_neptune_record_set
+
 
 class TestIngestErrors:
     def test_ingest_GET_not_allowed(self, client, namespace):
@@ -144,3 +147,39 @@ class TestIngestSuccess:
         )
         assert response.status_code == 200
         assert b"group/12345" in response.data
+
+
+class TestNeptuneConnection:
+    def test_neptune_connection_good(self, client, namespace, auth_token):
+        endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+        records = [
+            json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                    "type": "HumanMadeObject",
+                    "_label": "Irises",
+                }
+            )
+        ]
+        asserted = process_neptune_record_set(
+            records, endpoint.replace("http://", "mock-pass://")
+        )
+        assert asserted == True
+
+    def test_neptune_connection_fail(self, client, namespace, auth_token):
+        endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+        records = [
+            json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                    "type": "HumanMadeObject",
+                    "_label": "Irises",
+                }
+            )
+        ]
+        asserted = process_neptune_record_set(
+            records, endpoint.replace("http://", "mock-fail://")
+        )
+        assert asserted and asserted.code == 500

@@ -19,9 +19,7 @@ def requests_mocker(requests_mock):
     def mocker_text_callback(request, context):
         if request.path_url == "/status":
             context.status_code = 200
-            return json.dumps({
-                "status": "healthy",
-            })
+            return json.dumps({"status": "healthy",})
         elif request.path_url == "/sparql":
             sparql = None
 
@@ -36,17 +34,9 @@ def requests_mocker(requests_mock):
             if sparql:
                 if sparql.startswith("SELECT"):
                     context.status_code = 200
-                    return json.dumps({
-                        "results": {
-                            "bindings": [
-                                {
-                                    "count": {
-                                        "value": 0,
-                                    }
-                                }
-                            ],
-                        },
-                    })
+                    return json.dumps(
+                        {"results": {"bindings": [{"count": {"value": 0,}}],},}
+                    )
                 elif sparql.startswith("INSERT DATA"):
                     context.status_code = 200
                     return None
@@ -59,7 +49,9 @@ def requests_mocker(requests_mock):
 
     # Configure the good mock handlers; these rely on the `mocker_text_callback()` method defined above
     neptune = current_app.config["NEPTUNE_ENDPOINT"]
-    pattern = re.compile(neptune.replace("http://", "mock-pass://").replace("/sparql", "/(.*)"))
+    pattern = re.compile(
+        neptune.replace("http://", "mock-pass://").replace("/sparql", "/(.*)")
+    )
 
     requests_mock.head(pattern, text=mocker_text_callback)
     requests_mock.get(pattern, text=mocker_text_callback)
@@ -67,7 +59,9 @@ def requests_mocker(requests_mock):
 
     # Configure the fail mock handlers; these rely on the mocker to throw the configured exception
     neptune = current_app.config["NEPTUNE_ENDPOINT"]
-    pattern = re.compile(neptune.replace("http://", "mock-fail://").replace("/sparql", "/(.*)"))
+    pattern = re.compile(
+        neptune.replace("http://", "mock-fail://").replace("/sparql", "/(.*)")
+    )
 
     requests_mock.head(pattern, exc=requests.exceptions.ConnectionError)
     requests_mock.get(pattern, exc=requests.exceptions.ConnectionError)
@@ -222,15 +216,30 @@ class TestIngestSuccess:
 
 
 class TestNeptuneConnection:
-    def test_neptune_connection_good(self, client, namespace, auth_token, requests_mocker):
-       endpoint = current_app.config["NEPTUNE_ENDPOINT"]
-       records  = [json.dumps({"id": "object/12345", "type": "HumanMadeObject", "_label": "Irises"})]
-       asserted = process_neptune_record_set(records, endpoint.replace("http://", "mock-pass://"))
-       assert asserted == True
+    def test_neptune_connection_good(
+        self, client, namespace, auth_token, requests_mocker
+    ):
+        endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+        records = [
+            json.dumps(
+                {"id": "object/12345", "type": "HumanMadeObject", "_label": "Irises"}
+            )
+        ]
+        asserted = process_neptune_record_set(
+            records, endpoint.replace("http://", "mock-pass://")
+        )
+        assert asserted == True
 
-    def test_neptune_connection_fail(self, client, namespace, auth_token, requests_mocker):
-       endpoint = current_app.config["NEPTUNE_ENDPOINT"]
-       records  = [json.dumps({"id": "object/12345", "type": "HumanMadeObject", "_label": "Irises"})]
-       asserted = process_neptune_record_set(records, endpoint.replace("http://", "mock-fail://"))
-       assert (asserted and asserted.code == 500)
-
+    def test_neptune_connection_fail(
+        self, client, namespace, auth_token, requests_mocker
+    ):
+        endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+        records = [
+            json.dumps(
+                {"id": "object/12345", "type": "HumanMadeObject", "_label": "Irises"}
+            )
+        ]
+        asserted = process_neptune_record_set(
+            records, endpoint.replace("http://", "mock-fail://")
+        )
+        assert asserted and asserted.code == 500

@@ -3,7 +3,8 @@ import requests
 
 from flask import Blueprint, current_app, request, abort, jsonify
 
-from flaskapp.errors import status_nt, status_neptune_error, construct_error_response
+from flaskapp.errors import status_nt, status_neptune_error, construct_error_response, status_ok
+from flaskapp.routes.ingest import authenticate_bearer
 
 # Create a new "sparql" route blueprint
 sparql = Blueprint("sparql", __name__)
@@ -11,6 +12,12 @@ sparql = Blueprint("sparql", __name__)
 # ### ROUTES ###
 @sparql.route("/sparql", methods=["GET", "POST"])
 def query_entrypoint():
+    # Authentication. If fails, abort with 401
+    status = authenticate_bearer(request)
+    if status != status_ok:
+        response = construct_error_response(status)
+        return abort(response)
+
     query = None
     if "query" in request.args:
         query = request.args["query"]
@@ -47,3 +54,4 @@ def execute_query(query, accept_header, neptune_endpoint):
         neptune_endpoint, data={"query": query}, headers={"Accept": accept_header}
     )
     return res.content
+

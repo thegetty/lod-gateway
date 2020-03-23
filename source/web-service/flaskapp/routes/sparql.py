@@ -25,7 +25,7 @@ def query_entrypoint():
 
     if "update" in request.args or request.form.get("update") is not None:
         response = construct_error_response(
-            status_nt(400, "Bad request", "SPARQL update is not permitted")
+            status_nt(400, "Bad Request", "SPARQL update is not permitted")
         )
         return abort(response)
 
@@ -37,7 +37,7 @@ def query_entrypoint():
 
     if query is None:
         response = construct_error_response(
-            status_nt(400, "Query error", "No query parameter included")
+            status_nt(400, "Bad Request", "No query parameter included")
         )
         return abort(response)
 

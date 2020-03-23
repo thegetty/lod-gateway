@@ -49,7 +49,6 @@ def query_entrypoint():
 
     if accept_header is None:
         accept_header = request.headers["Accept"]
-        current_app.logger.info(accept_header)
 
     neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
     res = execute_query(query, accept_header, neptune_endpoint)

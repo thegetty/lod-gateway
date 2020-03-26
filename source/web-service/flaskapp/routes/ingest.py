@@ -25,7 +25,7 @@ from flaskapp.errors import (
     status_wrong_syntax,
     construct_error_response,
 )
-from flaskapp.utilities import Event
+from flaskapp.utilities import Event, containerRecursiveCallback, idPrefixer
 
 
 # Create a new "ingest" route blueprint
@@ -267,8 +267,21 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
         graph_rollback_save = {}
         for record in record_list:
             data = json.loads(record)
+            # Store the relative 'id' URL before the recursive URL prefixing is performed
             id = data["id"]
-            graph_uri = graph_uri_prefix + id
+
+            # Assemble the record 'id' attribute base URL prefix
+            idPrefix = (
+                current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"]
+            )
+
+            # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
+            data = containerRecursiveCallback(
+                data=data, attr="id", callback=idPrefixer, prefix=idPrefix,
+            )
+
+            # Store the absolute 'id' URL after the recursive URL prefixing is performed
+            graph_uri = data["id"]
 
             if graph_exists(graph_uri, neptune_endpoint):
                 graph_backup = graph_delete(graph_uri, neptune_endpoint)
@@ -279,15 +292,15 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
                     )
                 else:
                     graph_rollback_save[
-                        id
+                        graph_uri
                     ] = graph_backup  # saved as serialized n-triples
             else:
-                graph_rollback_save[id] = None
+                graph_rollback_save[graph_uri] = None
 
             if "_delete" in data.keys() and data["_delete"] == "true":
                 continue
 
-            serialized_nt = graph_expand(record)
+            serialized_nt = graph_expand(data)
             if isinstance(serialized_nt, bool) and serialized_nt == False:
                 graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
                 return status_nt(
@@ -308,10 +321,9 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
     return True
 
 
-def graph_expand(json_data):
+def graph_expand(data):
     try:
-        json_obj = json.loads(json_data)
-        expanded = jsonld.expand(json_obj)
+        expanded = jsonld.expand(data)
         g = rdflib.ConjunctiveGraph()
         g.parse(data=json.dumps(expanded), format="json-ld")
         serialized_nt = g.serialize(format="nt").decode("UTF-8")
@@ -370,14 +382,10 @@ def graph_delete(graph_name, neptune_endpoint):
 
 
 def graph_transaction_rollback(graph_rollback_save, neptune_endpoint):
-    graph_uri_prefix = (
-        current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"] + "/"
-    )
-    for id in graph_rollback_save.keys():
-        graph_uri = graph_uri_prefix + id
+    for graph_uri in graph_rollback_save.keys():
         graph_delete(graph_uri, neptune_endpoint)
-        if graph_rollback_save[id] is not None:
-            graph_insert(graph_uri, graph_rollback_save[id], neptune_endpoint)
+        if graph_rollback_save[graph_uri] is not None:
+            graph_insert(graph_uri, graph_rollback_save[graph_uri], neptune_endpoint)
 
 
 def graph_check_endpoint(neptune_endpoint):

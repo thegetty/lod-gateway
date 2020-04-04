@@ -262,7 +262,10 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
             return status_neptune_error
 
         graph_uri_prefix = (
-            current_app.config["BASE_URL_FOR_NEPTUNE"] + "/" + current_app.config["NAMESPACE"] + "/"
+            current_app.config["BASE_URL_FOR_NEPTUNE"]
+            + "/"
+            + current_app.config["NAMESPACE"]
+            + "/"
         )
         graph_rollback_save = {}
         for record in record_list:
@@ -272,7 +275,9 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
 
             # Assemble the record 'id' attribute base URL prefix
             idPrefix = (
-                current_app.config["BASE_URL_FOR_NEPTUNE"] + "/" + current_app.config["NAMESPACE"]
+                current_app.config["BASE_URL_FOR_NEPTUNE"]
+                + "/"
+                + current_app.config["NAMESPACE"]
             )
 
             # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix

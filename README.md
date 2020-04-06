@@ -10,8 +10,6 @@ The LOD Gateway contains one production container: `web-service`; for developmen
 
 _(This assumes that you have [Docker](https://www.docker.com/products/docker-desktop) installed.)_
 
-
-
     git clone https://github.com/thegetty/lod-gateway
     cd lod-gateway
     cp .env.example .env
@@ -20,7 +18,7 @@ _(This assumes that you have [Docker](https://www.docker.com/products/docker-des
 
 To shut the application down:
 
-	$ docker-compose down
+    $ docker-compose down
 
 **Testing the application**
 
@@ -61,10 +59,15 @@ DATABASE=                   # This should be the full URL to the database
 LOD_BASE_URL=               # This should be the base URL of the application
                             # for example, https://data.getty.edu
 
+LOD_BASE_URL_FOR_NEPTUNE=   # This should always have the same value as LOD_BASE_URL
+                            # unless there is a specific need to prefix the relative
+                            # URLs in the JSON-LD documents differently for Neptune,
+                            # such as for testing or for specially staged loads.
+
 APPLICATION_NAMESPACE=      # This should be the 'vanity' portion of the URL
                             # for example, "museum/collection"
 
-PROCESS_NEPTUNE=            # The value must be "True" if Neptune processing required                            
+PROCESS_NEPTUNE=            # The value must be "True" if Neptune processing is required
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port 5001 is opened for remote debugging of the Flask app. For details see: https://code.visualstudio.com/docs/remote/containers
@@ -81,4 +84,4 @@ The LOD Gateway project consists of the following primary software components:
 
 **License and Copyright Information**
 
-Copyright © The J. Paul Getty Trust 2019. All rights reserved.
+Copyright © The J. Paul Getty Trust 2019-2020. All rights reserved.

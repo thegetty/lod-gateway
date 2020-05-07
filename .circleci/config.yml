@@ -1,36 +1,43 @@
-version: 2
+version: 2.1
+
+workflows: # a single workflow with a single job called build
+    build:
+        jobs:
+            - build:
+                  context: GETTY
 
 # define our test jobs
 jobs:
     build:
-        machine: 
+        machine:
             docker_layer_caching: true
-        
+
         steps:
             - checkout
             - run: mkdir -p /tmp/output
             - run: chmod -R 777 /tmp/output
+            - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
 
-            # Validate code linting using Black 
+            # Validate code linting using Black
             - run: docker run lod-gateway-web-service black --check .
 
             # Run unit tests using pytest
             - run: >
-                docker run
-                --env-file .env.example 
-                --env DATABASE=sqlite://
-                --env APPLICATION_NAMESPACE="ns"
-                --volume /tmp/output:/output 
-                lod-gateway-web-service 
-                pytest 
-                --junitxml=/output/test-results/pytest/junit.xml 
-                --cov=flaskapp 
-                --cov-report html:/output/test-reports/pytest
+                  docker run
+                  --env-file .env.example 
+                  --env DATABASE=sqlite://
+                  --env APPLICATION_NAMESPACE="ns"
+                  --volume /tmp/output:/output 
+                  lod-gateway-web-service 
+                  pytest 
+                  --junitxml=/output/test-results/pytest/junit.xml 
+                  --cov=flaskapp 
+                  --cov-report html:/output/test-reports/pytest
 
             - store_test_results:
-                path: /tmp/output/test-results
+                  path: /tmp/output/test-results
 
             - store_artifacts:
-                path: /tmp/output/test-reports
-                destination: reports
+                  path: /tmp/output/test-reports
+                  destination: reports

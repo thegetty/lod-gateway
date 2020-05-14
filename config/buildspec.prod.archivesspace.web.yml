@@ -31,4 +31,5 @@ phases:
       - docker push $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definitions file...
       - printf '[{"name":"prod-lod_gateway_archivesspace-uwsgi","imageUri":"%s"}]' $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
-    files: imagedefinitions.json
+artifacts:
+        files: imagedefinitions.json

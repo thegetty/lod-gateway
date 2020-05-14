@@ -1,8 +1,8 @@
 version: 0.2
 env:
-    parameter-store:
-      GETTY_DOCKER_USER: "getty-docker-user"
-      GETTY_DOCKER_PASSWORD: "getty-docker-password"
+  parameter-store:
+    GETTY_DOCKER_USER: "getty-docker-user"
+    GETTY_DOCKER_PASSWORD: "getty-docker-password"
 phases:
   install:
     runtime-versions:
@@ -32,4 +32,4 @@ phases:
       - echo Writing image definitions file...
       - printf '[{"name":"prod-lod_gateway_archivesspace-uwsgi","imageUri":"%s"}]' $WEB_SERVICE_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
-        files: imagedefinitions.json
+    files: imagedefinitions.json

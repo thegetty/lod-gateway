@@ -39,10 +39,15 @@ jobs:
                   --cov-report html:/output/test-reports/pytest
 
             # Push to AWS ECR
+            - run: make ecr_profile
             - aws-ecr/ecr-login:
                 profile-name: "getty"
                 region: ECR_REGION
-
+            - aws-ecr/push-image:
+                account-url: ECR_ACCOUNT_URL
+                repo: "jpgt-${CIRCLE_PROJECT_REPONAME}"
+                tag: "${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}"
+            - run: make image_confirmation
             - store_test_results:
                   path: /tmp/output/test-results
 

@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  aws-ecr: circleci/aws-ecr@6.8.2
+
 workflows: # a single workflow with a single job called build
     build:
         jobs:
@@ -18,7 +21,7 @@ jobs:
             - run: chmod -R 777 /tmp/output
             - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
-
+            - run: make tags
             # Validate code linting using Black
             - run: docker run lod-gateway-web-service black --check .
 
@@ -34,6 +37,11 @@ jobs:
                   --junitxml=/output/test-results/pytest/junit.xml 
                   --cov=flaskapp 
                   --cov-report html:/output/test-reports/pytest
+
+            # Push to AWS ECR
+            - aws-ecr/ecr-login:
+                profile-name: "getty"
+                region: ${ECR_REGION}
 
             - store_test_results:
                   path: /tmp/output/test-results

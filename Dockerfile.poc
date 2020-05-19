@@ -1,0 +1,34 @@
+FROM python:3.7
+
+# Set our working directory
+WORKDIR /app
+
+# Install ca-certificates so that SSL/TLS can function from within the container
+RUN apt-get update && apt-get -y install ca-certificates
+
+# Copy and install our dependencies from requirements.txt
+COPY requirements.txt requirements.txt
+
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+
+RUN groupadd -r flask && useradd -r -g flask flask
+
+COPY ./source/web-service .
+RUN chmod +x startup.sh
+RUN chown -R flask:flask .
+
+# Install our application 
+RUN pip install -e .
+
+# Set the default shell to BASH rather than the more basic (DA)SH
+SHELL ["/bin/bash", "--login", "-c"]
+
+# Tell Docker to open port 5100; this is the same port as we have configured for use by Flask
+EXPOSE 5100
+
+#USER flask
+USER root
+
+# Run our application startup script...
+CMD [ "./startup.sh" ]

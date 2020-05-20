@@ -69,8 +69,3 @@ jobs:
             region: ECR_REGION
             repo: jpgt-${CIRCLE_PROJECT_REPONAME}
             tag: '${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}'
-        - store_test_results:
-            path: /tmp/output/test-results
-        - store_artifacts:
-            path: /tmp/output/test-reports
-            destination: reports

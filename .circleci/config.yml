@@ -7,7 +7,17 @@ workflows: # a single workflow with a single job called build
     build:
         jobs:
             - build:
-                  context: GETTY
+                context: GETTY
+            - poc:
+                context: GETTY
+                requires:
+                  - build
+                filters:
+                  branches:
+                    only:
+                      - master
+                      - /poc-.*/
+
 
 # define our test jobs
 jobs:
@@ -21,36 +31,48 @@ jobs:
             - run: chmod -R 777 /tmp/output
             - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
-            - run: make tags
             # Validate code linting using Black
             - run: docker run lod-gateway-web-service black --check .
-
             # Run unit tests using pytest
             - run: >
                   docker run
-                  --env-file .env.example 
+                  --env-file .env.example
                   --env DATABASE=sqlite://
                   --env APPLICATION_NAMESPACE="ns"
-                  --volume /tmp/output:/output 
-                  lod-gateway-web-service 
-                  pytest 
-                  --junitxml=/output/test-results/pytest/junit.xml 
-                  --cov=flaskapp 
+                  --volume /tmp/output:/output
+                  lod-gateway-web-service
+                  pytest
+                  --junitxml=/output/test-results/pytest/junit.xml
+                  --cov=flaskapp
                   --cov-report html:/output/test-reports/pytest
-
-            # Push to AWS ECR
-            - run: make ecr_profile
-            - aws-ecr/ecr-login:
-                profile-name: "getty"
-                region: ECR_REGION
-            - aws-ecr/push-image:
-                account-url: ECR_ACCOUNT_URL
-                repo: "jpgt-${CIRCLE_PROJECT_REPONAME}"
-                tag: "${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}"
-            - run: make image_confirmation
             - store_test_results:
                   path: /tmp/output/test-results
-
             - store_artifacts:
                   path: /tmp/output/test-reports
                   destination: reports
+    poc:
+      machine:
+        docker_layer_caching: true
+
+      steps:
+        - checkout
+        - run: mkdir -p /tmp/output
+        - run: chmod -R 777 /tmp/output
+        - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+        - run: make ecr_profile
+        - aws-ecr/build-and-push-image:
+            account-url: ECR_ACCOUNT_URL
+            aws-access-key-id: ECR_ACCESS_KEY_ID
+            aws-secret-access-key: ECR_SECRET_ACCESS_KEY
+            create-repo: true
+            dockerfile: Dockerfile.poc
+            profile-name: getty
+            region: ECR_REGION
+            repo: jpgt-${CIRCLE_PROJECT_REPONAME}
+            tag: '${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}'
+        - run: make image_confirmation
+        - store_test_results:
+            path: /tmp/output/test-results
+        - store_artifacts:
+            path: /tmp/output/test-reports
+            destination: reports

@@ -17,15 +17,6 @@ aws configure set region ${ECR_REGION} --profile $(1)
 aws configure list --profile $(1)
 endef
 
-define tag_image
-docker tag \
-	$(1):latest \
-	$(getty_ecr)/$(image_name):$(2)-$(3)
-endef
-
-tags:
-	$(call tag_image,lod-gateway-web-service,$(CIRCLE_BUILD_NUM),$(SHORT_SHA1))
-
 ecr_profile:
 	$(call setup_ecr_profile,$(ecr_profile))
 

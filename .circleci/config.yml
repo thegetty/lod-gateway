@@ -6,14 +6,14 @@ orbs:
   docker: circleci/docker@1.0.1
 
 workflows: # a single workflow with a single job called build
-    build:
-        jobs:
-            - build:
-                context: GETTY
-    poc:
-      jobs:
-        - pocBuild:
-            context: GETTY
+  build:
+    jobs:
+      - build:
+          context: GETTY
+  poc:
+    jobs:
+      - pocBuild:
+          context: GETTY
 #        - pocPush:
 #            context: GETTY
 #            requires:
@@ -27,26 +27,25 @@ workflows: # a single workflow with a single job called build
 
 # define our test jobs
 jobs:
-    build:
-        machine:
-            docker_layer_caching: true
+  build:
+    machine:
+      docker_layer_caching: true
+    steps:
+      - setup
+      - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
+      - test
+      - store
 
-        steps:
-            - setup
-            - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-            - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
-            - test
-            - store
-
-    pocBuild:
-      machine:
-        docker_layer_caching: true
-      steps:
-        - setup
-        - build
-        - test
-        - store
-        - push
+  pocBuild:
+    machine:
+      docker_layer_caching: true
+    steps:
+      - setup
+      - build
+      - test
+      - store
+      - push
 
 commands:
   setup:

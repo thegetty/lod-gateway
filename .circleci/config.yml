@@ -14,7 +14,7 @@ workflows: # a single workflow with a single job called build
     jobs:
       - pocBuild:
           context: GETTY
-#        - pocPush:
+#        - pocDeploy:
 #            context: GETTY
 #            requires:
 #              - pocBuild
@@ -32,8 +32,7 @@ jobs:
       docker_layer_caching: true
     steps:
       - setup
-      - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-      - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
+      - build
       - test
       - store
 
@@ -42,10 +41,15 @@ jobs:
       docker_layer_caching: true
     steps:
       - setup
-      - build
-      - test
+      - build: &imageDetails
+          image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
+          tag: &imageTag << pipeline.number >>-${CIRCLE_SHA1:0:7}
+      - test:
+          <<: *imageDetails
       - store
-      - push
+      - push:
+          repo: jpgt-${CIRCLE_PROJECT_REPONAME}
+          tag: *imageTag
 
 commands:
   setup:
@@ -64,18 +68,32 @@ commands:
       - aws-ecr/ecr-login:
           region: ECR_REGION
   build:
+    parameters:
+      image:
+        type: string
+        default: ${CIRCLE_PROJECT_REPONAME}
+      tag:
+        type: string
+        default: latest
     steps:
       - docker/build:
           dockerfile: Dockerfile.poc
-          image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
-          tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
+          image: << parameters.image >>
+          tag: << parameters.tag >>
   test:
+    parameters:
+      image:
+        type: string
+        default: ${CIRCLE_PROJECT_REPONAME}
+      tag:
+        type: string
+        default: latest
     steps:
       - run:
           name: Linting with Black
           command: >
             docker run
-            ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>-${CIRCLE_SHA1:0:7}
+            << parameters.image>>:<< parameters.tag >>
             black --check .
       - run:
           name: Testing using pytest
@@ -85,7 +103,7 @@ commands:
             --env DATABASE=sqlite://
             --env APPLICATION_NAMESPACE="ns"
             --volume /tmp/output:/output
-            ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>-${CIRCLE_SHA1:0:7}
+            << parameters.image>>:<< parameters.tag >>
             pytest
             --junitxml=/output/test-results/pytest/junit.xml
             --cov=flaskapp
@@ -98,6 +116,13 @@ commands:
           path: /tmp/output/test-reports
           destination: reports
   push:
+    parameters:
+      repo:
+        type: string
+        default: ${CIRCLE_PROJECT_REPONAME}
+      tag:
+        type: string
+        default: latest
     steps:
       - when:
           condition:
@@ -107,5 +132,5 @@ commands:
           steps:
             - aws-ecr/push-image:
                 account-url: ECR_ACCOUNT_URL
-                repo: jpgt-${CIRCLE_PROJECT_REPONAME}
-                tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
+                repo: << parameters.repo >>
+                tag: << parameters.tag >>

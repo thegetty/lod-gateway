@@ -105,10 +105,11 @@ commands:
           path: /tmp/output/test-reports
           destination: reports
   push:
-    when:
-      condition:
-        or:
-          - equal: [ master, << pipeline.git.branch >> ]
-          - equal: [ poc-ecr-push, << pipeline.git.branch >> ]
-      steps:
-        - run: echo "Push to ECR here with tag << pipeline.number >>-${CIRCLE_SHA1:0:7}"
+    steps:
+      - when:
+          condition:
+            or:
+              - equal: [ master, << pipeline.git.branch >> ]
+              - equal: [ poc-ecr-push, << pipeline.git.branch >> ]
+          steps:
+            - run: echo "Push to ECR here with tag << pipeline.number >>-${CIRCLE_SHA1:0:7}"

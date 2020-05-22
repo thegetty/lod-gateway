@@ -59,40 +59,56 @@ jobs:
       machine:
         docker_layer_caching: true
       steps:
-        - checkout
-        - run:
-            name: Prepare output
-            command: |
-              mkdir -p /tmp/output
-              chmod -R 777 /tmp/output
-        - run:
-            name: Build image
-            command: docker build -t lod-gateway-web-service -f Dockerfile.poc .
-        - run:
-            name: Linting with Black
-            command: docker run lod-gateway-web-service black --check .
-        - run:
-            name: Test using pytest
-            command: >
-              docker run
-              --env-file .env.example
-              --env DATABASE=sqlite://
-              --env APPLICATION_NAMESPACE="ns"
-              --volume /tmp/output:/output
-              lod-gateway-web-service
-              pytest
-              --junitxml=/output/test-results/pytest/junit.xml
-              --cov=flaskapp
-              --cov-report html:/output/test-reports/pytest
-        - store_test_results:
-            path: /tmp/output/test-results
-        - store_artifacts:
-            path: /tmp/output/test-reports
-            destination: reports
-        - when:
-            condition:
-              or:
-                - equal: [ master, << pipeline.git.branch >> ]
-                - equal: [ poc-ecr-push, << pipeline.git.branch >> ]
-            steps:
-              - run: echo "Push to ECR here with tag << pipeline.number >>-"
+        - setup
+        - build
+        - test
+        - store
+        - push
+
+commands:
+  setup:
+    steps:
+      - checkout
+      - run:
+          name: Prepare output
+          command: |
+            mkdir -p /tmp/output
+            chmod -R 777 /tmp/output
+  build:
+    steps:
+      - run:
+          name: Build image
+          command: docker build -t lod-gateway-web-service -f Dockerfile.poc .
+  test:
+    steps:
+      - run:
+          name: Linting with Black
+          command: docker run lod-gateway-web-service black --check .
+      - run:
+          name: Testing using pytest
+          command: >
+            docker run
+            --env-file .env.example
+            --env DATABASE=sqlite://
+            --env APPLICATION_NAMESPACE="ns"
+            --volume /tmp/output:/output
+            lod-gateway-web-service
+            pytest
+            --junitxml=/output/test-results/pytest/junit.xml
+            --cov=flaskapp
+            --cov-report html:/output/test-reports/pytest
+  store:
+    steps:
+      - store_test_results:
+          path: /tmp/output/test-results
+      - store_artifacts:
+          path: /tmp/output/test-reports
+          destination: reports
+  push:
+    when:
+      condition:
+        or:
+          - equal: [ master, << pipeline.git.branch >> ]
+          - equal: [ poc-ecr-push, << pipeline.git.branch >> ]
+      steps:
+        - run: echo "Push to ECR here with tag << pipeline.number >>-${CIRCLE_SHA1:0:7}"

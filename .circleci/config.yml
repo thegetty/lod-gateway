@@ -1,7 +1,9 @@
 version: 2.1
 
 orbs:
+  aws-cli: circleci/aws-cli@1.0.0
   aws-ecr: circleci/aws-ecr@6.8.2
+  docker: circleci/docker@1.0.1
 
 workflows: # a single workflow with a single job called build
     build:
@@ -30,30 +32,11 @@ jobs:
             docker_layer_caching: true
 
         steps:
-            - checkout
-            - run: mkdir -p /tmp/output
-            - run: chmod -R 777 /tmp/output
+            - setup
             - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
-            # Validate code linting using Black
-            - run: docker run lod-gateway-web-service black --check .
-            # Run unit tests using pytest
-            - run: >
-                  docker run
-                  --env-file .env.example
-                  --env DATABASE=sqlite://
-                  --env APPLICATION_NAMESPACE="ns"
-                  --volume /tmp/output:/output
-                  lod-gateway-web-service
-                  pytest
-                  --junitxml=/output/test-results/pytest/junit.xml
-                  --cov=flaskapp
-                  --cov-report html:/output/test-reports/pytest
-            - store_test_results:
-                  path: /tmp/output/test-results
-            - store_artifacts:
-                  path: /tmp/output/test-reports
-                  destination: reports
+            - test
+            - store
 
     pocBuild:
       machine:
@@ -74,16 +57,27 @@ commands:
           command: |
             mkdir -p /tmp/output
             chmod -R 777 /tmp/output
+      - aws-cli/install
+      - aws-cli/setup:
+          aws-access-key-id: ECR_ACCESS_KEY_ID
+          aws-secret-access-key: ECR_SECRET_ACCESS_KEY
+          aws-region: ECR_REGION
+      - aws-ecr/ecr-login:
+          region: ECR_REGION
   build:
     steps:
-      - run:
-          name: Build image
-          command: docker build -t lod-gateway-web-service -f Dockerfile.poc .
+      - docker/build:
+          dockerfile: Dockerfile.poc
+          image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
+          tag: << pipeline.number >>-${CIRCLE_SHA1}
   test:
     steps:
       - run:
           name: Linting with Black
-          command: docker run lod-gateway-web-service black --check .
+          command: >
+            docker run
+            ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>-${CIRCLE_SHA1}
+            black --check .
       - run:
           name: Testing using pytest
           command: >
@@ -92,7 +86,7 @@ commands:
             --env DATABASE=sqlite://
             --env APPLICATION_NAMESPACE="ns"
             --volume /tmp/output:/output
-            lod-gateway-web-service
+            ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>-${CIRCLE_SHA1}
             pytest
             --junitxml=/output/test-results/pytest/junit.xml
             --cov=flaskapp
@@ -112,4 +106,7 @@ commands:
               - equal: [ master, << pipeline.git.branch >> ]
               - equal: [ poc-ecr-push, << pipeline.git.branch >> ]
           steps:
-            - run: echo "Push to ECR here with tag << pipeline.number >>-${CIRCLE_SHA1:0:7}"
+            - aws-ecr/push-image:
+                account-url: ECR_ACCOUNT_URL
+                repo: jpgt-${CIRCLE_PROJECT_REPONAME}
+                tag: << pipeline.number >>-${CIRCLE_SHA1}

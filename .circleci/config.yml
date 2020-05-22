@@ -69,14 +69,14 @@ commands:
       - docker/build:
           dockerfile: Dockerfile.poc
           image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
-          tag: << pipeline.number >>-${CIRCLE_SHA1}
+          tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
   test:
     steps:
       - run:
           name: Linting with Black
           command: >
             docker run
-            ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>-${CIRCLE_SHA1}
+            ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>-${CIRCLE_SHA1:0:7}
             black --check .
       - run:
           name: Testing using pytest
@@ -86,7 +86,7 @@ commands:
             --env DATABASE=sqlite://
             --env APPLICATION_NAMESPACE="ns"
             --volume /tmp/output:/output
-            ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>-${CIRCLE_SHA1}
+            ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>-${CIRCLE_SHA1:0:7}
             pytest
             --junitxml=/output/test-results/pytest/junit.xml
             --cov=flaskapp
@@ -109,4 +109,4 @@ commands:
             - aws-ecr/push-image:
                 account-url: ECR_ACCOUNT_URL
                 repo: jpgt-${CIRCLE_PROJECT_REPONAME}
-                tag: << pipeline.number >>-${CIRCLE_SHA1}
+                tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}

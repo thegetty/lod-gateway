@@ -1,22 +1,27 @@
 version: 2.1
 
 orbs:
-  aws-ecr: circleci/aws-ecr@6.8.2
+#  aws-ecr: circleci/aws-ecr@6.8.2
+  base: dialogue/base@1.8.0
 
 workflows: # a single workflow with a single job called build
     build:
         jobs:
             - build:
                 context: GETTY
-            - poc:
-                context: GETTY
-                requires:
-                  - build
-                filters:
-                  branches:
-                    only:
-                      - master
-                      - /poc-.*/
+    poc:
+      jobs:
+        - pocBuild:
+            context: GETTY
+#        - pocPush:
+#            context: GETTY
+#            requires:
+#              - pocBuild
+#            filters:
+#              branches:
+#                only:
+#                  - master
+#                  - /poc-.*/
 
 
 # define our test jobs
@@ -50,22 +55,46 @@ jobs:
             - store_artifacts:
                   path: /tmp/output/test-reports
                   destination: reports
-    poc:
+
+    pocBuild:
       machine:
         docker_layer_caching: true
-
       steps:
+        - base/setup
         - checkout
-        - run: mkdir -p /tmp/output
-        - run: chmod -R 777 /tmp/output
-        - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-        - aws-ecr/build-and-push-image:
-            account-url: ECR_ACCOUNT_URL
-            aws-access-key-id: ECR_ACCESS_KEY_ID
-            aws-secret-access-key: ECR_SECRET_ACCESS_KEY
-            create-repo: true
-            dockerfile: Dockerfile.poc
-            profile-name: getty
-            region: ECR_REGION
-            repo: jpgt-${CIRCLE_PROJECT_REPONAME}
-            tag: '${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}'
+        - run:
+            name: Prepare output
+            command: |
+              mkdir -p /tmp/output
+              chmod -R 777 /tmp/output
+        - run:
+            name: Build image
+            command: docker build -t lod-gateway-web-service -f Dockerfile.poc .
+        - run:
+            name: Linting with Black
+            command: docker run lod-gateway-web-service black --check .
+        - run:
+            name: Test using pytest
+            command: >
+              docker run
+              --env-file .env.example
+              --env DATABASE=sqlite://
+              --env APPLICATION_NAMESPACE="ns"
+              --volume /tmp/output:/output
+              lod-gateway-web-service
+              pytest
+              --junitxml=/output/test-results/pytest/junit.xml
+              --cov=flaskapp
+              --cov-report html:/output/test-reports/pytest
+        - store_test_results:
+            path: /tmp/output/test-results
+        - store_artifacts:
+            path: /tmp/output/test-reports
+            destination: reports
+        - when:
+            condition:
+              or:
+                - equal: [ master, << pipeline.git.branch >> ]
+                - equal: [ poc-ecr-push, << pipeline.git.branch >> ]
+            steps:
+              - run: echo "Push to ECR here with tag << pipeline.number >>-"

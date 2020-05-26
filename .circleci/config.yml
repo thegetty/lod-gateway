@@ -165,10 +165,12 @@ commands:
           command: |
             export VALUES_FILE=<< parameters.chartPath >>/values-<< parameters.environment >>.yaml
             git clone --branch environment-charts << parameters.repo >> kubernetes
-            cd /tmp/kubernetes
+            cd kubernetes
             docker run --rm -v "`pwd`":/workdir mikefarah/yq \
             	yq w -i ${VALUES_FILE} \
-                << parameters.service >>.image.tag << parameters.tag >>
+                services.<< parameters.service >>.image.tag << parameters.tag >>
             git add ${VALUES_FILE}
+            git config user.email "circleci@getty.edu"
+            git config user.name "CicleCI"
             git commit -m "deploys << parameters.service >> version << parameters.tag >> to << parameters.environment >>"
             git push

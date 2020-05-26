@@ -14,16 +14,15 @@ workflows: # a single workflow with a single job called build
     jobs:
       - pocBuild:
           context: GETTY
-#        - pocDeploy:
-#            context: GETTY
-#            requires:
-#              - pocBuild
-#            filters:
-#              branches:
-#                only:
-#                  - master
-#                  - /poc-.*/
-
+      - pocDeploy:
+          context: GETTY
+          requires:
+            - pocBuild
+          filters:
+            branches:
+              only:
+                - master
+                - /poc-.*/
 
 # define our test jobs
 jobs:
@@ -50,6 +49,14 @@ jobs:
       - push:
           repo: jpgt-${CIRCLE_PROJECT_REPONAME}
           tag: *imageTag
+
+  pocDeploy:
+    machine:
+      docker_layer_caching: true
+    steps:
+      - deploy:
+          tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
+          valuesFile: charts/getty-environment/values-stage.yaml
 
 commands:
   setup:
@@ -134,3 +141,22 @@ commands:
                 account-url: ECR_ACCOUNT_URL
                 repo: << parameters.repo >>
                 tag: << parameters.tag >>
+  deploy:
+    parameters:
+      repo:
+        type: string
+        default: git@github.com:thegetty/kubernetes.git
+      service:
+        type: string
+        default: lod-gateway
+      tag:
+        type: string
+      valuesFile:
+        type: string
+    steps:
+      - run:
+          name: Checkout repo
+          command: |
+            git clone << parameters.repo >> /tmp/kubernetes
+            cd /tmp/kubernetes
+            ls

@@ -58,8 +58,8 @@ jobs:
           fingerprints:
             - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
       - deploy:
+          chartPath: charts/getty-environment
           tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
-          valuesFile: charts/getty-environment/values-stage.yaml
 
 commands:
   setup:
@@ -146,6 +146,11 @@ commands:
                 tag: << parameters.tag >>
   deploy:
     parameters:
+      chartPath:
+        type: string
+      environment:
+        type: string
+        default: stage
       repo:
         type: string
         default: git@github.com:thegetty/kubernetes.git
@@ -154,12 +159,16 @@ commands:
         default: lod-gateway
       tag:
         type: string
-      valuesFile:
-        type: string
     steps:
       - run:
           name: Checkout repo
           command: |
-            git clone << parameters.repo >> /tmp/kubernetes
+            export VALUES_FILE=<< parameters.chartPath >>/values-<< parameters.environment >>.yaml
+            git clone --branch environment-charts << parameters.repo >> kubernetes
             cd /tmp/kubernetes
-            ls
+            docker run --rm -v "`pwd`":/workdir mikefarah/yq \
+            	yq w -i ${VALUES_FILE} \
+                << parameters.service >>.image.tag << parameters.tag >>
+            git add ${VALUES_FILE}
+            git commit -m "deploys << parameters.service >> version << parameters.tag >> to << parameters.environment >>"
+            git push

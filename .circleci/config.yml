@@ -187,7 +187,7 @@ commands:
           name: Deploy image
           command: |
             export VALUES_FILE=<< parameters.chartPath >>/values-<< parameters.environment >>.yaml
-            git clone --branch environment-charts << parameters.repo >> kubernetes
+            git clone << parameters.repo >> kubernetes
             cd kubernetes
             docker run --rm -v "`pwd`":/workdir mikefarah/yq \
             	yq w -i ${VALUES_FILE} \

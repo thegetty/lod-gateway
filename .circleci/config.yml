@@ -194,6 +194,6 @@ commands:
                 services.<< parameters.service >>.image.tag << parameters.tag >>
             git add ${VALUES_FILE}
             git config user.email "circleci@getty.edu"
-            git config user.name "CicleCI"
+            git config user.name "CircleCI"
             git commit -m "deploys << parameters.service >> version << parameters.tag >> to << parameters.environment >>"
             git push

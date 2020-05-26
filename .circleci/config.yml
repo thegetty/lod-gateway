@@ -54,6 +54,9 @@ jobs:
     machine:
       docker_layer_caching: true
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
       - deploy:
           tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
           valuesFile: charts/getty-environment/values-stage.yaml

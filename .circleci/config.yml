@@ -1,11 +1,14 @@
 version: 2.1
 
+anchores:
+  - &deploymentName search
+
 orbs:
   aws-cli: circleci/aws-cli@1.0.0
   aws-ecr: circleci/aws-ecr@6.8.2
   docker: circleci/docker@1.0.1
 
-workflows: # a single workflow with a single job called build
+workflows:
   build:
     jobs:
       - build:
@@ -18,7 +21,7 @@ workflows: # a single workflow with a single job called build
           context: GETTY
           requires:
             - pocBuild
-          filters:
+          filters: &deployFilters
             branches:
               only:
                 - master
@@ -27,17 +30,15 @@ workflows: # a single workflow with a single job called build
           type: approval
           requires:
             - pocBuild
+          filters:
+            <<: *deployFilters
       - pocDeployToQA:
           context: GETTY
           requires:
             - pocApproveDeployToQA
           filters:
-            branches:
-              only:
-                - master
-                - /poc-.*/
+            <<: *deployFilters
 
-# define our test jobs
 jobs:
   build:
     machine:
@@ -179,7 +180,7 @@ commands:
         default: git@github.com:thegetty/kubernetes.git
       service:
         type: string
-        default: lod-gateway
+        default: *deploymentName
       tag:
         type: string
     steps:

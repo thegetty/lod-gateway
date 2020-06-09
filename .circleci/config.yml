@@ -1,43 +1,200 @@
 version: 2.1
 
-workflows: # a single workflow with a single job called build
-    build:
-        jobs:
-            - build:
-                  context: GETTY
+anchores:
+  - &deploymentName lod-gateway
 
-# define our test jobs
+orbs:
+  aws-cli: circleci/aws-cli@1.0.0
+  aws-ecr: circleci/aws-ecr@6.8.2
+  docker: circleci/docker@1.0.1
+
+workflows:
+  build:
+    jobs:
+      - build:
+          context: GETTY
+  poc:
+    jobs:
+      - pocBuild:
+          context: GETTY
+      - pocDeployToStage:
+          context: GETTY
+          requires:
+            - pocBuild
+          filters: &deployFilters
+            branches:
+              only:
+                - master
+                - /poc-.*/
+      - pocApproveDeployToQA:
+          type: approval
+          requires:
+            - pocBuild
+          filters:
+            <<: *deployFilters
+      - pocDeployToQA:
+          context: GETTY
+          requires:
+            - pocApproveDeployToQA
+          filters:
+            <<: *deployFilters
+
 jobs:
-    build:
-        machine:
-            docker_layer_caching: true
+  build:
+    machine:
+      docker_layer_caching: true
+    steps:
+      - setup
+      - build
+      - test
+      - store
 
-        steps:
-            - checkout
-            - run: mkdir -p /tmp/output
-            - run: chmod -R 777 /tmp/output
-            - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-            - run: docker build -t lod-gateway-web-service -f Dockerfile.web-service .
+  pocBuild:
+    machine:
+      docker_layer_caching: true
+    steps:
+      - setup
+      - build: &imageDetails
+          image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
+          tag: &imageTag << pipeline.number >>-${CIRCLE_SHA1:0:7}
+      - test:
+          <<: *imageDetails
+      - store
+      - push:
+          repo: jpgt-${CIRCLE_PROJECT_REPONAME}
+          tag: *imageTag
 
-            # Validate code linting using Black
-            - run: docker run lod-gateway-web-service black --check .
+  pocDeployToQA:
+    machine: {}
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
+      - deploy:
+          chartPath: charts/getty-environment
+          environment: qa
+          tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
 
-            # Run unit tests using pytest
-            - run: >
-                  docker run
-                  --env-file .env.example 
-                  --env DATABASE=sqlite://
-                  --env APPLICATION_NAMESPACE="ns"
-                  --volume /tmp/output:/output 
-                  lod-gateway-web-service 
-                  pytest 
-                  --junitxml=/output/test-results/pytest/junit.xml 
-                  --cov=flaskapp 
-                  --cov-report html:/output/test-reports/pytest
+  pocDeployToStage:
+    machine: {}
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
+      - deploy:
+          chartPath: charts/getty-environment
+          tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
 
-            - store_test_results:
-                  path: /tmp/output/test-results
-
-            - store_artifacts:
-                  path: /tmp/output/test-reports
-                  destination: reports
+commands:
+  setup:
+    steps:
+      - checkout
+      - run:
+          name: Prepare output
+          command: |
+            mkdir -p /tmp/output
+            chmod -R 777 /tmp/output
+      - aws-cli/install
+      - aws-cli/setup:
+          aws-access-key-id: ECR_ACCESS_KEY_ID
+          aws-secret-access-key: ECR_SECRET_ACCESS_KEY
+          aws-region: ECR_REGION
+      - aws-ecr/ecr-login:
+          region: ECR_REGION
+  build:
+    parameters:
+      image:
+        type: string
+        default: ${CIRCLE_PROJECT_REPONAME}
+      tag:
+        type: string
+        default: latest
+    steps:
+      - docker/build:
+          dockerfile: Dockerfile.poc
+          image: << parameters.image >>
+          tag: << parameters.tag >>
+  test:
+    parameters:
+      image:
+        type: string
+        default: ${CIRCLE_PROJECT_REPONAME}
+      tag:
+        type: string
+        default: latest
+    steps:
+      - run:
+          name: Linting with Black
+          command: >
+            docker run
+            << parameters.image>>:<< parameters.tag >>
+            black --check .
+      - run:
+          name: Testing using pytest
+          command: >
+            docker run
+            --env-file .env.example
+            --env DATABASE=sqlite://
+            --env APPLICATION_NAMESPACE="ns"
+            --volume /tmp/output:/output
+            << parameters.image>>:<< parameters.tag >>
+            pytest
+            --junitxml=/output/test-results/pytest/junit.xml
+            --cov=flaskapp
+            --cov-report html:/output/test-reports/pytest
+  store:
+    steps:
+      - store_test_results:
+          path: /tmp/output/test-results
+      - store_artifacts:
+          path: /tmp/output/test-reports
+          destination: reports
+  push:
+    parameters:
+      repo:
+        type: string
+        default: ${CIRCLE_PROJECT_REPONAME}
+      tag:
+        type: string
+        default: latest
+    steps:
+      - when:
+          condition:
+            or:
+              - equal: [ master, << pipeline.git.branch >> ]
+              - equal: [ poc-ecr-push, << pipeline.git.branch >> ]
+          steps:
+            - aws-ecr/push-image:
+                account-url: ECR_ACCOUNT_URL
+                repo: << parameters.repo >>
+                tag: << parameters.tag >>
+  deploy:
+    parameters:
+      chartPath:
+        type: string
+      environment:
+        type: string
+        default: stage
+      repo:
+        type: string
+        default: git@github.com:thegetty/kubernetes.git
+      service:
+        type: string
+        default: *deploymentName
+      tag:
+        type: string
+    steps:
+      - run:
+          name: Deploy image
+          command: |
+            export VALUES_FILE=<< parameters.chartPath >>/values-<< parameters.environment >>.yaml
+            git clone << parameters.repo >> kubernetes
+            cd kubernetes
+            docker run --rm -v "`pwd`":/workdir mikefarah/yq \
+            	yq w -i ${VALUES_FILE} \
+                services.<< parameters.service >>.image.tag << parameters.tag >>
+            git add ${VALUES_FILE}
+            git config user.email "circleci@getty.edu"
+            git config user.name "CircleCI"
+            git commit -m "deploys << parameters.service >> version << parameters.tag >> to << parameters.environment >>"
+            git push

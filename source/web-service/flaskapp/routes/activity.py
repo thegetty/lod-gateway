@@ -1,7 +1,7 @@
 import math
 
 from flask import Blueprint, current_app, abort
-from sqlalchemy.orm import joinedload, load_only
+from sqlalchemy.orm import joinedload, load_only, defer
 from sqlalchemy.sql.functions import coalesce, max
 from sqlalchemy import desc
 
@@ -100,7 +100,9 @@ def activity_stream_page(pagenum):
         }
 
     activities = (
-        Activity.query.options(joinedload(Activity.record, innerjoin=True))
+        Activity.query.options(
+            joinedload(Activity.record, innerjoin=True), defer("record.data")
+        )
         .filter(Activity.id > offset, Activity.id <= offset + limit)
         .order_by("id")
     )

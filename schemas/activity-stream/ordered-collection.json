@@ -1,0 +1,183 @@
+{
+	"$id": "http://developer.getty.edu/documentation/schemas/activity-stream/ordered-collection.json",
+	
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "ActivityStream",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty LOD Gateway JSON Schema Documentation for the Activity Stream Feed",
+	
+	"description": "This document describes the structure and content of the Activity Stream Feed provided by the Getty LOD Gateway.",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty LOD Gateway JSON Schema Documentation for the Activity Stream Feed",
+				
+				"date": [
+					{
+						"date": "2019-07-01",
+						"dateType": "creation"
+					},
+					{
+						"date": "2019-08-21",
+						"dateType": "revision"
+					},
+					{
+						"date": "2020-06-10",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
+	
+	"definitions": {
+		
+	},
+	
+	"type": "object",
+	
+	"properties": {
+		
+		"@context": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/@context"
+		},
+		
+		"summary": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/summary"
+		},
+		
+		"type": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/type",
+			
+			"description": "This field contains the Activity Stream document's type. As the LOD Gateway exposes an Activity Stream in the form of an ordered collection of Activity Stream items, this will always be `OrderedCollection`.",
+			
+			"const": "OrderedCollection"
+		},
+		
+		"id": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/id",
+			
+			"title": "The Document's ID, Expressed as an Absolute URL",
+			
+			"description": "This field contains the document's own ID, expressed as an absolute URL.",
+			
+			"example": "https://data.getty.edu/museum/collection/activity-stream/page/1"
+		},
+		
+		"startIndex": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/startIndex",
+			
+			"title": "The Start Index of the Activity Stream Pages.",
+			
+			"description": "This field contains offset for the first page of the Activity Stream.",
+			
+			"const": 1
+		},
+		
+		"totalItems": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/totalItems",
+			
+			"title": "The Total Current Count of the Items Available from the Activity Stream.",
+			
+			"description": "This field contains the current count of the items available from the Activity Stream. This number can change at any time as the system processes incoming data. It will never decrease, but could increase as new items are added to the end of the Activity Stream.",
+			
+			"example": 232916
+		},
+		
+		"first": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/pageReference",
+			
+			"title": "A reference to the first page of the Activity Stream.",
+			
+			"description": "This field contains a reference expressed as an absolute URL to the first page of items from the Activity Stream. This URL will always be static, referencing the page offset for the first page.",
+			
+			"example": {
+				"id": "https://data.getty.edu/museum/collection/activity-stream/page/1",
+				"type": "OrderedCollectionPage"
+			}
+		},
+		
+		"last": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/pageReference",
+			
+			"title": "A reference to the last page of the Activity Stream.",
+			
+			"description": "This field contains a reference expressed as an absolute URL to the last page of items from the Activity Stream. This URL could change at any time as new items are added to the end of the Activity Stream, which may result in new pages being added to the paginated set to accomodate the new items.",
+			
+			"example": {
+				"id": "https://data.getty.edu/museum/collection/activity-stream/page/8",
+				"type": "OrderedCollectionPage"
+			}
+		}
+	},
+	
+	"required": [
+		"@context",
+		"type",
+		"id",
+		"totalItems",
+		"first",
+		"last"
+	],
+	
+	"example": {
+		"@context": "https://www.w3.org/ns/activitystreams",
+		"summary": "Getty Museum Collection Data",
+		"type": "OrderedCollection",
+		"id": "https://data.getty.edu/museum/collection/activity-stream",
+		"totalItems": 232916,
+		"first": {
+			"id": "https://data.getty.edu/museum/collection/activity-stream/page/1",
+			"type": "OrderedCollectionPage"
+		},
+		"last": {
+			"id": "https://data.getty.edu/museum/collection/activity-stream/page/8",
+			"type": "OrderedCollectionPage"
+		}
+	}
+}

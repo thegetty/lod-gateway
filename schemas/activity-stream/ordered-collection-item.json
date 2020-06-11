@@ -1,0 +1,301 @@
+{
+	"$id": "http://developer.getty.edu/documentation/schemas/activity-stream/ordered-collection-item.json",
+	
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "ActivityStream",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty LOD Gateway JSON Schema Documentation for the Activity Stream Ordered Collection Item",
+	
+	"description": "This document describes the structure and content of the Activity Stream Ordered Collection Item provided by the Getty LOD Gateway.",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty LOD Gateway JSON Schema Documentation for the Activity Stream Ordered Collection Item",
+				"date": [
+					{
+						"date": "2019-07-01",
+						"dateType": "creation"
+					},
+					{
+						"date": "2019-08-21",
+						"dateType": "revision"
+					},
+					{
+						"date": "2020-06-10",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
+	
+	"definitions": {
+		"orderedItem": {
+			"type": "object",
+			
+			"properties": {
+				"id": {
+					"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/id",
+					
+					"title": "The Activity Stream Item's ID, Expressed as an Absolute URL",
+					
+					"description": "This field contains the Activity Stream item's own ID, expressed as an absolute URL.",
+					
+					"examples": [
+						"https://data.getty.edu/museum/collection/activity-stream/25703961-ce12-47c8-8a56-2e91fdbf2679"
+					],
+					
+					"example": "https://data.getty.edu/museum/collection/activity-stream/6837e545-3cb2-46ff-8284-c692a10afcc2"
+				},
+				
+				"type": {
+					"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/type",
+					
+					"title": "The Type of Activity Associated with the Referenced Document",
+					
+					"description": "This field contains the type of change that occurred to the referenced document. Types obtained from https://www.w3.org/TR/activitystreams-vocabulary/#activity-types",
+					
+					"enum": [
+						"Accept",
+						"TentativeAccept",
+						"Add",
+						"Arrive",
+						"Create",
+						"Delete",
+						"Follow",
+						"Ignore",
+						"Join",
+						"Leave",
+						"Like",
+						"Offer",
+						"Invite",
+						"Reject",
+						"TentativeReject",
+						"Remove",
+						"Undo",
+						"Update",
+						"View",
+						"Listen",
+						"Read",
+						"Move",
+						"Travel",
+						"Announce",
+						"Block",
+						"Flag",
+						"Dislike",
+						"Question"
+					],
+					
+					"examples": [
+						"Create",
+						"Update",
+						"Delete"
+					],
+					
+					"example": "Create"
+				},
+				
+				"actor": {
+					"type": "object",
+					
+					"title": "The Referenced Document's Actor ID",
+					
+					"description": "This field contains the referenced document's actor. The actor in this case, if provided, is a reference to the person or actor that created, updated or deleted the referenced document.",
+					
+					"properties": {
+						"id": {
+							"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/id",
+							
+							"title": "The Referenced Document's Actor ID, Expressed as an Absolute URL",
+							
+							"description": "This field contains the referenced document's actor ID, expressed as an absolute URL. The actor in this case is a reference to the person or actor that created, updated or deleted the referenced document."
+						},
+						
+						"type": {
+							"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/type",
+							
+							"title": "The Referenced Document's Actor Type",
+							
+							"description": "This field contains the type of the referenced document's actor, expressed as a string",
+							
+							"examples": [
+								"Actor",
+								"Person"
+							]
+						}
+					},
+					
+					"required": [
+						"id",
+						"type"
+					]
+				},
+				
+				"object": {
+					"type": "object",
+					
+					"title": "The Referenced Document's Object ID",
+					
+					"description": "This field contains the referenced document's object. The object in this case is the record that has been created, updated or deleted.",
+					
+					"properties": {
+						"id": {
+							"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/id",
+							
+							"title": "The Referenced Document's ID, Expressed as an Absolute URL",
+							
+							"description": "This field contains the referenced document's ID, expressed as an absolute URL.",
+							
+							"examples": [
+								"https://data.getty.edu/museum/collection/object/0f306dae-8ca1-4337-9b95-a6d4c5368ad7",
+								"https://data.getty.edu/museum/collection/person/37895939-d9f9-4457-b228-1cc632174d7b"
+							],
+							
+							"example": "https://data.getty.edu/museum/collection/object/0f306dae-8ca1-4337-9b95-a6d4c5368ad7"
+						},
+						
+						"type": {
+							"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/type",
+							
+							"title": "The Referenced Document's Type",
+							
+							"description": "This field contains the type of the referenced document, expressed as a string",
+							
+							"enum": [
+								"Activity",
+								"Group",
+								"HumanMadeObject",
+								"LinguisticObject",
+								"Person",
+								"Place",
+								"PropositionalObject"
+							],
+							
+							"examples": [
+								"HumanMadeObject",
+								"Person",
+								"PropositionalObject"
+							],
+							
+							"example": "HumanMadeObject"
+						}
+					},
+					
+					"required": [
+						"id",
+						"type"
+					]
+				},
+				
+				"created": {
+					"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/date",
+					
+					"title": "The Activity Stream item's Creation Date",
+					
+					"description": "This field contains the creation date of the Activity Stream item, expressed as an RFC3339 formatted date, a subset of the ISO8601 date format.",
+					
+					"examples": [
+						"2019-08-23T04:32:36",
+						"2025-02-02T14:53:25+08:00"
+					],
+					
+					"example": "2020-05-11T21:57:05"
+				},
+				
+				"updated": {
+					"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/date",
+					
+					"title": "The Activity Stream Item's Updated (Modification) Date",
+					
+					"description": "This field contains the updated (modification) date of the Activity Stream item, expressed as an RFC3339 formatted date, a subset of the ISO8601 date format.",
+					
+					"examples": [
+						"2019-08-23T04:32:36",
+						"2025-02-02T14:53:25+08:00"
+					],
+					
+					"example": "2020-05-11T21:57:05"
+				},
+				
+				"published": {
+					"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/date",
+					
+					"title": "The Activity Stream Item's Publication Date",
+					
+					"description": "This field contains the publication date of the Activity Stream item, expressed as an RFC3339 formatted date, a subset of the ISO8601 date format.",
+					
+					"examples": [
+						"2019-08-23T04:32:36",
+						"2025-02-02T14:53:25+08:00"
+					],
+					
+					"example": "2020-05-11T21:57:05"
+				}
+			},
+			
+			"required": [
+				"id",
+				"type",
+				"object",
+				"created"
+			]
+		}
+	},
+	
+	"$ref": "#/definitions/orderedItem",
+	
+	"example": {
+		"id": "https://data.getty.edu/museum/collection/activity-stream/6837e545-3cb2-46ff-8284-c692a10afcc2",
+		"type": "Create",
+		"created": "2020-05-11T21:56:49",
+		"object": {
+			"id": "https://data.getty.edu/museum/collection/document/ba973cc7-c48a-4c1a-bf7d-b8da55d6e7c6",
+			"type": "LinguisticObject"
+		}
+	}
+}

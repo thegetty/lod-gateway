@@ -1,0 +1,194 @@
+{
+	"$id": "http://developer.getty.edu/documentation/schemas/lod-gateway/ingest-error.json",
+	
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "ActivityStream",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty LOD Gateway JSON Schema Documentation for the Ingest Endpoint",
+	
+	"description": "This document describes the structure of error responses for the `ingest` endpoint provided by the Getty LOD Gateway.",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty LOD Gateway JSON Schema Documentation for the Ingest Endpoint",
+				
+				"date": [
+					{
+						"date": "2020-05-20",
+						"dateType": "creation"
+					},
+					{
+						"date": "2020-06-10",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
+	
+	"definitions": {
+		
+	},
+	
+	"type": "object",
+	
+	"properties": {
+		"error": {
+			"type": "array",
+			
+			"items": {
+				"type": "object",
+				
+				"properties": {
+					"status": {
+						"type": "integer",
+						
+						"title": "HTTP Response Status Code",
+						
+						"description": "This field contains a standard HTTP status code relating to the error.",
+						
+						"enum": [
+							401,
+							405,
+							422,
+							500,
+							503
+						],
+						
+						"example": 405
+					},
+					
+					"title": {
+						"type": "string",
+						
+						"title": "HTTP Response Status Reason (Title)",
+						
+						"description": "This field contains a standard HTTP status code relating to the error.",
+						
+						"examples": [
+							"Wrong Authorization Token",
+							"Forbidden Method",
+							"Data Missing",
+							"Invalid JSON",
+							"ID Missing",
+							"Data Base Error",
+							"Neptune Error",
+							"Service Unavalable"
+						],
+						
+						"example": "Invalid JSON"
+					},
+					
+					"source": {
+						"type": "object",
+						
+						"title": "Source Data Error Reference",
+						
+						"description": "This field notes the source data that resulted in the reported error, including noting the line number.",
+						
+						"properties": {
+							"line": {
+								"type": "integer",
+								
+								"title": "Source Data Erroneous Line Number",
+								
+								"description": "This field notes the source data input line that resulted in the reported error.",
+								
+								"minimum": 1
+							}
+						},
+						
+						"required": [
+							"line"
+						],
+						
+						"example": {
+							"line": 2
+						}
+					},
+					
+					"detail": {
+						"type": "string",
+						
+						"title": "Source Data Error Detail",
+						
+						"description": "This field describes the source data error in more detail.",
+						
+						"examples": [
+							"Authorization token is wrong or missing",
+							"For the requested URL only 'POST' method is allowed",
+							"No input data found",
+							"Could not parse JSON record",
+							"ID for the JSON record not found",
+							"Neptune connection cannot be established",
+							"Cannot perform database operation"
+						],
+						
+						"example": "ID for the JSON record not found"
+					}
+				},
+				
+				"required": [
+					"status",
+					"title",
+					"detail"
+				]
+			}
+		}
+	},
+	
+	"required": [
+		"error"
+	],
+	
+	"example": {
+		"error": [
+			
+		]
+	}
+}

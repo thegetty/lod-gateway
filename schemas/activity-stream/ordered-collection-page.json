@@ -1,0 +1,214 @@
+{
+	"$id": "http://developer.getty.edu/documentation/schemas/activity-stream/ordered-collection-page.json",
+	
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "ActivityStream",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty LOD Gateway JSON Schema Documentation for the Activity Stream Ordered Collection Page",
+	
+	"description": "This document describes the structure and content of the Activity Stream Ordered Collection Page provided by the Getty LOD Gateway.",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty LOD Gateway JSON Schema Documentation for the Activity Stream Ordered Collection Page",
+				"date": [
+					{
+						"date": "2019-07-01",
+						"dateType": "creation"
+					},
+					{
+						"date": "2019-08-21",
+						"dateType": "revision"
+					},
+					{
+						"date": "2020-06-10",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
+	
+	"definitions": {
+		
+	},
+	
+	"type": "object",
+	
+	"properties": {
+		
+		"@context": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/@context"
+		},
+		
+		"summary": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/summary"
+		},
+		
+		"type": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/type",
+			
+			"description": "This Activity Stream Document's Type. As LOD Gateway exposes an Activity Stream page in the form of an ordered collection of Activity Stream items, this will always be `OrderedCollectionPage`.",
+			
+			"const": "OrderedCollectionPage"
+		},
+		
+		"id": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/id",
+			
+			"title": "The Activity Stream Page Document's ID, Expressed as an Absolute URL",
+			
+			"example": "https://data.getty.edu/museum/collection/activity-stream/page/1"
+		},
+		
+		"partOf": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/pageReference",
+			
+			"title": "A Reference to the Page's Parent Activity Stream",
+			
+			"description": "This field contains a reference expressed as an absolute URL to the parent Activity Stream that is page is a part of. All pages within the Activity Stream will have a reference back to their parent Activity Stream."
+		},
+		
+		"prev": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/pageReference",
+			
+			"title": "A Reference to the Previous Page of the Activity Stream.",
+			
+			"description": "This field contains a reference expressed as an absolute URL to the previous page of items within the Activity Stream, relative to the current page. All pages, except the first will have a reference to the previous page."
+		},
+		
+		"next": {
+			"$ref": "http://developer.getty.edu/documentation/node/38153498/core-definitions.json#/definitions/pageReference",
+			
+			"title": "A Reference to the Next Page of the Activity Stream.",
+			
+			"description": "This field contains a reference expressed as an absolute URL to the next page of items within the Activity Stream, relative to the current page. All pages, except the last will have a reference to the next page."
+		},
+		
+		"orderedItems": {
+			"type": "array",
+			
+			"title": "The List of Items Available from the Current Page of the Activity Stream.",
+			
+			"description": "This field contains the list of ordered items available from the current page of the Activity Stream. The order of the items is always fixed, sorted from the first Activity Stream item being available as the first item within the first page of the Activity Stream, to the last item being available as the last item of the last page of the Activity Stream.",
+			
+			"items": {
+				"$ref": "http://developer.getty.edu/documentation/node/38154534/ordered-collection-item.json#/definitions/orderedItem"
+			}
+		}
+	},
+	
+	"required": [
+		"@context",
+		"type",
+		"id",
+		"partOf",
+		"orderedItems"
+	],
+	
+	"example": {
+		"@context": "https://www.w3.org/ns/activitystreams",
+		"type": "OrderedCollectionPage",
+		"id": "https://data.getty.edu/museum/collection/activity-stream/page/1",
+		"partOf": {
+			"id": "https://data.getty.edu/museum/collection/activity-stream",
+			"type": "OrderedCollection"
+		},
+		"next": {
+			"id": "https://data.getty.edu/museum/collection/activity-stream/page/2",
+			"type": "OrderedCollectionPage"
+		},
+		"orderedItems": [
+			{
+				"id": "https://data.getty.edu/museum/collection/activity-stream/7d0f329e-b528-45b9-9de1-39f93e0b2085",
+				"type": "Create",
+				"created": "2020-05-11T21:56:48",
+				"object": {
+					"id": "https://data.getty.edu/museum/collection/group/ee294bfc-bbe5-42b4-95b2-04872b802bfe",
+					"type": "Group"
+				}
+			},
+			{
+				"id": "https://data.getty.edu/museum/collection/activity-stream/f0ddf6e2-1c2e-4e60-835c-224515844cf0",
+				"type": "Create",
+				"created": "2020-05-11T21:56:49",
+				"object": {
+					"id": "https://data.getty.edu/museum/collection/person/c3a876a9-5333-40d5-8488-6cc722058f5e",
+					"type": "Person"
+				}
+			},
+			{
+				"id": "https://data.getty.edu/museum/collection/activity-stream/8885991f-fa8f-41ad-8ed1-d607a1aab849",
+				"type": "Create",
+				"created": "2020-05-11T21:56:49",
+				"object": {
+					"id": "https://data.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb",
+					"type": "HumanMadeObject"
+				}
+			},
+			{
+				"id": "https://data.getty.edu/museum/collection/activity-stream/6837e545-3cb2-46ff-8284-c692a10afcc2",
+				"type": "Create",
+				"created": "2020-05-11T21:56:49",
+				"object": {
+					"id": "https://data.getty.edu/museum/collection/document/ba973cc7-c48a-4c1a-bf7d-b8da55d6e7c6",
+					"type": "LinguisticObject"
+				}
+			},
+			{
+				"id": "https://data.getty.edu/museum/collection/activity-stream/a1725f9e-87fa-4ef7-b795-9f9c021509e9",
+				"type": "Create",
+				"created": "2020-05-11T21:56:49",
+				"object": {
+					"id": "https://data.getty.edu/museum/collection/exhibition/cca14c25-c36a-4d9c-89e5-2a7523ab7328",
+					"type": "PropositionalObject"
+				}
+			}
+		]
+	}
+}

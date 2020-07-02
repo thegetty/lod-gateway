@@ -294,7 +294,9 @@ def process_neptune_record_set(record_list, query_endpoint=None, update_endpoint
             if graph_exists(graph_uri, query_endpoint):
                 graph_backup = graph_delete(graph_uri, query_endpoint, update_endpoint)
                 if isinstance(graph_backup, bool) and graph_backup == False:
-                    graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpoint)
+                    graph_transaction_rollback(
+                        graph_rollback_save, query_endpoint, update_endpoint
+                    )
                     return status_nt(
                         422, "Graph delete error", "Could not delete id " + id
                     )
@@ -310,7 +312,9 @@ def process_neptune_record_set(record_list, query_endpoint=None, update_endpoint
 
             serialized_nt = graph_expand(data)
             if isinstance(serialized_nt, bool) and serialized_nt == False:
-                graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpoint)
+                graph_transaction_rollback(
+                    graph_rollback_save, query_endpoint, update_endpoint
+                )
                 return status_nt(
                     422,
                     "Graph expansion error",
@@ -318,7 +322,9 @@ def process_neptune_record_set(record_list, query_endpoint=None, update_endpoint
                 )
             insert_resp = graph_insert(graph_uri, serialized_nt, update_endpoint)
             if insert_resp == False:
-                graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpoint)
+                graph_transaction_rollback(
+                    graph_rollback_save, query_endpoint, update_endpoint
+                )
                 return status_nt(500, "Graph insert error", "Could not insert id " + id)
 
     # Catch request connection errors

@@ -123,7 +123,9 @@ def requests_mocker(requests_mock):
         if request.path_url.endswith("/status"):
             context.status_code = 200
             return json.dumps({"status": "healthy",})
-        elif request.path_url.endswith("/sparql") or request.path_url.endswith("/update"): # TODO: this is not portable
+        elif request.path_url.endswith("/sparql") or request.path_url.endswith(
+            "/update"
+        ):  # TODO: this is not portable
             sparql = None
 
             if request.body.startswith("query=") or request.body.startswith("update="):

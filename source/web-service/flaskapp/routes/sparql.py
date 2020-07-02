@@ -61,7 +61,6 @@ def query_entrypoint():
 
 def execute_query(query, accept_header, query_endpoint):
     try:
-        print(f"> {query_endpoint} >> {query}")
         res = requests.post(
             query_endpoint, data={"query": query}, headers={"Accept": accept_header}
         )

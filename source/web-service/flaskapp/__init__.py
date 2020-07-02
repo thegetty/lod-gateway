@@ -31,7 +31,8 @@ def create_app():
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
     app.config["PROCESS_NEPTUNE"] = environ["PROCESS_NEPTUNE"]
-    app.config["NEPTUNE_ENDPOINT"] = environ["NEPTUNE_ENDPOINT"]
+    app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
+    app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
     app.config["JSON_AS_ASCII"] = False
 
     if app.env == "development":

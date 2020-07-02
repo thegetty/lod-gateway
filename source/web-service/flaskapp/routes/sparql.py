@@ -50,8 +50,8 @@ def query_entrypoint():
     if accept_header is None:
         accept_header = request.headers["Accept"]
 
-    neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
-    res = execute_query(query, accept_header, neptune_endpoint)
+    query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+    res = execute_query(query, accept_header, query_endpoint)
     if isinstance(res, status_nt):
         response = construct_error_response(res)
         return response
@@ -59,11 +59,15 @@ def query_entrypoint():
         return res
 
 
-def execute_query(query, accept_header, neptune_endpoint):
+def execute_query(query, accept_header, query_endpoint):
     try:
+        print(f"> {query_endpoint} >> {query}")
         res = requests.post(
-            neptune_endpoint, data={"query": query}, headers={"Accept": accept_header}
+            query_endpoint, data={"query": query}, headers={"Accept": accept_header}
         )
+        res.raise_for_status()
         return res.content
+    except requests.exceptions.HTTPError as e:
+        return status_neptune_error
     except requests.exceptions.ConnectionError as e:
         return status_neptune_error

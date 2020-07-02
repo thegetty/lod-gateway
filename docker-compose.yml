@@ -12,6 +12,12 @@ services:
         ports:
             - 5432:5432
 
+    sparql:
+        image: atomgraph/fuseki
+        command: --mem /ds
+        ports:
+            - 3030:3030
+
     web:
         build:
             context: ./

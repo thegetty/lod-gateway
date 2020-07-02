@@ -120,10 +120,10 @@ def requests_mocker(requests_mock):
     def mocker_text_callback(request, context):
         print(request.url, request.path_url)
 
-        if request.path_url == "/status":
+        if request.path_url.endswith("/status"):
             context.status_code = 200
             return json.dumps({"status": "healthy",})
-        elif request.path_url == "/sparql":
+        elif request.path_url.endswith("/sparql") or request.path_url.endswith("/update"): # TODO: this is not portable
             sparql = None
 
             if request.body.startswith("query=") or request.body.startswith("update="):
@@ -146,39 +146,58 @@ def requests_mocker(requests_mock):
                 elif sparql.startswith("DROP GRAPH"):
                     context.status_code = 200
                     return None
+        else:
+            print(f"*** unhandled mock request: {request.path_url}")
 
         context.status_code = 400
         return None
 
-    neptune = os.getenv("NEPTUNE_ENDPOINT")
+    query_endpoint = os.getenv("SPARQL_QUERY_ENDPOINT")
+    update_endpoint = os.getenv("SPARQL_UPDATE_ENDPOINT")
 
     # Configure the default mock handlers; these rely on the `mocker_text_callback()` method defined above
-    pattern = re.compile(neptune.replace("/sparql", "/(.*)"))
+    query_pattern = re.compile(query_endpoint.replace("/sparql", "/(.*)"))
+    update_pattern = re.compile(
+        update_endpoint.replace("/update", "/(.*)")
+    )  # TODO: this is not portable
 
-    requests_mock.options(pattern, text=mocker_text_callback)
-    requests_mock.head(pattern, text=mocker_text_callback)
-    requests_mock.get(pattern, text=mocker_text_callback)
-    requests_mock.post(pattern, text=mocker_text_callback)
+    for pattern in (query_pattern, update_pattern):
+        requests_mock.options(pattern, text=mocker_text_callback)
+        requests_mock.head(pattern, text=mocker_text_callback)
+        requests_mock.get(pattern, text=mocker_text_callback)
+        requests_mock.post(pattern, text=mocker_text_callback)
 
     # Configure the good mock handlers; these rely on the `mocker_text_callback()` method defined above
-    pattern = re.compile(
-        neptune.replace("http://", "mock-pass://").replace("/sparql", "/(.*)")
+    query_pattern = re.compile(
+        query_endpoint.replace("http://", "mock-pass://").replace("/sparql", "/(.*)")
+    )
+    update_pattern = re.compile(
+        update_endpoint.replace("http://", "mock-pass://").replace(
+            "/update", "/(.*)"
+        )  # TODO: this is not portable
     )
 
-    requests_mock.options(pattern, text=mocker_text_callback)
-    requests_mock.head(pattern, text=mocker_text_callback)
-    requests_mock.get(pattern, text=mocker_text_callback)
-    requests_mock.post(pattern, text=mocker_text_callback)
+    for pattern in (query_pattern, update_pattern):
+        requests_mock.options(pattern, text=mocker_text_callback)
+        requests_mock.head(pattern, text=mocker_text_callback)
+        requests_mock.get(pattern, text=mocker_text_callback)
+        requests_mock.post(pattern, text=mocker_text_callback)
 
     # Configure the fail mock handlers; these rely on the mocker to throw the configured exception
-    pattern = re.compile(
-        neptune.replace("http://", "mock-fail://").replace("/sparql", "/(.*)")
+    query_pattern = re.compile(
+        query_endpoint.replace("http://", "mock-fail://").replace("/sparql", "/(.*)")
+    )
+    update_pattern = re.compile(
+        update_endpoint.replace("http://", "mock-fail://").replace(
+            "/update", "/(.*)"
+        )  # TODO: this is not portable
     )
 
-    requests_mock.options(pattern, exc=requests.exceptions.ConnectionError)
-    requests_mock.head(pattern, exc=requests.exceptions.ConnectionError)
-    requests_mock.get(pattern, exc=requests.exceptions.ConnectionError)
-    requests_mock.post(pattern, exc=requests.exceptions.ConnectionError)
+    for pattern in (query_pattern, update_pattern):
+        requests_mock.options(pattern, exc=requests.exceptions.ConnectionError)
+        requests_mock.head(pattern, exc=requests.exceptions.ConnectionError)
+        requests_mock.get(pattern, exc=requests.exceptions.ConnectionError)
+        requests_mock.post(pattern, exc=requests.exceptions.ConnectionError)
 
     # Allow all other non-matched URL patterns to be routed to real HTTP requests
     pattern = re.compile("http(s)://(.*)")

@@ -231,7 +231,7 @@ def get_record(rec_id):
 
 
 # Neptune processing
-def process_neptune_record_set(record_list, neptune_endpoint=None):
+def process_neptune_record_set(record_list, query_endpoint=None, update_endpoint=None):
     """
         This function will process the same list of records indepenently.
         See specs for details.
@@ -254,11 +254,14 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
     """
 
     try:
-        if neptune_endpoint == None:
-            neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+        if query_endpoint is None:
+            query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+
+        if update_endpoint is None:
+            update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
 
         # check endpoint
-        if graph_check_endpoint(neptune_endpoint) == False:
+        if graph_check_endpoint(query_endpoint) == False:
             return status_neptune_error
 
         graph_uri_prefix = (
@@ -288,10 +291,10 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
             # Store the absolute 'id' URL after the recursive URL prefixing is performed
             graph_uri = data["id"]
 
-            if graph_exists(graph_uri, neptune_endpoint):
-                graph_backup = graph_delete(graph_uri, neptune_endpoint)
+            if graph_exists(graph_uri, query_endpoint):
+                graph_backup = graph_delete(graph_uri, query_endpoint, update_endpoint)
                 if isinstance(graph_backup, bool) and graph_backup == False:
-                    graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
+                    graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpoint)
                     return status_nt(
                         422, "Graph delete error", "Could not delete id " + id
                     )
@@ -307,15 +310,15 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
 
             serialized_nt = graph_expand(data)
             if isinstance(serialized_nt, bool) and serialized_nt == False:
-                graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
+                graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpoint)
                 return status_nt(
                     422,
                     "Graph expansion error",
                     "Could not convert JSON-LD to RDF, id " + id,
                 )
-            insert_resp = graph_insert(graph_uri, serialized_nt, neptune_endpoint)
+            insert_resp = graph_insert(graph_uri, serialized_nt, update_endpoint)
             if insert_resp == False:
-                graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
+                graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpoint)
                 return status_nt(500, "Graph insert error", "Could not insert id " + id)
 
     # Catch request connection errors
@@ -338,9 +341,9 @@ def graph_expand(data):
     return serialized_nt
 
 
-def graph_exists(graph_name, neptune_endpoint):
+def graph_exists(graph_name, query_endpoint):
     res = requests.post(
-        neptune_endpoint,
+        query_endpoint,
         data={
             "query": "SELECT (count(?s) as ?count) { GRAPH <"
             + graph_name
@@ -354,19 +357,19 @@ def graph_exists(graph_name, neptune_endpoint):
         return False
 
 
-def graph_insert(graph_name, serialized_nt, neptune_endpoint):
+def graph_insert(graph_name, serialized_nt, update_endpoint):
     insert_stmt = "INSERT DATA {GRAPH <" + graph_name + "> {" + serialized_nt + "}}"
-    res = requests.post(neptune_endpoint, data={"update": insert_stmt})
+    res = requests.post(update_endpoint, data={"update": insert_stmt})
     if res.status_code == 200:
         return True
     else:
         return False
 
 
-def graph_delete(graph_name, neptune_endpoint):
+def graph_delete(graph_name, query_endpoint, update_endpoint):
     # save copy of graph in case of rollback
     res = requests.post(
-        neptune_endpoint,
+        query_endpoint,
         data={
             "query": "CONSTRUCT{ ?s ?p ?o } WHERE { GRAPH <"
             + graph_name
@@ -378,7 +381,7 @@ def graph_delete(graph_name, neptune_endpoint):
 
     # drop graph
     res = requests.post(
-        neptune_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
+        update_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
     )
     if res.status_code == 200:
         return graph_ntriples
@@ -386,15 +389,15 @@ def graph_delete(graph_name, neptune_endpoint):
         return False
 
 
-def graph_transaction_rollback(graph_rollback_save, neptune_endpoint):
+def graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpoint):
     for graph_uri in graph_rollback_save.keys():
-        graph_delete(graph_uri, neptune_endpoint)
+        graph_delete(graph_uri, query_endpoint, update_endpoint)
         if graph_rollback_save[graph_uri] is not None:
-            graph_insert(graph_uri, graph_rollback_save[graph_uri], neptune_endpoint)
+            graph_insert(graph_uri, graph_rollback_save[graph_uri], update_endpoint)
 
 
-def graph_check_endpoint(neptune_endpoint):
-    res = requests.get(neptune_endpoint.replace("sparql", "status"))
+def graph_check_endpoint(query_endpoint):
+    res = requests.get(query_endpoint.replace("sparql", "status"))
     res_json = json.loads(res.content)
     if res_json["status"] == "healthy":
         return True

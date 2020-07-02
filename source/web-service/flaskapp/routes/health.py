@@ -16,8 +16,8 @@ health = Blueprint("health", __name__)
 def healthcheck_get():
     if health_db():
         if current_app.config["PROCESS_NEPTUNE"] == "True":
-            neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
-            if health_neptune(neptune_endpoint):
+            query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+            if health_neptune(query_endpoint):
                 return "OK"
             else:
                 response = construct_error_response(status_neptune_error)
@@ -37,5 +37,5 @@ def health_db():
         return False
 
 
-def health_neptune(neptune_endpoint):
-    return ingest.graph_check_endpoint(neptune_endpoint)
+def health_neptune(query_endpoint):
+    return ingest.graph_check_endpoint(query_endpoint)

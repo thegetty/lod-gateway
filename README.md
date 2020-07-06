@@ -22,6 +22,10 @@ To shut the application down:
 
 When first creating an application instance, the application database schema must be manually created through the Alembic database migration tool for SQLAlchemy. With the proper database connection defined in the .env file, exec into a locally running `web-service` container and execute:
 
+    flask db upgrade
+
+or, from the host command line:
+
     docker exec `docker ps -q -f publish=5100` flask db upgrade
 
 **Testing the application**

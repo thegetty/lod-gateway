@@ -5,6 +5,7 @@ SQLAlchemy==1.3
 Flask-SQLAlchemy==2.4.1
 Flask-Migrate==2.5.2
 flask-cors==3.0.8
+Flask-Compress==1.5.0
 black==19.10b0
 pytest==5.0.1
 pytest-watch==4.2.0

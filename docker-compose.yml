@@ -12,7 +12,7 @@ services:
         ports:
             - 5432:5432
 
-    sparql:
+    endpoint:
         image: atomgraph/fuseki
         command: --mem /ds
         ports:

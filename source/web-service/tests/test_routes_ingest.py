@@ -135,7 +135,9 @@ class TestIngestErrors:
         assert data["errors"]
         assert data["errors"][0]["status"] == 400
         assert data["errors"][0]["title"] == "Bad Authorization Header"
-        assert data["errors"][0]["detail"] == "Syntax of Authorization header is invalid"
+        assert (
+            data["errors"][0]["detail"] == "Syntax of Authorization header is invalid"
+        )
 
 
 class TestIngestSuccess:

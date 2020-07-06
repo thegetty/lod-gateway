@@ -9,6 +9,10 @@ status_nt = namedtuple("name", "code title detail")
 
 status_ok = status_nt(200, "OK", "OK")
 
+status_bad_auth_header = status_nt(
+    400, "Bad Authorization Header", "Syntax of Authorization header is invalid"
+)
+
 status_wrong_auth_token = status_nt(
     401, "Wrong Authorization Token", "Authorization token is wrong or missing"
 )

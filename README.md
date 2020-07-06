@@ -81,6 +81,8 @@ APP_NAMESPACE_NEPTUNE=      # This variable should always have the same value as
                             # the same domain name.
 
 PROCESS_NEPTUNE=            # The value must be "True" if Neptune processing is required
+
+FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port 5001 is opened for remote debugging of the Flask app. For details see: https://code.visualstudio.com/docs/remote/containers

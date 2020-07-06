@@ -18,11 +18,15 @@ _(This assumes that you have [Docker](https://www.docker.com/products/docker-des
 
 To shut the application down:
 
-    $ docker-compose down
+    docker-compose down
 
 When first creating an application instance, the application database schema must be manually created through the Alembic database migration tool for SQLAlchemy. With the proper database connection defined in the .env file, exec into a locally running `web-service` container and execute:
 
     flask db upgrade
+
+or, from the host command line:
+
+    docker exec `docker ps -q -f publish=5100` flask db upgrade
 
 **Testing the application**
 
@@ -77,6 +81,8 @@ APP_NAMESPACE_NEPTUNE=      # This variable should always have the same value as
                             # the same domain name.
 
 PROCESS_NEPTUNE=            # The value must be "True" if Neptune processing is required
+
+FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port 5001 is opened for remote debugging of the Flask app. For details see: https://code.visualstudio.com/docs/remote/containers

@@ -51,7 +51,7 @@ def query_entrypoint():
         accept_header = request.form.get("accept")
 
     if accept_header is None:
-        accept_header = request.headers["Accept"]
+        accept_header = request.headers.get("Accept")
 
     query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
     res = execute_query(query, accept_header, query_endpoint)

@@ -35,7 +35,10 @@ def query_entrypoint():
     else:
         query = request.form.get("query")
 
-    if query is None and request.headers.get("Content-Type") == "application/sparql-query":
+    if (
+        query is None
+        and request.headers.get("Content-Type") == "application/sparql-query"
+    ):
         query = request.data
 
     if query is None:

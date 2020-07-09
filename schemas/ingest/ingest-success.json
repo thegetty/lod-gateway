@@ -1,0 +1,109 @@
+{
+	"$id": "http://developer.getty.edu/documentation/schemas/lod-gateway/ingest-success.json",
+	
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	
+	"version": {
+		"name": "ActivityStream",
+		"version": "1.0.0"
+	},
+	
+	"contact": [
+		{
+			"contactId": "1",
+			"individualName": "Daniel Sissman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "2",
+			"individualName": "Viktor Grabarchuk",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "3",
+			"individualName": "Gregg Garcia",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		},
+		{
+			"contactId": "4",
+			"individualName": "Nadiia Kysil-Heckman",
+			"organizationName": "The J. Paul Getty Trust, Los Angeles, California"
+		}
+	],
+	
+	"title": "The Getty LOD Gateway JSON Schema Documentation for the Ingest Endpoint",
+	
+	"description": "This document describes the structure of success responses for the `ingest` endpoint provided by the Getty LOD Gateway.",
+	
+	"metadata": {
+		"resourceInfo": {
+			"resourceType": "project",
+			
+			"citation": {
+				"title": "The Getty LOD Gateway JSON Schema Documentation for the Ingest Endpoint",
+				
+				"date": [
+					{
+						"date": "2020-05-20",
+						"dateType": "creation"
+					},
+					{
+						"date": "2020-06-10",
+						"dateType": "revision"
+					}
+				]
+			},
+			
+			"abstract": "The J. Paul Getty Trust is sharing Linked Data representations of its collections data.",
+			
+			"status": "onGoing",
+			
+			"language": [
+				"eng; USA"
+			],
+			
+			"pointOfContact": [
+				{
+					"contactId": "1",
+					"role": "pointOfContact"
+				}
+			]
+		}
+	},
+	
+	"definitions": {
+		
+	},
+	
+	"type": "object",
+	
+	"patternProperties": {
+		"^.*$": {
+			"$comment": "We use a regular-expression property name match here to allow for the unknown source document IDs.",
+			
+			"type": "string",
+			
+			"format": "uri",
+			
+			"title": "The Ingested Record's LOD Gateway Relative URL",
+			
+			"description": "Each key:value pair in the successful response consists of the key being the ingested record's ID as extracted from the record's `id` field, and the value is the URL for the ingested record relative to this LOD Gateway instance.",
+			
+			"examples": [
+				"museum/collection/group/b5829da1-0f6a-425a-b115-a45df3bded0d",
+				"museum/collection/object/05e059c0-e2b6-4cb3-98cd-badc74dece55",
+				"museum/collection/person/1e5af236-edc1-498a-817b-7c4b03adf82b"
+			],
+			
+			"example": "museum/collection/object/05e059c0-e2b6-4cb3-98cd-badc74dece55"
+		}
+	},
+	
+	"additionalProperties": true,
+	
+	"example": {
+		"object/123": "museum/collection/object/123",
+		"person/456": "museum/collection/person/456",
+		"place/789": "museum/collection/place/789"
+	}
+}

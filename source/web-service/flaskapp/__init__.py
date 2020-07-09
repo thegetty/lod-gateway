@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Flask, Response
 from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_compress import Compress
 
 from flaskapp.routes.activity import activity
 from flaskapp.routes.records import records
@@ -33,11 +34,15 @@ def create_app():
     app.config["PROCESS_NEPTUNE"] = environ["PROCESS_NEPTUNE"]
     app.config["NEPTUNE_ENDPOINT"] = environ["NEPTUNE_ENDPOINT"]
     app.config["JSON_AS_ASCII"] = False
+    app.config["FLASK_GZIP_COMPRESSION"] = environ["FLASK_GZIP_COMPRESSION"]
 
     if app.env == "development":
         app.config["SQLALCHEMY_ECHO"] = True
 
     db.init_app(app)
+    compress = Compress()
+    if app.config["FLASK_GZIP_COMPRESSION"].lower() == "true":
+        compress.init_app(app)
     migrate = Migrate(app, db)
 
     # Set the debug level

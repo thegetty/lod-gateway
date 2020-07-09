@@ -13,7 +13,9 @@ services:
             - 5432:5432
 
     endpoint:
-        image: atomgraph/fuseki
+        build:
+            context: ./
+            dockerfile: ./Dockerfile.sparql-service
         command: --mem /ds
         ports:
             - 3030:3030
@@ -31,6 +33,5 @@ services:
         ports:
             - "${FLASK_RUN_PORT}:5100"
             - "5001:5001"  # VS Code debugger
-
 volumes:
     data_postgres:

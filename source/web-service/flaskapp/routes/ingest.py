@@ -1,5 +1,6 @@
 import json
 import uuid
+from contextlib import suppress
 from datetime import datetime
 
 import rdflib
@@ -21,6 +22,7 @@ from flaskapp.errors import (
     status_GET_not_allowed,
     status_id_missing,
     status_ok,
+    status_bad_auth_header,
     status_wrong_auth_token,
     status_wrong_syntax,
     construct_error_response,
@@ -417,7 +419,10 @@ def authenticate_bearer(request):
 
     else:
         # get method (Bearer) and token
-        method, token = auth_header.split()
+        try:
+            method, token = auth_header.split(maxsplit=1)
+        except ValueError:
+            return status_bad_auth_header
 
         # check the method is correct
         if method != "Bearer":

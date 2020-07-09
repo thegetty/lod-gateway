@@ -121,6 +121,24 @@ class TestIngestErrors:
         assert data["errors"][0]["title"] == "ID Missing"
         assert data["errors"][0]["detail"] == "ID for the JSON record not found"
 
+    def test_ingest_bad_auth_header_error_response(self, client, namespace, auth_token):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data='{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}\n',
+            headers={"Authorization": "BadAuthorizationHeader"},
+        )
+        # check for correct 'error json'
+        assert json.loads(response.data)
+
+        # validate 'error json' details
+        data = response.json
+        assert data["errors"]
+        assert data["errors"][0]["status"] == 400
+        assert data["errors"][0]["title"] == "Bad Authorization Header"
+        assert (
+            data["errors"][0]["detail"] == "Syntax of Authorization header is invalid"
+        )
+
 
 class TestIngestSuccess:
     def test_ingest_single(self, client, namespace, auth_token, test_db):

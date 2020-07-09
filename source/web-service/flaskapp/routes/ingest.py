@@ -404,10 +404,20 @@ def graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpo
 
 def graph_check_endpoint(query_endpoint):
     res = requests.get(query_endpoint.replace("sparql", "status"))
-    res_json = json.loads(res.content)
-    if res_json["status"] == "healthy":
-        return True
-    else:
+    try:
+        res.raise_for_status()
+        res_json = json.loads(res.content)
+        if res_json["status"] == "healthy":
+            return True
+        else:
+            return False
+    except requests.exceptions.HTTPError as e:
+        resp = e.response
+        if resp.status_code == 404:
+            # the endpoint we're connecting to does not have a /status
+            # (perhaps it's a locally running endpoint instead of Neptune)
+            # assume its status is OK
+            return True
         return False
 
 

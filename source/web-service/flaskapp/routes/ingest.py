@@ -1,11 +1,12 @@
 import json
 import uuid
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import rdflib
 import requests
 from pyld import jsonld
+from pyld.jsonld import set_document_loader
 
 from flask import Blueprint, current_app, request, abort, jsonify
 from sqlalchemy import exc
@@ -28,6 +29,27 @@ from flaskapp.errors import (
     construct_error_response,
 )
 from flaskapp.utilities import Event, containerRecursiveCallback, idPrefixer
+
+
+def document_loader(docCache):
+    def load_document_and_cache(url, *args, **kwargs):
+        now = datetime.now()
+        if url in docCache:
+            doc = docCache[url]
+            expires = doc["expires"]
+            diff = now - expires
+            if expires > now:
+                return doc
+
+        doc = {"expires": None, "contextUrl": None, "documentUrl": None, "document": ""}
+        resp = requests.get(url)
+        data = resp.json()
+        doc["document"] = data
+        doc["expires"] = now + timedelta(minutes=5)
+        docCache[url] = doc
+        return doc
+
+    return load_document_and_cache
 
 
 # Create a new "ingest" route blueprint
@@ -271,6 +293,7 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
         )
         graph_rollback_save = {}
         proc = jsonld.JsonLdProcessor()
+        docLoader = document_loader(docCache={})
         for record in record_list:
             data = json.loads(record)
             # Store the relative 'id' URL before the recursive URL prefixing is performed
@@ -308,7 +331,7 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
             if "_delete" in data.keys() and data["_delete"] == "true":
                 continue
 
-            serialized_nt = graph_expand(data, proc)
+            serialized_nt = graph_expand(data, docLoader, proc)
             if isinstance(serialized_nt, bool) and serialized_nt == False:
                 graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
                 return status_nt(
@@ -329,11 +352,13 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
     return True
 
 
-def graph_expand(data, proc=None):
+def graph_expand(data, docLoader, proc=None):
     try:
         if proc is None:
             proc = jsonld.JsonLdProcessor()
-        serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
+        serialized_nt = proc.to_rdf(
+            data, {"format": "application/n-quads", "documentLoader": docLoader}
+        )
     except Exception as e:
         return False
 

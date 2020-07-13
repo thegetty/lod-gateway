@@ -12,7 +12,7 @@ pytest-watch==4.2.0
 pytest-cov==2.8.1
 pytest-mock==2.0.0
 rdflib==4.2.2
-pyld==1.0.5
+PyLD==2.0.2
 rdflib-jsonld==0.4.0
 requests==2.23.0
 requests_mock==1.7.0

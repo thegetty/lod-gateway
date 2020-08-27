@@ -270,6 +270,7 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
             + "/"
         )
         graph_rollback_save = {}
+        proc = jsonld.JsonLdProcessor()
         for record in record_list:
             data = json.loads(record)
             # Store the relative 'id' URL before the recursive URL prefixing is performed
@@ -307,7 +308,7 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
             if "_delete" in data.keys() and data["_delete"] == "true":
                 continue
 
-            serialized_nt = graph_expand(data)
+            serialized_nt = graph_expand(data, proc)
             if isinstance(serialized_nt, bool) and serialized_nt == False:
                 graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
                 return status_nt(
@@ -328,12 +329,11 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
     return True
 
 
-def graph_expand(data):
+def graph_expand(data, proc=None):
     try:
-        expanded = jsonld.expand(data)
-        g = rdflib.ConjunctiveGraph()
-        g.parse(data=json.dumps(expanded), format="json-ld")
-        serialized_nt = g.serialize(format="nt").decode("UTF-8")
+        if proc is None:
+            proc = jsonld.JsonLdProcessor()
+        serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
     except Exception as e:
         return False
 

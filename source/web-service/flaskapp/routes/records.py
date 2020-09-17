@@ -25,7 +25,7 @@ def entity_record(entity_id):
             # using HTTP 304 Not Modified, with the etag and last modified date in the headers
             headers = {
                 "Last-Modified": format_datetime(record.datetime_updated),
-                "etag": record.checksum,
+                "ETag": record.checksum,
             }
             return ("", 304, headers)
 
@@ -44,7 +44,7 @@ def entity_record(entity_id):
 
         response = current_app.make_response(data)
         response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
-        response.headers["etag"] = record.checksum
+        response.headers["ETag"] = record.checksum
         return response
     else:
         response = construct_error_response(status_record_not_found)

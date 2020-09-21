@@ -27,15 +27,17 @@ def upgrade():
     print("Migration will now checksum existing records - may take some time")
     bind = op.get_bind()
     session = orm.Session(bind=bind)
-    for idx, record in enumerate(session.query(Record).all()):
-        if idx > 0 and not idx % 100:
-            # commit the results every hundred records
-            print(f"Up to record {idx+1} - Commiting past changes to db.")
-            session.commit()
-        checksum = checksum_json(record.data)
-        record.checksum = checksum
-        session.add(record)
-    session.commit()
+    while session.query(Record).filter(Record.checksum == None).first() is not None:
+        for idx, record in enumerate(
+            session.query(Record).filter(Record.checksum == None).limit(100).all()
+        ):
+            checksum = checksum_json(record.data)
+            record.checksum = checksum
+            session.add(record)
+        session.commit()
+        # get count of progress
+        done_count = session.query(Record).filter(Record.checksum != None).count()
+        print(f"Record count: {done_count} complete")
 
 
 def downgrade():

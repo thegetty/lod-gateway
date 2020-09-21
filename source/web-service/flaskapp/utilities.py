@@ -1,4 +1,6 @@
 import copy
+import json
+import hashlib
 
 from datetime import datetime
 from enum import Enum
@@ -17,6 +19,14 @@ class Event(Enum):
 # Used across the app
 def format_datetime(dt):
     return dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+
+def checksum_json(json_obj):
+    # Expects a JSON-serializable data structure to be passed to it.
+    checksum = hashlib.sha256()
+    # dump the object as JSON, with the sort_keys flag on to ensure repeatability
+    checksum.update(json.dumps(json_obj, sort_keys=True).encode("utf-8"))
+    return checksum.hexdigest()
 
 
 # Performs a recursive walkthrough of any dictionary/list calling the callback for any matched attribute

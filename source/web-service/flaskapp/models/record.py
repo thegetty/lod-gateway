@@ -10,3 +10,4 @@ class Record(db.Model):
     datetime_updated = db.Column(db.TIMESTAMP, nullable=False)
     datetime_deleted = db.Column(db.TIMESTAMP)
     data = db.Column(db.JSON)
+    checksum = db.Column(db.String, nullable=True)

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+flask db upgrade 
+
 uwsgi \
 	--http "0.0.0.0:${FLASK_RUN_PORT}" \
 	--manage-script-name \

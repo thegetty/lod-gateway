@@ -2,7 +2,7 @@ import json
 
 from flaskapp.models import db
 from flaskapp.models.record import Record
-from flaskapp.utilities import format_datetime
+from flaskapp.utilities import format_datetime, checksum_json
 
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -39,6 +39,7 @@ class TestObtainRecord:
             datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
             datetime_updated=datetime(2019, 11, 22, 13, 2, 53, 0),
             data={"example": "data"},
+            checksum=checksum_json({"example": "data"}),
         )
 
         db.session.add(record)
@@ -48,3 +49,45 @@ class TestObtainRecord:
 
         last_modified = format_datetime(record.datetime_updated)
         assert response.headers["Last-Modified"] == last_modified
+
+    def test_etag_304(self, sample_data, client, namespace):
+        checksum_value = checksum_json({"example": "data"})
+
+        record = Record(
+            entity_id=str(uuid4()),
+            entity_type="Object",
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
+            datetime_updated=datetime(2019, 11, 22, 13, 2, 53, 0),
+            data={"example": "data"},
+            checksum=checksum_value,
+        )
+
+        db.session.add(record)
+        db.session.commit()
+
+        response = client.get(
+            f"/{namespace}/{record.entity_id}",
+            headers={"If-None-Match": checksum_value},
+        )
+        assert response.status_code == 304
+
+    def test_etag_200_without_match(self, sample_data, client, namespace):
+        checksum_value = checksum_json({"example": "data"})
+
+        record = Record(
+            entity_id=str(uuid4()),
+            entity_type="Object",
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53, 0),
+            datetime_updated=datetime(2019, 11, 22, 13, 2, 53, 0),
+            data={"example": "data"},
+            checksum=checksum_value,
+        )
+
+        db.session.add(record)
+        db.session.commit()
+
+        response = client.get(
+            f"/{namespace}/{record.entity_id}",
+            headers={"If-None-Match": "something that wont match"},
+        )
+        assert response.status_code == 200

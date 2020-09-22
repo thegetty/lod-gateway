@@ -10,7 +10,6 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from flaskapp.models.record import Record
-from flaskapp.utilities import checksum_json
 
 
 # revision identifiers, used by Alembic.

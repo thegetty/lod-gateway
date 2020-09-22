@@ -1,7 +1,7 @@
+import click
+
 from datetime import datetime, timezone
-
 from flask import Blueprint, current_app, abort, request
-
 from sqlalchemy.exc import IntegrityError
 
 from flaskapp.models import db

@@ -1,14 +1,48 @@
+import click
+
 from datetime import datetime, timezone
-
 from flask import Blueprint, current_app, abort, request
+from sqlalchemy.exc import IntegrityError
 
+from flaskapp.models import db
 from flaskapp.models.record import Record
 from flaskapp.utilities import format_datetime, containerRecursiveCallback, idPrefixer
 from flaskapp.errors import construct_error_response, status_record_not_found
-
+from flaskapp.utilities import checksum_json
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
+
+
+@records.cli.command("checksum")
+@click.argument("extent")
+def create_checksums(extent):
+    # Flask CLI command to generate checksums for the records in the system
+    # `flask records checksum null`
+    extent = extent.lower()
+    if extent not in ["null"]:
+        print(
+            f"Option must be 'null' to checksum just those Record rows without a checksum."
+        )
+        return
+    print("Migration will now checksum records - may take some time")
+    try:
+        completed = 0
+        while Record.query.filter(Record.checksum == None).first() is not None:
+            for idx, record in enumerate(
+                Record.query.filter(Record.checksum == None).limit(100).all()
+            ):
+                checksum = checksum_json(record.data)
+                record.checksum = checksum
+                db.session.add(record)
+            db.session.commit()
+            completed += idx + 1
+            print(f"Record count: {completed} complete")
+        db.session.commit()
+    except IntegrityError as e:
+        current_app.logger.error(f"IntegrityError hit while creating checksums: {e}")
+        print(f"IntegrityError! {e}")
+        db.session.rollback()
 
 
 @records.route("/<path:entity_id>")

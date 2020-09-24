@@ -1,8 +1,10 @@
 import json
+import logging
 from collections import namedtuple
 
 from flask import current_app
 
+logger = logging.getLogger(__name__)
 
 # Set of all possible errors statuses encapsulated in named tuple structure.
 status_nt = namedtuple("name", "code title detail")
@@ -63,8 +65,10 @@ def construct_error_response(status, source=None):
     err = [err]
     result = {"errors": err}
 
+    logger.error(err)
+
     response = current_app.response_class(
-        response=json.dumps(result), mimetype="application/json", status=status.code,
+        response=json.dumps(result), mimetype="application/json", status=status.code
     )
 
     return response

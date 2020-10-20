@@ -184,7 +184,7 @@ class TestIngestSuccess:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
-        data_resp = response.to_json()
+        data_resp = response.get_json()
         assert data_resp["person/12345"] == "null"
 
 

@@ -175,7 +175,7 @@ class TestIngestSuccess:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
-        assert "person/12345" in response.data
+        assert b"person/12345" in response.data
 
         # Do it again - should get a 200, but nothing in response.
         response = client.post(
@@ -184,7 +184,7 @@ class TestIngestSuccess:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
-        assert "person/12345" not in response.data
+        assert b"person/12345" not in response.data
 
         response = client.post(
             f"/{namespace}/ingest",

@@ -215,7 +215,7 @@ def record_create(input_rec):
     r.datetime_created = datetime.utcnow()
     r.datetime_updated = r.datetime_created
     r.data = input_rec
-    r.checksum = input_rec
+    r.checksum = checksum_json(input_rec)
 
     db.session.add(r)
     db.session.flush()

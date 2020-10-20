@@ -215,6 +215,7 @@ def record_create(input_rec):
     r.datetime_created = datetime.utcnow()
     r.datetime_updated = r.datetime_created
     r.data = input_rec
+    r.checksum = input_rec
 
     db.session.add(r)
     db.session.flush()
@@ -227,6 +228,7 @@ def record_create(input_rec):
 def record_update(db_rec, input_rec):
     db_rec.datetime_updated = datetime.utcnow()
     db_rec.data = input_rec
+    db_rec.checksum = checksum_json(input_rec)
 
 
 # For now just delete json from 'data' column

@@ -35,6 +35,7 @@ def create_app():
     app.config["NEPTUNE_ENDPOINT"] = environ["NEPTUNE_ENDPOINT"]
     app.config["JSON_AS_ASCII"] = False
     app.config["FLASK_GZIP_COMPRESSION"] = environ["FLASK_GZIP_COMPRESSION"]
+    app.config["KEEP_LAST_VERSION"] = environ.get("KEEP_LAST_VERSION", False)
 
     if app.env == "development":
         app.config["SQLALCHEMY_ECHO"] = True

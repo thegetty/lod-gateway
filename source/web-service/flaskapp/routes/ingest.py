@@ -226,13 +226,37 @@ def record_create(input_rec):
 
 # Do not return anything. Calling function has all the info
 def record_update(db_rec, input_rec):
+    if db_rec.previous_version is not None:
+        old_version = get_record(db_rec.previous_version)
+        if old_version is not None:
+            db.session.delete(old_version)
+
+    prev_id = str(uuid.uuid4())
+    prev = Record()
+    prev.entity_id = prev_id
+    prev.entity_type = db_rec.entity_type
+    prev.datetime_created = db_rec.datetime_created
+    prev.datetime_updated = db_rec.datetime_updated
+    prev.data = db_rec.data
+    prev.checksum = db_rec.checksum
+    prev.is_old_version = True
+
+    db.session.add(prev)
+
     db_rec.datetime_updated = datetime.utcnow()
     db_rec.data = input_rec
     db_rec.checksum = checksum_json(input_rec)
+    db_rec.previous_version = prev_id
+
+    db.session.commit()
 
 
 # For now just delete json from 'data' column
 def record_delete(db_rec, input_rec):
+    if db_rec.previous_version is not None:
+        old_version = get_record(db_rec.previous_version)
+        if old_version is not None:
+            db.session.delete(old_version)
     db_rec.data = None
     db_rec.datetime_deleted = datetime.utcnow()
 

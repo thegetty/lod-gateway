@@ -61,6 +61,10 @@ def entity_record(entity_id):
                 "Last-Modified": format_datetime(record.datetime_updated),
                 "ETag": record.checksum,
             }
+
+            if current_app.config["KEEP_LAST_VERSION"] is True:
+                headers["X-Previous-Version"] = record.previous_version
+                headers["X-Is-Old-Version"] = record.is_old_version
             return ("", 304, headers)
 
         # If the etag(s) did not match, then the record is not cached or known to the client
@@ -79,6 +83,9 @@ def entity_record(entity_id):
         response = current_app.make_response(data)
         response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
         response.headers["ETag"] = record.checksum
+        if current_app.config["KEEP_LAST_VERSION"] is True:
+            response.headers["X-Previous-Version"] = record.previous_version
+            response.headers["X-Is-Old-Version"] = record.is_old_version
         return response
     else:
         response = construct_error_response(status_record_not_found)

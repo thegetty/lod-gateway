@@ -27,7 +27,12 @@ from flaskapp.errors import (
     status_wrong_syntax,
     construct_error_response,
 )
-from flaskapp.utilities import Event, containerRecursiveCallback, idPrefixer
+from flaskapp.utilities import (
+    Event,
+    containerRecursiveCallback,
+    idPrefixer,
+    checksum_json,
+)
 
 
 # Create a new "ingest" route blueprint
@@ -126,6 +131,10 @@ def process_record_set(record_list):
         db.session.rollback()
         return status_db_save_error
 
+    if prim_key == None and crud_event == None:
+        # The uploaded record was identical - ignoring
+        return result_dict
+
     # Process Neptune entries. Check the Neptune flag - if not set, do not process, return 'True'
     # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
     neptune_result = True
@@ -172,6 +181,14 @@ def process_record(input_rec):
 
     # Record exists
     else:
+        # check to see if existing record is the same as uploaded:
+        chksum = checksum_json(data)
+        if chksum == db_rec.checksum:
+            current_app.logger.info(
+                f"Data uploaded for {id} is identical to the record already uploaded based on checksum. Ignoring."
+            )
+            return (None, id, None)
+
         # get primary key of existing record
         prim_key = db_rec.id
 
@@ -285,7 +302,7 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
 
             # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
             data = containerRecursiveCallback(
-                data=data, attr="id", callback=idPrefixer, prefix=idPrefix,
+                data=data, attr="id", callback=idPrefixer, prefix=idPrefix
             )
 
             # Store the absolute 'id' URL after the recursive URL prefixing is performed

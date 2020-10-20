@@ -187,6 +187,43 @@ class TestIngestSuccess:
         data_resp = response.get_json()
         assert data_resp["person/12345"] == "null"
 
+    def test_ingest_new_versions(self, client, namespace, auth_token, test_db):
+        data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
+
+        # Make sure that the versioning flag is set
+        assert current_app.config["KEEP_LAST_VERSION"] is True
+
+        # load one record:
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        data["new property"] = "new data"
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"/{namespace}/person/12345",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert "X-Previous-Version" in response.headers
+        assert "X-Is-Old-Version" in response.headers
+
+        old_version = client.get(
+            f"/{namespace}/{response.headers['X-Previous-Version']}",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert old_version.status_code == 200
+
 
 class TestNeptuneConnection:
     def test_neptune_connection_good(self, client, namespace, auth_token):

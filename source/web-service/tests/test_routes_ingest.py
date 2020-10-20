@@ -184,20 +184,8 @@ class TestIngestSuccess:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
-        assert b"person/12345" not in response.data
-
-        response = client.post(
-            f"/{namespace}/ingest",
-            data='{"id": "person/12345", "name": "John", "age": 31, "city": "New York"}'
-            + "\n"
-            + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
-            + "\n"
-            + '{"id": "group/12345", "name": "John", "age": 31, "city": "New York"}'
-            + "\n",
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-        assert b"group/12345" in response.data
+        data_resp = response.to_json()
+        assert data_resp["person/12345"] == "null"
 
 
 class TestNeptuneConnection:

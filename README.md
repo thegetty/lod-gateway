@@ -4,7 +4,7 @@ This repository contains the code used to convert various Getty systems of recor
 
 **Components**
 
-The LOD Gateway contains one production container: `web-service`; for development purposes, a `postgres` service is also included.
+The LOD Gateway contains one production container: `web-service`; for development purposes, a containerized `postgres` service is also included.
 
 **Setup Instructions**
 
@@ -20,7 +20,7 @@ To shut the application down:
 
     docker-compose down
 
-When first creating an application instance, the application database schema must be manually created through the Alembic database migration tool for SQLAlchemy. With the proper database connection defined in the .env file, exec into a locally running `web-service` container and execute:
+When first creating an application instance, the application database schema must be manually created through the Alembic database migration tool for SQLAlchemy. With the proper database connection defined in the `.env` file, exec into a locally running `web-service` container and execute:
 
     flask db upgrade
 
@@ -56,7 +56,7 @@ will run `pywatch`, which will watch for file changes and re-run the tests autom
 
 **Deployment Options**
 
-Configuration is managed through environment variables.  In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault.  In testing environments, the .env.example file is used directly.
+Configuration is managed through environment variables.  In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault.  In testing environments, the `.env.example` file is used directly.
 
 ```
 AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality
@@ -83,6 +83,18 @@ APP_NAMESPACE_NEPTUNE=      # This variable should always have the same value as
 PROCESS_NEPTUNE=            # The value must be "True" if Neptune processing is required
 
 FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
+
+PREFIX_RECORD_IDS=          # Configure the Prefixing of Record "id" Values:
+                            # The default behaviour is for all "id" values in a record to
+                            # be discovered recursively and to be prefixed if necessary,
+                            # if they are not already a HTTP(S) URL ("http(s)://...").
+                            # The default behaviour will take place if `PREFIX_RECORD_IDS`
+                            # is absent from the application's environment, or if defined
+                            # and configured explicitly as `PREFIX_RECORD_IDS=RECURSIVE`.
+                            # The other available prefixing behaviours are to prefix only
+                            # the top-level "id" of the record, which may be achieved by
+                            # setting `PREFIX_RECORD_IDS=TOP`, or to disable all prefixing
+                            # of record "id" values by setting `PREFIX_RECORD_IDS=NONE`.
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port 5001 is opened for remote debugging of the Flask app. For details see: https://code.visualstudio.com/docs/remote/containers

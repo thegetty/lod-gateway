@@ -234,6 +234,7 @@ def record_update(db_rec, input_rec):
 # For now just delete json from 'data' column
 def record_delete(db_rec, input_rec):
     db_rec.data = None
+    db_rec.checksum = None
     db_rec.datetime_deleted = datetime.utcnow()
 
 

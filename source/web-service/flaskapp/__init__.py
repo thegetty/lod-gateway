@@ -35,6 +35,7 @@ def create_app():
     app.config["NEPTUNE_ENDPOINT"] = environ["NEPTUNE_ENDPOINT"]
     app.config["JSON_AS_ASCII"] = False
     app.config["FLASK_GZIP_COMPRESSION"] = environ["FLASK_GZIP_COMPRESSION"]
+    app.config["PREFIX_RECORD_IDS"] = getenv("PREFIX_RECORD_IDS", default="RECURSIVE")
 
     if app.env == "development":
         app.config["SQLALCHEMY_ECHO"] = True

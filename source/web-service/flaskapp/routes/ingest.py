@@ -113,7 +113,7 @@ def process_record_set(record_list):
             # 'prim_key' - primary key (integer) returned by db. Used in Activities
             # 'id' - string ID submitted by client. Used in result dict
             # 'crud' - one of 3 operations ('create', 'update', 'delete')
-            prim_key, id, crud_event, skip_activity_stream = process_record(rec)
+            prim_key, id, crud_event = process_record(rec)
 
             # some operations may not return primary key e.g. 'delete' for non-existing record
             # if primary key is valid, process 'Activities'
@@ -187,7 +187,7 @@ def process_record(input_rec):
     else:
         if db_rec.is_old_version is True:
             # check to see if existing record is the same as uploaded:
-            current_app.logger.warn(
+            current_app.logger.warning(
                 f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version."
             )
             if not is_delete_request:
@@ -268,7 +268,7 @@ def record_update(db_rec, input_rec):
     # Don't allow updates to old versions - this should be stopped earlier in the normal ingest flow, but if this function is
     # called through a different route this is a good safeguard.
     if db_rec.is_old_version == True:
-        current_app.logger.warn(
+        current_app.logger.warning(
             f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version. Updates are disabled."
         )
         return

@@ -95,6 +95,10 @@ PREFIX_RECORD_IDS=          # Configure the Prefixing of Record "id" Values:
                             # the top-level "id" of the record, which may be achieved by
                             # setting `PREFIX_RECORD_IDS=TOP`, or to disable all prefixing
                             # of record "id" values by setting `PREFIX_RECORD_IDS=NONE`.
+
+KEEP_LAST_VERSION=.         # Set this to True to enable the retention of a single previous
+                            # version of a record when it is updated. See 'Versioning' for
+                            # more details.
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port 5001 is opened for remote debugging of the Flask app. For details see: https://code.visualstudio.com/docs/remote/containers

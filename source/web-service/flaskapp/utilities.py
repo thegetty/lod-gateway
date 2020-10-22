@@ -31,7 +31,14 @@ def checksum_json(json_obj):
 
 # Performs a recursive walkthrough of any dictionary/list calling the callback for any matched attribute
 def containerRecursiveCallback(
-    data, attr=None, find=None, replace=None, prefix=None, suffix=None, callback=None
+    data,
+    attr=None,
+    find=None,
+    replace=None,
+    prefix=None,
+    suffix=None,
+    callback=None,
+    recursive=True,
 ):
     if not isinstance(data, (dict, list)):
         raise RuntimeError(
@@ -67,6 +74,9 @@ def containerRecursiveCallback(
             val = data[key]
 
             if isinstance(val, (dict, list)):
+                if recursive == False:
+                    continue
+
                 val = containerRecursiveCallback(
                     val,
                     attr=attr,
@@ -91,6 +101,9 @@ def containerRecursiveCallback(
     elif isinstance(data, list):
         for key, val in enumerate(data):
             if isinstance(val, (dict, list)):
+                if recursive == False:
+                    continue
+
                 val = containerRecursiveCallback(
                     val,
                     attr=attr,

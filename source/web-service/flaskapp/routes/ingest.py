@@ -312,6 +312,7 @@ def record_delete(db_rec, input_rec):
             return
 
     db_rec.data = None
+    db_rec.checksum = None
     db_rec.datetime_deleted = datetime.utcnow()
 
 

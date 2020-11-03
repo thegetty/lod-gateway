@@ -105,9 +105,10 @@ def process_record_set(record_list):
 
     #  This dict will be returned by function. key: 'id', value: 'namespace/id'
     result_dict = {}
+    idx_to_process_further = []
 
     try:
-        for rec in record_list:
+        for idx, rec in enumerate(record_list):
 
             # 'prim_key' - primary key (integer) returned by db. Used in Activities
             # 'id' - string ID submitted by client. Used in result dict
@@ -122,6 +123,9 @@ def process_record_set(record_list):
                 # add pair of IDs to result dict
                 result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'
 
+                # add the list index to the list of updates to process through Neptune
+                idx_to_process_further.append(idx)
+
             # add to result dict pair ('id': 'None') which will signify to client no operation was done
             else:
                 result_dict[id] = "null"
@@ -131,15 +135,13 @@ def process_record_set(record_list):
         db.session.rollback()
         return status_db_save_error
 
-    if prim_key == None and crud_event == None:
-        # The uploaded record was identical - ignoring
-        return result_dict
-
     # Process Neptune entries. Check the Neptune flag - if not set, do not process, return 'True'
     # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
     neptune_result = True
     if current_app.config["PROCESS_NEPTUNE"] == "True":
-        neptune_result = process_neptune_record_set(record_list)
+        neptune_result = process_neptune_record_set(
+            [record_list[x] for x in idx_to_process_further]
+        )
 
     # if Neptune fails, roll back and return Neptune specific error
     if isinstance(neptune_result, status_nt):
@@ -164,11 +166,13 @@ def process_record(input_rec):
     # Find if Record with this 'id' exists
     db_rec = get_record(id)
 
+    is_delete_request = "_delete" in data.keys() and data["_delete"] == "true"
+
     # Record with such 'id' does not exist
     if db_rec == None:
 
         # this is a 'delete' request for record that is not in DB
-        if "_delete" in data.keys() and data["_delete"] == "true":
+        if is_delete_request is True:
             return (None, id, Event.Delete)
 
         # create and return primary key for Activities
@@ -181,7 +185,18 @@ def process_record(input_rec):
 
     # Record exists
     else:
-        # check to see if existing record is the same as uploaded:
+        if db_rec.is_old_version is True:
+            # check to see if existing record is the same as uploaded:
+            current_app.logger.warning(
+                f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version."
+            )
+            if not is_delete_request:
+                # Delete is allowed but not updates
+                current_app.logger.error(
+                    f"Ignoring attempted update to Entity ID {db_rec.entity_id}."
+                )
+                return (None, id, None)
+
         chksum = checksum_json(data)
         if chksum == db_rec.checksum:
             current_app.logger.info(
@@ -193,8 +208,11 @@ def process_record(input_rec):
         prim_key = db_rec.id
 
         # delete
-        if "_delete" in data.keys() and data["_delete"] == "true":
+        if is_delete_request is True:
             record_delete(db_rec, data)
+            if db_rec.is_old_version is True:
+                # Don't mark deleting an old version as an event in the activity stream
+                return (None, id, None)
             return (prim_key, id, Event.Delete)
 
         # update
@@ -226,13 +244,73 @@ def record_create(input_rec):
 
 # Do not return anything. Calling function has all the info
 def record_update(db_rec, input_rec):
+    if current_app.config["KEEP_LAST_VERSION"] is True:
+        if db_rec.is_old_version != True:
+            if db_rec.previous_version is not None:
+                old_version = get_record(db_rec.previous_version)
+                if old_version is not None:
+                    db.session.delete(old_version)
+
+            prev_id = str(uuid.uuid4())
+            prev = Record()
+            prev.entity_id = prev_id
+            prev.entity_type = db_rec.entity_type
+            prev.datetime_created = db_rec.datetime_created
+            prev.datetime_updated = db_rec.datetime_updated
+            prev.data = db_rec.data
+            prev.checksum = db_rec.checksum
+            prev.is_old_version = True
+
+            db.session.add(prev)
+
+            db_rec.previous_version = prev_id
+
+    # Don't allow updates to old versions - this should be stopped earlier in the normal ingest flow, but if this function is
+    # called through a different route this is a good safeguard.
+    if db_rec.is_old_version == True:
+        current_app.logger.warning(
+            f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version. Updates are disabled."
+        )
+        return
+
     db_rec.datetime_updated = datetime.utcnow()
     db_rec.data = input_rec
     db_rec.checksum = checksum_json(input_rec)
 
+    db.session.commit()
+
 
 # For now just delete json from 'data' column
 def record_delete(db_rec, input_rec):
+    if current_app.config["KEEP_LAST_VERSION"] is True:
+        # Delete old version if it exists
+        if db_rec.previous_version is not None:
+            old_version = get_record(db_rec.previous_version)
+            if old_version is not None:
+                db.session.delete(old_version)
+        # Is this an old version? null the previous_version of the item it refers to
+        elif db_rec.is_old_version is True:
+            # Remove link from
+            oldv_id = db_rec.entity_id
+            curr_id = db_rec.data["id"]
+            current_app.logger.info(
+                f"Delete requested on entity {oldv_id} that is marked as an old version."
+            )
+            curr_rec = get_record(curr_id)
+            if curr_rec is not None and curr_rec.previous_version == oldv_id:
+                current_app.logger.info(
+                    f"Removing reference from entity {curr_id} that refers to this old version {oldv_id[:10]}..."
+                )
+                curr_rec.previous_version = None
+            else:
+                current_app.logger.error(
+                    f"Deleting record marked as old version of {curr_id}, but current record is not linked to this."
+                )
+
+            # First add this to session for deletion
+            db.session.delete(db_rec)
+            return
+
     db_rec.data = None
     db_rec.checksum = None
     db_rec.datetime_deleted = datetime.utcnow()

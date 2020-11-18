@@ -61,6 +61,10 @@ def entity_record(entity_id):
                 "Last-Modified": format_datetime(record.datetime_updated),
                 "ETag": record.checksum,
             }
+
+            if current_app.config["KEEP_LAST_VERSION"] is True:
+                headers["X-Previous-Version"] = record.previous_version
+                headers["X-Is-Old-Version"] = record.is_old_version
             return ("", 304, headers)
 
         # If the etag(s) did not match, then the record is not cached or known to the client
@@ -72,13 +76,30 @@ def entity_record(entity_id):
         )
 
         # Recursively prefix each 'id' attribute that currently lacks a http(s):// prefix
-        data = containerRecursiveCallback(
-            data=record.data, attr="id", callback=idPrefixer, prefix=idPrefix
-        )
+        prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
+        if (
+            prefixRecordIDs == "NONE"
+        ):  # when "NONE", record "id" field prefixing is not enabled
+            data = record.data  # so pass back the record data as-is to the client
+        else:  # otherwise, record "id" field prefixing is enabled, as configured
+            recursive = (
+                False if prefixRecordIDs == "TOP" else True
+            )  # recursive by default
+
+            data = containerRecursiveCallback(
+                data=record.data,
+                attr="id",
+                callback=idPrefixer,
+                prefix=idPrefix,
+                recursive=recursive,
+            )
 
         response = current_app.make_response(data)
         response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
         response.headers["ETag"] = record.checksum
+        if current_app.config["KEEP_LAST_VERSION"] is True:
+            response.headers["X-Previous-Version"] = record.previous_version
+            response.headers["X-Is-Old-Version"] = record.is_old_version
         return response
     else:
         response = construct_error_response(status_record_not_found)

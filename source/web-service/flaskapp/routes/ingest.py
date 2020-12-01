@@ -481,6 +481,8 @@ def graph_delete(graph_name, neptune_endpoint):
     if res.status_code == 200:
         return graph_ntriples
     else:
+        current_app.logger.error(f"Nepute graph delete error code: {res.status_code}")
+        current_app.logger.error(f"Nepute graph delete error: {res.json()}")
         return False
 
 

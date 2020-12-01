@@ -277,8 +277,6 @@ def record_update(db_rec, input_rec):
     db_rec.data = input_rec
     db_rec.checksum = checksum_json(input_rec)
 
-    db.session.commit()
-
 
 # For now just delete json from 'data' column
 def record_delete(db_rec, input_rec):
@@ -483,6 +481,8 @@ def graph_delete(graph_name, neptune_endpoint):
     if res.status_code == 200:
         return graph_ntriples
     else:
+        current_app.logger.error(f"Nepute graph delete error code: {res.status_code}")
+        current_app.logger.error(f"Nepute graph delete error: {res.json()}")
         return False
 
 

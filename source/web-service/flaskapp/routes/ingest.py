@@ -431,6 +431,8 @@ def graph_expand(data, proc=None):
             proc = jsonld.JsonLdProcessor()
         serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
     except Exception as e:
+        id = data["id"] if isinstance(data, dict) and "id" in data else "???"
+        current_app.logger.error("Graph expansion error for %s: %s" % (id, str(e)))
         return False
 
     return serialized_nt

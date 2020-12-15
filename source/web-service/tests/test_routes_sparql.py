@@ -68,7 +68,7 @@ class TestNeptuneConnection:
     def test_neptune_connection_good(self, client, namespace, auth_token):
         endpoint = current_app.config["NEPTUNE_ENDPOINT"]
         query = "SELECT * {?s ?p ?o} LIMIT 1"
-        accept_header = "*/*"
+        accept_header = "application/json"
         response = execute_query(
             query, accept_header, endpoint.replace("http://", "mock-pass://")
         )
@@ -77,7 +77,7 @@ class TestNeptuneConnection:
     def test_neptune_connection_fail(self, client, namespace, auth_token):
         endpoint = current_app.config["NEPTUNE_ENDPOINT"]
         query = "SELECT * {?s ?p ?o} LIMIT 1"
-        accept_header = "*/*"
+        accept_header = "application/json"
         asserted = execute_query(
             query, accept_header, endpoint.replace("http://", "mock-fail://")
         )

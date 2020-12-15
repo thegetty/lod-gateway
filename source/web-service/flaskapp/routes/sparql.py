@@ -62,7 +62,6 @@ def query_entrypoint():
         response = construct_error_response(res)
         return response
     else:
-        print(res.content)
         return Response(res, direct_passthrough=True, content_type=accept_header)
 
 

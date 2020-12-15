@@ -1,7 +1,7 @@
 import json
 import requests
 
-from flask import Blueprint, current_app, request, abort, jsonify
+from flask import Blueprint, current_app, request, abort, jsonify, Response
 
 from flaskapp.errors import (
     status_nt,
@@ -48,10 +48,10 @@ def query_entrypoint():
         return abort(response)
 
     accept_header = None
-    if "accept" in request.args:
-        accept_header = request.args["accept"]
+    if "Accept" in request.args:
+        accept_header = request.args["Accept"]
     else:
-        accept_header = request.form.get("accept")
+        accept_header = request.form.get("Accept")
 
     if accept_header is None:
         accept_header = request.headers.get("Accept")
@@ -62,7 +62,8 @@ def query_entrypoint():
         response = construct_error_response(res)
         return response
     else:
-        return res
+        print(res.content)
+        return Response(res, direct_passthrough=True, content_type=accept_header)
 
 
 def execute_query(query, accept_header, neptune_endpoint):
@@ -70,6 +71,6 @@ def execute_query(query, accept_header, neptune_endpoint):
         res = requests.post(
             neptune_endpoint, data={"query": query}, headers={"Accept": accept_header}
         )
-        return res.content
+        return res
     except requests.exceptions.ConnectionError as e:
         return status_neptune_error

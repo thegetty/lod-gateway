@@ -11,4 +11,5 @@ uwsgi \
 	--processes ${UWSGI_PROCESSES} \
 	--threads ${UWSGI_THREADS} \
 	--thunder-lock \
+	--listen 128
 	$@

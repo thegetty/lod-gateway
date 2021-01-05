@@ -5,7 +5,9 @@ from datetime import datetime
 
 import rdflib
 import requests
+import traceback
 from pyld import jsonld
+from pyld.jsonld import JsonLdError
 
 from flask import Blueprint, current_app, request, abort, jsonify
 from sqlalchemy import exc
@@ -426,13 +428,46 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
 
 
 def graph_expand(data, proc=None):
+    json_ld_cxt  = None
+    json_ld_id   = None
+    json_ld_type = None
+
+    if isinstance(data, dict):
+        if "@context" in data:
+            json_ld_cxt = data["@context"]
+        if "id" in data:
+            json_ld_id = data["id"]
+        if "type" in data:
+            json_ld_type = data["type"]
+
     try:
+        if not isinstance(json_ld_cxt, str) and len(json_ld_cxt) > 0:
+            raise RuntimeError("Graph expansion error: No @context URL has been defined in the data for %s!" % (json_ld_id))
+
+        resp = requests.get(json_ld_cxt)  # attempt to obtain the JSON-LD @context document
+        if not resp.status_code == 200:  # if there is a failure, report it...
+            current_app.logger.error("Graph expansion error: Failed to obtain @context URL (%s) with HTTP status: %d" % (id, json_ld_cxt, resp.status_code))
+
         if proc is None:
             proc = jsonld.JsonLdProcessor()
+
         serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
     except Exception as e:
-        id = data["id"] if isinstance(data, dict) and "id" in data else "???"
-        current_app.logger.error("Graph expansion error for %s: %s" % (id, str(e)))
+        current_app.logger.error("Graph expansion error for %s (%s): %s" % (json_ld_id, json_ld_type, str(e)))
+
+        # As the call to `str(e)` above does not seem to provide detailed insight into the exception, do so manually here...
+        # The `pyld` library's `JsonLdError` type (a subclass of `Exception`) defines unique properties, so we need to
+        # check the instance type of `e` before attempting to access these properties, lest we cause more exceptions...
+        # See https://github.com/digitalbazaar/pyld/blob/316fbc2c9e25b3cf718b4ee189012a64b91f17e7/lib/pyld/jsonld.py#L5646
+        if isinstance(e, JsonLdError):
+            current_app.logger.error("Graph expansion error type:    %s" % (str(e.type)))
+            current_app.logger.error("Graph expansion error details: %s" % (repr(e.details)))
+            current_app.logger.error("Graph expansion error code:    %s" % (str(e.code)))
+            current_app.logger.error("Graph expansion error cause:   %s" % (str(e.cause)))
+            current_app.logger.error("Graph expansion error trace:   %s" % (str(''.join(traceback.format_list(e.causeTrace)))))
+
+        current_app.logger.error("Graph expansion error record:  %s" % (json.dumps(data, sort_keys=True).encode("utf-8")))
+
         return False
 
     return serialized_nt

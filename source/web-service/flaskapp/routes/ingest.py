@@ -5,7 +5,9 @@ from datetime import datetime
 
 import rdflib
 import requests
+import traceback
 from pyld import jsonld
+from pyld.jsonld import JsonLdError
 
 from flask import Blueprint, current_app, request, abort, jsonify
 from sqlalchemy import exc
@@ -98,9 +100,9 @@ def ingest_post():
 # ### CRUD FUNCTIONS ###
 def process_record_set(record_list):
     """
-        Process the record set in a loop. Wrap into 'try-except'.
-        Roll back and abort with 503 if any of 3 operations:
-        Record, Activity or Neptune fails.
+    Process the record set in a loop. Wrap into 'try-except'.
+    Roll back and abort with 503 if any of 3 operations:
+    Record, Activity or Neptune fails.
     """
 
     #  This dict will be returned by function. key: 'id', value: 'namespace/id'
@@ -155,9 +157,9 @@ def process_record_set(record_list):
 
 def process_record(input_rec):
     """
-        Process a single record. Return 3 values which are not available
-        in the calling function: primary key, string 'id' and operation type
-        {'create', 'update' or 'delete'}
+    Process a single record. Return 3 values which are not available
+    in the calling function: primary key, string 'id' and operation type
+    {'create', 'update' or 'delete'}
 
     """
     data = json.loads(input_rec)
@@ -331,23 +333,23 @@ def get_record(rec_id):
 # Neptune processing
 def process_neptune_record_set(record_list, neptune_endpoint=None):
     """
-        This function will process the same list of records indepenently.
-        See specs for details.
+    This function will process the same list of records indepenently.
+    See specs for details.
 
-        If one of the records fails, all inserted/updated records must be reverted:
-        newly inserted records must be deleted, updated records must be reverted to
-        the previous state. And Neptune specific error derived from 'status_nt'
-        (see 'errors.py' for examples and how to create) must be returned.
-        If it is desireable to include failing record number, then 'status_nt'
-        could be created on the fly like this:
+    If one of the records fails, all inserted/updated records must be reverted:
+    newly inserted records must be deleted, updated records must be reverted to
+    the previous state. And Neptune specific error derived from 'status_nt'
+    (see 'errors.py' for examples and how to create) must be returned.
+    If it is desireable to include failing record number, then 'status_nt'
+    could be created on the fly like this:
 
-        return status_nt(500, "Title goes here", "Description including rec number goes here")
+    return status_nt(500, "Title goes here", "Description including rec number goes here")
 
-        If all operations succeded, then return 'True'.
+    If all operations succeded, then return 'True'.
 
-        In case of 'delete' request, there can be 2 possibilities:
-        - record exists. In this case delete and return 'True' or 'False' depending on the result
-        - record does not exist. In this scenario - don't do anything and return 'True'
+    In case of 'delete' request, there can be 2 possibilities:
+    - record exists. In this case delete and return 'True' or 'False' depending on the result
+    - record does not exist. In this scenario - don't do anything and return 'True'
 
     """
 
@@ -426,13 +428,67 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
 
 
 def graph_expand(data, proc=None):
+    json_ld_cxt = None
+    json_ld_id = None
+    json_ld_type = None
+
+    if isinstance(data, dict):
+        if "@context" in data:
+            json_ld_cxt = data["@context"]
+        if "id" in data:
+            json_ld_id = data["id"]
+        if "type" in data:
+            json_ld_type = data["type"]
+
     try:
+        if isinstance(json_ld_cxt, str) and len(json_ld_cxt) > 0:
+            # raise RuntimeError("Graph expansion error: No @context URL has been defined in the data for %s!" % (json_ld_id))
+
+            resp = requests.get(
+                json_ld_cxt
+            )  # attempt to obtain the JSON-LD @context document
+            if not resp.status_code == 200:  # if there is a failure, report it...
+                current_app.logger.error(
+                    "Graph expansion error: Failed to obtain @context URL (%s) with HTTP status: %d"
+                    % (id, json_ld_cxt, resp.status_code)
+                )
+
         if proc is None:
             proc = jsonld.JsonLdProcessor()
+
         serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
     except Exception as e:
-        id = data["id"] if isinstance(data, dict) and "id" in data else "???"
-        current_app.logger.error("Graph expansion error for %s: %s" % (id, str(e)))
+        current_app.logger.error(
+            "Graph expansion error for %s (%s): %s" % (json_ld_id, json_ld_type, str(e))
+        )
+
+        # As the call to `str(e)` above does not seem to provide detailed insight into the exception, do so manually here...
+        # The `pyld` library's `JsonLdError` type (a subclass of `Exception`) defines unique properties, so we need to
+        # check the instance type of `e` before attempting to access these properties, lest we cause more exceptions...
+        # See https://github.com/digitalbazaar/pyld/blob/316fbc2c9e25b3cf718b4ee189012a64b91f17e7/lib/pyld/jsonld.py#L5646
+        if isinstance(e, JsonLdError):
+            current_app.logger.error(
+                "Graph expansion error type:    %s" % (str(e.type))
+            )
+            current_app.logger.error(
+                "Graph expansion error details: %s" % (repr(e.details))
+            )
+            current_app.logger.error(
+                "Graph expansion error code:    %s" % (str(e.code))
+            )
+            current_app.logger.error(
+                "Graph expansion error cause:   %s" % (str(e.cause))
+            )
+            current_app.logger.error(
+                "Graph expansion error trace:   %s"
+                % (str("".join(traceback.format_list(e.causeTrace))))
+            )
+
+        current_app.logger.error(
+            "Graph expansion error record:  %s"
+            % (json.dumps(data, sort_keys=True).encode("utf-8"))
+        )
+
         return False
 
     return serialized_nt
@@ -538,8 +594,8 @@ def authenticate_bearer(request):
 # ### VALIDATION FUNCTIONS ###
 def validate_record(rec):
     """
-        Validate a single json record.
-        Check valid json syntax plus some other params
+    Validate a single json record.
+    Check valid json syntax plus some other params
     """
     try:
         # JSON syntax is good, validate other params
@@ -563,9 +619,9 @@ def validate_record(rec):
 
 def validate_record_set(record_list):
     """
-        Validate a list of json records.
-        Break and return status if at least one record is invalid
-        Return line number where the error occured
+    Validate a list of json records.
+    Break and return status if at least one record is invalid
+    Return line number where the error occured
     """
     for index, rec in enumerate(record_list, start=1):
         status = validate_record(rec)

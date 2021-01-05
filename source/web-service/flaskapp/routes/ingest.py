@@ -441,20 +441,17 @@ def graph_expand(data, proc=None):
             json_ld_type = data["type"]
 
     try:
-        if not isinstance(json_ld_cxt, str) and len(json_ld_cxt) > 0:
-            raise RuntimeError(
-                "Graph expansion error: No @context URL has been defined in the data for %s!"
-                % (json_ld_id)
-            )
+        if isinstance(json_ld_cxt, str) and len(json_ld_cxt) > 0:
+            # raise RuntimeError("Graph expansion error: No @context URL has been defined in the data for %s!" % (json_ld_id))
 
-        resp = requests.get(
-            json_ld_cxt
-        )  # attempt to obtain the JSON-LD @context document
-        if not resp.status_code == 200:  # if there is a failure, report it...
-            current_app.logger.error(
-                "Graph expansion error: Failed to obtain @context URL (%s) with HTTP status: %d"
-                % (id, json_ld_cxt, resp.status_code)
-            )
+            resp = requests.get(
+                json_ld_cxt
+            )  # attempt to obtain the JSON-LD @context document
+            if not resp.status_code == 200:  # if there is a failure, report it...
+                current_app.logger.error(
+                    "Graph expansion error: Failed to obtain @context URL (%s) with HTTP status: %d"
+                    % (id, json_ld_cxt, resp.status_code)
+                )
 
         if proc is None:
             proc = jsonld.JsonLdProcessor()

@@ -1,6 +1,8 @@
 import copy
 import json
 import hashlib
+import traceback
+import sys
 
 from datetime import datetime
 from enum import Enum
@@ -13,6 +15,26 @@ class Event(Enum):
     Update = 2
     Delete = 3
     Move = 4
+
+
+# gathers the full stack trace from the call site as a formatted string; useful for exception handling
+# adapted from the answer here https://stackoverflow.com/a/16589622 by Tobias Kienzler
+def full_stack_trace():
+    exc = sys.exc_info()[0]
+
+    stack = traceback.extract_stack()[:-1]  # the last stack entry will be the call to full_stack_trace()
+
+    if exc is not None:  # if an exception is present, remove the call to full_stack_trace()
+        del stack[-1]    # as the printed exception will contain the caller instead
+
+    tracestr = 'Traceback (most recent call last):\n'
+
+    stackstr = tracestr + ''.join(traceback.format_list(stack))
+
+    if exc is not None:
+        stackstr += traceback.format_exc()[len(tracestr):]
+
+    return stackstr
 
 
 # Format datetime in form 'yyyy-mm-dd hh:mm:ss'

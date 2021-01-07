@@ -34,6 +34,7 @@ from flaskapp.utilities import (
     containerRecursiveCallback,
     idPrefixer,
     checksum_json,
+    full_stack_trace,
 )
 
 
@@ -449,8 +450,8 @@ def graph_expand(data, proc=None):
             )  # attempt to obtain the JSON-LD @context document
             if not resp.status_code == 200:  # if there is a failure, report it...
                 current_app.logger.error(
-                    "Graph expansion error: Failed to obtain @context URL (%s) with HTTP status: %d"
-                    % (id, json_ld_cxt, resp.status_code)
+                    "Graph expansion error for %s (%s): Failed to obtain @context URL (%s) with HTTP status: %d"
+                    % (json_ld_id, json_ld_type, json_ld_cxt, resp.status_code)
                 )
 
         if proc is None:
@@ -459,7 +460,7 @@ def graph_expand(data, proc=None):
         serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
     except Exception as e:
         current_app.logger.error(
-            "Graph expansion error for %s (%s): %s" % (json_ld_id, json_ld_type, str(e))
+            "Graph expansion error of type '%s' for %s (%s): %s" % (type(e), json_ld_id, json_ld_type, str(e))
         )
 
         # As the call to `str(e)` above does not seem to provide detailed insight into the exception, do so manually here...
@@ -483,9 +484,11 @@ def graph_expand(data, proc=None):
                 "Graph expansion error trace:   %s"
                 % (str("".join(traceback.format_list(e.causeTrace))))
             )
+        else:
+            current_app.logger.error("Graph expansion error stack trace:\n%s" % (full_stack_trace()))
 
         current_app.logger.error(
-            "Graph expansion error record:  %s"
+            "Graph expansion error current record:  %s"
             % (json.dumps(data, sort_keys=True).encode("utf-8"))
         )
 

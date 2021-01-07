@@ -30,12 +30,12 @@ def full_stack_trace():
     if exc is not None:
         del stack[-1]
 
-    tracestr = 'Traceback (most recent call last):\n'
+    tracestr = "Traceback (most recent call last):\n"
 
-    stackstr = tracestr + ''.join(traceback.format_list(stack))
+    stackstr = tracestr + "".join(traceback.format_list(stack))
 
     if exc is not None:
-        stackstr += traceback.format_exc()[len(tracestr):]
+        stackstr += traceback.format_exc()[len(tracestr) :]
 
     return stackstr
 

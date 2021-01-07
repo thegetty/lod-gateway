@@ -22,10 +22,13 @@ class Event(Enum):
 def full_stack_trace():
     exc = sys.exc_info()[0]
 
-    stack = traceback.extract_stack()[:-1]  # the last stack entry will be the call to full_stack_trace()
+    # the last stack entry will be the call to full_stack_trace()
+    stack = traceback.extract_stack()[:-1]
 
-    if exc is not None:  # if an exception is present, remove the call to full_stack_trace()
-        del stack[-1]    # as the printed exception will contain the caller instead
+    # if an exception is present, remove the call to full_stack_trace()
+    # as the printed exception will contain the caller instead
+    if exc is not None:
+        del stack[-1]
 
     tracestr = 'Traceback (most recent call last):\n'
 

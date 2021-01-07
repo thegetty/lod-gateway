@@ -445,9 +445,8 @@ def graph_expand(data, proc=None):
         if isinstance(json_ld_cxt, str) and len(json_ld_cxt) > 0:
             # raise RuntimeError("Graph expansion error: No @context URL has been defined in the data for %s!" % (json_ld_id))
 
-            resp = requests.get(
-                json_ld_cxt
-            )  # attempt to obtain the JSON-LD @context document
+            # attempt to obtain the JSON-LD @context document
+            resp = requests.get(json_ld_cxt)
             if not resp.status_code == 200:  # if there is a failure, report it...
                 current_app.logger.error(
                     "Graph expansion error for %s (%s): Failed to obtain @context URL (%s) with HTTP status: %d"
@@ -460,7 +459,8 @@ def graph_expand(data, proc=None):
         serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
     except Exception as e:
         current_app.logger.error(
-            "Graph expansion error of type '%s' for %s (%s): %s" % (type(e), json_ld_id, json_ld_type, str(e))
+            "Graph expansion error of type '%s' for %s (%s): %s"
+            % (type(e), json_ld_id, json_ld_type, str(e))
         )
 
         # As the call to `str(e)` above does not seem to provide detailed insight into the exception, do so manually here...
@@ -485,7 +485,9 @@ def graph_expand(data, proc=None):
                 % (str("".join(traceback.format_list(e.causeTrace))))
             )
         else:
-            current_app.logger.error("Graph expansion error stack trace:\n%s" % (full_stack_trace()))
+            current_app.logger.error(
+                "Graph expansion error stack trace:\n%s" % (full_stack_trace())
+            )
 
         current_app.logger.error(
             "Graph expansion error current record:  %s"

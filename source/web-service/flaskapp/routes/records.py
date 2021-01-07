@@ -95,6 +95,7 @@ def entity_record(entity_id):
             )
 
         response = current_app.make_response(data)
+        response.headers["Content-Type"] = "application/json;charset=UTF-8"
         response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
         response.headers["ETag"] = record.checksum
         if current_app.config["KEEP_LAST_VERSION"] is True:

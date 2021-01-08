@@ -188,24 +188,25 @@ def process_record(input_rec):
 
     # Record exists
     else:
-        if db_rec.is_old_version is True:
-            # check to see if existing record is the same as uploaded:
-            current_app.logger.warning(
-                f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version."
-            )
-            if not is_delete_request:
-                # Delete is allowed but not updates
-                current_app.logger.error(
-                    f"Ignoring attempted update to Entity ID {db_rec.entity_id}."
+        if current_app.config["KEEP_LAST_VERSION"] is True:
+            if db_rec.is_old_version is True:
+                # check to see if existing record is the same as uploaded:
+                current_app.logger.warning(
+                    f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version."
+                )
+                if not is_delete_request:
+                    # Delete is allowed but not updates
+                    current_app.logger.error(
+                        f"Ignoring attempted update to Entity ID {db_rec.entity_id}."
+                    )
+                    return (None, id, None)
+
+            chksum = checksum_json(data)
+            if chksum == db_rec.checksum:
+                current_app.logger.info(
+                    f"Data uploaded for {id} is identical to the record already uploaded based on checksum. Ignoring."
                 )
                 return (None, id, None)
-
-        chksum = checksum_json(data)
-        if chksum == db_rec.checksum:
-            current_app.logger.info(
-                f"Data uploaded for {id} is identical to the record already uploaded based on checksum. Ignoring."
-            )
-            return (None, id, None)
 
         # get primary key of existing record
         prim_key = db_rec.id

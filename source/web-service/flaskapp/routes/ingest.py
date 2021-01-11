@@ -34,6 +34,7 @@ from flaskapp.utilities import (
     containerRecursiveCallback,
     idPrefixer,
     checksum_json,
+    full_stack_trace,
 )
 
 
@@ -187,24 +188,25 @@ def process_record(input_rec):
 
     # Record exists
     else:
-        if db_rec.is_old_version is True:
-            # check to see if existing record is the same as uploaded:
-            current_app.logger.warning(
-                f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version."
-            )
-            if not is_delete_request:
-                # Delete is allowed but not updates
-                current_app.logger.error(
-                    f"Ignoring attempted update to Entity ID {db_rec.entity_id}."
+        if current_app.config["KEEP_LAST_VERSION"] is True:
+            if db_rec.is_old_version is True:
+                # check to see if existing record is the same as uploaded:
+                current_app.logger.warning(
+                    f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version."
+                )
+                if not is_delete_request:
+                    # Delete is allowed but not updates
+                    current_app.logger.error(
+                        f"Ignoring attempted update to Entity ID {db_rec.entity_id}."
+                    )
+                    return (None, id, None)
+
+            chksum = checksum_json(data)
+            if chksum == db_rec.checksum:
+                current_app.logger.info(
+                    f"Data uploaded for {id} is identical to the record already uploaded based on checksum. Ignoring."
                 )
                 return (None, id, None)
-
-        chksum = checksum_json(data)
-        if chksum == db_rec.checksum:
-            current_app.logger.info(
-                f"Data uploaded for {id} is identical to the record already uploaded based on checksum. Ignoring."
-            )
-            return (None, id, None)
 
         # get primary key of existing record
         prim_key = db_rec.id
@@ -444,13 +446,12 @@ def graph_expand(data, proc=None):
         if isinstance(json_ld_cxt, str) and len(json_ld_cxt) > 0:
             # raise RuntimeError("Graph expansion error: No @context URL has been defined in the data for %s!" % (json_ld_id))
 
-            resp = requests.get(
-                json_ld_cxt
-            )  # attempt to obtain the JSON-LD @context document
+            # attempt to obtain the JSON-LD @context document
+            resp = requests.get(json_ld_cxt)
             if not resp.status_code == 200:  # if there is a failure, report it...
                 current_app.logger.error(
-                    "Graph expansion error: Failed to obtain @context URL (%s) with HTTP status: %d"
-                    % (id, json_ld_cxt, resp.status_code)
+                    "Graph expansion error for %s (%s): Failed to obtain @context URL (%s) with HTTP status: %d"
+                    % (json_ld_id, json_ld_type, json_ld_cxt, resp.status_code)
                 )
 
         if proc is None:
@@ -459,7 +460,8 @@ def graph_expand(data, proc=None):
         serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
     except Exception as e:
         current_app.logger.error(
-            "Graph expansion error for %s (%s): %s" % (json_ld_id, json_ld_type, str(e))
+            "Graph expansion error of type '%s' for %s (%s): %s"
+            % (type(e), json_ld_id, json_ld_type, str(e))
         )
 
         # As the call to `str(e)` above does not seem to provide detailed insight into the exception, do so manually here...
@@ -483,9 +485,13 @@ def graph_expand(data, proc=None):
                 "Graph expansion error trace:   %s"
                 % (str("".join(traceback.format_list(e.causeTrace))))
             )
+        else:
+            current_app.logger.error(
+                "Graph expansion error stack trace:\n%s" % (full_stack_trace())
+            )
 
         current_app.logger.error(
-            "Graph expansion error record:  %s"
+            "Graph expansion error current record:  %s"
             % (json.dumps(data, sort_keys=True).encode("utf-8"))
         )
 

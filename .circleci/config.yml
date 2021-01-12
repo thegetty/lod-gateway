@@ -82,7 +82,7 @@ jobs:
           fingerprints:
             - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
       - deploy:
-          chartPath: charts/getty-environment
+          chartPath: charts/apps
           tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
 
 commands:
@@ -191,8 +191,8 @@ commands:
             git clone << parameters.repo >> kubernetes
             cd kubernetes
             docker run --rm -v "`pwd`":/workdir mikefarah/yq \
-            	yq w -i ${VALUES_FILE} \
-                services.<< parameters.service >>.image.tag << parameters.tag >>
+                eval 'apps.<< parameters.service >>-media.image.tag = "<< parameters.tag >>"' \
+                ${VALUES_FILE}
             git add ${VALUES_FILE}
             git config user.email "circleci@getty.edu"
             git config user.name "CircleCI"

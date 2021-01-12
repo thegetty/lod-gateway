@@ -191,7 +191,7 @@ commands:
             git clone << parameters.repo >> kubernetes
             cd kubernetes
             docker run --rm -v "`pwd`":/workdir mikefarah/yq \
-                eval 'apps.<< parameters.service >>-media.image.tag = "<< parameters.tag >>"' \
+                eval '.apps.<< parameters.service >>-media.image.tag = "<< parameters.tag >>"' \
                 ${VALUES_FILE}
             git add ${VALUES_FILE}
             git config user.email "circleci@getty.edu"

@@ -18,7 +18,7 @@ from flaskapp.routes.sparql import sparql
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
-from flaskapp.logging_config import get_logging_config
+from flaskapp.logging_configuration import get_logging_config
 
 # top-level logging configuration should provide the basic configuration for any logger Flask sets in the
 # create_app step (and in other modules).

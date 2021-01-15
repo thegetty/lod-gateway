@@ -2,11 +2,11 @@
 
 This repository contains the code used to convert various Getty systems of record into their [Linked.art](http://www.linked.art) representations.
 
-**Components**
+## Components
 
 The LOD Gateway contains one production container: `web-service`; for development purposes, a containerized `postgres` service is also included.
 
-**Setup Instructions**
+## Setup Instructions
 
 _(This assumes that you have [Docker](https://www.docker.com/products/docker-desktop) installed.)_
 
@@ -28,7 +28,7 @@ or, from the host command line:
 
     docker exec `docker ps -q -f publish=5100` flask db upgrade
 
-**Testing the application**
+## Testing the application
 
 _Run the python unit tests_
 
@@ -54,7 +54,7 @@ docker-compose run --rm \
 will run `pywatch`, which will watch for file changes and re-run the tests automatically.
 
 
-**Deployment Options**
+## Deployment Options
 
 Configuration is managed through environment variables.  In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault.  In testing environments, the `.env.example` file is used directly.
 
@@ -103,7 +103,25 @@ KEEP_LAST_VERSION=.         # Set this to True to enable the retention of a sing
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port 5001 is opened for remote debugging of the Flask app. For details see: https://code.visualstudio.com/docs/remote/containers
 
-**Versioning**
+## Logging and Access logs
+
+The logging configuration creates two StreamHandlers - one that will output all python logger messages to stdout, and only logging.CRITICAL and logging.ERROR to stderr. This is desired to make it easier to track fatal errors once deployed. This configuration is written to the root logger, and is inherited by logger objects created subsequently. The log level is set using the `DEBUG_LEVEL` environment variable is should be set to a standard python log level (`DEBUG, INFO, WARNING, ERROR, CRITICAL`). The log levels in order of severity, and runs from left to right from least to most severe. What this means is that if the level is set to `DEBUG`, all messages marked `DEBUG` and more severe (all down to `CRITICAL` level) are logged. Set the level to `ERROR`, then only `ERROR` and more severe (only `CRITICAL` by default) are logged.
+
+The uWSGI hosts the python application as a wsgi application. It pipes the stdout and stderr messages as intended by the python application. It also generates its own log messages relating to hosting the web service, both access request logs as well as health and service messages. The base configuration is in `source/web-service/uwsgi.ini`. Many other deployment-specific options can still be set using environment variables (such as UWSGI_THREADS, UWSGI_PROCESSES) at runtime, but the .ini file sets up the baseline logging set up.
+
+### Log routing:
+
+**stdout**
+
+ - python logger output? ALL `DEBUG, INFO, WARNING, ERROR, CRITICAL`.
+ - uWSGI messages? All messages.
+
+**stderr**
+
+ - python logger output? `ERROR` and `CRITICAL` only.
+ - uWSGI messages? Only HTTP 50X messages (via a log-route match in uwsgi.ini)
+ 
+## Versioning
 
 If the KEEP_LAST_VERSION environment variable is present and set to 'True', it turns on functionality to keep a single previous copy of an upload, and to connect it to the new version. This is done by copying the data to a new record with an arbitrary new entity_id, and adding a reference to this in the Record.previous_version field of the newer record. The JSON data is unchanged in the previous verison, and will retain whatever value the record had in the 'id' field.
 
@@ -138,7 +156,7 @@ Example response HTTP headers for a record that has a previous version:
 
 In this case, the previous version can be retrieved from http://{HOST}:{PORT}/{NAMESPACE}/05358b54-4781-4d3e-bd08-7e9d06321c23. It will include the header X-Is-Old-Version set to True.
 
-**Technical Architecture**
+## Technical Architecture
 
 The LOD Gateway project consists of the following primary software components:
 
@@ -147,6 +165,6 @@ The LOD Gateway project consists of the following primary software components:
 - [SQLAlchemy](https://www.sqlalchemy.org)
 
 
-**License and Copyright Information**
+## License and Copyright Information
 
 Copyright © The J. Paul Getty Trust 2019-2020. All rights reserved.

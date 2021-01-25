@@ -148,22 +148,8 @@ workflows:
       #     context: GETTY
       #     requires:
       #       - pocBuild
-      #     filters: &deployFilters
-      #       branches:
-      #         only:
-      #           - master
-      #           - /poc-.*/
       - pocApproveDeployToQA:
           type: approval
-          requires:
-            - pocBuild
-          filters:
-            <<: *deployFilters
-      - getty-devops-release/deployTo:
-          context: GETTY
-          tag: *imageTag
-          service: *deploymentName
-          environment: qa
           requires:
             - pocBuild
           filters: &deployFilters
@@ -171,6 +157,14 @@ workflows:
               only:
                 - master
                 - /poc-.*/
+      - getty-devops-release/deployTo:
+          context: GETTY
+          tag: *imageTag
+          service: *deploymentName
+          environment: qa
+          requires:
+            - pocBuild
+          filters: *deployFilters
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag

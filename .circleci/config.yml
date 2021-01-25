@@ -6,6 +6,8 @@ anchors:
 
 orbs:
   docker: circleci/docker@1.5.0
+  ### this is our local ORB which will contain/maintain all of the shared logic for
+  # common tasks across all of our repos
   getty-devops-release:
     orbs:
       aws-cli: circleci/aws-cli@1.0.0
@@ -144,10 +146,6 @@ workflows:
     jobs:
       - pocBuild:
           context: GETTY
-      # - pocDeployToStage:
-      #     context: GETTY
-      #     requires:
-      #       - pocBuild
       - pocApproveDeployToQA:
           type: approval
           requires:
@@ -157,6 +155,7 @@ workflows:
               only:
                 - master
                 - /poc-.*/
+                # - orb_work_DEV-7883
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag
@@ -204,32 +203,11 @@ jobs:
             or:
               - equal: [master, << pipeline.git.branch >>]
               - equal: [poc-ecr-push, << pipeline.git.branch >>]
+              # - equal: [orb_work_DEV-7883, << pipeline.git.branch >>]
           steps:
             - getty-devops-release/push-to-ecr:
                 image: ${CIRCLE_PROJECT_REPONAME}
                 tag: *imageTag
-
-  # pocDeployToQA:
-  #   machine: {}
-  #   steps:
-  #     - add_ssh_keys:
-  #         fingerprints:
-  #           - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
-  #     - deploy:
-  #         chartPath: charts/getty-environment
-  #         environment: qa
-  #         tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
-
-  # pocDeployToStage:
-  #   machine: {}
-  #   steps:
-  #     - add_ssh_keys:
-  #         fingerprints:
-  #           - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
-  #     - deploy:
-  #         chartPath: charts/apps
-  #         tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
-
 commands:
   setup:
     steps:
@@ -239,13 +217,6 @@ commands:
           command: |
             mkdir -p /tmp/output
             chmod -R 777 /tmp/output
-      # - aws-cli/install
-      # - aws-cli/setup:
-      #     aws-access-key-id: ECR_ACCESS_KEY_ID
-      #     aws-secret-access-key: ECR_SECRET_ACCESS_KEY
-      #     aws-region: ECR_REGION
-      # - aws-ecr/ecr-login:
-      #     region: ECR_REGION
   build:
     parameters:
       image:
@@ -294,52 +265,3 @@ commands:
       - store_artifacts:
           path: /tmp/output/test-reports
           destination: reports
-  # push:
-  #   parameters:
-  #     repo:
-  #       type: string
-  #       default: ${CIRCLE_PROJECT_REPONAME}
-  #     tag:
-  #       type: string
-  #       default: latest
-  #   steps:
-  #     - when:
-  #         condition:
-  #           or:
-  #             - equal: [master, << pipeline.git.branch >>]
-  #             - equal: [poc-ecr-push, << pipeline.git.branch >>]
-  #         steps:
-  #           - aws-ecr/push-image:
-  #               account-url: ECR_ACCOUNT_URL
-  #               repo: << parameters.repo >>
-  #               tag: << parameters.tag >>
-  # deploy:
-  #   parameters:
-  #     chartPath:
-  #       type: string
-  #     environment:
-  #       type: string
-  #       default: stage
-  #     repo:
-  #       type: string
-  #       default: git@github.com:thegetty/kubernetes.git
-  #     service:
-  #       type: string
-  #       default: *deploymentName
-  #     tag:
-  #       type: string
-  #   steps:
-  #     - run:
-  #         name: Deploy image
-  #         command: |
-  #           export VALUES_FILE=<< parameters.chartPath >>/values-or-<< parameters.environment >>.yaml
-  #           git clone << parameters.repo >> kubernetes
-  #           cd kubernetes
-  #           docker run --rm -v "`pwd`":/workdir mikefarah/yq \
-  #               eval '.apps.<< parameters.service >>-media.values.image.tag = "'<< parameters.tag >>'"' \
-  #               -i ${VALUES_FILE}
-  #           git add ${VALUES_FILE}
-  #           git config user.email "circleci@getty.edu"
-  #           git config user.name "CircleCI"
-  #           git commit -m "deploys << parameters.service >> version << parameters.tag >> to << parameters.environment >>"
-  #           git push

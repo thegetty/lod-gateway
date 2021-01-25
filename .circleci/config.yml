@@ -144,6 +144,21 @@ workflows:
     jobs:
       - pocBuild:
           context: GETTY
+      # - pocDeployToStage:
+      #     context: GETTY
+      #     requires:
+      #       - pocBuild
+      #     filters: &deployFilters
+      #       branches:
+      #         only:
+      #           - master
+      #           - /poc-.*/
+      - pocApproveDeployToQA:
+          type: approval
+          requires:
+            - pocBuild
+          filters:
+            <<: *deployFilters
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag
@@ -167,28 +182,6 @@ workflows:
             branches:
               only:
                 - master
-
-      # - pocDeployToStage:
-      #     context: GETTY
-      #     requires:
-      #       - pocBuild
-      #     filters: &deployFilters
-      #       branches:
-      #         only:
-      #           - master
-      #           - /poc-.*/
-      - pocApproveDeployToQA:
-          type: approval
-          requires:
-            - pocBuild
-          filters:
-            <<: *deployFilters
-      - pocDeployToQA:
-          context: GETTY
-          requires:
-            - pocApproveDeployToQA
-          filters:
-            <<: *deployFilters
 
 jobs:
   build:

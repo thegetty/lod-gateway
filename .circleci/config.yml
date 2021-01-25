@@ -1,12 +1,139 @@
 version: 2.1
 
-anchores:
+anchors:
   - &deploymentName lod-gateway
+  - &imageTag << pipeline.number >>-${CIRCLE_SHA1:0:7}
 
 orbs:
-  aws-cli: circleci/aws-cli@1.0.0
-  aws-ecr: circleci/aws-ecr@6.8.2
-  docker: circleci/docker@1.0.1
+  docker: circleci/docker@1.5.0
+  getty-devops-release:
+    orbs:
+      aws-cli: circleci/aws-cli@1.0.0
+      aws-ecr: circleci/aws-ecr@6.8.2
+    commands:
+      setup-aws:
+        description: "sets up the AWS ECR Environment"
+        steps:
+          - aws-cli/install
+          ## install and login to the AWS environment
+          - aws-cli/setup:
+              aws-access-key-id: ECR_ACCESS_KEY_ID
+              aws-secret-access-key: ECR_SECRET_ACCESS_KEY
+              aws-region: ECR_REGION
+          - aws-ecr/ecr-login:
+              region: ECR_REGION
+      retag:
+        description: "Retags a docker image changing the name and tag"
+        parameters:
+          local-image:
+            description: "the name of the local docker-compose image to retag"
+            type: string
+            default: ""
+          published-image:
+            description: "the name of the published image in ECR"
+            type: string
+            default: ""
+          tag:
+            description: "the tag to apply"
+            type: string
+            default: "latest"
+        steps:
+          - run:
+              name: retag for ECR pipeline
+              ## this applies the appropriate tag name for the docker images as the move from CircleCi into Kubernetes without rebuilding the image again
+              command: docker tag <<parameters.local-image>>:latest ${ECR_ACCOUNT_URL}/<<parameters.published-image>>:<< parameters.tag >>
+      push-to-ecr:
+        description: "Pushes the new image to ECR"
+        parameters:
+          image:
+            description: "the name of the image"
+            type: string
+            default: ${CIRCLE_PROJECT_REPONAME}
+          tag:
+            description: "the tag to push"
+            type: string
+            default: latest
+        steps:
+          - aws-ecr/push-image:
+              account-url: ECR_ACCOUNT_URL
+              repo: << parameters.image >>
+              tag: << parameters.tag >>
+      deploy:
+        description: "Deploys the tagged image to kubernetes/ArgoCD"
+        parameters:
+          chartPath:
+            description: "the chart path"
+            type: string
+            default: charts/apps
+          environment:
+            description: "the deploy environment"
+            type: string
+            default: stage
+          repo:
+            description: "the argoCD repo"
+            type: string
+            default: git@github.com:thegetty/kubernetes.git
+          service:
+            description: "the docker image/service to deploy"
+            type: string
+            default: ${CIRCLE_PROJECT_REPONAME}
+          tag:
+            type: string
+        steps:
+          - run:
+              name: Deploy image
+              # Deploys are done by updating the tag for an image inside the
+              # thegetty/kubernetes.git repo. There is a values-<env>.yaml file
+              # for each environment that has environment specific settings in it,
+              # including the tag.
+              # This script clones the repo, uses `yq` to update the tag, and then
+              # adds a commit to the repository. ArgoCD will pick up this change and
+              # automatically deploy the new image.
+              command: |
+                export VALUES_FILE=<< parameters.chartPath >>/values-or-<< parameters.environment >>.yaml
+                git clone << parameters.repo >> kubernetes-<< parameters.service >>
+                cd kubernetes-<< parameters.service >>
+                docker run --rm -v "`pwd`":/workdir mikefarah/yq \
+                    eval '.apps.<< parameters.service >>.values.image.tag = "'<< parameters.tag >>'"' \
+                    -i ${VALUES_FILE}
+                git add ${VALUES_FILE}
+                git config user.email "circleci@getty.edu"
+                git config user.name "CircleCI"
+                git commit -m "deploys << parameters.service >> version << parameters.tag >> to << parameters.environment >>"
+                git push
+    jobs:
+      deployTo:
+        parameters:
+          fingerprint:
+            description: "ssh fingerprint"
+            default: 88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c
+            type: string
+          environment:
+            description: "deploy environment"
+            default: "stage"
+            type: string
+          chartPath:
+            description: "chart path"
+            default: "charts/apps"
+            type: string
+          service:
+            description: "the service name to deploy"
+            default: "unknown_service"
+            type: string
+          tag:
+            description: "the tag to deploy"
+            default: "unknown tag"
+            type: string
+        machine: {}
+        steps:
+          - add_ssh_keys:
+              fingerprints:
+                - << parameters.fingerprint >>
+          - deploy:
+              chartPath: <<parameters.chartPath>>
+              service: <<parameters.service>>
+              environment: <<parameters.environment>>
+              tag: <<parameters.tag>>
 
 workflows:
   build:
@@ -17,8 +144,11 @@ workflows:
     jobs:
       - pocBuild:
           context: GETTY
-      - pocDeployToStage:
+      - getty-devops-release/deployTo:
           context: GETTY
+          tag: *imageTag
+          service: *deploymentName
+          environment: qa
           requires:
             - pocBuild
           filters: &deployFilters
@@ -26,6 +156,27 @@ workflows:
               only:
                 - master
                 - /poc-.*/
+      - getty-devops-release/deployTo:
+          context: GETTY
+          tag: *imageTag
+          service: *deploymentName
+          environment: stage
+          requires:
+            - pocBuild
+          filters:
+            branches:
+              only:
+                - master
+
+      # - pocDeployToStage:
+      #     context: GETTY
+      #     requires:
+      #       - pocBuild
+      #     filters: &deployFilters
+      #       branches:
+      #         only:
+      #           - master
+      #           - /poc-.*/
       - pocApproveDeployToQA:
           type: approval
           requires:
@@ -54,36 +205,43 @@ jobs:
       docker_layer_caching: true
     steps:
       - setup
+      - getty-devops-release/setup-aws
       - build: &imageDetails
           image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
           tag: &imageTag << pipeline.number >>-${CIRCLE_SHA1:0:7}
       - test:
           <<: *imageDetails
       - store
-      - push:
-          repo: jpgt-${CIRCLE_PROJECT_REPONAME}
-          tag: *imageTag
+      - when:
+          condition:
+            or:
+              - equal: [master, << pipeline.git.branch >>]
+              - equal: [poc-ecr-push, << pipeline.git.branch >>]
+          steps:
+            - getty-devops-release/push-to-ecr:
+                image: ${CIRCLE_PROJECT_REPONAME}
+                tag: *imageTag
 
-  pocDeployToQA:
-    machine: {}
-    steps:
-      - add_ssh_keys:
-          fingerprints:
-            - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
-      - deploy:
-          chartPath: charts/getty-environment
-          environment: qa
-          tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
+  # pocDeployToQA:
+  #   machine: {}
+  #   steps:
+  #     - add_ssh_keys:
+  #         fingerprints:
+  #           - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
+  #     - deploy:
+  #         chartPath: charts/getty-environment
+  #         environment: qa
+  #         tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
 
-  pocDeployToStage:
-    machine: {}
-    steps:
-      - add_ssh_keys:
-          fingerprints:
-            - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
-      - deploy:
-          chartPath: charts/apps
-          tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
+  # pocDeployToStage:
+  #   machine: {}
+  #   steps:
+  #     - add_ssh_keys:
+  #         fingerprints:
+  #           - "88:74:75:99:ef:14:1d:f9:51:0b:33:8a:6e:f3:7e:7c"
+  #     - deploy:
+  #         chartPath: charts/apps
+  #         tag: << pipeline.number >>-${CIRCLE_SHA1:0:7}
 
 commands:
   setup:
@@ -94,13 +252,13 @@ commands:
           command: |
             mkdir -p /tmp/output
             chmod -R 777 /tmp/output
-      - aws-cli/install
-      - aws-cli/setup:
-          aws-access-key-id: ECR_ACCESS_KEY_ID
-          aws-secret-access-key: ECR_SECRET_ACCESS_KEY
-          aws-region: ECR_REGION
-      - aws-ecr/ecr-login:
-          region: ECR_REGION
+      # - aws-cli/install
+      # - aws-cli/setup:
+      #     aws-access-key-id: ECR_ACCESS_KEY_ID
+      #     aws-secret-access-key: ECR_SECRET_ACCESS_KEY
+      #     aws-region: ECR_REGION
+      # - aws-ecr/ecr-login:
+      #     region: ECR_REGION
   build:
     parameters:
       image:
@@ -149,52 +307,52 @@ commands:
       - store_artifacts:
           path: /tmp/output/test-reports
           destination: reports
-  push:
-    parameters:
-      repo:
-        type: string
-        default: ${CIRCLE_PROJECT_REPONAME}
-      tag:
-        type: string
-        default: latest
-    steps:
-      - when:
-          condition:
-            or:
-              - equal: [ master, << pipeline.git.branch >> ]
-              - equal: [ poc-ecr-push, << pipeline.git.branch >> ]
-          steps:
-            - aws-ecr/push-image:
-                account-url: ECR_ACCOUNT_URL
-                repo: << parameters.repo >>
-                tag: << parameters.tag >>
-  deploy:
-    parameters:
-      chartPath:
-        type: string
-      environment:
-        type: string
-        default: stage
-      repo:
-        type: string
-        default: git@github.com:thegetty/kubernetes.git
-      service:
-        type: string
-        default: *deploymentName
-      tag:
-        type: string
-    steps:
-      - run:
-          name: Deploy image
-          command: |
-            export VALUES_FILE=<< parameters.chartPath >>/values-or-<< parameters.environment >>.yaml
-            git clone << parameters.repo >> kubernetes
-            cd kubernetes
-            docker run --rm -v "`pwd`":/workdir mikefarah/yq \
-                eval '.apps.<< parameters.service >>-media.values.image.tag = "'<< parameters.tag >>'"' \
-                -i ${VALUES_FILE}
-            git add ${VALUES_FILE}
-            git config user.email "circleci@getty.edu"
-            git config user.name "CircleCI"
-            git commit -m "deploys << parameters.service >> version << parameters.tag >> to << parameters.environment >>"
-            git push
+  # push:
+  #   parameters:
+  #     repo:
+  #       type: string
+  #       default: ${CIRCLE_PROJECT_REPONAME}
+  #     tag:
+  #       type: string
+  #       default: latest
+  #   steps:
+  #     - when:
+  #         condition:
+  #           or:
+  #             - equal: [master, << pipeline.git.branch >>]
+  #             - equal: [poc-ecr-push, << pipeline.git.branch >>]
+  #         steps:
+  #           - aws-ecr/push-image:
+  #               account-url: ECR_ACCOUNT_URL
+  #               repo: << parameters.repo >>
+  #               tag: << parameters.tag >>
+  # deploy:
+  #   parameters:
+  #     chartPath:
+  #       type: string
+  #     environment:
+  #       type: string
+  #       default: stage
+  #     repo:
+  #       type: string
+  #       default: git@github.com:thegetty/kubernetes.git
+  #     service:
+  #       type: string
+  #       default: *deploymentName
+  #     tag:
+  #       type: string
+  #   steps:
+  #     - run:
+  #         name: Deploy image
+  #         command: |
+  #           export VALUES_FILE=<< parameters.chartPath >>/values-or-<< parameters.environment >>.yaml
+  #           git clone << parameters.repo >> kubernetes
+  #           cd kubernetes
+  #           docker run --rm -v "`pwd`":/workdir mikefarah/yq \
+  #               eval '.apps.<< parameters.service >>-media.values.image.tag = "'<< parameters.tag >>'"' \
+  #               -i ${VALUES_FILE}
+  #           git add ${VALUES_FILE}
+  #           git config user.email "circleci@getty.edu"
+  #           git config user.name "CircleCI"
+  #           git commit -m "deploys << parameters.service >> version << parameters.tag >> to << parameters.environment >>"
+  #           git push

@@ -155,7 +155,7 @@ workflows:
               only:
                 - master
                 - /poc-.*/
-                # - orb_work_DEV-7883
+                - orb_work_DEV-7883
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag
@@ -203,7 +203,7 @@ jobs:
             or:
               - equal: [master, << pipeline.git.branch >>]
               - equal: [poc-ecr-push, << pipeline.git.branch >>]
-              # - equal: [orb_work_DEV-7883, << pipeline.git.branch >>]
+              - equal: [orb_work_DEV-7883, << pipeline.git.branch >>]
           steps:
             - getty-devops-release/push-to-ecr:
                 image: ${CIRCLE_PROJECT_REPONAME}

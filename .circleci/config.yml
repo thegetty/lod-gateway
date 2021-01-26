@@ -146,24 +146,24 @@ workflows:
     jobs:
       - pocBuild:
           context: GETTY
-      - pocApproveDeployToQA:
-          type: approval
-          requires:
-            - pocBuild
-          filters: &deployFilters
-            branches:
-              only:
-                - master
-                - /poc-.*/
-                - orb_work_DEV-7883
-      - getty-devops-release/deployTo:
-          context: GETTY
-          tag: *imageTag
-          service: *deploymentName
-          environment: qa
-          requires:
-            - pocBuild
-          filters: *deployFilters
+      # - pocApproveDeployToQA:
+      #     type: approval
+      #     requires:
+      #       - pocBuild
+      #     filters: &deployFilters
+      #       branches:
+      #         only:
+      #           - master
+      #           - /poc-.*/
+      #           - orb_work_DEV-7883
+      # - getty-devops-release/deployTo:
+      #     context: GETTY
+      #     tag: *imageTag
+      #     service: *deploymentName
+      #     environment: qa
+      #     requires:
+      #       - pocBuild
+      #     filters: *deployFilters
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag
@@ -175,6 +175,7 @@ workflows:
             branches:
               only:
                 - master
+                - orb_work_DEV-7883
 
 jobs:
   build:

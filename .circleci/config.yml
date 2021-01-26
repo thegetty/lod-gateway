@@ -200,7 +200,7 @@ jobs:
       - setup
       - getty-devops-release/setup-aws
       - build: &imageDetails
-          image: jpgt-${CIRCLE_PROJECT_REPONAME}
+          image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
           tag: &imageTag << pipeline.number >>-${CIRCLE_SHA1:0:7}
       - test:
           <<: *imageDetails

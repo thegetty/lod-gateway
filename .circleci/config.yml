@@ -206,7 +206,7 @@ jobs:
               - equal: [orb_work_DEV-7883, << pipeline.git.branch >>]
           steps:
             - getty-devops-release/push-to-ecr:
-                image: ${CIRCLE_PROJECT_REPONAME}
+                image: jpgt-${CIRCLE_PROJECT_REPONAME}
                 tag: *imageTag
 commands:
   setup:

@@ -1,7 +1,7 @@
 version: 2.1
 
 anchors:
-  - &deploymentName lod-gateway
+  - &deploymentName lod-gateway-media
   - &imageTag << pipeline.number >>-${CIRCLE_SHA1:0:7}
 
 orbs:

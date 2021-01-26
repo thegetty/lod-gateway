@@ -146,6 +146,7 @@ workflows:
     jobs:
       - pocBuild:
           context: GETTY
+      ## FIXME -- uncomment if we want to follow the "approval model"
       # - pocApproveDeployToQA:
       #     type: approval
       #     requires:
@@ -156,14 +157,6 @@ workflows:
       #           - master
       #           - /poc-.*/
       #           - orb_work_DEV-7883
-      # - getty-devops-release/deployTo:
-      #     context: GETTY
-      #     tag: *imageTag
-      #     service: *deploymentName
-      #     environment: qa
-      #     requires:
-      #       - pocBuild
-      #     filters: *deployFilters
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag
@@ -176,6 +169,19 @@ workflows:
               only:
                 - master
                 - orb_work_DEV-7883
+
+      ### FIXME -- enable when production environment is setup
+      # - getty-devops-release/deployTo:
+      #     context: GETTY
+      #     tag: *imageTag
+      #     service: *deploymentName
+      #     environment: production
+      #     requires:
+      #       - pocBuild
+      #     filters:
+      #       branches:
+      #         only:
+      #           - production
 
 jobs:
   build:
@@ -194,7 +200,7 @@ jobs:
       - setup
       - getty-devops-release/setup-aws
       - build: &imageDetails
-          image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
+          image: jpgt-${CIRCLE_PROJECT_REPONAME}
           tag: &imageTag << pipeline.number >>-${CIRCLE_SHA1:0:7}
       - test:
           <<: *imageDetails
@@ -203,8 +209,9 @@ jobs:
           condition:
             or:
               - equal: [master, << pipeline.git.branch >>]
-              - equal: [poc-ecr-push, << pipeline.git.branch >>]
+              - equal: [production, << pipeline.git.branch >>]
               - equal: [orb_work_DEV-7883, << pipeline.git.branch >>]
+
           steps:
             - getty-devops-release/push-to-ecr:
                 image: jpgt-${CIRCLE_PROJECT_REPONAME}

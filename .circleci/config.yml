@@ -146,17 +146,6 @@ workflows:
     jobs:
       - pocBuild:
           context: GETTY
-      ## FIXME -- uncomment if we want to follow the "approval model"
-      # - pocApproveDeployToQA:
-      #     type: approval
-      #     requires:
-      #       - pocBuild
-      #     filters: &deployFilters
-      #       branches:
-      #         only:
-      #           - master
-      #           - /poc-.*/
-      #           - orb_work_DEV-7883
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag

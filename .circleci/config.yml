@@ -168,7 +168,6 @@ workflows:
             branches:
               only:
                 - master
-                - orb_work_DEV-7883
 
       ### FIXME -- enable when production environment is setup
       # - getty-devops-release/deployTo:
@@ -210,7 +209,6 @@ jobs:
             or:
               - equal: [master, << pipeline.git.branch >>]
               - equal: [production, << pipeline.git.branch >>]
-              - equal: [orb_work_DEV-7883, << pipeline.git.branch >>]
 
           steps:
             - getty-devops-release/push-to-ecr:

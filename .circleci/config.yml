@@ -2,7 +2,7 @@ version: 2.1
 
 anchors:
   - &deploymentName lod-gateway-media
-  - &imageTag << pipeline.number >>-${CIRCLE_SHA1:0:7}
+  - &imageTag ${CIRCLE_SHA1:0:7}
 
 orbs:
   docker: circleci/docker@1.5.0
@@ -189,7 +189,7 @@ jobs:
       - getty-devops-release/setup-aws
       - build: &imageDetails
           image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
-          tag: &imageTag << pipeline.number >>-${CIRCLE_SHA1:0:7}
+          tag: *imageTag
       - test:
           <<: *imageDetails
       - store

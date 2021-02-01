@@ -1,4 +1,5 @@
 import logging
+import logging.config
 from os import environ, getenv
 from datetime import datetime
 
@@ -6,6 +7,8 @@ from flask import Flask, Response
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_compress import Compress
+
+from flask.logging import default_handler
 
 from flaskapp.routes.activity import activity
 from flaskapp.routes.records import records
@@ -15,12 +18,21 @@ from flaskapp.routes.sparql import sparql
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
+from flaskapp.logging_configuration import get_logging_config
+
+# top-level logging configuration should provide the basic configuration for any logger Flask sets in the
+# create_app step (and in other modules).
+LOG_LEVEL = getenv("DEBUG_LEVEL", "INFO")
+logging.config.dictConfig(get_logging_config(LOG_LEVEL))
 
 
 def create_app():
     app = Flask(__name__)
-    CORS(app, send_wildcard=True)
 
+    app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
+    app.logger.info(f"LOD Gateway logging INFO at level {app.config['DEBUG_LEVEL']}")
+
+    CORS(app, send_wildcard=True)
     # Setup global configuration
     app.config["AUTH_TOKEN"] = environ["AUTHORIZATION_TOKEN"]
     app.config["BASE_URL"] = environ["LOD_BASE_URL"]
@@ -62,10 +74,6 @@ def create_app():
     if app.config["FLASK_GZIP_COMPRESSION"].lower() == "true":
         compress.init_app(app)
     migrate = Migrate(app, db)
-
-    # Set the debug level
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(level=getenv("DEBUG_LEVEL", logging.INFO))
 
     with app.app_context():
 

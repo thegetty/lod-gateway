@@ -6,7 +6,7 @@ anchors:
 
 orbs:
   docker: circleci/docker@1.5.0
-  getty-devops-release: thegetty/devops-orb@1.0.0
+  getty-devops-release: thegetty/devops-orb@1.1.0
 
 workflows:
   build:
@@ -28,19 +28,19 @@ workflows:
             branches:
               only:
                 - master
-
+            tags:
+              ignore: /.*/
       ### FIXME -- enable when production environment is setup
       # - getty-devops-release/deployTo:
       #     context: GETTY
       #     tag: *imageTag
       #     service: *deploymentName
       #     environment: production
-      #     requires:
-      #       - pocBuild
       #     filters:
       #       branches:
-      #         only:
-      #           - production
+      #         ignore: /.*/
+      #       tags:
+      #         only: /^v.*$/
 
 jobs:
   build:
@@ -68,8 +68,6 @@ jobs:
           condition:
             or:
               - equal: [master, << pipeline.git.branch >>]
-              - equal: [production, << pipeline.git.branch >>]
-
           steps:
             - getty-devops-release/push-to-ecr:
                 image: jpgt-${CIRCLE_PROJECT_REPONAME}

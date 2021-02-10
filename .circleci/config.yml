@@ -21,6 +21,9 @@ workflows:
           context: GETTY
           tag: *imageTag
           service: *deploymentName
+          #service1:
+          # ...
+          #service10:
           environment: stage
           requires:
             - pocBuild

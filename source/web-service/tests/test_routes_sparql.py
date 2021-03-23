@@ -5,16 +5,6 @@ from flaskapp.routes.sparql import execute_query
 
 
 class TestSparqlErrors:
-    def test_sparql_auth_token_wrong(self, client, namespace):
-        response = client.post(
-            f"/{namespace}/sparql", headers={"Authorization": "Bearer WrongToken"}
-        )
-        assert response.status_code == 401
-
-    def test_sparql_auth_token_missing(self, client, namespace):
-        response = client.post(f"/{namespace}/sparql")
-        assert response.status_code == 401
-
     def test_sparql_query_missing(self, client, namespace, auth_token):
         response = client.post(
             f"/{namespace}/sparql", headers={"Authorization": "Bearer " + auth_token}

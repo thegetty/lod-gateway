@@ -8,6 +8,8 @@ yasgui = Blueprint("yasgui", __name__)
 def get_yasgui():
     endpoint = (
         current_app.config["BASE_URL"]
+        + ":"
+        + current_app.config["FLASK_PORT"]
         + "/"
         + current_app.config["NAMESPACE"]
         + "/sparql"

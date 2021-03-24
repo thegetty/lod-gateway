@@ -37,6 +37,7 @@ def create_app():
     # Setup global configuration
     app.config["AUTH_TOKEN"] = environ["AUTHORIZATION_TOKEN"]
     app.config["BASE_URL"] = environ["LOD_BASE_URL"]
+    app.config["FLASK_PORT"] = environ["FLASK_RUN_PORT"]
     app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"]
     app.config["NAMESPACE_FOR_NEPTUNE"] = environ["APP_NAMESPACE_NEPTUNE"]
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]

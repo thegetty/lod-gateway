@@ -35,7 +35,10 @@ def create_yasgui_html(endpoint):
         "</body>"
     )
     style = (
-        "<style> .yasgui .autocompleteWrapper { display: none !important; } </style>"
+        "<style>"
+        ".yasgui.autocompleteWrapper{display: none!important;}"
+        ".yasr .tableControls .tableFilter {margin-right: 10px; height: 100%;}"
+        "</style>"
     )
 
     return head + body + style

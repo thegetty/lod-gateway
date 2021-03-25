@@ -32,7 +32,7 @@ def create_yasgui_html(endpoint):
         f"'{endpoint}'"
         "}, copyEndpointOnNewTab: false}); "
         "</script>"
-        "<style> .yasgui .autocompleteWrapper { visibility: hidden } </style>"
+        "<style> .yasgui .autocompleteWrapper { visibility: hidden } .yasr .tableControls .tableFilter { margin-right: 10px; height: auto !important; } </style>"
         "</body>"
     )
 

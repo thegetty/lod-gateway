@@ -32,8 +32,8 @@ def create_yasgui_html(endpoint):
         f"'{endpoint}'"
         "}, copyEndpointOnNewTab: false}); "
         "</script>"
+        "<style> .yasgui .autocompleteWrapper { visibility: hidden } </style>"
         "</body>"
     )
-    style = "<style> .yasgui .autocompleteWrapper { visibility: hidden } </style>"
 
-    return head + body + style
+    return head + body

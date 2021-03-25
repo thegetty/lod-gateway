@@ -4,7 +4,7 @@ from flask import Blueprint, current_app
 yasgui = Blueprint("yasgui", __name__)
 
 # ### ROUTES ###
-@yasgui.route("/yasgui", methods=["GET"])
+@yasgui.route("/sparql-ui", methods=["GET"])
 def get_yasgui():
     endpoint = (
         current_app.config["BASE_URL"]

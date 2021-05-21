@@ -115,6 +115,7 @@ def entity_record(entity_id):
 
 ### Activity Stream for the record ###
 
+
 @records.route("/<path:entity_id>/activity-stream")
 def entity_record_activity_streem(entity_id):
     activities = get_record_activities(entity_id)

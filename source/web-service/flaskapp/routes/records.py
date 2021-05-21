@@ -113,14 +113,12 @@ def entity_record(entity_id):
         return abort(response)
 
 
-### Activity Stream for the record ###
+### Activity Stream of the record ###
 
 
 @records.route("/<path:entity_id>/activity-stream")
 def entity_record_activity_streem(entity_id):
-    activities = get_record_activities(entity_id)
-
-    count = len(activities)
+    count = get_record_activities(entity_id, "count")
     limit = current_app.config["ITEMS_PER_PAGE"]
     total_pages = str(math.ceil(count / limit))
 
@@ -128,16 +126,16 @@ def entity_record_activity_streem(entity_id):
         "@context": "https://www.w3.org/ns/activitystreams",
         "summary": current_app.config["AS_DESC"],
         "type": "OrderedCollection",
-        "id": record_url(entity_id, 1),
+        "id": url_record(entity_id),
         "totalItems": count,
     }
 
     data["first"] = {
-        "id": record_url(entity_id, 2, 1),
+        "id": url_record(entity_id, 1),
         "type": "OrderedCollectionPage",
     }
     data["last"] = {
-        "id": record_url(entity_id, 2, total_pages),
+        "id": url_record(entity_id, total_pages),
         "type": "OrderedCollectionPage",
     }
 
@@ -148,7 +146,6 @@ def entity_record_activity_streem(entity_id):
 def record_activity_streem_page(entity_id, pagenum):
     activities = get_record_activities(entity_id)
     count = len(activities)
-
     pagenum = int(pagenum)
     limit = current_app.config["ITEMS_PER_PAGE"]
     offset = (pagenum - 1) * limit
@@ -163,19 +160,19 @@ def record_activity_streem_page(entity_id, pagenum):
     data = {
         "@context": "https://www.w3.org/ns/activitystreams",
         "type": "OrderedCollectionPage",
-        "id": record_url(entity_id, pagenum),
-        "partOf": {"id": record_url(entity_id, 1), "type": "OrderedCollection"},
+        "id": url_record(entity_id, pagenum),
+        "partOf": {"id": url_record(entity_id), "type": "OrderedCollection"},
     }
 
     if pagenum < total_pages:
         data["next"] = {
-            "id": record_url(entity_id, pagenum + 1),
+            "id": url_record(entity_id, pagenum + 1),
             "type": "OrderedCollectionPage",
         }
 
     if pagenum > 1:
         data["prev"] = {
-            "id": record_url(entity_id, pagenum - 1),
+            "id": url_record(entity_id, pagenum - 1),
             "type": "OrderedCollectionPage",
         }
 
@@ -185,38 +182,55 @@ def record_activity_streem_page(entity_id, pagenum):
     return current_app.make_response(data)
 
 
-def base_url():
+# Auxiliary functions
+
+
+def url_base(entity_id=None):
     base_url = current_app.config["BASE_URL"]
     namespace = current_app.config["NAMESPACE"]
-    return base_url + "/" + namespace
+    url = base_url + "/" + namespace
+    if entity_id:
+        url = url + "/" + entity_id
+    return url
 
 
-def record_url(entity_id, page=None):
-    url = base_url() + "/" + entity_id + "/activity-stream"
+def url_record(entity_id, page=None):
+    url = url_base() + "/" + entity_id + "/activity-stream"
     if page:
         url = url + "/page/" + str(page)
     return url
 
 
-def activity_url(id):
-    return base_url() + "/activity-stream/" + id
-
-
-def get_record_activities(entity_id):
-    return (
-        Activity.query.join(Record)
-        .filter(Activity.record_id == Record.id)
-        .filter(Record.entity_id == entity_id)
-    ).all()
+def url_activity(id):
+    return url_base() + "/activity-stream/" + id
 
 
 def generate_item(activity):
     return {
-        "id": activity_url(activity.uuid),
+        "id": url_activity(activity.uuid),
         "type": activity.event,
         "created": format_datetime(activity.datetime_created),
         "object": {
-            "id": activity_url(activity.record.entity_id),
+            "id": url_base(activity.record.entity_id),
             "type": activity.record.entity_type,
         },
     }
+
+
+def get_record_activities(entity_id, count=None):
+    if count:
+        return (
+            Activity.query.join(Record)
+            .filter(Activity.record_id == Record.id)
+            .filter(Record.entity_id == entity_id)
+        ).count()
+    else:
+        return (
+            (
+                Activity.query.join(Record)
+                .filter(Activity.record_id == Record.id)
+                .filter(Record.entity_id == entity_id)
+            )
+            .order_by(Activity.id)
+            .all()
+        )

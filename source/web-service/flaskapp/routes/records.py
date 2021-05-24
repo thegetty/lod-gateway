@@ -217,7 +217,7 @@ def generate_item(activity):
     }
 
 
-def get_record_activities(entity_id):   
+def get_record_activities(entity_id):
     return (
         (
             Activity.query.join(Record)
@@ -229,10 +229,10 @@ def get_record_activities(entity_id):
     )
 
 
-def get_record_activities_count(entity_id):   
+def get_record_activities_count(entity_id):
     return (
         Activity.query.join(Record)
         .filter(Activity.record_id == Record.id)
         .filter(Record.entity_id == entity_id)
     ).count()
-   
+

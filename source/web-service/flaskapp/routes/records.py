@@ -235,4 +235,3 @@ def get_record_activities_count(entity_id):
         .filter(Activity.record_id == Record.id)
         .filter(Record.entity_id == entity_id)
     ).count()
-

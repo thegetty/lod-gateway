@@ -118,7 +118,7 @@ def entity_record(entity_id):
 
 @records.route("/<path:entity_id>/activity-stream")
 def entity_record_activity_streem(entity_id):
-    count = get_record_activities(entity_id, "count")
+    count = get_record_activities_count(entity_id)
     limit = current_app.config["ITEMS_PER_PAGE"]
     total_pages = str(math.ceil(count / limit))
 
@@ -217,20 +217,22 @@ def generate_item(activity):
     }
 
 
-def get_record_activities(entity_id, count=None):
-    if count:
-        return (
+def get_record_activities(entity_id):   
+    return (
+        (
             Activity.query.join(Record)
             .filter(Activity.record_id == Record.id)
             .filter(Record.entity_id == entity_id)
-        ).count()
-    else:
-        return (
-            (
-                Activity.query.join(Record)
-                .filter(Activity.record_id == Record.id)
-                .filter(Record.entity_id == entity_id)
-            )
-            .order_by(Activity.id)
-            .all()
         )
+        .order_by(Activity.id)
+        .all()
+    )
+
+
+def get_record_activities_count(entity_id):   
+    return (
+        Activity.query.join(Record)
+        .filter(Activity.record_id == Record.id)
+        .filter(Record.entity_id == entity_id)
+    ).count()
+   

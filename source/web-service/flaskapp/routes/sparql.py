@@ -17,11 +17,6 @@ sparql = Blueprint("sparql", __name__)
 # ### ROUTES ###
 @sparql.route("/sparql", methods=["GET", "POST"])
 def query_entrypoint():
-    # Authentication. If fails, abort with 401
-    status = authenticate_bearer(request)
-    if status != status_ok:
-        response = construct_error_response(status)
-        return abort(response)
 
     if "update" in request.args or request.form.get("update") is not None:
         response = construct_error_response(

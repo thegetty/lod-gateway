@@ -370,7 +370,7 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
             + "/"
         )
         graph_rollback_save = {}
-        proc = jsonld.JsonLdProcessor()
+        proc = None  # jsonld.JsonLdProcessor()
         for record in record_list:
             data = json.loads(record)
             # Store the relative 'id' URL before the recursive URL prefixing is performed

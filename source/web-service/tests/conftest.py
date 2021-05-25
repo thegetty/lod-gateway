@@ -57,8 +57,11 @@ def client(app):
 
 @pytest.fixture
 def test_db(current_app):
-    if current_app.config["ENV"] == "production":
-        pytest.exit("Do not run tests that blow away the database in production.")
+    # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
+    if ".amazonaws.com" in current_app.config["SQLALCHEMY_DATABASE_URI"]:
+        pytest.exit(
+            ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
+        )
     db.drop_all()
     db.create_all()
     return db

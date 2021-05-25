@@ -11,5 +11,5 @@ class Record(db.Model):
     datetime_deleted = db.Column(db.TIMESTAMP)
     data = db.Column(db.JSON)
     previous_version = db.Column(db.String, nullable=True, index=True)
-    is_old_version = db.Column(db.Boolean, nullable=False, default=False)
+    is_old_version = db.Column(db.Boolean, nullable=True, default=False)
     checksum = db.Column(db.String, nullable=True)

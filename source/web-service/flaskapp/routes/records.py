@@ -117,7 +117,7 @@ def entity_record(entity_id):
 
 
 @records.route("/<path:entity_id>/activity-stream")
-def entity_record_activity_streem(entity_id):
+def entity_record_activity_stream(entity_id):
     count = get_record_activities_count(entity_id)
     limit = current_app.config["ITEMS_PER_PAGE"]
     total_pages = str(math.ceil(count / limit))
@@ -143,7 +143,7 @@ def entity_record_activity_streem(entity_id):
 
 
 @records.route("/<path:entity_id>/activity-stream/page/<string:pagenum>")
-def record_activity_streem_page(entity_id, pagenum):
+def record_activity_stream_page(entity_id, pagenum):
     activities = get_record_activities(entity_id)
     count = len(activities)
     pagenum = int(pagenum)

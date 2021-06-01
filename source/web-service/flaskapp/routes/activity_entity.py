@@ -143,7 +143,6 @@ def get_count(entity_type):
     count = (
         Activity.query.with_entities(Activity.id)
         .join(Record)
-        .filter(Activity.record_id == Record.id)
         .filter(func.lower(Record.entity_type) == entity_type)
     ).count()
 
@@ -161,7 +160,6 @@ def get_entity_activities(entity_type, offset, limit):
                 Record.entity_type,
             )
             .join(Record)
-            .filter(Activity.record_id == Record.id)
             .filter(func.lower(Record.entity_type) == entity_type)
         )
         .order_by(Activity.id)

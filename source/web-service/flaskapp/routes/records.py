@@ -235,4 +235,3 @@ def get_record_activities(entity_id, offset, limit):
 
 def get_record_activities_count(entity_id):
     return (Activity.query.join(Record).filter(Record.entity_id == entity_id)).count()
-

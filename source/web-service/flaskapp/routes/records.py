@@ -144,14 +144,12 @@ def entity_record_activity_stream(entity_id):
 
 @records.route("/<path:entity_id>/activity-stream/page/<string:pagenum>")
 def record_activity_stream_page(entity_id, pagenum):
-    activities = get_record_activities(entity_id)
-    count = len(activities)
+    count = get_record_activities_count(entity_id)
     pagenum = int(pagenum)
     limit = current_app.config["ITEMS_PER_PAGE"]
     offset = (pagenum - 1) * limit
     total_pages = math.ceil(count / limit)
-    stop = min(offset + limit, count)
-    activities_curr_page = activities[offset:stop]
+    activities = get_record_activities(entity_id, offset, limit)
 
     if pagenum == 0 or pagenum > total_pages:
         response = construct_error_response(status_page_not_found)
@@ -176,7 +174,7 @@ def record_activity_stream_page(entity_id, pagenum):
             "type": "OrderedCollectionPage",
         }
 
-    items = [generate_item(a) for a in activities_curr_page]
+    items = [generate_item(a) for a in activities]
     data["orderedItems"] = items
 
     return current_app.make_response(data)
@@ -210,23 +208,30 @@ def generate_item(activity):
         "id": url_activity(activity.uuid),
         "type": activity.event,
         "created": format_datetime(activity.datetime_created),
-        "object": {
-            "id": url_base(activity.record.entity_id),
-            "type": activity.record.entity_type,
-        },
+        "object": {"id": url_base(activity.entity_id), "type": activity.entity_type,},
     }
 
 
-def get_record_activities(entity_id):
-    return (
+def get_record_activities(entity_id, offset, limit):
+    activities = (
         (
-            Activity.query.join(Record)
+            Activity.query.with_entities(
+                Activity.uuid,
+                Activity.event,
+                Activity.datetime_created,
+                Record.entity_id,
+                Record.entity_type,
+            )
+            .join(Record)
             .filter(Activity.record_id == Record.id)
             .filter(Record.entity_id == entity_id)
         )
         .order_by(Activity.id)
-        .all()
+        .limit(limit)
+        .offset(offset)
     )
+
+    return activities
 
 
 def get_record_activities_count(entity_id):

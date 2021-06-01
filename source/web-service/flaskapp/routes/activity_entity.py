@@ -111,7 +111,7 @@ def create_page_data(pagenum, entity_type):
 
     activities = get_entity_activities(entity_type, offset, limit)
 
-    items = [generate_item(a, entity_type) for a in activities]
+    items = [generate_item(a) for a in activities]
     data["orderedItems"] = items
 
     return data
@@ -158,6 +158,7 @@ def get_entity_activities(entity_type, offset, limit):
                 Activity.event,
                 Activity.datetime_created,
                 Record.entity_id,
+                Record.entity_type,
             )
             .join(Record)
             .filter(Activity.record_id == Record.id)
@@ -171,10 +172,13 @@ def get_entity_activities(entity_type, offset, limit):
     return activities
 
 
-def generate_item(activity, entity_type):
+def generate_item(activity):
     return {
         "id": url_base() + "/activity-stream/" + str(activity.uuid),
         "type": activity.event,
         "created": format_datetime(activity.datetime_created),
-        "object": {"id": url_base() + "/" + activity.entity_id, "type": entity_type,},
+        "object": {
+            "id": url_base() + "/" + activity.entity_id,
+            "type": activity.entity_type,
+        },
     }

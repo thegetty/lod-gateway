@@ -109,8 +109,7 @@ def create_page_data(pagenum, entity_type):
             "type": "OrderedCollectionPage",
         }
 
-    stop = min(offset + limit, count)
-    activities = get_entity_activities(entity_type, offset, offset + limit)
+    activities = get_entity_activities(entity_type, offset, limit)
 
     items = [generate_item(a, entity_type) for a in activities]
     data["orderedItems"] = items
@@ -141,18 +140,32 @@ def get_distinct_entity_types():
 
 
 def get_count(entity_type):
-    return Record.query.filter(func.lower(Record.entity_type) == entity_type).count()
+    count = (
+        Activity.query.with_entities(Activity.id)
+        .join(Record)
+        .filter(Activity.record_id == Record.id)
+        .filter(func.lower(Record.entity_type) == entity_type)
+    ).count()
+
+    return count
 
 
-def get_entity_activities(entity_type, start, stop):
+def get_entity_activities(entity_type, offset, limit):
     activities = (
         (
-            Activity.query.join(Record)
+            Activity.query.with_entities(
+                Activity.uuid,
+                Activity.event,
+                Activity.datetime_created,
+                Record.entity_id,
+            )
+            .join(Record)
             .filter(Activity.record_id == Record.id)
             .filter(func.lower(Record.entity_type) == entity_type)
         )
         .order_by(Activity.id)
-        .all()[start:stop]
+        .limit(limit)
+        .offset(offset)
     )
 
     return activities
@@ -163,8 +176,5 @@ def generate_item(activity, entity_type):
         "id": url_base() + "/activity-stream/" + str(activity.uuid),
         "type": activity.event,
         "created": format_datetime(activity.datetime_created),
-        "object": {
-            "id": url_base() + "/" + activity.record.entity_id,
-            "type": entity_type,
-        },
+        "object": {"id": url_base() + "/" + activity.entity_id, "type": entity_type,},
     }

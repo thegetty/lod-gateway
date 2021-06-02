@@ -124,7 +124,7 @@ def url_base():
 
 
 def url_activity(entity_type):
-    return url_base() + "/activity-stream" + "/entity/" + entity_type.lower()
+    return url_base() + "/activity-stream/entity/" + entity_type.lower()
 
 
 def url_page(page_num, entity_type):

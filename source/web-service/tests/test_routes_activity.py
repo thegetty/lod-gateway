@@ -352,4 +352,3 @@ class TestActivityRecord:
             records.url_activity("someactivityid")
             == f"{base_url}/activity-stream/someactivityid"
         )
-

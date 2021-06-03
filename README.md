@@ -41,6 +41,7 @@ docker-compose run --rm \
     -e AUTHORIZATION_TOKEN=AuthToken \
     web pytest
 ```
+
 will run the tests, and
 
 ```bash
@@ -55,7 +56,7 @@ will run `pywatch`, which will watch for file changes and re-run the tests autom
 
 ## Deployment Options
 
-Configuration is managed through environment variables.  In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault.  In testing environments, the `.env.example` file is used directly.
+Configuration is managed through environment variables. In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault. In testing environments, the `.env.example` file is used directly.
 
 ```
 AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality
@@ -102,6 +103,40 @@ KEEP_LAST_VERSION=.         # Set this to True to enable the retention of a sing
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
 
+## Functionality and Routes
+
+Legend:
+"base_url" - application url (e.g. https://data.getty.edu)
+"ns" - namespace. Different for every LOD Gateway instance (e.g. "museum/collection")
+
+#### base_url/ns/health
+
+Returns OK if application is running and data base is accessible. Also checks Neptune health for instances that have ["PROCESS_NEPTUNE"] flag == "True". If one of the components not running, Error 500 retuned.
+
+#### base_url/ns/ingest
+
+Method - POST. Authentication - 'bearer token'. Accepts a set of records in JSON LD format.CRUD operations supported. In case of 'delete' only the data part is deleted, record is not removed from DB. After records inserted into DB, they are also added to Neptune. Atomic processing implemented, i.e. if one of the records fails or Neptune operation unsuccessful, the wholre transaction is rolled back.
+
+#### base_url/ns/records/<entity_id>
+
+Return a single record with id = <entity_id>. If record is not found, Error 404 returned.
+
+#### base_url/ns/records/<entity_id>/activity-stream
+
+Return activity stream for a single record with id == <entity_id>
+
+#### base_url/ns/activity-stream
+
+Return activity stream for the whole data set broken in pages. Number of records per page is configurable. Currently it is 100.
+
+#### base_url/ns/activity-stream/entity/<entity_type>
+
+Return activity stream for a specific 'entity_type'. Examples of entity types from LOD 'museum/collection' - 'Group', 'Person', 'HumanMadeObject', etc. The same pagination structure implemented as for the main 'activity-stream'.
+
+#### base_url/ns/sparql
+
+#### base_url/ns/sparql-ui
+
 ## Logging and Access logs
 
 The logging configuration creates two `logging.StreamHandler` instances - one that will output all Python logger messages to `STDOUT`, and only `logging.CRITICAL` and `logging.ERROR` to `STDERR`. This is desired to make it easier to track fatal errors once deployed. This configuration is written to the root logger, and is inherited by any `logging` objects created subsequently. The log level is set using the `DEBUG_LEVEL` environment variable, and should be set to a standard Python log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`). The log levels are defined in order of severity, and run from left to right from least to most severe. What this means is that if the level is set to `DEBUG`, all messages marked `DEBUG` and more severe (all the way up to `CRITICAL` level) are logged. Set the level to `ERROR`, then only `ERROR` and more severe (only `CRITICAL` by default) messages are logged.
@@ -112,14 +147,14 @@ uWSGI hosts the Python application as a WSGI application. It pipes the `STDOUT` 
 
 **STDOUT**
 
- - Python logger output? All levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL`.
- - uWSGI messages? All messages.
+- Python logger output? All levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL`.
+- uWSGI messages? All messages.
 
 **STDERR**
 
- - Python logger output? `ERROR` and `CRITICAL` only.
- - uWSGI messages? Only HTTP 50X messages (via a `log-route` match defined in `uwsgi.ini`)
- 
+- Python logger output? `ERROR` and `CRITICAL` only.
+- uWSGI messages? Only HTTP 50X messages (via a `log-route` match defined in `uwsgi.ini`)
+
 ## Versioning
 
 If the `KEEP_LAST_VERSION` environment variable is present and set to `True`, it turns on functionality to keep a single previous copy of a record, and to connect it to the new version. This is done by copying the data to a new record with an arbitrary new `entity_id`, and adding a reference to this new `entity_id` in the `Record`.`previous_version` field of the newer record. The JSON data is unchanged in the previous verison, and will retain whatever value the record had in the `id` field.

@@ -111,7 +111,7 @@ Legend:
 
 #### base_url/ns/health
 
-Returns OK if application is running and data base is accessible. Also checks Neptune health for instances that have ["PROCESS_NEPTUNE"] flag == "True". If one of the components not running, Error 500 retuned.
+Returns OK if application is running and data base is accessible. Also checks Neptune health for instances that have ["PROCESS_NEPTUNE"] flag = "True". If one of the components not running, Error 500 retuned.
 
 #### base_url/ns/ingest
 
@@ -123,7 +123,7 @@ Return a single record with id = <entity_id>. If record is not found, Error 404 
 
 #### base_url/ns/records/<entity_id>/activity-stream
 
-Return activity stream for a single record with id == <entity_id>
+Return activity stream for a single record with id = <entity_id>
 
 #### base_url/ns/activity-stream
 

@@ -2,6 +2,7 @@ import logging
 import logging.config
 from os import environ, getenv
 from datetime import datetime
+import sqlite3
 
 from flask import Flask, Response
 from flask_cors import CORS
@@ -21,6 +22,7 @@ from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
 from flaskapp.logging_configuration import get_logging_config
+from flaskapp import local_thesaurus
 
 # top-level logging configuration should provide the basic configuration for any logger Flask sets in the
 # create_app step (and in other modules).
@@ -50,6 +52,7 @@ def create_app():
     app.config["JSON_AS_ASCII"] = False
     app.config["FLASK_GZIP_COMPRESSION"] = environ["FLASK_GZIP_COMPRESSION"]
     app.config["PREFIX_RECORD_IDS"] = getenv("PREFIX_RECORD_IDS", default="RECURSIVE")
+    app.config["LOCAL_THESAURUS"] = environ["LOCAL_THESAURUS"]
 
     # KEEP_LAST_VERSION turns on functionality to keep a previous copy of an upload, and to connect it
     # to the new version by way of the new entitiy_id being stored in the Record.previous_version. Why 'entity_id'?
@@ -76,6 +79,9 @@ def create_app():
     if app.config["FLASK_GZIP_COMPRESSION"].lower() == "true":
         compress.init_app(app)
     migrate = Migrate(app, db)
+
+    if app.config["LOCAL_THESAURUS"].lower() == "true":
+        local_thesaurus.populate_db(app.app_context())
 
     with app.app_context():
 

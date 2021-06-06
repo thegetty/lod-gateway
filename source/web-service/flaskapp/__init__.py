@@ -52,7 +52,6 @@ def create_app():
     app.config["JSON_AS_ASCII"] = False
     app.config["FLASK_GZIP_COMPRESSION"] = environ["FLASK_GZIP_COMPRESSION"]
     app.config["PREFIX_RECORD_IDS"] = getenv("PREFIX_RECORD_IDS", default="RECURSIVE")
-    app.config["LOCAL_THESAURUS"] = environ["LOCAL_THESAURUS"]
 
     # KEEP_LAST_VERSION turns on functionality to keep a previous copy of an upload, and to connect it
     # to the new version by way of the new entitiy_id being stored in the Record.previous_version. Why 'entity_id'?
@@ -80,7 +79,7 @@ def create_app():
         compress.init_app(app)
     migrate = Migrate(app, db)
 
-    if app.config["LOCAL_THESAURUS"].lower() == "true":
+    if app.config["NAMESPACE"] == "localthesaurus":
         local_thesaurus.populate_db(app.app_context())
 
     with app.app_context():

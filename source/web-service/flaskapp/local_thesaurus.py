@@ -39,7 +39,7 @@ def create_lt_data(csv_line):
     return {
         "context": "https://static.getty.edu/contexts/linked.art/ns/v1.1.0/linked-art.json",
         "skos:prefLabel": csv_line[0],
-        "skos:scopeNone": csv_line[2],
+        "skos:scopeNote": csv_line[2],
     }
 
 

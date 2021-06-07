@@ -2,33 +2,49 @@ from uuid import uuid4
 from datetime import datetime
 from flaskapp.models import db
 from flaskapp.models.record import Record
+import requests
+import csv
 
 
 def populate_db(context):
     with context:
         db.create_all()
-        insert_fake_record_set()
-        
+        csv_line_list = read_csv_file()
+        insert_record_set(csv_line_list)
 
-def insert_fake_record_set():
-    rec_set = create_fake_record_set()   
-    for r in rec_set:
+
+def insert_record_set(csv_line_list):
+    counter = 0
+    for csv_line in csv_line_list:
+        r = create_record(csv_line)
+        if r == None:
+            continue
         db.session.add(r)
     db.session.commit()
 
 
-def create_fake_record():
+def create_record(csv_line):
+    if csv_line[1] == "":
+        return None
+
     return Record(
-        entity_id=str(uuid4()),
-        entity_type="Object",
+        entity_id=csv_line[1],
         datetime_created=datetime.utcnow(),
         datetime_updated=datetime.utcnow(),
-        data={"example": "data"},
+        data=create_lt_data(csv_line),
     )
 
 
-def create_fake_record_set():
-    result = []
-    for n in range(100):
-        result.append(create_fake_record())
-    return result
+def create_lt_data(csv_line):
+    return {
+        "context": "https://static.getty.edu/contexts/linked.art/ns/v1.1.0/linked-art.json",
+        "skos:prefLabel": csv_line[0],
+        "skos:scopeNone": csv_line[2],
+    }
+
+
+def read_csv_file():
+    download = requests.get("http://aata2-stage.getty.edu")
+    decoded = download.content.decode("utf-8")
+    cr = csv.reader(decoded.splitlines(), delimiter=",")
+    return list(cr)

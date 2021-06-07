@@ -79,7 +79,7 @@ def create_app():
         compress.init_app(app)
     migrate = Migrate(app, db)
 
-    if app.config["NAMESPACE"] == "localthesaurus":
+    if app.config["NAMESPACE"] == "local/thesaurus":
         local_thesaurus.populate_db(app.app_context())
 
     with app.app_context():

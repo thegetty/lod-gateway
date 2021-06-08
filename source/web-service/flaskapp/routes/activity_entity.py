@@ -27,7 +27,7 @@ lod_entity_types = []
 ### Activity Stream Entity Routes ###
 
 
-@activity_entity.route("/activity-stream/entity/<string:entity_type>")
+@activity_entity.route("/activity-stream/type/<string:entity_type>")
 def activity_stream_entity_collection(entity_type):
     entity_type = entity_type.lower()
     global lod_entity_types
@@ -42,7 +42,7 @@ def activity_stream_entity_collection(entity_type):
 
 
 @activity_entity.route(
-    "/activity-stream/entity/<string:entity_type>/page/<string:pagenum>"
+    "/activity-stream/type/<string:entity_type>/page/<string:pagenum>"
 )
 def activity_stream_entity_page(entity_type, pagenum):
     entity_type = entity_type.lower()
@@ -124,7 +124,7 @@ def url_base():
 
 
 def url_activity(entity_type):
-    return url_base() + "/activity-stream/entity/" + entity_type.lower()
+    return url_base() + "/activity-stream/type/" + entity_type.lower()
 
 
 def url_page(page_num, entity_type):

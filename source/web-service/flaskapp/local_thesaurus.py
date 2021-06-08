@@ -23,7 +23,7 @@ def insert_record_set(csv_line_list):
     db.session.commit()
 
 
-def create_record(csv_line):    
+def create_record(csv_line):
     return Record(
         entity_id=csv_line[1],
         entity_type="Type",

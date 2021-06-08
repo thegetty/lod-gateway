@@ -14,11 +14,10 @@ def populate_db(context):
 
 def insert_record_set(csv_line_list):
     for csv_line in csv_line_list:
+        # this is our key - must be unique
         if csv_line[1] == "":
             continue
         r = create_record(csv_line)
-        if r == None:
-            continue
         db.session.add(r)
     db.session.commit()
 

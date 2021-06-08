@@ -14,7 +14,6 @@ def populate_db(context):
 
 
 def insert_record_set(csv_line_list):
-    counter = 0
     for csv_line in csv_line_list:
         r = create_record(csv_line)
         if r == None:
@@ -29,6 +28,7 @@ def create_record(csv_line):
 
     return Record(
         entity_id=csv_line[1],
+        entity_type="Type",
         datetime_created=datetime.utcnow(),
         datetime_updated=datetime.utcnow(),
         data=create_lt_data(csv_line),

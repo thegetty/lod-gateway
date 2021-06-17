@@ -105,11 +105,12 @@ Using VS Code, it is possible to develop inside the container with full debuggin
 
 ## Functionality and Routes
 
-Legend:
-"base_url" - application url (e.g. https://data.getty.edu)
-"ns" - namespace. Different for every LOD Gateway instance (e.g. "museum/collection")
+Legend:  
+"base_url" - application url (e.g. https://data.getty.edu)  
+"ns" - namespace. Different for every LOD Gateway instance (e.g. "museum/collection")  
+"entity_type" - Entity type of the record. Can be an alias of an RDF type (e.g. "object" for Human Made Object)  
 
-#### base_url/ns/health
+#### base_url/ns/health  
 
 Returns OK if application is running and data base is accessible. Also checks Neptune health for instances that have ["PROCESS_NEPTUNE"] flag = "True". If one of the components not running, Error 500 retuned.
 
@@ -117,11 +118,11 @@ Returns OK if application is running and data base is accessible. Also checks Ne
 
 Method - POST. Authentication - 'bearer token'. Accepts a set of records in JSON LD format.CRUD operations supported. In case of 'delete' only the data part is deleted, record is not removed from DB. After records inserted into DB, they are also added to Neptune. Atomic processing implemented, i.e. if one of the records fails or Neptune operation unsuccessful, the wholre transaction is rolled back.
 
-#### base_url/ns/records/<entity_id>
+#### base_url/ns/entity_type/entity_id
 
 Return a single record with id = <entity_id>. If record is not found, Error 404 returned.
 
-#### base_url/ns/records/<entity_id>/activity-stream
+#### base_url/ns/entity_type/entity_id/activity-stream
 
 Return activity stream for a single record with id = <entity_id>
 
@@ -129,13 +130,17 @@ Return activity stream for a single record with id = <entity_id>
 
 Return activity stream for the whole data set broken in pages. Number of records per page is configurable. Currently it is 100.
 
-#### base_url/ns/activity-stream/entity/<entity_type>
+#### base_url/ns/activity-stream/type/entity_type
 
 Return activity stream for a specific 'entity_type'. Examples of entity types from LOD 'museum/collection' - 'Group', 'Person', 'HumanMadeObject', etc. The same pagination structure implemented as for the main 'activity-stream'.
 
 #### base_url/ns/sparql
 
+SPARQL endpoint for querying RDF triples representation of data stored in the LOD Gateway. No authentication is required.
+
 #### base_url/ns/sparql-ui
+
+YASGUI implementation of a user interface for doing SPARQL queries on the data stored in the LOD Gateway.
 
 ## Logging and Access logs
 

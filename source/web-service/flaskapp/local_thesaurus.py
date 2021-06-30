@@ -1,8 +1,10 @@
 from datetime import datetime
 from flaskapp.models import db
+from flaskapp.routes import ingest
 from flaskapp.models.record import Record
 import requests
 import csv
+import json
 
 
 def populate_db(context):
@@ -13,31 +15,26 @@ def populate_db(context):
 
 
 def insert_record_set(csv_line_list):
+    rec_set = []
     for csv_line in csv_line_list:
         # this is our key - must be unique
         if csv_line[1] == "":
             continue
         r = create_record(csv_line)
-        db.session.add(r)
-    db.session.commit()
+        rec_set.append(r)
+    ingest.process_record_set(rec_set)
 
 
 def create_record(csv_line):
-    return Record(
-        entity_id=csv_line[1],
-        entity_type="Type",
-        datetime_created=datetime.utcnow(),
-        datetime_updated=datetime.utcnow(),
-        data=create_lt_data(csv_line),
-    )
-
-
-def create_lt_data(csv_line):
-    return {
-        "context": "https://static.getty.edu/contexts/linked.art/ns/v1.1.0/linked-art.json",
-        "skos:prefLabel": csv_line[0],
-        "skos:scopeNote": csv_line[2],
-    }
+    r = {}
+    r[
+        "@context"
+    ] = "https://static.getty.edu/contexts/linked.art/ns/v1.1.0/linked-art.json"
+    r["skos:prefLabel"] = csv_line[0]
+    r["skos:scopeNote"] = csv_line[2]
+    r["id"] = csv_line[1]
+    r["type"] = "Type"
+    return json.dumps(r)
 
 
 def read_csv_file():

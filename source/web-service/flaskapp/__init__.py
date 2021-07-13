@@ -11,6 +11,7 @@ from flask_compress import Compress
 from flask.logging import default_handler
 
 from flaskapp.routes.activity import activity
+from flaskapp.routes.activity_entity import activity_entity
 from flaskapp.routes.records import records
 from flaskapp.routes.ingest import ingest
 from flaskapp.routes.health import health
@@ -81,6 +82,7 @@ def create_app():
         ns = app.config["NAMESPACE"]
 
         app.register_blueprint(activity, url_prefix=f"/{ns}")
+        app.register_blueprint(activity_entity, url_prefix=f"/{ns}")
         app.register_blueprint(records, url_prefix=f"/{ns}")
         app.register_blueprint(ingest, url_prefix=f"/{ns}")
         app.register_blueprint(sparql, url_prefix=f"/{ns}")

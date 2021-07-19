@@ -5,16 +5,6 @@ from flaskapp.routes.sparql import execute_query
 
 
 class TestSparqlErrors:
-    def test_sparql_auth_token_wrong(self, client, namespace):
-        response = client.post(
-            f"/{namespace}/sparql", headers={"Authorization": "Bearer WrongToken"}
-        )
-        assert response.status_code == 401
-
-    def test_sparql_auth_token_missing(self, client, namespace):
-        response = client.post(f"/{namespace}/sparql")
-        assert response.status_code == 401
-
     def test_sparql_query_missing(self, client, namespace, auth_token):
         response = client.post(
             f"/{namespace}/sparql", headers={"Authorization": "Bearer " + auth_token}
@@ -72,7 +62,7 @@ class TestNeptuneConnection:
         response = execute_query(
             query, accept_header, query_endpoint.replace("http://", "mock-pass://")
         )
-        assert b"results" in response
+        assert b"results" in response.content
 
     def test_neptune_connection_fail(self, client, namespace, auth_token):
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]

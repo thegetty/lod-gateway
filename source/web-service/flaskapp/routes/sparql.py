@@ -1,7 +1,7 @@
 import json
 import requests
 
-from flask import Blueprint, current_app, request, abort, jsonify
+from flask import Blueprint, current_app, request, abort, jsonify, Response
 
 from flaskapp.errors import (
     status_nt,
@@ -17,11 +17,6 @@ sparql = Blueprint("sparql", __name__)
 # ### ROUTES ###
 @sparql.route("/sparql", methods=["GET", "POST"])
 def query_entrypoint():
-    # Authentication. If fails, abort with 401
-    status = authenticate_bearer(request)
-    if status != status_ok:
-        response = construct_error_response(status)
-        return abort(response)
 
     if "update" in request.args or request.form.get("update") is not None:
         response = construct_error_response(
@@ -48,10 +43,10 @@ def query_entrypoint():
         return abort(response)
 
     accept_header = None
-    if "accept" in request.args:
-        accept_header = request.args["accept"]
+    if "Accept" in request.args:
+        accept_header = request.args["Accept"]
     else:
-        accept_header = request.form.get("accept")
+        accept_header = request.form.get("Accept")
 
     if accept_header is None:
         accept_header = request.headers.get("Accept")
@@ -62,7 +57,7 @@ def query_entrypoint():
         response = construct_error_response(res)
         return response
     else:
-        return res
+        return Response(res, direct_passthrough=True, content_type=accept_header)
 
 
 def execute_query(query, accept_header, query_endpoint):

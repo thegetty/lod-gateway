@@ -57,8 +57,11 @@ def client(app):
 
 @pytest.fixture
 def test_db(current_app):
-    if current_app.config["ENV"] == "production":
-        pytest.exit("Do not run tests that blow away the database in production.")
+    # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
+    if ".amazonaws.com" in current_app.config["SQLALCHEMY_DATABASE_URI"]:
+        pytest.exit(
+            ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
+        )
     db.drop_all()
     db.create_all()
     return db
@@ -106,6 +109,55 @@ def sample_activity(test_db, sample_record):
 def sample_data(sample_record, sample_activity):
     record = sample_record()
     activity = sample_activity(record.id)
+    return {"record": record, "activity": activity}
+
+
+@pytest.fixture
+def sample_record_with_ids(test_db):
+    def _sample_record():
+        record = Record(
+            entity_id=str(uuid4()),
+            entity_type="Object",
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53),
+            datetime_updated=datetime(2019, 12, 18, 11, 22, 7),
+            data={
+                "id": "object/123",
+                "example": "data",
+                "nested": [{"id": "object/456",}, {"id": "object/789",},],
+            },
+        )
+        test_db.session.add(record)
+        test_db.session.commit()
+        return record
+
+    return _sample_record
+
+
+@pytest.fixture
+def sample_activity_with_ids(test_db, sample_record_with_ids):
+    def _sample_activity(record_id):
+
+        if not Record.query.get(record_id):
+            record = sample_record_with_ids()
+            record_id = record.id
+
+        activity = Activity(
+            uuid=str(uuid4()),
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53),
+            record_id=record_id,
+            event=Event.Create.name,
+        )
+        test_db.session.add(activity)
+        test_db.session.commit()
+        return activity
+
+    return _sample_activity
+
+
+@pytest.fixture
+def sample_data_with_ids(sample_record_with_ids, sample_activity_with_ids):
+    record = sample_record_with_ids()
+    activity = sample_activity_with_ids(record.id)
     return {"record": record, "activity": activity}
 
 

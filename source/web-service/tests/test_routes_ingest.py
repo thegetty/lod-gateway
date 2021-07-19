@@ -21,7 +21,7 @@ class TestIngestErrors:
 
     def test_ingest_data_missing(self, client, namespace, auth_token):
         response = client.post(
-            f"/{namespace}/ingest", headers={"Authorization": "Bearer " + auth_token},
+            f"/{namespace}/ingest", headers={"Authorization": "Bearer " + auth_token}
         )
         assert response.status_code == 422
         assert b"No input data found" in response.data
@@ -165,6 +165,208 @@ class TestIngestSuccess:
         )
         assert response.status_code == 200
         assert b"group/12345" in response.data
+
+    def test_ingest_same_data_twice(self, client, namespace, auth_token, test_db):
+        data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
+        # load one record:
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert b"person/12345" in response.data
+
+        # Do it again - should get a 200, but nothing in response.
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        data_resp = response.get_json()
+        assert data_resp["person/12345"] == "null"
+
+    def test_ingest_new_versions(self, client, namespace, auth_token, test_db):
+        data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
+
+        # Make sure that the versioning flag is set
+        assert current_app.config["KEEP_LAST_VERSION"] is True
+
+        # load one record:
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        data["new property"] = "new data"
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"/{namespace}/person/12345",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert "X-Previous-Version" in response.headers
+        assert "X-Is-Old-Version" in response.headers
+
+        old_version = client.get(
+            f"/{namespace}/{response.headers['X-Previous-Version']}",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert old_version.status_code == 200
+
+    def test_ingest_test_old_version_deletion(
+        self, client, namespace, auth_token, test_db
+    ):
+        data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
+
+        # Make sure that the versioning flag is set
+        assert current_app.config["KEEP_LAST_VERSION"] is True
+
+        # load one record:
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        data["new property"] = "new data"
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"/{namespace}/person/12345",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        old_version_id = response.headers["X-Previous-Version"]
+
+        data["new property"] = "newer data"
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"/{namespace}/person/12345",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert response.headers["X-Previous-Version"] != old_version_id
+
+        old_version = client.get(
+            f"/{namespace}/{old_version_id}",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert old_version.status_code == 404
+
+    def test_ingest_test_direct_delete_on_old_version(
+        self, client, namespace, auth_token, test_db
+    ):
+        data = {"id": "person/123456", "name": "John", "age": 31, "city": "New York"}
+
+        # Make sure that the versioning flag is set
+        assert current_app.config["KEEP_LAST_VERSION"] is True
+
+        # load one record:
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        data["new property"] = "new data"
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"/{namespace}/person/123456",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        old_version_id = response.headers["X-Previous-Version"]
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps({"id": old_version_id, "_delete": "true"}),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"/{namespace}/person/123456",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert response.headers["X-Previous-Version"] == "None"
+
+        old_version = client.get(
+            f"/{namespace}/{old_version_id}",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert old_version.status_code == 404
+
+    def test_ingest_test_update_null_on_old_version(
+        self, client, namespace, auth_token, test_db
+    ):
+        data = {"id": "person/123456", "name": "John", "age": 31, "city": "New York"}
+
+        # Make sure that the versioning flag is set
+        assert current_app.config["KEEP_LAST_VERSION"] is True
+
+        # load one record:
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        data["new property"] = "new data"
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"/{namespace}/person/123456",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        old_version_id = response.headers["X-Previous-Version"]
+
+        # update old version:
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps({"id": old_version_id, "some": "garbage"}),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert response.get_json()[old_version_id] == "null"
 
 
 class TestNeptuneConnection:

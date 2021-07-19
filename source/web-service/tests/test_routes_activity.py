@@ -4,6 +4,8 @@ import re
 from datetime import datetime
 
 from flaskapp.routes.activity import generate_url
+from flaskapp.routes import activity_entity
+from flaskapp.routes import records
 from flaskapp.models.activity import Activity
 
 from flaskapp.utilities import format_datetime, Event
@@ -307,3 +309,46 @@ class TestItemRoute:
         url = f"/{namespace}/activity-stream/not_a_record"
         response = client.get(url)
         assert response.status_code == 404
+
+
+class TestActivityEntity:
+    def test_url_base(self, current_app, base_url):
+        assert activity_entity.url_base() == f"{base_url}"
+
+    def test_url_activity(self, current_app, base_url):
+        assert (
+            activity_entity.url_activity("someentity")
+            == f"{base_url}/activity-stream/type/someentity"
+        )
+
+    def test_url_page(self, current_app, base_url):
+        assert (
+            activity_entity.url_page(11, "someentity")
+            == f"{base_url}/activity-stream/type/someentity/page/11"
+        )
+
+
+class TestActivityRecord:
+    def test_url_base(self, current_app, base_url):
+        assert records.url_base("someid") == f"{base_url}/someid"
+
+    def test_url_base(self, current_app, base_url):
+        assert records.url_base() == f"{base_url}"
+
+    def test_url_record(self, current_app, base_url):
+        assert (
+            records.url_record("someentityid")
+            == f"{base_url}/someentityid/activity-stream"
+        )
+
+    def test_url_record(self, current_app, base_url):
+        assert (
+            records.url_record("someentityid", 11)
+            == f"{base_url}/someentityid/activity-stream/page/11"
+        )
+
+    def test_url_activity(self, current_app, base_url):
+        assert (
+            records.url_activity("someactivityid")
+            == f"{base_url}/activity-stream/someactivityid"
+        )

@@ -1,4 +1,8 @@
 import copy
+import json
+import hashlib
+import traceback
+import sys
 
 from datetime import datetime
 from enum import Enum
@@ -13,15 +17,53 @@ class Event(Enum):
     Move = 4
 
 
+# gathers the full stack trace from the call site as a formatted string; useful for exception handling
+# adapted from the answer here https://stackoverflow.com/a/16589622 by Tobias Kienzler
+def full_stack_trace():
+    exc = sys.exc_info()[0]
+
+    # the last stack entry will be the call to full_stack_trace()
+    stack = traceback.extract_stack()[:-1]
+
+    # if an exception is present, remove the call to full_stack_trace()
+    # as the printed exception will contain the caller instead
+    if exc is not None:
+        del stack[-1]
+
+    tracestr = "Traceback (most recent call last):\n"
+
+    stackstr = tracestr + "".join(traceback.format_list(stack))
+
+    if exc is not None:
+        stackstr += traceback.format_exc()[len(tracestr) :]
+
+    return stackstr
+
+
 # Format datetime in form 'yyyy-mm-dd hh:mm:ss'
 # Used across the app
 def format_datetime(dt):
     return dt.strftime("%Y-%m-%dT%H:%M:%S%z")
 
 
+def checksum_json(json_obj):
+    # Expects a JSON-serializable data structure to be passed to it.
+    checksum = hashlib.sha256()
+    # dump the object as JSON, with the sort_keys flag on to ensure repeatability
+    checksum.update(json.dumps(json_obj, sort_keys=True).encode("utf-8"))
+    return checksum.hexdigest()
+
+
 # Performs a recursive walkthrough of any dictionary/list calling the callback for any matched attribute
 def containerRecursiveCallback(
-    data, attr=None, find=None, replace=None, prefix=None, suffix=None, callback=None
+    data,
+    attr=None,
+    find=None,
+    replace=None,
+    prefix=None,
+    suffix=None,
+    callback=None,
+    recursive=True,
 ):
     if not isinstance(data, (dict, list)):
         raise RuntimeError(
@@ -57,6 +99,9 @@ def containerRecursiveCallback(
             val = data[key]
 
             if isinstance(val, (dict, list)):
+                if recursive == False:
+                    continue
+
                 val = containerRecursiveCallback(
                     val,
                     attr=attr,
@@ -81,6 +126,9 @@ def containerRecursiveCallback(
     elif isinstance(data, list):
         for key, val in enumerate(data):
             if isinstance(val, (dict, list)):
+                if recursive == False:
+                    continue
+
                 val = containerRecursiveCallback(
                     val,
                     attr=attr,

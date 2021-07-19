@@ -62,7 +62,7 @@ class TestNeptuneConnection:
         response = execute_query(
             query, accept_header, query_endpoint.replace("http://", "mock-pass://")
         )
-        assert b"results" in response.content
+        assert b"results" in response
 
     def test_neptune_connection_fail(self, client, namespace, auth_token):
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]

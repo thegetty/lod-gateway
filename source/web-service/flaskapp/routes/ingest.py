@@ -333,7 +333,9 @@ def get_record(rec_id):
 
 
 # RDF processing
-def process_graphstore_record_set(record_list, query_endpoint=None, update_endpoint=None):
+def process_graphstore_record_set(
+    record_list, query_endpoint=None, update_endpoint=None
+):
     """
     This function will process the same list of records indepenently.
     See specs for details.

@@ -39,13 +39,13 @@ def create_app():
     app.config["AUTH_TOKEN"] = environ["AUTHORIZATION_TOKEN"]
     app.config["BASE_URL"] = environ["LOD_BASE_URL"]
     app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"]
-    app.config["NAMESPACE_FOR_NEPTUNE"] = environ["APP_NAMESPACE_NEPTUNE"]
+    app.config["NAMESPACE_FOR_RDF"] = environ["APP_NAMESPACE_RDF"]
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_SORT_KEYS"] = False
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
-    app.config["PROCESS_NEPTUNE"] = environ["PROCESS_NEPTUNE"]
+    app.config["PROCESS_RDF"] = environ["PROCESS_RDF"]
     app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
     app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
     app.config["JSON_AS_ASCII"] = False

@@ -1,7 +1,7 @@
 import json
 
 from flask import current_app
-from flaskapp.routes.ingest import process_neptune_record_set
+from flaskapp.routes.ingest import process_graphstore_record_set
 
 
 class TestIngestErrors:
@@ -369,8 +369,8 @@ class TestIngestSuccess:
         assert response.get_json()[old_version_id] == "null"
 
 
-class TestNeptuneConnection:
-    def test_neptune_connection_good(self, client, namespace, auth_token):
+class TestGraphStoreConnection:
+    def test_graphstore_connection_good(self, client, namespace, auth_token):
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
         records = [
@@ -383,14 +383,14 @@ class TestNeptuneConnection:
                 }
             )
         ]
-        asserted = process_neptune_record_set(
+        asserted = process_graphstore_record_set(
             records,
             query_endpoint.replace("http://", "mock-pass://"),
             update_endpoint.replace("http://", "mock-pass://"),
         )
         assert asserted == True
 
-    def test_neptune_connection_fail(self, client, namespace, auth_token):
+    def test_graphstore_connection_fail(self, client, namespace, auth_token):
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
         records = [
@@ -403,7 +403,7 @@ class TestNeptuneConnection:
                 }
             )
         ]
-        asserted = process_neptune_record_set(
+        asserted = process_graphstore_record_set(
             records,
             query_endpoint.replace("http://", "mock-fail://"),
             update_endpoint.replace("http://", "mock-fail://"),

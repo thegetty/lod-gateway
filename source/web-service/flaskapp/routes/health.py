@@ -5,7 +5,7 @@ from flaskapp.routes import ingest
 from flaskapp.errors import (
     status_db_error,
     construct_error_response,
-    status_neptune_error,
+    status_graphstore_error,
 )
 
 # Create a new "health_check" route blueprint
@@ -15,12 +15,12 @@ health = Blueprint("health", __name__)
 @health.route("/health", methods=["GET"])
 def healthcheck_get():
     if health_db():
-        if current_app.config["PROCESS_NEPTUNE"] == "True":
+        if current_app.config["PROCESS_RDF"] == "True":
             query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
-            if health_neptune(query_endpoint):
+            if health_graphstore(query_endpoint):
                 return "OK"
             else:
-                response = construct_error_response(status_neptune_error)
+                response = construct_error_response(status_graphstore_error)
                 return abort(response)
         else:
             return "OK"
@@ -37,5 +37,5 @@ def health_db():
         return False
 
 
-def health_neptune(query_endpoint):
+def health_graphstore(query_endpoint):
     return ingest.graph_check_endpoint(query_endpoint)

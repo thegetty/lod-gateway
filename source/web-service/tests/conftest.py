@@ -163,10 +163,10 @@ def sample_data_with_ids(sample_record_with_ids, sample_activity_with_ids):
 
 @pytest.fixture(autouse=True)
 def requests_mocker(requests_mock):
-    """The `requests_mocker()` method supports mocking requests to Neptune, which is inaccessible
+    """The `requests_mocker()` method supports mocking requests to the graph store, which is inaccessible
     from within CircleCI. The `requests_mocker()` method provides support for mocking successful
-    HTTP requests to Neptune, and providing appropriate responses for the limited set of queries
-    performed by the /ingest endpoint's `process_neptune_record_set()` method, as well as support
+    HTTP requests to the graph store, and providing appropriate responses for the limited set of queries
+    performed by the /ingest endpoint's `process_graphstore_record_set()` method, as well as support
     for generating failed requests to mimic networking issues or connection time-outs."""
 
     def mocker_text_callback(request, context):

@@ -69,17 +69,17 @@ LOD_BASE_URL=               # This should be the base URL of the application
 APPLICATION_NAMESPACE=      # This should be the 'vanity' portion of the URL
                             # for example, "museum/collection"
 
-APP_NAMESPACE_NEPTUNE=      # This variable should always have the same value as
+APP_NAMESPACE_RDF=      # This variable should always have the same value as
                             # APPLICATION_NAMESPACE unless there is a specific need
                             # to prefix the relative URLs in the JSON-LD documents
-                            # differently for Neptune, such as for testing or for
-                            # specially staged loads. In such cases, these development
+                            # differently for triples in the graph store, such as for testing
+                            # or for specially staged loads. In such cases, these development
                             # or special stagining instances of the LOD Gateway must
                             # share the same base URL as their corresponding production
                             # or staging instance, that is, they should be hosted under
                             # the same domain name.
 
-PROCESS_NEPTUNE=            # The value must be "True" if Neptune processing is required
+PROCESS_RDF=            # The value must be "True" if processing into RDF is required
 
 FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
 

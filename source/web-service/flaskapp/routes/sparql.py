@@ -5,7 +5,7 @@ from flask import Blueprint, current_app, request, abort, jsonify, Response
 
 from flaskapp.errors import (
     status_nt,
-    status_neptune_error,
+    status_graphstore_error,
     construct_error_response,
     status_ok,
 )
@@ -68,6 +68,6 @@ def execute_query(query, accept_header, query_endpoint):
         res.raise_for_status()
         return res.content
     except requests.exceptions.HTTPError as e:
-        return status_neptune_error
+        return status_graphstore_error
     except requests.exceptions.ConnectionError as e:
-        return status_neptune_error
+        return status_graphstore_error

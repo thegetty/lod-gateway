@@ -16,7 +16,7 @@ services:
         build:
             context: ./
             dockerfile: ./Dockerfile.sparql-service
-        command: --mem /ds
+        command: --tdb2 --update --loc databases/DB2 /ds
         ports:
             - 3030:3030
 

@@ -8,6 +8,7 @@ ENV BASE=/mnt/apache-fuseki
 ## VOLUME /mnt/
 
 RUN mkdir -p $BASE
+RUN mkdir $BASE/databases
 
 WORKDIR $BASE
 
@@ -15,5 +16,5 @@ RUN curl --silent --show-error --output fuseki-server.jar $URL
 
 EXPOSE 3030
 
-ENTRYPOINT [ "/usr/bin/java", "-Dorg.eclipse.jetty.server.Request.maxFormContentSize=25000000", "-jar", "fuseki-server.jar" ]
-CMD ["--mem", "/ds"]
+ENTRYPOINT [ "/usr/bin/java", "-Dorg.eclipse.jetty.server.Request.maxFormContentSize=25000000", "-jar", "fuseki-server.jar", "--ping" ]
+CMD ["--tdb2", "--update", "--loc", "databases/DB2", "/ds"]

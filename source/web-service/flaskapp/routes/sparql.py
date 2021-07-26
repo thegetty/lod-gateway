@@ -17,6 +17,15 @@ sparql = Blueprint("sparql", __name__)
 # ### ROUTES ###
 @sparql.route("/sparql", methods=["GET", "POST"])
 def query_entrypoint():
+    if current_app.config["PROCESS_RDF"].lower() == "false":
+        response = construct_error_response(
+            status_nt(
+                501,
+                "Not Implemented",
+                "Application is not enabled for SPARQL operations",
+            )
+        )
+        return abort(response)
 
     if "update" in request.args or request.form.get("update") is not None:
         response = construct_error_response(

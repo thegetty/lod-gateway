@@ -46,7 +46,7 @@ status_graphstore_error = status_nt(
 )
 
 status_db_save_error = status_nt(
-    503, "Service Unavalable", "Cannot perform database operation"
+    503, "Service Unavailable", "Cannot perform database operation"
 )
 
 

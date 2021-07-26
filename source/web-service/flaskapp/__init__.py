@@ -46,8 +46,11 @@ def create_app():
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
     app.config["PROCESS_RDF"] = environ["PROCESS_RDF"]
-    app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
-    app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
+
+    # SPARQL endpoints only apply if LOD Gateway is configured to process input into RDF triples
+    if app.config["PROCESS_RDF"].lower() == "true":
+        app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
+        app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
     app.config["JSON_AS_ASCII"] = False
     app.config["FLASK_GZIP_COMPRESSION"] = environ["FLASK_GZIP_COMPRESSION"]
     app.config["PREFIX_RECORD_IDS"] = getenv("PREFIX_RECORD_IDS", default="RECURSIVE")

@@ -63,8 +63,8 @@ AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality
 DATABASE=                   # This should be the full URL to the database
                             # for example, postgresql://mart:mart@postgres/mart
 
-LOD_BASE_URL=               # This should be the base URL of the application
-                            # for example, https://data.getty.edu
+BASE_URL=                   # This should be the base URL of the application and 
+                            # for RDF URIs. For example, https://data.getty.edu
 
 APPLICATION_NAMESPACE=      # This should be the 'vanity' portion of the URL
                             # for example, "museum/collection"

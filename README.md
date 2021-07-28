@@ -69,15 +69,18 @@ LOD_BASE_URL=               # This should be the base URL of the application
 APPLICATION_NAMESPACE=      # This should be the 'vanity' portion of the URL
                             # for example, "museum/collection"
 
-APP_NAMESPACE_RDF=      # This variable should always have the same value as
-                            # APPLICATION_NAMESPACE unless there is a specific need
+RDF_NAMESPACE=              # This variable is optional and should only be set if the
+                            # namespace in the RDF data should differ from the value set
+                            # in APPLICATION_NAMESPACE and there is a specific need
                             # to prefix the relative URLs in the JSON-LD documents
                             # differently for triples in the graph store, such as for testing
                             # or for specially staged loads. In such cases, these development
-                            # or special stagining instances of the LOD Gateway must
+                            # or special staging instances of the LOD Gateway must
                             # share the same base URL as their corresponding production
                             # or staging instance, that is, they should be hosted under
-                            # the same domain name.
+                            # the same domain name. If no RDF_NAMESPACE variable is provided,
+                            # the LOD Gateway defaults to APPLICATION_NAMESPACE for data loaded
+                            # into the graph store
 
 PROCESS_RDF=            # The value must be "True" if processing into RDF is required
 

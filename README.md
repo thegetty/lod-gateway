@@ -58,7 +58,12 @@ will run `pywatch`, which will watch for file changes and re-run the tests autom
 Configuration is managed through environment variables.  In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault.  In testing environments, the `.env.example` file is used directly.
 
 ```
-AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality
+LOD_AS_DESC                 # Textual description of the deployed LOD Gateway
+
+AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality, i.e. loading
+                            # records into the LOD Gateway. The value should 
+                            # be formatted as "Bearer {AUTHORIZATION_TOKEN}" in
+                            # the HTTP POST request Authorization header.
 
 DATABASE=                   # This should be the full URL to the database
                             # for example, postgresql://mart:mart@postgres/mart
@@ -80,9 +85,14 @@ RDF_NAMESPACE=              # This variable is optional and should only be set i
                             # or staging instance, that is, they should be hosted under
                             # the same domain name. If no RDF_NAMESPACE variable is provided,
                             # the LOD Gateway defaults to APPLICATION_NAMESPACE for data loaded
-                            # into the graph store
+                            # into the graph store.
 
-PROCESS_RDF=            # The value must be "True" if processing into RDF is required
+PROCESS_RDF=                # The value must be "True" to enable processing of JSON-LD into 
+                            # RDF triples on ingest. If enabled, two other environment variables
+                            # must be set to the SPARQL endpoints (query and update):
+                            # SPARQL_QUERY_ENDPOINT and SPARQL_UPDATE_ENDPOINT. When PROCESS_RDF is
+                            # set to "False", the LOD Gateway acts as a simple document store with no RDF
+                            # component.
 
 FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
 
@@ -98,7 +108,7 @@ PREFIX_RECORD_IDS=          # Configure the Prefixing of Record "id" Values:
                             # setting `PREFIX_RECORD_IDS=TOP`, or to disable all prefixing
                             # of record "id" values by setting `PREFIX_RECORD_IDS=NONE`.
 
-KEEP_LAST_VERSION=.         # Set this to True to enable the retention of a single previous
+KEEP_LAST_VERSION=          # Set this to True to enable the retention of a single previous
                             # version of a record when it is updated. See 'Versioning' for
                             # more details.
 ```

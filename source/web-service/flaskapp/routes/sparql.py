@@ -5,7 +5,7 @@ from flask import Blueprint, current_app, request, abort, jsonify, Response
 
 from flaskapp.errors import (
     status_nt,
-    status_neptune_error,
+    status_graphstore_error,
     construct_error_response,
     status_ok,
 )
@@ -17,6 +17,15 @@ sparql = Blueprint("sparql", __name__)
 # ### ROUTES ###
 @sparql.route("/sparql", methods=["GET", "POST"])
 def query_entrypoint():
+    if current_app.config["PROCESS_RDF"].lower() == "false":
+        response = construct_error_response(
+            status_nt(
+                501,
+                "Not Implemented",
+                "Application is not enabled for SPARQL operations",
+            )
+        )
+        return abort(response)
 
     if "update" in request.args or request.form.get("update") is not None:
         response = construct_error_response(
@@ -51,8 +60,8 @@ def query_entrypoint():
     if accept_header is None:
         accept_header = request.headers.get("Accept")
 
-    neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
-    res = execute_query(query, accept_header, neptune_endpoint)
+    query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+    res = execute_query(query, accept_header, query_endpoint)
     if isinstance(res, status_nt):
         response = construct_error_response(res)
         return response
@@ -60,11 +69,14 @@ def query_entrypoint():
         return Response(res, direct_passthrough=True, content_type=accept_header)
 
 
-def execute_query(query, accept_header, neptune_endpoint):
+def execute_query(query, accept_header, query_endpoint):
     try:
         res = requests.post(
-            neptune_endpoint, data={"query": query}, headers={"Accept": accept_header}
+            query_endpoint, data={"query": query}, headers={"Accept": accept_header}
         )
-        return res
+        res.raise_for_status()
+        return res.content
+    except requests.exceptions.HTTPError as e:
+        return status_graphstore_error
     except requests.exceptions.ConnectionError as e:
-        return status_neptune_error
+        return status_graphstore_error

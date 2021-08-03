@@ -61,32 +61,44 @@ def _quick_count(query):
 
 @records.route("/<path:entity_id>")
 def entity_record(entity_id):
+    """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard
+    search for items in the LOD Gateway"""
+
+    # idPrefix will be used by either the API route returning the record, or the route listing matches
     idPrefix = current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"]
     if entity_id.endswith("*"):
         # Instead of responding with a single record, find and list the responses that match the 'glob' in the request
+        # load_only - we only care about these three columns, it is hugely quicker to just get those.
         records = Record.query.options(
             load_only(Record.entity_id, Record.entity_type, Record.datetime_updated)
-        ).filter(Record.entity_id.like(entity_id[:-1]))
+        ).filter(Record.entity_id.like(entity_id[:-1] + "%"))
+
+        # Pagination - GET URL parameter 'page'
         page = 1
-        # Pagination
         if "page" in request.args:
             try:
                 page = int(request.args["page"])
             except (ValueError, TypeError) as e:
                 current_app.logger.error(f"Bad value supplied for 'page' parameter.")
 
+        # BROWSE_PAGE_SIZE - optional app config value
         page_size = 200
         try:
-            page_size = int(current_app.config["BROWSE_PAGE_LIMIT"])
+            page_size = int(current_app.config["BROWSE_PAGE_SIZE"])
         except (ValueError, TypeError, KeyError) as e:
             current_app.logger.warning(
-                f"Bad value supplied for BROWSE_PAGE_LIMIT environment var."
+                f"Bad value supplied for BROWSE_PAGE_SIZE environment var."
             )
 
+        # Use SQLAlchemy's inbuilt pagination routine
         page_request = records.paginate(page=page, per_page=page_size)
 
+        # Do a quick count based on the query. Might not be that much quicker than .count() with the load_only
+        # option above, but this way is the quickest method for doing a count.
         total = _quick_count(records)
 
+        # Return the URL, the entity type and the datetime_updated
+        # (Maybe sort by the date?)
         items = [
             {
                 "id": f"{idPrefix}/{item.entity_id}",
@@ -102,6 +114,7 @@ def entity_record(entity_id):
             "first": f"{idPrefix}/{entity_id}?page=1",
         }
 
+        # Pagination will be in the usual "first", "prev", "next" pattern
         if page_request.has_next is True:
             r_json["next"] = f"{idPrefix}/{entity_id}?page={page+1}"
         if page > 1:

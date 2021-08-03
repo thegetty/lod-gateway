@@ -167,3 +167,22 @@ class TestObtainRecord:
         assert response.status_code == 200
         assert "LOD Gateway" in response.headers["Server"]
         assert json.loads(response.data) == data
+
+    def test_browse_records_base(self, sample_data, client, namespace):
+        response = client.get(f"/{namespace}/*")
+        assert response.status_code == 200
+        assert response.is_json
+
+    def test_browse_records_total(self, sample_data, client, namespace):
+        response = client.get(f"/{namespace}/*")
+        assert response.status_code == 200
+        assert response.to_json()["total"] > 0
+
+    def test_browse_records_item(self, sample_data, client, namespace):
+        response = client.get(f"/{namespace}/*")
+        assert response.status_code == 200
+        doc = response.to_json()
+        first = doc["items"][0]
+        assert "id" in first
+        assert "type" in first
+        assert "datetime_updated" in first

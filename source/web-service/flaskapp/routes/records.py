@@ -10,7 +10,13 @@ from sqlalchemy import func
 from flaskapp.models import db
 from flaskapp.models.record import Record
 from flaskapp.models.activity import Activity
-from flaskapp.utilities import format_datetime, containerRecursiveCallback, idPrefixer
+from flaskapp.utilities import (
+    format_datetime,
+    containerRecursiveCallback,
+    idPrefixer,
+    get_subaddressed_fragment,
+    BadSubaddressError,
+)
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
@@ -121,6 +127,41 @@ def entity_record(entity_id):
             r_json["prev"] = f"{idPrefix}/{entity_id}?page={page-1}"
 
         return jsonify(r_json)
+    elif "!" in entity_id:
+        # Subaddressing attempt?
+        core_id, subaddress = entity_id.split("!", 1)
+        if subaddress.endswith("|"):
+            subaddress = subaddress[:-1]
+        record = Record.query.filter(Record.entity_id == core_id).one_or_none()
+        if record is None or record.data is None:
+            response = construct_error_response(status_record_not_found)
+            return abort(response)
+
+        # It exists.
+        data = record.data
+        try:
+            response = current_app.make_response(
+                jsonify(get_subaddressed_fragment(data, subaddress))
+            )
+            response.headers["Location"] = f"{idPrefix}/{core_id}"
+            response.headers["X-JSON-Subaddress"] = f"{subaddress}"
+            response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
+            return response
+
+        except BadSubaddressError as e:
+            return (
+                jsonify(
+                    {
+                        "errors": {
+                            "title": "Subaddress Not Found",
+                            "details": f"Subaddress {subaddress} was not found to be valid within resource {core_id}",
+                            "message": str(e),
+                        }
+                    }
+                ),
+                404,
+            )
+
     else:
         record = Record.query.filter(Record.entity_id == entity_id).one_or_none()
 

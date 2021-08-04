@@ -167,3 +167,100 @@ def idPrefixer(attr, value, prefix=None, **kwargs):
         temp = prefix + "/" + temp
 
     return temp
+
+
+class BadSubaddressError(Exception):
+    """The Subaddress either can't be parsed or cannot be found in the data."""
+
+    pass
+
+
+def parse_slice(slicestr):
+    # Turn a "[A]" or "[A:B]" string into either
+    # (None, None) -> unparsable
+    # (A, None) -> index A
+    # (A, B) -> slice A to B
+    if slicestr == "[":
+        return (None, None)
+    if ":" not in slicestr:
+        try:
+            return (int(slicestr[1:-1]), None)
+        except (ValueError, TypeError) as e:
+            raise BadSubaddressError(
+                f"Subaddressing index '{slicestr}' was not understandable as an index integer"
+            )
+    a, b = slicestr[1:-1].split(":", 1)
+    try:
+        a_idx = int(a)
+    except (ValueError, TypeError) as e:
+        raise BadSubaddressError(
+            f"Subaddressing index '{a}' as part of {slicestr} was not understandable as an integer"
+        )
+    try:
+        b_idx = int(b)
+    except (ValueError, TypeError) as e:
+        raise BadSubaddressError(
+            f"Subaddressing index '{b}' as part of {slicestr} was not understandable as an integer"
+        )
+
+    return (a_idx, b_idx)
+
+
+def get_subaddressed_fragment(data, subaddress):
+    # Formatting:
+    # '.' for keys of dicts
+    # '[0]', '[0:1]' for index lookups/slices of list-y things
+    # Parsing from left to right, checking each token, raising exception when a faulty link is hit
+    ident = data["id"]
+    cursor = data
+    token_chain = []
+    for token in subaddress.split("|"):
+        keyname = slicestr = None
+        items = token.split("[", 1)
+        if len(items) == 1:
+            keyname = items[0]
+        else:
+            keyname, slicestr = items
+
+        if keyname is None:
+            return cursor
+
+        if keyname not in cursor:
+            raise BadSubaddressError(
+                f"{keyname} not found in subaddress '{ident}!"
+                + "|".join(token_chain)
+                + "'"
+            )
+
+        cursor = cursor[keyname]
+        if slicestr is not None:
+            a, b = parse_slice("[" + slicestr)
+            if a is not None:
+                if b is not None:
+                    # slice of key value
+                    # This will also break the parsing and return the slice
+                    try:
+                        return cursor[a:b]
+                    except (KeyError, TypeError) as e:
+                        raise BadSubaddressError(
+                            f"Object at subaddress '{ident}!"
+                            + "|".join(token_chain)
+                            + "|{keyname}' cannot be sliced [{a}, {b}]: '{e}'"
+                        )
+                else:
+                    # index of key value
+                    # This will continue parsing tokens if there are any
+                    try:
+                        cursor = cursor[a]
+                        token_chain.append(token)
+                    except (KeyError, TypeError) as e:
+                        raise BadSubaddressError(
+                            f"Object at subaddress '{ident}!"
+                            + "|".join(token_chain)
+                            + "|{keyname}' cannot be indexed with [{a}]: '{e}'"
+                        )
+            else:
+                token_chain.append(keyname)
+        else:
+            token_chain.append(keyname)
+    return cursor

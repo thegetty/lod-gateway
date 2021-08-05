@@ -54,21 +54,21 @@ class TestSparqlSuccess:
         assert "DELETE" not in response.headers["Allow"]
 
 
-class TestNeptuneConnection:
-    def test_neptune_connection_good(self, client, namespace, auth_token):
-        endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+class TestGraphStoreConnection:
+    def test_graphstore_connection_good(self, client, namespace, auth_token):
+        query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         query = "SELECT * {?s ?p ?o} LIMIT 1"
         accept_header = "*/*"
         response = execute_query(
-            query, accept_header, endpoint.replace("http://", "mock-pass://")
+            query, accept_header, query_endpoint.replace("http://", "mock-pass://")
         )
-        assert b"results" in response.content
+        assert b"results" in response
 
-    def test_neptune_connection_fail(self, client, namespace, auth_token):
-        endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+    def test_graphstore_connection_fail(self, client, namespace, auth_token):
+        query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         query = "SELECT * {?s ?p ?o} LIMIT 1"
         accept_header = "*/*"
         asserted = execute_query(
-            query, accept_header, endpoint.replace("http://", "mock-fail://")
+            query, accept_header, query_endpoint.replace("http://", "mock-fail://")
         )
         assert asserted and asserted.code == 500

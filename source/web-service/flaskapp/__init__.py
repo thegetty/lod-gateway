@@ -49,6 +49,12 @@ def create_app():
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
     app.config["PROCESS_RDF"] = environ["PROCESS_RDF"]
 
+    # Setting the limit on number of records returned due to a glob browse request
+    try:
+        app.config["BROWSE_PAGE_SIZE"] = int(environ.get("BROWSE_PAGE_SIZE", 200))
+    except (ValueError, TypeError) as e:
+        app.config["BROWSE_PAGE_SIZE"] = 200
+
     # SPARQL endpoints only apply if LOD Gateway is configured to process input into RDF triples
     if app.config["PROCESS_RDF"].lower() == "true":
         app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]

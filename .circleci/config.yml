@@ -19,7 +19,7 @@ workflows:
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag
-          service: lod-gateway-archivesspace-l1 lod-gateway-media-l2 lod-gateway-museum-collection-l2 lod-gateway-otmm-l1 lod-gateway-rcv-l2 lod-gateway-rosetta-l1 lod-gateway-vocab-l1 lod-gateway-vocab-l2
+          service: lod-gateway-archivesspace-l1 lod-gateway-media-l2 lod-gateway-museum-collection-l2 lod-gateway-otmm-l1 lod-gateway-rcv-l2 lod-gateway-rosetta-l1 lod-gateway-vocab-l2
           #service1:
           # ...
           #service10:
@@ -32,17 +32,16 @@ workflows:
                 - master
             tags:
               ignore: /.*/
-      ### FIXME -- enable when production environment is setup
-      # - getty-devops-release/deployTo:
-      #     context: GETTY
-      #     tag: *imageTag
-      #     service: lod-gateway-archivesspace-l1 lod-gateway-media-l2 lod-gateway-museum-collection-l2 lod-gateway-otmm-l1 lod-gateway-rcv-l2 lod-gateway-rosetta-l1 lod-gateway-vocab-l1 lod-gateway-vocab-l2
-      #     environment: production
-      #     filters:
-      #       branches:
-      #         ignore: /.*/
-      #       tags:
-      #         only: /^v.*$/
+      - getty-devops-release/deployTo:
+          context: GETTY
+          tag: *imageTag
+          service: lod-gateway-archivesspace-l1 lod-gateway-media-l2 lod-gateway-museum-collection-l2 lod-gateway-otmm-l1 lod-gateway-rcv-l2 lod-gateway-rosetta-l1 lod-gateway-vocab-l2
+          environment: prd
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v1.*$/
 
 jobs:
   build:

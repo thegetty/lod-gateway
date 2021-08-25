@@ -1,0 +1,20 @@
+FROM java:8-jdk
+
+ARG VERSION=3.14.0
+
+ENV URL=https://repository.apache.org/content/repositories/releases/org/apache/jena/jena-fuseki-server/${VERSION}/jena-fuseki-server-${VERSION}.jar
+ENV BASE=/mnt/apache-fuseki
+
+## VOLUME /mnt/
+
+RUN mkdir -p $BASE
+RUN mkdir $BASE/databases
+
+WORKDIR $BASE
+
+RUN curl --silent --show-error --output fuseki-server.jar $URL
+
+EXPOSE 3030
+
+ENTRYPOINT [ "/usr/bin/java", "-Dorg.eclipse.jetty.server.Request.maxFormContentSize=25000000", "-jar", "fuseki-server.jar", "--ping" ]
+CMD ["--tdb2", "--update", "--loc", "databases/DB2", "/ds"]

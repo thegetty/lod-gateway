@@ -318,13 +318,13 @@ class TestActivityEntity:
     def test_url_activity(self, current_app, base_url):
         assert (
             activity_entity.url_activity("someentity")
-            == f"{base_url}/activity-stream/entity/someentity"
+            == f"{base_url}/activity-stream/type/someentity"
         )
 
     def test_url_page(self, current_app, base_url):
         assert (
             activity_entity.url_page(11, "someentity")
-            == f"{base_url}/activity-stream/entity/someentity/page/11"
+            == f"{base_url}/activity-stream/type/someentity/page/11"
         )
 
 

@@ -59,28 +59,41 @@ will run `pywatch`, which will watch for file changes and re-run the tests autom
 Configuration is managed through environment variables. In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault. In testing environments, the `.env.example` file is used directly.
 
 ```
-AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality
+LOD_AS_DESC                 # Textual description of the deployed LOD Gateway
+
+AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality, i.e. loading
+                            # records into the LOD Gateway. The value should 
+                            # be formatted as "Bearer {AUTHORIZATION_TOKEN}" in
+                            # the HTTP POST request Authorization header.
 
 DATABASE=                   # This should be the full URL to the database
                             # for example, postgresql://mart:mart@postgres/mart
 
-LOD_BASE_URL=               # This should be the base URL of the application
-                            # for example, https://data.getty.edu
+BASE_URL=                   # This should be the base URL of the application and 
+                            # for RDF URIs. For example, https://data.getty.edu
 
 APPLICATION_NAMESPACE=      # This should be the 'vanity' portion of the URL
                             # for example, "museum/collection"
 
-APP_NAMESPACE_NEPTUNE=      # This variable should always have the same value as
-                            # APPLICATION_NAMESPACE unless there is a specific need
+RDF_NAMESPACE=              # This variable is optional and should only be set if the
+                            # namespace in the RDF data should differ from the value set
+                            # in APPLICATION_NAMESPACE and there is a specific need
                             # to prefix the relative URLs in the JSON-LD documents
-                            # differently for Neptune, such as for testing or for
-                            # specially staged loads. In such cases, these development
-                            # or special stagining instances of the LOD Gateway must
+                            # differently for triples in the graph store, such as for testing
+                            # or for specially staged loads. In such cases, these development
+                            # or special staging instances of the LOD Gateway must
                             # share the same base URL as their corresponding production
                             # or staging instance, that is, they should be hosted under
-                            # the same domain name.
+                            # the same domain name. If no RDF_NAMESPACE variable is provided,
+                            # the LOD Gateway defaults to APPLICATION_NAMESPACE for data loaded
+                            # into the graph store.
 
-PROCESS_NEPTUNE=            # The value must be "True" if Neptune processing is required
+PROCESS_RDF=                # The value must be "True" to enable processing of JSON-LD into 
+                            # RDF triples on ingest. If enabled, two other environment variables
+                            # must be set to the SPARQL endpoints (query and update):
+                            # SPARQL_QUERY_ENDPOINT and SPARQL_UPDATE_ENDPOINT. When PROCESS_RDF is
+                            # set to "False", the LOD Gateway acts as a simple document store with no RDF
+                            # component.
 
 FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
 
@@ -96,7 +109,7 @@ PREFIX_RECORD_IDS=          # Configure the Prefixing of Record "id" Values:
                             # setting `PREFIX_RECORD_IDS=TOP`, or to disable all prefixing
                             # of record "id" values by setting `PREFIX_RECORD_IDS=NONE`.
 
-KEEP_LAST_VERSION=.         # Set this to True to enable the retention of a single previous
+KEEP_LAST_VERSION=          # Set this to True to enable the retention of a single previous
                             # version of a record when it is updated. See 'Versioning' for
                             # more details.
 ```

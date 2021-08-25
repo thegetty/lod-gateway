@@ -4,7 +4,7 @@ This repository contains the code used to convert various Getty systems of recor
 
 ## Components
 
-The LOD Gateway contains one production container: `web-service`; for development purposes, a containerized `postgres` service is also included.
+The LOD Gateway contains one production container: `web-service`; for development purposes, a containerized `postgres` service and a containerized graph store, `fuseki`, are also included.
 
 ## Setup Instructions
 
@@ -120,28 +120,32 @@ Using VS Code, it is possible to develop inside the container with full debuggin
 
 Legend:  
 "base_url" - application url (e.g. https://data.getty.edu)  
-"ns" - namespace. Different for every LOD Gateway instance (e.g. "museum/collection")  
+"ns" - application namespace (e.g. "museum/collection")  
 "entity_type" - Entity type of the record. Can be an alias of an RDF type (e.g. "object" for Human Made Object)  
 
 #### base_url/ns/health  
 
-Returns OK if application is running and data base is accessible. Also checks Neptune health for instances that have ["PROCESS_NEPTUNE"] flag = "True". If one of the components not running, Error 500 retuned.
+Returns OK if application is running and data base is accessible. Also checks the graph store health for instances that have ["PROCESS_RDF"] flag = "True". If one of the components is not running, Error 500 retuned.
 
 #### base_url/ns/ingest
 
-Method - POST. Authentication - 'bearer token'. Accepts a set of records in JSON LD format.CRUD operations supported. In case of 'delete' only the data part is deleted, record is not removed from DB. After records inserted into DB, they are also added to Neptune. Atomic processing implemented, i.e. if one of the records fails or Neptune operation unsuccessful, the wholre transaction is rolled back.
+Method - POST. Authentication - 'bearer token'. Accepts a set of line-delimited records in JSON LD format. CRUD operations supported. When ingesting a record, the entity "id" should be relative, not a full URI. For example, when ingesting the record "Irises" into an LOD Gateway deployed at https://data.getty.edu/museum/collection, the entity "id" should be "object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb" producing the following URI in the deployed application: https://data.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb  
+
+In the case of a 'delete' operation, only the data part is deleted. A record remains in the database that indicates that the record existed and its lifecycle is recorded in the activity stream. A record delete operation is done by ingesting a JSON record with the relevant entity id and a single key/value pair, `"_delete": "true"`.  
+
+When records are ingested into the LOD Gateway, they are also expanded into RDF and added to the graph store if a valid context is given and the ["PROCESS_RDF"] flag = "True". Atomic processing is implemented, i.e. if one of the records fails or the RDF expansion operations are unsuccessful, the entire transaction is rolled back.
 
 #### base_url/ns/entity_type/entity_id
 
-Return a single record with id = <entity_id>. If record is not found, Error 404 returned.
+Return a single record with id = <entity_type/entity_id>. If record is not found, Error 404 returned.
 
 #### base_url/ns/entity_type/entity_id/activity-stream
 
-Return activity stream for a single record with id = <entity_id>
+Return activity stream for a single record with id = <entity_type/entity_id>
 
 #### base_url/ns/activity-stream
 
-Return activity stream for the whole data set broken in pages. Number of records per page is configurable. Currently it is 100.
+Return activity stream for the whole data set broken into pages of no greater than a defined number of activity items. Currently it is set 100.
 
 #### base_url/ns/activity-stream/type/entity_type
 
@@ -153,7 +157,7 @@ SPARQL endpoint for querying RDF triples representation of data stored in the LO
 
 #### base_url/ns/sparql-ui
 
-YASGUI implementation of a user interface for doing SPARQL queries on the data stored in the LOD Gateway.
+YASGUI implementation of a user interface for doing SPARQL queries on the data stored in an individual instance of an LOD Gateway.
 
 ## Logging and Access logs
 

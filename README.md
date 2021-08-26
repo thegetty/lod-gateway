@@ -56,7 +56,7 @@ will run `pywatch`, which will watch for file changes and re-run the tests autom
 
 ## Deployment Options
 
-Configuration is managed through environment variables. In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault. In testing environments, the `.env.example` file is used directly.
+Configuration is managed through environment variables. In development, these are set through the `.env` file, and in Staging and Production evironments, these values can be managed in a secrets management system like Vault. In testing environments, the `.env.example` file is used directly.
 
 ```
 LOD_AS_DESC                 # Textual description of the deployed LOD Gateway

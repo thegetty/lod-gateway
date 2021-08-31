@@ -268,6 +268,7 @@ def generate_item(activity):
         "id": url_activity(activity.uuid),
         "type": activity.event,
         "created": format_datetime(activity.datetime_created),
+        "endTime": format_datetime(activity.datetime_created),
         "object": {"id": url_base(activity.entity_id), "type": activity.entity_type},
     }
 

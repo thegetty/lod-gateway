@@ -640,8 +640,8 @@ def validate_record(rec):
 
     except Exception as e:
         # JSON syntax is not valid
-        current_app.logger.error("JSON Record Syntax/Validation Error: " + str(e))
-        return status_nt(422, "JSON Record Syntax/Validation Error", str(e))
+        current_app.logger.error("JSON Record Parse/Validation Error: " + str(e))
+        return status_nt(422, "JSON Record Parse/Validation Error", str(e))
 
 
 def validate_record_set(record_list):

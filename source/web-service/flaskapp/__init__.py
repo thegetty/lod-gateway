@@ -11,6 +11,7 @@ from flask_compress import Compress
 from flask.logging import default_handler
 
 from flaskapp.routes.activity import activity
+from flaskapp.routes.activity_entity import activity_entity
 from flaskapp.routes.records import records
 from flaskapp.routes.ingest import ingest
 from flaskapp.routes.health import health
@@ -36,16 +37,28 @@ def create_app():
     CORS(app, send_wildcard=True)
     # Setup global configuration
     app.config["AUTH_TOKEN"] = environ["AUTHORIZATION_TOKEN"]
-    app.config["BASE_URL"] = environ["LOD_BASE_URL"]
+    app.config["BASE_URL"] = environ["BASE_URL"]
     app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"]
-    app.config["NAMESPACE_FOR_NEPTUNE"] = environ["APP_NAMESPACE_NEPTUNE"]
+    app.config["NAMESPACE_FOR_RDF"] = environ.get(
+        "RDF_NAMESPACE", app.config["NAMESPACE"]
+    )
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_SORT_KEYS"] = False
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
-    app.config["PROCESS_NEPTUNE"] = environ["PROCESS_NEPTUNE"]
-    app.config["NEPTUNE_ENDPOINT"] = environ["NEPTUNE_ENDPOINT"]
+    app.config["PROCESS_RDF"] = environ["PROCESS_RDF"]
+
+    # Setting the limit on number of records returned due to a glob browse request
+    try:
+        app.config["BROWSE_PAGE_SIZE"] = int(environ.get("BROWSE_PAGE_SIZE", 200))
+    except (ValueError, TypeError) as e:
+        app.config["BROWSE_PAGE_SIZE"] = 200
+
+    # SPARQL endpoints only apply if LOD Gateway is configured to process input into RDF triples
+    if app.config["PROCESS_RDF"].lower() == "true":
+        app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
+        app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
     app.config["JSON_AS_ASCII"] = False
     app.config["FLASK_GZIP_COMPRESSION"] = environ["FLASK_GZIP_COMPRESSION"]
     app.config["PREFIX_RECORD_IDS"] = getenv("PREFIX_RECORD_IDS", default="RECURSIVE")
@@ -81,6 +94,7 @@ def create_app():
         ns = app.config["NAMESPACE"]
 
         app.register_blueprint(activity, url_prefix=f"/{ns}")
+        app.register_blueprint(activity_entity, url_prefix=f"/{ns}")
         app.register_blueprint(records, url_prefix=f"/{ns}")
         app.register_blueprint(ingest, url_prefix=f"/{ns}")
         app.register_blueprint(sparql, url_prefix=f"/{ns}")

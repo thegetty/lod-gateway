@@ -117,7 +117,7 @@
 							"Invalid JSON",
 							"ID Missing",
 							"Data Base Error",
-							"Neptune Error",
+							"Graph Store Error",
 							"Service Unavalable"
 						],
 						
@@ -165,7 +165,7 @@
 							"No input data found",
 							"Could not parse JSON record",
 							"ID for the JSON record not found",
-							"Neptune connection cannot be established",
+							"Graph store connection cannot be established",
 							"Cannot perform database operation"
 						],
 						

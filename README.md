@@ -4,7 +4,7 @@ This repository contains the code used to convert various Getty systems of recor
 
 ## Components
 
-The LOD Gateway contains one production container: `web-service`; for development purposes, a containerized `postgres` service is also included.
+The LOD Gateway contains one production container: `web-service`; for development purposes, a containerized `postgres` service and a containerized graph store, `fuseki`, are also included.
 
 ## Setup Instructions
 
@@ -41,6 +41,7 @@ docker-compose run --rm \
     -e AUTHORIZATION_TOKEN=AuthToken \
     web pytest
 ```
+
 will run the tests, and
 
 ```bash
@@ -55,31 +56,44 @@ will run `pywatch`, which will watch for file changes and re-run the tests autom
 
 ## Deployment Options
 
-Configuration is managed through environment variables.  In development, these are set through the `.env` file, and in Staging and Production these are managed in Vault.  In testing environments, the `.env.example` file is used directly.
+Configuration is managed through environment variables. In development, these are set through the `.env` file, and in Staging and Production evironments, these values can be managed in a secrets management system like Vault. In testing environments, the `.env.example` file is used directly.
 
 ```
-AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality
+LOD_AS_DESC                 # Textual description of the deployed LOD Gateway
+
+AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality, i.e. loading
+                            # records into the LOD Gateway. The value should 
+                            # be formatted as "Bearer {AUTHORIZATION_TOKEN}" in
+                            # the HTTP POST request Authorization header.
 
 DATABASE=                   # This should be the full URL to the database
                             # for example, postgresql://mart:mart@postgres/mart
 
-LOD_BASE_URL=               # This should be the base URL of the application
-                            # for example, https://data.getty.edu
+BASE_URL=                   # This should be the base URL of the application and 
+                            # for RDF URIs. For example, https://data.getty.edu
 
 APPLICATION_NAMESPACE=      # This should be the 'vanity' portion of the URL
                             # for example, "museum/collection"
 
-APP_NAMESPACE_NEPTUNE=      # This variable should always have the same value as
-                            # APPLICATION_NAMESPACE unless there is a specific need
+RDF_NAMESPACE=              # This variable is optional and should only be set if the
+                            # namespace in the RDF data should differ from the value set
+                            # in APPLICATION_NAMESPACE and there is a specific need
                             # to prefix the relative URLs in the JSON-LD documents
-                            # differently for Neptune, such as for testing or for
-                            # specially staged loads. In such cases, these development
-                            # or special stagining instances of the LOD Gateway must
+                            # differently for triples in the graph store, such as for testing
+                            # or for specially staged loads. In such cases, these development
+                            # or special staging instances of the LOD Gateway must
                             # share the same base URL as their corresponding production
                             # or staging instance, that is, they should be hosted under
-                            # the same domain name.
+                            # the same domain name. If no RDF_NAMESPACE variable is provided,
+                            # the LOD Gateway defaults to APPLICATION_NAMESPACE for data loaded
+                            # into the graph store.
 
-PROCESS_NEPTUNE=            # The value must be "True" if Neptune processing is required
+PROCESS_RDF=                # The value must be "True" to enable processing of JSON-LD into 
+                            # RDF triples on ingest. If enabled, two other environment variables
+                            # must be set to the SPARQL endpoints (query and update):
+                            # SPARQL_QUERY_ENDPOINT and SPARQL_UPDATE_ENDPOINT. When PROCESS_RDF is
+                            # set to "False", the LOD Gateway acts as a simple document store with no RDF
+                            # component.
 
 FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
 
@@ -95,12 +109,55 @@ PREFIX_RECORD_IDS=          # Configure the Prefixing of Record "id" Values:
                             # setting `PREFIX_RECORD_IDS=TOP`, or to disable all prefixing
                             # of record "id" values by setting `PREFIX_RECORD_IDS=NONE`.
 
-KEEP_LAST_VERSION=.         # Set this to True to enable the retention of a single previous
+KEEP_LAST_VERSION=          # Set this to True to enable the retention of a single previous
                             # version of a record when it is updated. See 'Versioning' for
                             # more details.
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
+
+## Functionality and Routes
+
+Legend:  
+"base_url" - application url (e.g. https://data.getty.edu)  
+"ns" - application namespace (e.g. "museum/collection")  
+"entity_type" - Entity type of the record. Can be an alias of an RDF type (e.g. "object" for Human Made Object)  
+
+#### base_url/ns/health  
+
+Returns OK if application is running and data base is accessible. Also checks the graph store health for instances that have ["PROCESS_RDF"] flag = "True". If one of the components is not running, Error 500 retuned.
+
+#### base_url/ns/ingest
+
+Method - POST. Authentication - 'bearer token'. Accepts a set of line-delimited records in JSON LD format. CRUD operations supported. When ingesting a record, the entity "id" should be relative, not a full URI. For example, when ingesting the record "Irises" into an LOD Gateway deployed at https://data.getty.edu/museum/collection, the entity "id" should be "object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb" producing the following URI in the deployed application: https://data.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb  
+
+In the case of a 'delete' operation, only the data part is deleted. A record remains in the database that indicates that the record existed and its lifecycle is recorded in the activity stream. A record delete operation is done by ingesting a JSON record with the relevant entity id and a single key/value pair, `"_delete": "true"`.  
+
+When records are ingested into the LOD Gateway, they are also expanded into RDF and added to the graph store if a valid context is given and the ["PROCESS_RDF"] flag = "True". Atomic processing is implemented, i.e. if one of the records fails or the RDF expansion operations are unsuccessful, the entire transaction is rolled back.
+
+#### base_url/ns/entity_type/entity_id
+
+Return a single record with id = <entity_type/entity_id>. If record is not found, Error 404 returned.
+
+#### base_url/ns/entity_type/entity_id/activity-stream
+
+Return activity stream for a single record with id = <entity_type/entity_id>
+
+#### base_url/ns/activity-stream
+
+Return activity stream for the whole data set broken into pages of no greater than a defined number of activity items. Currently it is set 100.
+
+#### base_url/ns/activity-stream/type/entity_type
+
+Return activity stream for a specific 'entity_type'. Examples of entity types from LOD 'museum/collection' - 'Group', 'Person', 'HumanMadeObject', etc. The same pagination structure implemented as for the main 'activity-stream'.
+
+#### base_url/ns/sparql
+
+SPARQL endpoint for querying RDF triples representation of data stored in the LOD Gateway. No authentication is required.
+
+#### base_url/ns/sparql-ui
+
+YASGUI implementation of a user interface for doing SPARQL queries on the data stored in an individual instance of an LOD Gateway.
 
 ## Logging and Access logs
 
@@ -112,14 +169,14 @@ uWSGI hosts the Python application as a WSGI application. It pipes the `STDOUT` 
 
 **STDOUT**
 
- - Python logger output? All levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL`.
- - uWSGI messages? All messages.
+- Python logger output? All levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL`.
+- uWSGI messages? All messages.
 
 **STDERR**
 
- - Python logger output? `ERROR` and `CRITICAL` only.
- - uWSGI messages? Only HTTP 50X messages (via a `log-route` match defined in `uwsgi.ini`)
- 
+- Python logger output? `ERROR` and `CRITICAL` only.
+- uWSGI messages? Only HTTP 50X messages (via a `log-route` match defined in `uwsgi.ini`)
+
 ## Versioning
 
 If the `KEEP_LAST_VERSION` environment variable is present and set to `True`, it turns on functionality to keep a single previous copy of a record, and to connect it to the new version. This is done by copying the data to a new record with an arbitrary new `entity_id`, and adding a reference to this new `entity_id` in the `Record`.`previous_version` field of the newer record. The JSON data is unchanged in the previous verison, and will retain whatever value the record had in the `id` field.

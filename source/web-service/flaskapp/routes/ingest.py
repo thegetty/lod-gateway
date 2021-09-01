@@ -19,7 +19,7 @@ from flaskapp.errors import (
     status_nt,
     status_data_missing,
     status_db_error,
-    status_neptune_error,
+    status_graphstore_error,
     status_db_save_error,
     status_GET_not_allowed,
     status_id_missing,
@@ -86,7 +86,7 @@ def ingest_post():
         # return detailed error
         return abort(response)
 
-    # Process record set to create/update/delete in Record, Activities and Neptune
+    # Process record set to create/update/delete in Record, Activities and graph store
     result = process_record_set(record_list)
 
     # The result is an error (derived from 'status_nt'). Abort with 503
@@ -103,7 +103,7 @@ def process_record_set(record_list):
     """
     Process the record set in a loop. Wrap into 'try-except'.
     Roll back and abort with 503 if any of 3 operations:
-    Record, Activity or Neptune fails.
+    Record, Activity or graph store fails.
     """
 
     #  This dict will be returned by function. key: 'id', value: 'namespace/id'
@@ -126,7 +126,7 @@ def process_record_set(record_list):
                 # add pair of IDs to result dict
                 result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'
 
-                # add the list index to the list of updates to process through Neptune
+                # add the list index to the list of updates to process through the graph store
                 idx_to_process_further.append(idx)
 
             # add to result dict pair ('id': 'None') which will signify to client no operation was done
@@ -138,18 +138,18 @@ def process_record_set(record_list):
         db.session.rollback()
         return status_db_save_error
 
-    # Process Neptune entries. Check the Neptune flag - if not set, do not process, return 'True'
+    # Process graph store entries. Check the graph store flag - if not set, do not process, return 'True'
     # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
-    neptune_result = True
-    if current_app.config["PROCESS_NEPTUNE"] == "True":
-        neptune_result = process_neptune_record_set(
+    graphstore_result = True
+    if current_app.config["PROCESS_RDF"] == "True":
+        graphstore_result = process_graphstore_record_set(
             [record_list[x] for x in idx_to_process_further]
         )
 
-    # if Neptune fails, roll back and return Neptune specific error
-    if isinstance(neptune_result, status_nt):
+    # if RDF process fails, roll back and return graph store specific error
+    if isinstance(graphstore_result, status_nt):
         db.session.rollback()
-        return neptune_result
+        return graphstore_result
 
     # Everything went fine - commit the transaction
     db.session.commit()
@@ -332,15 +332,17 @@ def get_record(rec_id):
     return result
 
 
-# Neptune processing
-def process_neptune_record_set(record_list, neptune_endpoint=None):
+# RDF processing
+def process_graphstore_record_set(
+    record_list, query_endpoint=None, update_endpoint=None
+):
     """
     This function will process the same list of records indepenently.
     See specs for details.
 
     If one of the records fails, all inserted/updated records must be reverted:
     newly inserted records must be deleted, updated records must be reverted to
-    the previous state. And Neptune specific error derived from 'status_nt'
+    the previous state. And graph store specific error derived from 'status_nt'
     (see 'errors.py' for examples and how to create) must be returned.
     If it is desireable to include failing record number, then 'status_nt'
     could be created on the fly like this:
@@ -356,17 +358,20 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
     """
 
     try:
-        if neptune_endpoint == None:
-            neptune_endpoint = current_app.config["NEPTUNE_ENDPOINT"]
+        if query_endpoint is None:
+            query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+
+        if update_endpoint is None:
+            update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
 
         # check endpoint
-        if graph_check_endpoint(neptune_endpoint) == False:
-            return status_neptune_error
+        if graph_check_endpoint(query_endpoint) == False:
+            return status_graphstore_error
 
         graph_uri_prefix = (
             current_app.config["BASE_URL"]
             + "/"
-            + current_app.config["NAMESPACE_FOR_NEPTUNE"]
+            + current_app.config["NAMESPACE_FOR_RDF"]
             + "/"
         )
         graph_rollback_save = {}
@@ -380,7 +385,7 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
             idPrefix = (
                 current_app.config["BASE_URL"]
                 + "/"
-                + current_app.config["NAMESPACE_FOR_NEPTUNE"]
+                + current_app.config["NAMESPACE_FOR_RDF"]
             )
 
             # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
@@ -391,10 +396,12 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
             # Store the absolute 'id' URL after the recursive URL prefixing is performed
             graph_uri = data["id"]
 
-            if graph_exists(graph_uri, neptune_endpoint):
-                graph_backup = graph_delete(graph_uri, neptune_endpoint)
+            if graph_exists(graph_uri, query_endpoint):
+                graph_backup = graph_delete(graph_uri, query_endpoint, update_endpoint)
                 if isinstance(graph_backup, bool) and graph_backup == False:
-                    graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
+                    graph_transaction_rollback(
+                        graph_rollback_save, query_endpoint, update_endpoint
+                    )
                     return status_nt(
                         422, "Graph delete error", "Could not delete id " + id
                     )
@@ -410,22 +417,25 @@ def process_neptune_record_set(record_list, neptune_endpoint=None):
 
             serialized_nt = graph_expand(data, proc)
             if isinstance(serialized_nt, bool) and serialized_nt == False:
-                graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
+                graph_transaction_rollback(
+                    graph_rollback_save, query_endpoint, update_endpoint
+                )
                 return status_nt(
                     422,
                     "Graph expansion error",
                     "Could not convert JSON-LD to RDF, id " + id,
                 )
-            insert_resp = graph_insert(graph_uri, serialized_nt, neptune_endpoint)
+            insert_resp = graph_insert(graph_uri, serialized_nt, update_endpoint)
             if insert_resp == False:
-                graph_transaction_rollback(graph_rollback_save, neptune_endpoint)
+                graph_transaction_rollback(
+                    graph_rollback_save, query_endpoint, update_endpoint
+                )
                 return status_nt(500, "Graph insert error", "Could not insert id " + id)
 
     # Catch request connection errors
     except requests.exceptions.ConnectionError as e:
-        return status_neptune_error
+        return status_graphstore_error
 
-    # return status_nt(500, "Neptune error", "rec num 222")
     return True
 
 
@@ -500,9 +510,9 @@ def graph_expand(data, proc=None):
     return serialized_nt
 
 
-def graph_exists(graph_name, neptune_endpoint):
+def graph_exists(graph_name, query_endpoint):
     res = requests.post(
-        neptune_endpoint,
+        query_endpoint,
         data={
             "query": "SELECT (count(?s) as ?count) { GRAPH <"
             + graph_name
@@ -516,19 +526,19 @@ def graph_exists(graph_name, neptune_endpoint):
         return False
 
 
-def graph_insert(graph_name, serialized_nt, neptune_endpoint):
+def graph_insert(graph_name, serialized_nt, update_endpoint):
     insert_stmt = "INSERT DATA {GRAPH <" + graph_name + "> {" + serialized_nt + "}}"
-    res = requests.post(neptune_endpoint, data={"update": insert_stmt})
+    res = requests.post(update_endpoint, data={"update": insert_stmt})
     if res.status_code == 200:
         return True
     else:
         return False
 
 
-def graph_delete(graph_name, neptune_endpoint):
+def graph_delete(graph_name, query_endpoint, update_endpoint):
     # save copy of graph in case of rollback
     res = requests.post(
-        neptune_endpoint,
+        query_endpoint,
         data={
             "query": "CONSTRUCT{ ?s ?p ?o } WHERE { GRAPH <"
             + graph_name
@@ -540,29 +550,39 @@ def graph_delete(graph_name, neptune_endpoint):
 
     # drop graph
     res = requests.post(
-        neptune_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
+        update_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
     )
     if res.status_code == 200:
         return graph_ntriples
     else:
-        current_app.logger.error(f"Nepute graph delete error code: {res.status_code}")
-        current_app.logger.error(f"Nepute graph delete error: {res.json()}")
+        current_app.logger.error(f"Graph delete error code: {res.status_code}")
+        current_app.logger.error(f"Graph delete error: {res.json()}")
         return False
 
 
-def graph_transaction_rollback(graph_rollback_save, neptune_endpoint):
+def graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpoint):
     for graph_uri in graph_rollback_save.keys():
-        graph_delete(graph_uri, neptune_endpoint)
+        graph_delete(graph_uri, query_endpoint, update_endpoint)
         if graph_rollback_save[graph_uri] is not None:
-            graph_insert(graph_uri, graph_rollback_save[graph_uri], neptune_endpoint)
+            graph_insert(graph_uri, graph_rollback_save[graph_uri], update_endpoint)
 
 
-def graph_check_endpoint(neptune_endpoint):
-    res = requests.get(neptune_endpoint.replace("sparql", "status"))
-    res_json = json.loads(res.content)
-    if res_json["status"] == "healthy":
-        return True
-    else:
+def graph_check_endpoint(query_endpoint):
+    res = requests.get(query_endpoint.replace("sparql", "status"))
+    try:
+        res.raise_for_status()
+        res_json = json.loads(res.content)
+        if res_json["status"] == "healthy":
+            return True
+        else:
+            return False
+    except requests.exceptions.HTTPError as e:
+        resp = e.response
+        if resp.status_code == 404:
+            # the endpoint we're connecting to does not have a /status
+            # (perhaps it's a locally running endpoint instead of something like AWS Neptune)
+            # assume its status is OK
+            return True
         return False
 
 

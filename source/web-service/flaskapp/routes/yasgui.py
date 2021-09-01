@@ -1,4 +1,5 @@
-from flask import Blueprint, current_app
+from flask import Blueprint, current_app, abort
+from flaskapp.errors import status_nt, construct_error_response
 
 # Create a new "yasgui" route blueprint
 yasgui = Blueprint("yasgui", __name__)
@@ -6,6 +7,16 @@ yasgui = Blueprint("yasgui", __name__)
 # ### ROUTES ###
 @yasgui.route("/sparql-ui", methods=["GET"])
 def get_yasgui():
+    if current_app.config["PROCESS_RDF"].lower() == "false":
+        response = construct_error_response(
+            status_nt(
+                501,
+                "Not Implemented",
+                "Application is not enabled for SPARQL operations",
+            )
+        )
+        return abort(response)
+
     endpoint = (
         current_app.config["BASE_URL"]
         + "/"

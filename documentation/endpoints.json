@@ -181,16 +181,12 @@
 				],
 				"requestBody": {
 					"description": "The `ingest` endpoint's `POST` request body should consist of newline-delimited JSON, containing one or more valid serialized JSON objects delimited by line-break characters `\\n` to ingest into the LOD Gateway. Each JSON object MUST contain an `id` attribute with a relative URL ID represented as a string. Any other JSON object attributes are optional.\n\nTo delete an existing record, one should create a serialized JSON object that specifies the record's relative URL ID within the JSON object's `id` attribute along with the special `_delete` attribute with a boolean value of `true`. Record deletion requests may be included along with record creation/update requests, or submitted as their own requests; one may use whichever option makes sense from a dataset/workflow perspective for their given use-case.\n\nIt should be noted that when more than one JSON serialized record is submitted to the `ingest` endpoint, that this group of records are treat as a transaction, and either all of the records will be processed successfully with all of the changes committed, or if one or more fail to be processed, then all of the changes in the group will be rolled-back. The transactional nature of an `ingest` request is useful to ensure that a group of related records/changes either all succeed or all fail, so as to avoid any incomplete changes to data. However, this feature is something that should be considered when determining how or if to group records as part of an `ingest` request.\n\nThe last point of note is that one MUST ensure that the `POST` request body is UTF-8 encoded to ensure the valid representation and handling of the serialized JSON contained within.",
-					
 					"required": true,
-					
 					"content": {
 						"text/plain": {
 							"schema": {
 								"$comment": "Unfortunately it does not seem possible to represent newline-delimited JSON using JSON Schema and it likely fails general `application/json` validation unless the JSON parser being used is newline-delimited JSON aware. So we define the request body here as `text/plain` instead.",
-								
 								"type": "string",
-								
 								"example": "{\"id\":\"object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb\",\"type\":\"HumanMadeObject\",\"_label\":\"Irises\"}\n {\"id\":\"person/c3a876a9-5333-40d5-8488-6cc722058f5e\",\"type\":\"Person\",\"_label\":\"Vincent van Gogh\"}\n {\"id\":\"group/2c81dbb8-0a0c-47eb-a56f-0d218a974f7d\",\"_delete\":true}"
 							}
 						}
@@ -247,7 +243,7 @@
 								"schema": {
 									"$ref": "http://developer.getty.edu/documentation/node/38249478/ingest-error.json"
 								},
-								"example": "{\"errors\": [{\"status\": 500, \"title\": \"Neptune Error\", \"detail\": \"Neptune connection cannot be established\"}]}"
+								"example": "{\"errors\": [{\"status\": 500, \"title\": \"Graph Store Error\", \"detail\": \"Graph store connection cannot be established\"}]}"
 							}
 						}
 					},

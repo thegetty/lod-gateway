@@ -33,7 +33,7 @@ class TestIngestErrors:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
-        assert b"Could not parse JSON record" in response.data
+        assert b"JSON Record Parse/Validation Error" in response.data
 
     def test_ingest_single_id_missing(self, client, namespace, auth_token):
         response = client.post(
@@ -69,7 +69,7 @@ class TestIngestErrors:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
-        assert b"Could not parse JSON record" in response.data
+        assert b"JSON Record Parse/Validation Error" in response.data
 
     def test_ingest_multiple_id_missing(self, client, namespace, auth_token):
         response = client.post(

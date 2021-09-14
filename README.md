@@ -224,4 +224,6 @@ The LOD Gateway project consists of the following primary software components:
 
 ## License and Copyright Information
 
-Copyright © The J. Paul Getty Trust 2019-2021. All rights reserved.
+Copyright © The J. Paul Getty Trust 2019.
+
+The Getty name, logos, and trademarks are owned by the J. Paul Getty Trust, and subject to [the J. Paul Getty Trust Trademark Policy for Open Source Projects](https://www.getty.edu/legal/trademarks/opensource.html).

@@ -64,7 +64,7 @@ def query_entrypoint():
     res = execute_query(query, accept_header, query_endpoint)
     if isinstance(res, status_nt):
         response = construct_error_response(res)
-        return response
+        return abort(response)
     else:
         return Response(res, direct_passthrough=True, content_type=accept_header)
 
@@ -77,6 +77,7 @@ def execute_query(query, accept_header, query_endpoint):
         res.raise_for_status()
         return res.content
     except requests.exceptions.HTTPError as e:
-        return status_graphstore_error
+        response = status_nt(res.status_code, type(e).__name__, str(res.content))
+        return response
     except requests.exceptions.ConnectionError as e:
         return status_graphstore_error

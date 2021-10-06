@@ -12,6 +12,14 @@ services:
         ports:
             - 5432:5432
 
+    endpoint:
+        build:
+            context: ./
+            dockerfile: ./Dockerfile.sparql-service
+        command: --tdb2 --update --loc databases/DB2 /ds
+        ports:
+            - 3030:3030
+
     web:
         build:
             context: ./
@@ -26,6 +34,5 @@ services:
         ports:
             - "${FLASK_RUN_PORT}:5100"
             - "5001:5001"  # VS Code debugger
-
 volumes:
     data_postgres:

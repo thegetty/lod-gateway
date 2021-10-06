@@ -180,6 +180,7 @@ def generate_item(activity):
         "id": generate_url(sub=[str(activity.uuid)]),
         "type": activity.event,
         "created": format_datetime(activity.datetime_created),
+        "endTime": format_datetime(activity.datetime_created),
         "object": {
             "id": generate_url(base=True, sub=[str(activity.record.entity_id)]),
             "type": activity.record.entity_type,

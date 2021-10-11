@@ -28,16 +28,14 @@ def insert_record_set(csv_line_list):
 
 def create_record(csv_line):
     r = {}
-    r[
-        "@context"
-    ] = "https://static.getty.edu/contexts/skos/skos-lite.json"
+    r["@context"] = "https://static.getty.edu/contexts/skos/skos-lite.json"
     r["id"] = csv_line[1]
     r["type"] = "Concept"
     r["pref_label"] = csv_line[0]
     r["scope_note"] = csv_line[2]
     r["exact_match"] = csv_line[3].split(", ")
     return json.dumps(r)
-    
+
 
 def read_csv_file():
     download = requests.get(current_app.config["LOCAL_THESAURUS_URL"])

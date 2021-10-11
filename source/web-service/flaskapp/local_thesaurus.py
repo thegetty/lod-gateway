@@ -38,7 +38,7 @@ def create_record(csv_line):
     return json.dumps(r)
 
 
-def read_csv_file():  
+def read_csv_file():
     download = requests.get(current_app.config["LOCAL_THESAURUS_URL"])
     decoded = download.content.decode("utf-8")
     cr = csv.reader(decoded.splitlines(), delimiter=",")

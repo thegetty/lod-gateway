@@ -92,6 +92,7 @@ def create_app():
     migrate = Migrate(app, db)
 
     if app.config["NAMESPACE"] == "local/thesaurus":
+        app.config["LOCAL_THESAURUS_URL"] = environ["LOCAL_THESAURUS_URL"]
         local_thesaurus.populate_db(app.app_context())
 
     with app.app_context():

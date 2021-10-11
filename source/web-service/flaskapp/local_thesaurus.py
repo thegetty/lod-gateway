@@ -30,13 +30,14 @@ def create_record(csv_line):
     r = {}
     r[
         "@context"
-    ] = "https://static.getty.edu/contexts/linked.art/ns/v1.1.0/linked-art.json"
-    r["skos:prefLabel"] = csv_line[0]
-    r["skos:scopeNote"] = csv_line[2]
+    ] = "https://static.getty.edu/contexts/skos/skos-lite.json"
     r["id"] = csv_line[1]
-    r["type"] = "Type"
+    r["type"] = "Concept"
+    r["pref_label"] = csv_line[0]
+    r["scope_note"] = csv_line[2]
+    r["exact_match"] = csv_line[3].split(", ")
     return json.dumps(r)
-
+    
 
 def read_csv_file():
     download = requests.get(current_app.config["LOCAL_THESAURUS_URL"])

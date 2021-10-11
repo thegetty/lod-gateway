@@ -112,6 +112,9 @@ PREFIX_RECORD_IDS=          # Configure the Prefixing of Record "id" Values:
 KEEP_LAST_VERSION=          # Set this to True to enable the retention of a single previous
                             # version of a record when it is updated. See 'Versioning' for
                             # more details.
+
+LOCAL_THESAURUS_URL=        # This entry is required if APPLICATION_NAMESPACE=local/thesaurus.
+                            # It is the URL to the CSV file containing Local Thesaurus data
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers

@@ -67,7 +67,9 @@ AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality, i.e. lo
                             # the HTTP POST request Authorization header.
 
 DATABASE=                   # This should be the full URL to the database
-                            # for example, postgresql://mart:mart@postgres/mart
+                            # for example, postgresql://mart:mart@postgres/mart.
+                            # If APPLICATION_NAMESPACE=local/thesaurus, then a local sqlite db
+                            # is used. The entry should be DATABASE=sqlite:////app/app.db
 
 BASE_URL=                   # This should be the base URL of the application and 
                             # for RDF URIs. For example, https://data.getty.edu

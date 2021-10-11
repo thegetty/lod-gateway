@@ -2,6 +2,9 @@
 data/*
 prototyping/DOR/data/*
 
+# Local db
+*.db
+
 # Misc Files
 _*
 !__*__.*

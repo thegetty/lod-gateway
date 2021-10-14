@@ -31,9 +31,18 @@ def create_record(csv_line):
     r["@context"] = "https://static.getty.edu/contexts/skos/skos-lite.json"
     r["id"] = csv_line[1]
     r["type"] = "Concept"
-    r["pref_label"] = csv_line[0]
-    r["scope_note"] = csv_line[2]
-    r["exact_match"] = csv_line[3].split(", ")
+    if len(csv_line[0]) == 0:
+        r["pref_label"] = None
+    else:
+        r["pref_label"] = csv_line[0]
+    if len(csv_line[2]) == 0:
+        r["scope_note"] = None
+    else:
+        r["scope_note"] = csv_line[2]
+    if len(csv_line[3]) == 0:
+        r["exact_match"] = None
+    else:
+        r["exact_match"] = csv_line[3].split(", ")
     return json.dumps(r)
 
 

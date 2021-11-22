@@ -2,6 +2,7 @@ import logging
 import logging.config
 from os import environ, getenv
 from datetime import datetime
+import sqlite3
 
 from flask import Flask, Response
 from flask_cors import CORS
@@ -21,6 +22,7 @@ from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
 from flaskapp.logging_configuration import get_logging_config
+from flaskapp import local_thesaurus
 
 # top-level logging configuration should provide the basic configuration for any logger Flask sets in the
 # create_app step (and in other modules).
@@ -88,6 +90,10 @@ def create_app():
     if app.config["FLASK_GZIP_COMPRESSION"].lower() == "true":
         compress.init_app(app)
     migrate = Migrate(app, db)
+
+    if app.config["NAMESPACE"] == "local/thesaurus":
+        app.config["LOCAL_THESAURUS_URL"] = environ["LOCAL_THESAURUS_URL"]
+        local_thesaurus.populate_db(app.app_context())
 
     with app.app_context():
 

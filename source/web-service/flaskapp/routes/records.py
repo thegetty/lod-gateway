@@ -68,7 +68,8 @@ def entity_record(entity_id):
     idPrefix = current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"]
     if entity_id.endswith("*"):
         # Instead of responding with a single record, find and list the responses that match the 'glob' in the request
-        # load_only - we only care about these three columns, it is hugely quicker to just get those.
+        # load_only - we only care about three columns, and will filter on the fourth (is_old_version).
+        # Only records that exist, and are not flagged as an old version will be part of the listing.
         records = (
             Record.query.options(
                 load_only(

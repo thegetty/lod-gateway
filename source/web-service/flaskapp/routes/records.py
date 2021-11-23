@@ -68,11 +68,20 @@ def entity_record(entity_id):
     idPrefix = current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"]
     if entity_id.endswith("*"):
         # Instead of responding with a single record, find and list the responses that match the 'glob' in the request
-        # load_only - we only care about these three columns, it is hugely quicker to just get those.
-        records = Record.query.options(
-            load_only(Record.entity_id, Record.entity_type, Record.datetime_updated)
-        ).filter(Record.entity_id.like(entity_id[:-1] + "%"))
-
+        # load_only - we only care about three columns, and will filter on the fourth (is_old_version).
+        # Only records that exist, and are not flagged as an old version will be part of the listing.
+        records = (
+            Record.query.options(
+                load_only(
+                    Record.entity_id,
+                    Record.entity_type,
+                    Record.datetime_updated,
+                    Record.is_old_version,
+                )
+            )
+            .filter(Record.is_old_version == False)
+            .filter(Record.entity_id.like(entity_id[:-1] + "%"))
+        )
         # Pagination - GET URL parameter 'page'
         page = 1
         if "page" in request.args:
@@ -117,6 +126,7 @@ def entity_record(entity_id):
         # Pagination will be in the usual "first", "prev", "next" pattern
         if page_request.has_next is True:
             r_json["next"] = f"{idPrefix}/{entity_id}?page={page+1}"
+            r_json["last"] = f"{idPrefix}/{entity_id}?page={int(total/page_size)}"
         if page > 1:
             r_json["prev"] = f"{idPrefix}/{entity_id}?page={page-1}"
 

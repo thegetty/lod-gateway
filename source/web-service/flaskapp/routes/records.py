@@ -76,10 +76,12 @@ def entity_record(entity_id):
                     Record.entity_id,
                     Record.entity_type,
                     Record.datetime_updated,
+                    Record.datetime_deleted,
                     Record.is_old_version,
                 )
             )
             .filter(Record.is_old_version == False)
+            .filter(Record.datetime_deleted == None)
             .filter(Record.entity_id.like(entity_id[:-1] + "%"))
         )
         # Pagination - GET URL parameter 'page'

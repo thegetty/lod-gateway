@@ -236,6 +236,7 @@ def record_create(input_rec):
 
     r.datetime_created = datetime.utcnow()
     r.datetime_updated = r.datetime_created
+    r.is_old_version = False
     r.data = input_rec
     r.checksum = checksum_json(input_rec)
 
@@ -268,6 +269,8 @@ def record_update(db_rec, input_rec):
             db.session.add(prev)
 
             db_rec.previous_version = prev_id
+            # reassert the new version is_old... to False
+            db_rec.is_old_version = False
 
     # Don't allow updates to old versions - this should be stopped earlier in the normal ingest flow, but if this function is
     # called through a different route this is a good safeguard.

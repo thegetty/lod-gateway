@@ -39,6 +39,9 @@ def query_entrypoint():
     else:
         query = request.form.get("query")
 
+    current_app.logger.debug(str(request.form))
+    current_app.logger.debug(str(request.data))
+
     if (
         query is None
         and request.headers.get("Content-Type") == "application/sparql-query"

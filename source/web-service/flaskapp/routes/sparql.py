@@ -38,6 +38,9 @@ def query_entrypoint():
         query = request.args["query"]
     else:
         query = request.form.get("query")
+    
+    current_app.logger.debug(str(request.form))
+    current_app.logger.debug(str(request.data))
 
     if (
         query is None

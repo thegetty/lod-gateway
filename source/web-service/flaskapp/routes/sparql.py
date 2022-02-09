@@ -64,7 +64,15 @@ def query_entrypoint():
         accept_header = request.headers.get("Accept")
 
     query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
-    res = execute_query(query, accept_header, query_endpoint)
+    if request.method == "POST":
+        res = execute_query_post(request.form, accept_header, query_endpoint)
+        if isinstance(res, status_nt):
+            response = construct_error_response(res)
+            return abort(response)
+        else:
+            return Response(res, direct_passthrough=True)
+    else:
+        res = execute_query(query, accept_header, query_endpoint)
     if isinstance(res, status_nt):
         response = construct_error_response(res)
         return abort(response)
@@ -76,6 +84,20 @@ def execute_query(query, accept_header, query_endpoint):
     try:
         res = requests.post(
             query_endpoint, data={"query": query}, headers={"Accept": accept_header}
+        )
+        res.raise_for_status()
+        return res.content
+    except requests.exceptions.HTTPError as e:
+        response = status_nt(res.status_code, type(e).__name__, str(res.content))
+        return response
+    except requests.exceptions.ConnectionError as e:
+        return status_graphstore_error
+
+
+def execute_query_post(data, accept_header, query_endpoint):
+    try:
+        res = requests.post(
+            query_endpoint, data=data, headers={"Accept": accept_header}
         )
         res.raise_for_status()
         return res.content

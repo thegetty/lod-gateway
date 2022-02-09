@@ -1,7 +1,15 @@
 import json
 import requests
 
-from flask import Blueprint, current_app, request, abort, jsonify, Response
+from flask import (
+    Blueprint,
+    current_app,
+    request,
+    abort,
+    jsonify,
+    Response,
+    make_response,
+)
 
 from flaskapp.errors import (
     status_nt,
@@ -70,7 +78,19 @@ def query_entrypoint():
             response = construct_error_response(res)
             return abort(response)
         else:
-            return Response(res, direct_passthrough=True)
+            excluded_headers = [
+                "content-encoding",
+                "content-length",
+                "transfer-encoding",
+                "connection",
+            ]
+            headers = [
+                (name, value)
+                for (name, value) in res.headers.items()
+                if name.lower() not in excluded_headers
+            ]
+
+            return make_response(res.content, res.status_code, headers)
     else:
         res = execute_query(query, accept_header, query_endpoint)
     if isinstance(res, status_nt):
@@ -100,7 +120,7 @@ def execute_query_post(data, accept_header, query_endpoint):
             query_endpoint, data=data, headers={"Accept": accept_header}
         )
         res.raise_for_status()
-        return res.content
+        return res
     except requests.exceptions.HTTPError as e:
         response = status_nt(res.status_code, type(e).__name__, str(res.content))
         return response

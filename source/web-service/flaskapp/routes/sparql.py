@@ -64,7 +64,7 @@ def query_entrypoint():
         accept_header = request.headers.get("Accept")
 
     query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
-    if request.method=="POST":
+    if request.method == "POST":
         res = execute_query_post(request.form, accept_header, query_endpoint)
         if isinstance(res, status_nt):
             response = construct_error_response(res)

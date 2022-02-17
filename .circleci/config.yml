@@ -5,7 +5,7 @@ anchors:
 
 orbs:
   docker: circleci/docker@1.5.0
-  getty-devops-release: thegetty/devops-orb@1.3
+  getty-devops-release: thegetty/devops-orb@2.0.0
 
 workflows:
   build:
@@ -19,10 +19,7 @@ workflows:
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag
-          service: lod-gateway-archivesspace-l1 lod-gateway-media-l2 lod-gateway-museum-collection-l2 lod-gateway-otmm-l1 lod-gateway-rcv-l2 lod-gateway-rosetta-l1 lod-gateway-vocab-l2 lod-gateway-provenance-l2 lod-gateway-annotations-l2
-          #service1:
-          # ...
-          #service10:
+          service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-provenance-l2,lod-gateway-annotations-l2
           environment: stage
           requires:
             - pocBuild
@@ -35,7 +32,7 @@ workflows:
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag
-          service: lod-gateway-archivesspace-l1 lod-gateway-media-l2 lod-gateway-museum-collection-l2 lod-gateway-otmm-l1 lod-gateway-rcv-l2 lod-gateway-rosetta-l1 lod-gateway-vocab-l2 lod-gateway-thesaurus-l2 lod-gateway-annotations-l2
+          service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-thesaurus-l2,lod-gateway-annotations-l2
           environment: prd
           filters:
             branches:
@@ -47,6 +44,7 @@ jobs:
   build:
     machine:
       docker_layer_caching: true
+      image: ubuntu-2004:202201-02
     steps:
       - setup
       - build

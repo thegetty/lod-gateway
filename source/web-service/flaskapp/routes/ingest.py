@@ -433,7 +433,7 @@ def process_graphstore_record_set(
                 graph_transaction_rollback(
                     graph_rollback_save, query_endpoint, update_endpoint
                 )
-                return status_nt(500, "Graph insert error", "Could not insert id " + id)
+                return status_nt(503, "Graph insert error", "Could not insert id " + id)
 
     # Catch request connection errors
     except requests.exceptions.ConnectionError as e:

@@ -16,3 +16,4 @@ PyLD==2.0.2
 rdflib-jsonld==0.4.0
 requests==2.23.0
 requests_mock==1.7.0
+itsdangerous==2.0.1

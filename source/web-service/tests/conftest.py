@@ -200,7 +200,7 @@ def requests_mocker(requests_mock):
                 elif sparql.startswith("DELETE {GRAPH <"):
                     if "failure_uri_503" in sparql:
                         context.status_code = 503
-                        context.headers['Retry-After'] = 5
+                        context.headers["Retry-After"] = 5
                     else:
                         # Graph replace SPARQL update
                         context.status_code = 200

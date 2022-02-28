@@ -27,7 +27,7 @@ def app_no_rdf(mocker):
     flask_app = create_app()
     flask_app.config["TESTING"] = True
     flask_app.config["PROCESS_RDF"] = False
-    
+
     yield flask_app
 
 

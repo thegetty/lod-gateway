@@ -142,7 +142,7 @@ class TestIngestErrors:
 
 
 class TestIngestSuccess:
-    def test_ingest_single(self, client, namespace, auth_token, test_db):
+    def test_ingest_single(self, client_no_rdf, namespace, auth_token, test_db):
         response = client.post(
             f"/{namespace}/ingest",
             data=json.dumps(
@@ -153,7 +153,7 @@ class TestIngestSuccess:
         assert response.status_code == 200
         assert b"object/12345" in response.data
 
-    def test_ingest_multiple(self, client, namespace, auth_token, test_db):
+    def test_ingest_multiple(self, client_no_rdf, namespace, auth_token, test_db):
         response = client.post(
             f"/{namespace}/ingest",
             data='{"id": "person/12345", "name": "John", "age": 31, "city": "New York"}'
@@ -167,7 +167,9 @@ class TestIngestSuccess:
         assert response.status_code == 200
         assert b"group/12345" in response.data
 
-    def test_ingest_same_data_twice(self, client, namespace, auth_token, test_db):
+    def test_ingest_same_data_twice(
+        self, client_no_rdf, namespace, auth_token, test_db
+    ):
         data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
         # load one record:
         response = client.post(
@@ -188,7 +190,7 @@ class TestIngestSuccess:
         data_resp = response.get_json()
         assert data_resp["person/12345"] == "null"
 
-    def test_ingest_new_versions(self, client, namespace, auth_token, test_db):
+    def test_ingest_new_versions(self, client_no_rdf, namespace, auth_token, test_db):
         data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
 
         # Make sure that the versioning flag is set
@@ -226,7 +228,7 @@ class TestIngestSuccess:
         assert old_version.status_code == 200
 
     def test_ingest_test_old_version_deletion(
-        self, client, namespace, auth_token, test_db
+        self, client_no_rdf, namespace, auth_token, test_db
     ):
         data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
 
@@ -279,7 +281,7 @@ class TestIngestSuccess:
         assert old_version.status_code == 404
 
     def test_ingest_test_direct_delete_on_old_version(
-        self, client, namespace, auth_token, test_db
+        self, client_no_rdf, namespace, auth_token, test_db
     ):
         data = {"id": "person/123456", "name": "John", "age": 31, "city": "New York"}
 
@@ -330,7 +332,7 @@ class TestIngestSuccess:
         assert old_version.status_code == 404
 
     def test_ingest_test_update_null_on_old_version(
-        self, client, namespace, auth_token, test_db
+        self, client_no_rdf, namespace, auth_token, test_db
     ):
         data = {"id": "person/123456", "name": "John", "age": 31, "city": "New York"}
 

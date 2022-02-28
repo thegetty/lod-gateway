@@ -23,6 +23,15 @@ def app(mocker):
 
 
 @pytest.fixture
+def app_no_rdf(mocker):
+    flask_app = create_app()
+    flask_app.config["TESTING"] = True
+    flask_app.config["PROCESS_RDF"] = False
+    
+    yield flask_app
+
+
+@pytest.fixture
 def current_app(app):
     with app.app_context():
         yield app
@@ -50,6 +59,17 @@ def client(app):
     testing_client = app.test_client()
 
     ctx = app.app_context()
+    ctx.push()
+    yield testing_client  # this is where the testing happens!
+    ctx.pop()
+
+
+@pytest.fixture
+def client_no_rdf(app_no_rdf):
+
+    testing_client = app_no_rdf.test_client()
+
+    ctx = app_no_rdf.app_context()
     ctx.push()
     yield testing_client  # this is where the testing happens!
     ctx.pop()

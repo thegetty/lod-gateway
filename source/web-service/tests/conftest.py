@@ -27,8 +27,8 @@ def app_no_rdf(mocker):
     flask_app = create_app()
     flask_app.config["TESTING"] = True
     flask_app.config["PROCESS_RDF"] = "False"
-    app.config["SPARQL_QUERY_ENDPOINT"] = None
-    app.config["SPARQL_UPDATE_ENDPOINT"] = None
+    flask_app.config["SPARQL_QUERY_ENDPOINT"] = None
+    flask_app.config["SPARQL_UPDATE_ENDPOINT"] = None
 
     yield flask_app
 

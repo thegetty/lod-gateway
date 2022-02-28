@@ -143,7 +143,7 @@ class TestIngestErrors:
 
 class TestIngestSuccess:
     def test_ingest_single(self, client_no_rdf, namespace, auth_token, test_db):
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(
                 {"id": "object/12345", "name": "John", "age": 31, "city": "New York"}
@@ -154,7 +154,7 @@ class TestIngestSuccess:
         assert b"object/12345" in response.data
 
     def test_ingest_multiple(self, client_no_rdf, namespace, auth_token, test_db):
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data='{"id": "person/12345", "name": "John", "age": 31, "city": "New York"}'
             + "\n"
@@ -172,7 +172,7 @@ class TestIngestSuccess:
     ):
         data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -181,7 +181,7 @@ class TestIngestSuccess:
         assert b"person/12345" in response.data
 
         # Do it again - should get a 200, but nothing in response.
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -197,7 +197,7 @@ class TestIngestSuccess:
         assert current_app.config["KEEP_LAST_VERSION"] is True
 
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -206,14 +206,14 @@ class TestIngestSuccess:
 
         data["new property"] = "new data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/12345",
             headers={"Authorization": "Bearer " + auth_token},
         )
@@ -221,7 +221,7 @@ class TestIngestSuccess:
         assert "X-Previous-Version" in response.headers
         assert "X-Is-Old-Version" in response.headers
 
-        old_version = client.get(
+        old_version = client_no_rdf.get(
             f"/{namespace}/{response.headers['X-Previous-Version']}",
             headers={"Authorization": "Bearer " + auth_token},
         )
@@ -236,7 +236,7 @@ class TestIngestSuccess:
         assert current_app.config["KEEP_LAST_VERSION"] is True
 
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -245,14 +245,14 @@ class TestIngestSuccess:
 
         data["new property"] = "new data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/12345",
             headers={"Authorization": "Bearer " + auth_token},
         )
@@ -260,21 +260,21 @@ class TestIngestSuccess:
 
         data["new property"] = "newer data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/12345",
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
         assert response.headers["X-Previous-Version"] != old_version_id
 
-        old_version = client.get(
+        old_version = client_no_rdf.get(
             f"/{namespace}/{old_version_id}",
             headers={"Authorization": "Bearer " + auth_token},
         )
@@ -289,7 +289,7 @@ class TestIngestSuccess:
         assert current_app.config["KEEP_LAST_VERSION"] is True
 
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -298,34 +298,34 @@ class TestIngestSuccess:
 
         data["new property"] = "new data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/123456",
             headers={"Authorization": "Bearer " + auth_token},
         )
         old_version_id = response.headers["X-Previous-Version"]
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps({"id": old_version_id, "_delete": "true"}),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/123456",
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
         assert response.headers["X-Previous-Version"] == "None"
 
-        old_version = client.get(
+        old_version = client_no_rdf.get(
             f"/{namespace}/{old_version_id}",
             headers={"Authorization": "Bearer " + auth_token},
         )
@@ -340,7 +340,7 @@ class TestIngestSuccess:
         assert current_app.config["KEEP_LAST_VERSION"] is True
 
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -349,21 +349,21 @@ class TestIngestSuccess:
 
         data["new property"] = "new data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/123456",
             headers={"Authorization": "Bearer " + auth_token},
         )
         old_version_id = response.headers["X-Previous-Version"]
 
         # update old version:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps({"id": old_version_id, "some": "garbage"}),
             headers={"Authorization": "Bearer " + auth_token},

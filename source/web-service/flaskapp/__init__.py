@@ -34,6 +34,9 @@ def create_app():
     app = Flask(__name__)
 
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
+    # apply the root logger to this
+    app.logger = logging.getLogger()
+
     app.logger.info(f"LOD Gateway logging INFO at level {app.config['DEBUG_LEVEL']}")
 
     CORS(app, send_wildcard=True)

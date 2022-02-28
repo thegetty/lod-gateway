@@ -197,8 +197,19 @@ def requests_mocker(requests_mock):
                 elif sparql.startswith("INSERT DATA"):
                     context.status_code = 200
                     return None
+                elif sparql.startswith("DELETE {GRAPH <"):
+                    if "failure_uri_503" in sparql:
+                        context.status_code = 503
+                        context.headers['Retry-After'] = 5
+                    else:
+                        # Graph replace SPARQL update
+                        context.status_code = 200
+                    return None
                 elif sparql.startswith("DROP GRAPH"):
-                    context.status_code = 200
+                    if "failure_upon_deletion" in sparql:
+                        context.status_code = 500
+                    else:
+                        context.status_code = 200
                     return None
         else:
             print(f"*** unhandled mock request: {request.path_url}")

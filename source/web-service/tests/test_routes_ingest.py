@@ -2,6 +2,7 @@ import json
 
 from flask import current_app
 from flaskapp.routes.ingest import process_graphstore_record_set
+from flaskapp.errors import status_nt
 
 
 class TestIngestErrors:
@@ -389,6 +390,27 @@ class TestGraphStoreConnection:
             update_endpoint.replace("http://", "mock-pass://"),
         )
         assert asserted == True
+
+    def test_graphstore_zero_triples(self, client, namespace, auth_token):
+        query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+        update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
+        records = [
+            json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                }
+            )
+        ]
+
+        asserted = process_graphstore_record_set(
+            records,
+            query_endpoint.replace("http://", "mock-pass://"),
+            update_endpoint.replace("http://", "mock-pass://"),
+        )
+
+        assert isinstance(asserted, status_nt)
+        assert asserted.code == 422
 
     def test_graphstore_connection_fail(self, client, namespace, auth_token):
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]

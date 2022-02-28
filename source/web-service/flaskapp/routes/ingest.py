@@ -66,6 +66,8 @@ def ingest_post():
         response = construct_error_response(status)
         return abort(response)
 
+    current_app.logger.debug("Authentication checked - ingest POST request allowed.")
+
     # Get json record list by splitting lines
     record_list = request.get_data(as_text=True).splitlines()
 
@@ -117,6 +119,8 @@ def process_record_set(record_list):
     result_dict = {}
     idx_to_process_further = []
 
+    current_app.logger.debug(f"Processing {len(record_list)} records for updates")
+
     try:
         for idx, rec in enumerate(record_list):
 
@@ -149,7 +153,7 @@ def process_record_set(record_list):
     # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
     graphstore_result = True
     if current_app.config["PROCESS_RDF"] == "True":
-        current_app.logger.info(f"Processing records as JSON-LD")
+        current_app.logger.info(f"PROCESS_RDF is true - process records as valid JSON-LD")
         graphstore_result = process_graphstore_record_set(
             [record_list[x] for x in idx_to_process_further]
         )
@@ -454,8 +458,12 @@ def process_graphstore_record_set(
         if update_endpoint is None:
             update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
 
+        current_app.logger.debug(f"SPARQL Update using endpoint {update_endpoint}")
+        current_app.logger.debug(f"SPARQL Query using endpoint {query_endpoint}")
+
         # check endpoint
         if graph_check_endpoint(query_endpoint) == False:
+            current_app.logger.error(f"Query Endpoint failed to response - {query_endpoint}")
             return status_graphstore_error
 
         graph_uri_prefix = (
@@ -499,6 +507,7 @@ def process_graphstore_record_set(
             if "_delete" in data.keys() and data["_delete"] == "true":
                 # ensure that all records are processed first, before actually
                 # attempting anything with consequences. Build a list to delete first.
+                current_app.logger.info(f"Graph {graph_uri} is marked for deletion.")
                 records_to_delete.append(graph_uri)
             else:
                 # Graph is to be updated/created in the triplestore index. Expand to RDF ntriples:
@@ -509,6 +518,7 @@ def process_graphstore_record_set(
                     isinstance(serialized_nt_cache[id], bool)
                     and serialized_nt_cache[id] == False
                 ):
+                    current_app.logger.error(f"Graph {graph_uri} JSON-LD failed to convert to RDF.")
                     return status_nt(
                         422,
                         "Graph expansion error",
@@ -517,6 +527,7 @@ def process_graphstore_record_set(
 
                 # JSON-LD expands to nothing? (eg contents do not match context/framing or are not present.)
                 if serialized_nt_cache[id] == "":
+                    current_app.logger.error(f"Graph {graph_uri} JSON-LD failed to convert to any RDF triples at all. Invalid.")
                     return status_nt(
                         422,
                         "Graph expansion error",

@@ -1,5 +1,12 @@
 import json
 import uuid
+
+# Timing requests
+import time
+
+# For retry jitter
+from random import random
+
 from contextlib import suppress
 from datetime import datetime
 
@@ -147,9 +154,24 @@ def process_record_set(record_list):
         )
 
     # if RDF process fails, roll back and return graph store specific error
-    if isinstance(graphstore_result, status_nt):
+    if graphstore_result is not True:
         db.session.rollback()
-        return graphstore_result
+
+        # Failure happened when expanding the graphs?
+        if isinstance(graphstore_result, status_nt):
+            return graphstore_result
+
+        # graphstore_result should contain a list of graphs successfully updated that need to be rolled back
+        # Given that this failure should only happen if an out of band error has occurred (Neptune overloaded)
+        # the attempt to rollback these graphs may also not be successful.
+        revert_triplestore_if_possible(graphstore_result)
+
+        # This should be treated as a server error
+        return status_nt(
+            500,
+            "Triplestore Update Error",
+            "A failure happened when trying to update the triplestore. Check logs for details.",
+        )
 
     # Everything went fine - commit the transaction
     db.session.commit()
@@ -336,27 +358,88 @@ def get_record(rec_id):
 
 
 # RDF processing
+class RetryAfter(Exception):
+    def __init__(
+        self,
+        waittime,
+        message="Upstream is having temporary issues - retry later suggested.",
+    ):
+        self.waittime = waittime
+        self.message = message
+        super().__init__(self.message)
+
+
+def retry_request_function(func, args, kwargs=None, retry_limit=3):
+    retries = 1
+    while retries <= retry_limit:
+        try:
+            if kwargs is not None:
+                resp = func(*args, **kwargs)
+            else:
+                resp = func(*args)
+            if isinstance(resp, bool):
+                return resp
+        except RetryAfter as e:
+            # wait the requested time * the retry number (backoff) + a random 0.0->1.0s duration for jitter
+            retry_time = (e.waittime * retries) + random()
+            logger.warning(
+                f"Triplestore service temporarily unavailable - pausing for {retry_time:0.2f} before retrying. Attempt {retries}"
+            )
+            time.sleep(retry_time)
+        except requests.exceptions.ConnectionError as e:
+            retry_time = retries * random()
+            logger.warning(
+                f"ConnectionError hit when attempting {graph_uri} upload. Pausing for {retry_time:0.2f}. Attempt {retries}."
+            )
+            time.sleep(retry_time)
+        retries += 1
+    if retries == retry_limit:
+        return False
+
+
 def process_graphstore_record_set(
     record_list, query_endpoint=None, update_endpoint=None
 ):
     """
     This function will process the same list of records indepenently.
-    See specs for details.
 
-    If one of the records fails, all inserted/updated records must be reverted:
-    newly inserted records must be deleted, updated records must be reverted to
-    the previous state. And graph store specific error derived from 'status_nt'
-    (see 'errors.py' for examples and how to create) must be returned.
-    If it is desireable to include failing record number, then 'status_nt'
-    could be created on the fly like this:
+    All graphs will be expanded by pyld to ntriples, and if any of these have errors,
+    or expand to zero triples, the whole set will fail before any change is pushed to
+    the triplestore.
 
-    return status_nt(500, "Title goes here", "Description including rec number goes here")
+    Once all graphs have been validated in this way, they will be pushed individually
+    to the triplestore. While it would be possible to push all operations into a single request
+    one of the operational issues has been that Neptune becoming resource constrained and
+    failing. A concatenated request could be extremely large and there is no guarantee that
+    Neptune would treat a single request as a transaction in any case. 
+
+    An update request will be retried, if the response is an error that corresponds to a
+    suspected issue with deployment (eg overloaded), but if this retry fails, then it is the
+    clients responsbility to ensure the eventual consistency of the graphs supplied once the
+    service has become healthy again (the LOD Gateway instance cannot accurately tell this.)
+
+    In case of a graph update error, the db transaction will be rolled back, and the instance 
+    will make an attempt to undo the graph updates that went successfully based on the JSON-LD
+    stored in the DB. This process cannot be guaranteed due to the nature of the failure but an
+    attempt is made out of due dilligence.
 
     If all operations succeded, then return 'True'.
 
     In case of 'delete' request, there can be 2 possibilities:
     - record exists. In this case delete and return 'True' or 'False' depending on the result
     - record does not exist. In this scenario - don't do anything and return 'True'
+
+    Flow:
+    -----
+
+    - gather list of all graphs to be deleted
+    - expand all JSON-LD for graphs to be updated
+        - Fail if any do not expand without errors OR if any graph expands to zero triples
+    - iterate through the graph deletion requests (with retry, backoff and jitter)
+        - If any fail, return list of graphs changed to this point
+    - iterate through the graph replacement requests (with retry, backoff and jitter)
+        - If any fail, return list of graphs changed to this point (including successful deletions)
+    - Return True if everything succeeded, or return a list of ids to be reverted in case of any failure.
 
     """
 
@@ -377,8 +460,15 @@ def process_graphstore_record_set(
             + current_app.config["NAMESPACE_FOR_RDF"]
             + "/"
         )
-        graph_rollback_save = {}
+
+        records_to_delete = []
+        serialized_nt_cache = {}
+
+        idmap = {}
+
         proc = None  # jsonld.JsonLdProcessor()
+
+        # expand all graphs, and collect list of graph_uris for deletion
         for record in record_list:
             data = json.loads(record)
             # Store the relative 'id' URL before the recursive URL prefixing is performed
@@ -399,47 +489,152 @@ def process_graphstore_record_set(
             # Store the absolute 'id' URL after the recursive URL prefixing is performed
             graph_uri = data["id"]
 
-            if graph_exists(graph_uri, query_endpoint):
-                graph_backup = graph_delete(graph_uri, query_endpoint, update_endpoint)
-                if isinstance(graph_backup, bool) and graph_backup == False:
-                    graph_transaction_rollback(
-                        graph_rollback_save, query_endpoint, update_endpoint
-                    )
-                    return status_nt(
-                        422, "Graph delete error", "Could not delete id " + id
-                    )
-                else:
-                    graph_rollback_save[
-                        graph_uri
-                    ] = graph_backup  # saved as serialized n-triples
-            else:
-                graph_rollback_save[graph_uri] = None
+            # retain the backwards link from graph_id to relative id for lookup ease
+            idmap[graph_uri] = id
 
             if "_delete" in data.keys() and data["_delete"] == "true":
-                continue
+                # ensure that all records are processed first, before actually
+                # attempting anything with consequences. Build a list to delete first.
+                records_to_delete.append(graph_uri)
+            else:
+                # Graph is to be updated/created in the triplestore index. Expand to RDF ntriples:
+                serialized_nt_cache[id] = graph_expand(data, proc)
 
-            serialized_nt = graph_expand(data, proc)
-            if isinstance(serialized_nt, bool) and serialized_nt == False:
-                graph_transaction_rollback(
-                    graph_rollback_save, query_endpoint, update_endpoint
-                )
-                return status_nt(
-                    422,
-                    "Graph expansion error",
-                    "Could not convert JSON-LD to RDF, id " + id,
-                )
-            insert_resp = graph_insert(graph_uri, serialized_nt, update_endpoint)
-            if insert_resp == False:
-                graph_transaction_rollback(
-                    graph_rollback_save, query_endpoint, update_endpoint
-                )
-                return status_nt(503, "Graph insert error", "Could not insert id " + id)
+                # invalid JSON-LD?
+                if (
+                    isinstance(serialized_nt_cache[id], bool)
+                    and serialized_nt_cache[id] == False
+                ):
+                    return status_nt(
+                        422,
+                        "Graph expansion error",
+                        "Could not convert JSON-LD to RDF, id " + id,
+                    )
+
+                # JSON-LD expands to nothing? (eg contents do not match context/framing or are not present.)
+                if serialized_nt_cache[id] == "":
+                    return status_nt(
+                        422,
+                        "Graph expansion error",
+                        (
+                            "The JSON-LD expansion resulted in no RDF triples but RDF processing is enabled. Rejecting id "
+                            + id
+                        ),
+                    )
 
     # Catch request connection errors
     except requests.exceptions.ConnectionError as e:
         return status_graphstore_error
 
+    graph_ids_processed = []
+
+    # Graphs expanded successfully, attempting graph replacements and deletions
+    # Keep a list of successful updates in case of error.
+
+    retry_limit = 3
+
+    # Deletions
+    for graph_uri in records_to_delete:
+        resp = retry_request_function(
+            graph_delete,
+            [graph_uri, query_endpoint, update_endpoint],
+            retry_limit=retry_limit,
+        )
+
+        if resp is True:
+            graph_ids_processed.append(idmap[graph_uri])
+        else:
+            # All retries used up but no success
+            # Need to return all successful uploads to this point to attempt rollback
+            logger.error(
+                f"FATAL: Retries expended when attempting {graph_uri} deletion."
+            )
+            if len(graph_ids_processed) > 0:
+                logger.error(
+                    f"{len(graph_ids_processed)} graphs in the Triplestore will need to be reverted to their previous state."
+                )
+            return graph_ids_processed
+
+    # Replacements
+    for graph_uri, serialized_nt in serialized_nt_cache.items():
+        replace_resp = retry_request_function(
+            graph_replace,
+            [graph_uri, serialized_nt, update_endpoint],
+            retry_limit=retry_limit,
+        )
+
+        if replace_resp is True:
+            graph_ids_processed.append(idmap[graph_uri])
+        else:
+            # All retries used up but no success
+            # Need to return all successful uploads to this point to attempt rollback
+            logger.error(
+                f"FATAL: Retries expended when attempting {graph_uri} replacement."
+            )
+            if len(graph_ids_processed) > 0:
+                logger.error(
+                    f"{len(graph_ids_processed)} graphs in the Triplestore will need to be reverted to their previous state."
+                )
+            return graph_ids_processed
     return True
+
+
+def revert_triplestore_if_possible(list_of_relative_ids):
+    # This method should only be called if there is some sort of failure in updating the triplestore index for a multi-resource
+    # update request (more than one delete, update, or create in a single request).
+    # Given that the errors that led to this situation are unknown and could be due to resource issues or other critical issues,
+    # this attempt to realign the triplestore with the data in the LOD Gateway should not be trusted to have succeeded, and the client
+    # MUST ensure that the resources are consistent with each other, as the LOD Gateway instance should be considered to be in a failure
+    # state with respect to the triplestore. The following is just for due dilligence, and to provide log informaton for the admin to check
+    # consistency.
+
+    query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+    update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
+
+    proc = None
+
+    idPrefix = (
+        current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE_FOR_RDF"]
+    )
+
+    for relative_id in list_of_relative_ids:
+        # get current record
+        record = get_record(relative_id)
+        if record is None or record.data is None:
+            # this record did not exist before the bulk request
+            try:
+                graph_delete(record, query_endpoint, update_endpoint)
+                logger.warning(
+                    f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
+                )
+            except (requests.exceptions.ConnectionError, RetryAfter) as e:
+                logger.error(
+                    f"REVERT: Rollback failure - couldn't revert {relative_id} to a deleted state in the triplestore"
+                )
+        else:
+            # expand, skip if zero triples or fail, and reassert
+            try:
+                logger.warning(
+                    f"REVERT: Attempting to expand and reinsert {relative_id} into the triplestore."
+                )
+                # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
+                data = containerRecursiveCallback(
+                    data=record.data, attr="id", callback=idPrefixer, prefix=idPrefix
+                )
+                nt = graph_expand(data, proc=proc)
+                if nt is False:
+                    logger.warning(
+                        f"REVERT: Attempted to revert {relative_id} to DB version, JSON-LD failed to expand. Skipping."
+                    )
+                else:
+                    graph_replace(data["id"], nt, update_endpoint)
+                    logger.warning(
+                        f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data['id']})"
+                    )
+            except (requests.exceptions.ConnectionError, RetryAfter) as e:
+                logger.error(
+                    f"REVERT: Rollback failure - couldn't revert {relative_id} to match the DB"
+                )
 
 
 def graph_expand(data, proc=None):
@@ -455,6 +650,8 @@ def graph_expand(data, proc=None):
         if "type" in data:
             json_ld_type = data["type"]
 
+    # time the expansion
+    tictoc = time.perf_counter()
     try:
         if isinstance(json_ld_cxt, str) and len(json_ld_cxt) > 0:
             # raise RuntimeError("Graph expansion error: No @context URL has been defined in the data for %s!" % (json_ld_id))
@@ -510,10 +707,12 @@ def graph_expand(data, proc=None):
 
         return False
 
+    logger.info(f"Graph {data['id']} expanded in {tictoc - time.perf_counter():0.5f}s")
     return serialized_nt
 
 
 def graph_exists(graph_name, query_endpoint):
+    # function left here for utility
     res = requests.post(
         query_endpoint,
         data={
@@ -529,45 +728,84 @@ def graph_exists(graph_name, query_endpoint):
         return False
 
 
-def graph_insert(graph_name, serialized_nt, update_endpoint):
-    insert_stmt = "INSERT DATA {GRAPH <" + graph_name + "> {" + serialized_nt + "}}"
-    res = requests.post(update_endpoint, data={"update": insert_stmt})
+def graph_replace(graph_name, serialized_nt, update_endpoint):
+    # This will replace the named graph with only the triples supplied
+    replace_stmt = (
+        "DELETE {GRAPH <"
+        + graph_name
+        + "> {?s ?p ?o} } INSERT { GRAPH <"
+        + graph_name
+        + "> {"
+        + serialized_nt
+        + "} } USING <"
+        + graph_name
+        + "> WHERE {GRAPH <"
+        + graph_name
+        + "> { OPTIONAL {?s ?p ?o} } };"
+    )
+    tictoc = time.perf_counter()
+    res = requests.post(update_endpoint, data={"update": replace_stmt})
     if res.status_code == 200:
+        logger.info(
+            f"Graph {graph_name} replaced in {tictoc - time.perf_counter():0.5f}s"
+        )
         return True
+    elif res.status_code in [502, 503, 504]:
+        # a potentially temporary server error - retry
+        logger.error(
+            f"Error code {res.status_code} encountered - delay, then retry suggested"
+        )
+        delay_time = 1
+        if "Retry-After" in res.headers:
+            try:
+                delay_time = int(res.headers["Retry-After"])
+            except (ValueError, TypeError) as e:
+                pass
+        raise RetryAfter(delay_time)
+    elif res.status_code in [411, 412, 413]:
+        # request was too large or unacceptable
+        logger.critical(
+            f"REQUEST TOO LARGE - error {res.status_code} encountered with graph replacement {graph_name}."
+        )
+        logger.error(f"Response error for {graph_name} - '{res.text}'")
+        return False
     else:
+        # something out of flow occurred, potential data issue
+        logger.critical(
+            f"FATAL - error {res.status_code} encountered with graph replacement {graph_name}"
+        )
+        logger.error(f"Error for {graph_name} - '{res.text}'")
         return False
 
 
 def graph_delete(graph_name, query_endpoint, update_endpoint):
-    # save copy of graph in case of rollback
-    res = requests.post(
-        query_endpoint,
-        data={
-            "query": "CONSTRUCT{ ?s ?p ?o } WHERE { GRAPH <"
-            + graph_name
-            + "> {?s ?p ?o}}"
-        },
-        headers={"Accept": "application/n-triples"},
-    )
-    graph_ntriples = res.content.decode("utf-8")
-
+    # Delete graph from triplestore
+    tictoc = time.perf_counter()
     # drop graph
     res = requests.post(
         update_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
     )
     if res.status_code == 200:
-        return graph_ntriples
+        logger.info(
+            f"Graph {graph_name} deleted in {tictoc - time.perf_counter():0.5f}s"
+        )
+        return True
+    elif res.status_code in [502, 503, 504]:
+        # a potentially temporary server error - retry
+        logger.error(
+            f"Error code {res.status_code} encountered - delay, then retry suggested"
+        )
+        delay_time = 1
+        if "Retry-After" in res.headers:
+            try:
+                delay_time = int(res.headers["Retry-After"])
+            except (ValueError, TypeError) as e:
+                pass
+        raise RetryAfter(delay_time)
     else:
         current_app.logger.error(f"Graph delete error code: {res.status_code}")
         current_app.logger.error(f"Graph delete error: {res.json()}")
         return False
-
-
-def graph_transaction_rollback(graph_rollback_save, query_endpoint, update_endpoint):
-    for graph_uri in graph_rollback_save.keys():
-        graph_delete(graph_uri, query_endpoint, update_endpoint)
-        if graph_rollback_save[graph_uri] is not None:
-            graph_insert(graph_uri, graph_rollback_save[graph_uri], update_endpoint)
 
 
 def graph_check_endpoint(query_endpoint):
@@ -660,3 +898,18 @@ def validate_record_set(record_list):
 
     else:
         return True
+
+
+### Deprecated RDF functions:
+
+
+def graph_insert(graph_name, serialized_nt, update_endpoint):
+    # This will append triples to a given named graph
+    insert_stmt = "INSERT DATA {GRAPH <" + graph_name + "> {" + serialized_nt + "}}"
+    tictoc = time.perf_counter()
+    res = requests.post(update_endpoint, data={"update": insert_stmt})
+    logger.info(f"Graph {graph_name} inserted in {tictoc - time.perf_counter():0.5f}s")
+    if res.status_code == 200:
+        return True
+    else:
+        return False

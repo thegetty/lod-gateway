@@ -382,13 +382,13 @@ def retry_request_function(func, args, kwargs=None, retry_limit=3):
         except RetryAfter as e:
             # wait the requested time * the retry number (backoff) + a random 0.0->1.0s duration for jitter
             retry_time = (e.waittime * retries) + random()
-            logger.warning(
+            current_app.logger.warning(
                 f"Triplestore service temporarily unavailable - pausing for {retry_time:0.2f} before retrying. Attempt {retries}"
             )
             time.sleep(retry_time)
         except requests.exceptions.ConnectionError as e:
             retry_time = retries * random()
-            logger.warning(
+            current_app.logger.warning(
                 f"ConnectionError hit when attempting {graph_uri} upload. Pausing for {retry_time:0.2f}. Attempt {retries}."
             )
             time.sleep(retry_time)
@@ -546,11 +546,11 @@ def process_graphstore_record_set(
         else:
             # All retries used up but no success
             # Need to return all successful uploads to this point to attempt rollback
-            logger.error(
+            current_app.logger.error(
                 f"FATAL: Retries expended when attempting {graph_uri} deletion."
             )
             if len(graph_ids_processed) > 0:
-                logger.error(
+                current_app.logger.error(
                     f"{len(graph_ids_processed)} graphs in the Triplestore will need to be reverted to their previous state."
                 )
             return graph_ids_processed
@@ -568,11 +568,11 @@ def process_graphstore_record_set(
         else:
             # All retries used up but no success
             # Need to return all successful uploads to this point to attempt rollback
-            logger.error(
+            current_app.logger.error(
                 f"FATAL: Retries expended when attempting {graph_uri} replacement."
             )
             if len(graph_ids_processed) > 0:
-                logger.error(
+                current_app.logger.error(
                     f"{len(graph_ids_processed)} graphs in the Triplestore will need to be reverted to their previous state."
                 )
             return graph_ids_processed
@@ -604,17 +604,17 @@ def revert_triplestore_if_possible(list_of_relative_ids):
             # this record did not exist before the bulk request
             try:
                 graph_delete(record, query_endpoint, update_endpoint)
-                logger.warning(
+                current_app.logger.warning(
                     f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
                 )
             except (requests.exceptions.ConnectionError, RetryAfter) as e:
-                logger.error(
+                current_app.logger.error(
                     f"REVERT: Rollback failure - couldn't revert {relative_id} to a deleted state in the triplestore"
                 )
         else:
             # expand, skip if zero triples or fail, and reassert
             try:
-                logger.warning(
+                current_app.logger.warning(
                     f"REVERT: Attempting to expand and reinsert {relative_id} into the triplestore."
                 )
                 # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
@@ -623,16 +623,16 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                 )
                 nt = graph_expand(data, proc=proc)
                 if nt is False:
-                    logger.warning(
+                    current_app.logger.warning(
                         f"REVERT: Attempted to revert {relative_id} to DB version, JSON-LD failed to expand. Skipping."
                     )
                 else:
                     graph_replace(data["id"], nt, update_endpoint)
-                    logger.warning(
+                    current_app.logger.warning(
                         f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data['id']})"
                     )
             except (requests.exceptions.ConnectionError, RetryAfter) as e:
-                logger.error(
+                current_app.logger.error(
                     f"REVERT: Rollback failure - couldn't revert {relative_id} to match the DB"
                 )
 
@@ -707,7 +707,9 @@ def graph_expand(data, proc=None):
 
         return False
 
-    logger.info(f"Graph {data['id']} expanded in {tictoc - time.perf_counter():0.5f}s")
+    current_app.logger.info(
+        f"Graph {data['id']} expanded in {tictoc - time.perf_counter():0.5f}s"
+    )
     return serialized_nt
 
 
@@ -746,13 +748,13 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
     tictoc = time.perf_counter()
     res = requests.post(update_endpoint, data={"update": replace_stmt})
     if res.status_code == 200:
-        logger.info(
+        current_app.logger.info(
             f"Graph {graph_name} replaced in {tictoc - time.perf_counter():0.5f}s"
         )
         return True
     elif res.status_code in [502, 503, 504]:
         # a potentially temporary server error - retry
-        logger.error(
+        current_app.logger.error(
             f"Error code {res.status_code} encountered - delay, then retry suggested"
         )
         delay_time = 1
@@ -764,17 +766,17 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         raise RetryAfter(delay_time)
     elif res.status_code in [411, 412, 413]:
         # request was too large or unacceptable
-        logger.critical(
+        current_app.logger.critical(
             f"REQUEST TOO LARGE - error {res.status_code} encountered with graph replacement {graph_name}."
         )
-        logger.error(f"Response error for {graph_name} - '{res.text}'")
+        current_app.logger.error(f"Response error for {graph_name} - '{res.text}'")
         return False
     else:
         # something out of flow occurred, potential data issue
-        logger.critical(
+        current_app.logger.critical(
             f"FATAL - error {res.status_code} encountered with graph replacement {graph_name}"
         )
-        logger.error(f"Error for {graph_name} - '{res.text}'")
+        current_app.logger.error(f"Error for {graph_name} - '{res.text}'")
         return False
 
 
@@ -786,13 +788,13 @@ def graph_delete(graph_name, query_endpoint, update_endpoint):
         update_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
     )
     if res.status_code == 200:
-        logger.info(
+        current_app.logger.info(
             f"Graph {graph_name} deleted in {tictoc - time.perf_counter():0.5f}s"
         )
         return True
     elif res.status_code in [502, 503, 504]:
         # a potentially temporary server error - retry
-        logger.error(
+        current_app.logger.error(
             f"Error code {res.status_code} encountered - delay, then retry suggested"
         )
         delay_time = 1
@@ -908,7 +910,9 @@ def graph_insert(graph_name, serialized_nt, update_endpoint):
     insert_stmt = "INSERT DATA {GRAPH <" + graph_name + "> {" + serialized_nt + "}}"
     tictoc = time.perf_counter()
     res = requests.post(update_endpoint, data={"update": insert_stmt})
-    logger.info(f"Graph {graph_name} inserted in {tictoc - time.perf_counter():0.5f}s")
+    current_app.logger.info(
+        f"Graph {graph_name} inserted in {tictoc - time.perf_counter():0.5f}s"
+    )
     if res.status_code == 200:
         return True
     else:

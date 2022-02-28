@@ -149,29 +149,33 @@ def process_record_set(record_list):
     # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
     graphstore_result = True
     if current_app.config["PROCESS_RDF"] == "True":
+        current_app.logger.info(f"Processing records as JSON-LD")
         graphstore_result = process_graphstore_record_set(
             [record_list[x] for x in idx_to_process_further]
         )
 
-    # if RDF process fails, roll back and return graph store specific error
-    if graphstore_result is not True:
-        db.session.rollback()
+        # if RDF process fails, roll back and return graph store specific error
+        if graphstore_result is not True:
+            current_app.logger.error(
+                f"Error occurred processing JSON-LD. Rolling back."
+            )
+            db.session.rollback()
 
-        # Failure happened when expanding the graphs?
-        if isinstance(graphstore_result, status_nt):
-            return graphstore_result
+            # Failure happened when expanding the graphs?
+            if isinstance(graphstore_result, status_nt):
+                return graphstore_result
 
-        # graphstore_result should contain a list of graphs successfully updated that need to be rolled back
-        # Given that this failure should only happen if an out of band error has occurred (Neptune overloaded)
-        # the attempt to rollback these graphs may also not be successful.
-        revert_triplestore_if_possible(graphstore_result)
+            # graphstore_result should contain a list of graphs successfully updated that need to be rolled back
+            # Given that this failure should only happen if an out of band error has occurred (Neptune overloaded)
+            # the attempt to rollback these graphs may also not be successful.
+            revert_triplestore_if_possible(graphstore_result)
 
-        # This should be treated as a server error
-        return status_nt(
-            500,
-            "Triplestore Update Error",
-            "A failure happened when trying to update the triplestore. Check logs for details.",
-        )
+            # This should be treated as a server error
+            return status_nt(
+                500,
+                "Triplestore Update Error",
+                "A failure happened when trying to update the triplestore. Check logs for details.",
+            )
 
     # Everything went fine - commit the transaction
     db.session.commit()

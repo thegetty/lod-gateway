@@ -437,3 +437,46 @@ class TestGraphStoreConnection:
             update_endpoint.replace("http://", "mock-fail://"),
         )
         assert asserted and asserted.code == 500
+
+
+class TestJSONLDIngestSuccess:
+    def test_ingest_single_jsonld(self, client, namespace, auth_token, test_db):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                    "type": "HumanMadeObject",
+                    "_label": "Irises",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert b"object/12345" in response.data
+
+    def test_ingest_multiple_jsonld(self, client, namespace, auth_token, test_db):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                    "type": "HumanMadeObject",
+                    "_label": "Irises",
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "https://data.getty.edu/museum/collection/object/12346",
+                    "type": "HumanMadeObject",
+                    "_label": "New Object",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert b"object/12345" in response.data

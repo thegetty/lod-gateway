@@ -98,7 +98,7 @@ def test_db(current_app):
 @pytest.fixture
 def test_db_no_rdf(current_app_no_rdf):
     # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
-    if ".amazonaws.com" in current_app.config["SQLALCHEMY_DATABASE_URI"]:
+    if ".amazonaws.com" in current_app_no_rdf.config["SQLALCHEMY_DATABASE_URI"]:
         pytest.exit(
             ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
         )

@@ -146,6 +146,8 @@ def process_record_set(record_list):
 
     # Catch only OperationalError exception (e.g. DB is down)
     except exc.OperationalError as e:
+        current_app.logger.error(e)
+        current_app.logger.critical("Critical failure writing the updated Record to DB")
         db.session.rollback()
         return status_db_save_error
 

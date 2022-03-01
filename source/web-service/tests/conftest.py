@@ -40,6 +40,12 @@ def current_app(app):
 
 
 @pytest.fixture
+def current_app_no_rdf(app_no_rdf):
+    with app.app_context():
+        yield app
+
+
+@pytest.fixture
 def auth_token(current_app):
     yield current_app.config["AUTH_TOKEN"]
 
@@ -79,6 +85,18 @@ def client_no_rdf(app_no_rdf):
 
 @pytest.fixture
 def test_db(current_app):
+    # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
+    if ".amazonaws.com" in current_app.config["SQLALCHEMY_DATABASE_URI"]:
+        pytest.exit(
+            ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
+        )
+    db.drop_all()
+    db.create_all()
+    return db
+
+
+@pytest.fixture
+def test_db_no_rdf(current_app_no_rdf):
     # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
     if ".amazonaws.com" in current_app.config["SQLALCHEMY_DATABASE_URI"]:
         pytest.exit(

@@ -153,7 +153,9 @@ def process_record_set(record_list):
     # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
     graphstore_result = True
     if current_app.config["PROCESS_RDF"] == "True":
-        current_app.logger.info(f"PROCESS_RDF is true - process records as valid JSON-LD")
+        current_app.logger.info(
+            f"PROCESS_RDF is true - process records as valid JSON-LD"
+        )
         graphstore_result = process_graphstore_record_set(
             [record_list[x] for x in idx_to_process_further]
         )
@@ -463,7 +465,9 @@ def process_graphstore_record_set(
 
         # check endpoint
         if graph_check_endpoint(query_endpoint) == False:
-            current_app.logger.error(f"Query Endpoint failed to response - {query_endpoint}")
+            current_app.logger.error(
+                f"Query Endpoint failed to response - {query_endpoint}"
+            )
             return status_graphstore_error
 
         graph_uri_prefix = (
@@ -518,7 +522,9 @@ def process_graphstore_record_set(
                     isinstance(serialized_nt_cache[id], bool)
                     and serialized_nt_cache[id] == False
                 ):
-                    current_app.logger.error(f"Graph {graph_uri} JSON-LD failed to convert to RDF.")
+                    current_app.logger.error(
+                        f"Graph {graph_uri} JSON-LD failed to convert to RDF."
+                    )
                     return status_nt(
                         422,
                         "Graph expansion error",
@@ -527,7 +533,9 @@ def process_graphstore_record_set(
 
                 # JSON-LD expands to nothing? (eg contents do not match context/framing or are not present.)
                 if serialized_nt_cache[id] == "":
-                    current_app.logger.error(f"Graph {graph_uri} JSON-LD failed to convert to any RDF triples at all. Invalid.")
+                    current_app.logger.error(
+                        f"Graph {graph_uri} JSON-LD failed to convert to any RDF triples at all. Invalid."
+                    )
                     return status_nt(
                         422,
                         "Graph expansion error",

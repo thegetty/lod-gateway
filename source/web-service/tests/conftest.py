@@ -41,8 +41,8 @@ def current_app(app):
 
 @pytest.fixture
 def current_app_no_rdf(app_no_rdf):
-    with app.app_context():
-        yield app
+    with app_no_rdf.app_context():
+        yield app_no_rdf
 
 
 @pytest.fixture

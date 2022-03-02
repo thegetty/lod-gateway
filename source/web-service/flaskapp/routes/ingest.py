@@ -510,7 +510,7 @@ def process_graphstore_record_set(
             # retain the backwards link from graph_id to relative id for lookup ease
             idmap[graph_uri] = id
 
-            if "_delete" in data.keys() and data["_delete"] == "true":
+            if "_delete" in data.keys() and data["_delete"] in ["true", "True", True]:
                 # ensure that all records are processed first, before actually
                 # attempting anything with consequences. Build a list to delete first.
                 current_app.logger.info(f"Graph {graph_uri} is marked for deletion.")

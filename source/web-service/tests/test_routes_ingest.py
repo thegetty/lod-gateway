@@ -482,6 +482,15 @@ class TestNewJSONLDIngest:
         assert b"object/12345" in response.data
 
     def test_deletion_failure(self, client, namespace, auth_token, test_db):
+        # Trying to issue a SPARQL Update to delete he 'failure_upon_deletion' object id 
+        # will result in the mock service responding with a Server Error to simulate the 
+        # triplestore going down mid-request.
+
+        # As the LOD Gateway can never guess why the triplestore service dies (could be
+        # temporary, could be a misconfiguration, could be -ro for some reason, etc), the
+        # LOD instance should respond with a Server Error itself to communicate this service issue.
+        # The client should assume that state may have changed, but reattempting their request when
+        # the service is back online should result in a consistent state.
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
 
@@ -512,6 +521,9 @@ class TestNewJSONLDIngest:
         assert "failure happened" in response.detail
 
     def test_batch_deletion_rollback(self, client, namespace, auth_token, test_db):
+        # This simulates a triplestore failure as part of a batch request.
+        # The service should make best efforts to revert, but this should always be 
+        # treated as untrusted (as with all out-of-band failures).
         response = client.post(
             f"/{namespace}/ingest",
             data=json.dumps(

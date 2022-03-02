@@ -108,11 +108,14 @@ def ingest_post():
 
 
 # ### CRUD FUNCTIONS ###
-def process_record_set(record_list):
+def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
     """
     Process the record set in a loop. Wrap into 'try-except'.
     Roll back and abort with 503 if any of 3 operations:
     Record, Activity or graph store fails.
+
+    update_endpoint and query_endpoint are used by the test suite to mock a SPARQL
+    endpoint. They shouldn't be used otherwise.
     """
 
     #  This dict will be returned by function. key: 'id', value: 'namespace/id'
@@ -157,11 +160,13 @@ def process_record_set(record_list):
         # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
         graphstore_result = True
         if current_app.config["PROCESS_RDF"] == "True":
-            current_app.logger.info(
+            current_app.logger.debug(
                 f"PROCESS_RDF is true - process records as valid JSON-LD"
             )
             graphstore_result = process_graphstore_record_set(
-                [record_list[x] for x in idx_to_process_further]
+                [record_list[x] for x in idx_to_process_further],
+                query_endpoint=query_endpoint,
+                update_endpoint=update_endpoint,
             )
 
             # if RDF process fails, roll back and return graph store specific error

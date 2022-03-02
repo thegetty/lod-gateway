@@ -1,7 +1,7 @@
 import json
 
 from flask import current_app
-from flaskapp.routes.ingest import process_graphstore_record_set
+from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
 from flaskapp.errors import status_nt
 
 
@@ -482,14 +482,17 @@ class TestNewJSONLDIngest:
         assert b"object/12345" in response.data
 
     def test_deletion_failure(self, client, namespace, auth_token, test_db):
-        response = client.post(
-            f"/{namespace}/ingest",
-            data=json.dumps({"id": "urn:failure_upon_deletion", "_delete": True}),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
+        query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+        update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
 
-        assert response.status_code == 500
-        assert b"failure happened" in response.data
+        response = process_record_set(
+            [json.dumps({"id": "urn:failure_upon_deletion", "_delete": True})],
+            query_endpoint.replace("http://", "mock-pass://"),
+            update_endpoint.replace("http://", "mock-pass://"),
+        )
+        assert isinstance(response, status_nt)
+        assert response.code == 500
+        assert b"failure happened" in response.detail
 
     def test_batch_deletion_rollback(self, client, namespace, auth_token, test_db):
         response = client.post(
@@ -520,16 +523,21 @@ class TestNewJSONLDIngest:
 
         # Now attempt to delete the 12345 item, and then a failure one and check to see
         # if the 12345 exists after the post and that the revert attempt worked.
-        response = client.post(
-            f"/{namespace}/ingest",
-            data=json.dumps({"id": "object/12345", "_delete": True})
-            + "\n"
-            + json.dumps({"id": "urn:failure_upon_deletion", "_delete": True}),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
+        query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+        update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
 
-        assert response.status_code == 500
-        assert b"failure happened" in response.data
+        response = process_record_set(
+            [
+                json.dumps({"id": "object/12345", "_delete": True}),
+                json.dumps({"id": "urn:failure_upon_deletion", "_delete": True}),
+            ],
+            query_endpoint.replace("http://", "mock-pass://"),
+            update_endpoint.replace("http://", "mock-pass://"),
+        )
+        
+        assert isinstance(response, status_nt)
+        assert response.code == 500
+        assert b"failure happened" in response.detail
 
         # Make sure record still exists
         response = client.get(f"/{namespace}/object/12345")

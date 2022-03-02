@@ -517,12 +517,12 @@ def process_graphstore_record_set(
                 records_to_delete.append(graph_uri)
             else:
                 # Graph is to be updated/created in the triplestore index. Expand to RDF ntriples:
-                serialized_nt_cache[id] = graph_expand(data, proc)
+                serialized_nt_cache[graph_uri] = graph_expand(data, proc)
 
                 # invalid JSON-LD?
                 if (
-                    isinstance(serialized_nt_cache[id], bool)
-                    and serialized_nt_cache[id] == False
+                    isinstance(serialized_nt_cache[graph_uri], bool)
+                    and serialized_nt_cache[graph_uri] == False
                 ):
                     current_app.logger.error(
                         f"Graph {graph_uri} JSON-LD failed to convert to RDF."
@@ -530,11 +530,11 @@ def process_graphstore_record_set(
                     return status_nt(
                         422,
                         "Graph expansion error",
-                        "Could not convert JSON-LD to RDF, id " + id,
+                        "Could not convert JSON-LD to RDF, id " + graph_uri,
                     )
 
                 # JSON-LD expands to nothing? (eg contents do not match context/framing or are not present.)
-                if serialized_nt_cache[id] == "":
+                if serialized_nt_cache[graph_uri] == "":
                     current_app.logger.error(
                         f"Graph {graph_uri} JSON-LD failed to convert to any RDF triples at all. Invalid."
                     )
@@ -543,7 +543,7 @@ def process_graphstore_record_set(
                         "Graph expansion error",
                         (
                             "The JSON-LD expansion resulted in no RDF triples but RDF processing is enabled. Rejecting id "
-                            + id
+                            + graph_uri
                         ),
                     )
 

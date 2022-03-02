@@ -830,7 +830,7 @@ def graph_delete(graph_name, query_endpoint, update_endpoint):
         raise RetryAfter(delay_time)
     else:
         current_app.logger.error(f"Graph delete error code: {res.status_code}")
-        current_app.logger.error(f"Graph delete error: {res.json()}")
+        current_app.logger.error(f"Graph delete error: {res.text}")
         return False
 
 

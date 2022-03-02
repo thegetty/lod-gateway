@@ -257,8 +257,11 @@ def process_record(input_rec):
         # get primary key of existing record
         prim_key = db_rec.id
 
-        # delete
-        if is_delete_request is True:
+        # delete - only if db record is not a stub record
+        if is_delete_request is True 
+            if db_rec.data is None and db_rec.checksum is None:
+                # stub record
+                return (None, id, Event.Delete)
             record_delete(db_rec, data)
             if db_rec.is_old_version is True:
                 # Don't mark deleting an old version as an event in the activity stream

@@ -758,7 +758,7 @@ def graph_exists(graph_name, query_endpoint):
 def graph_replace(graph_name, serialized_nt, update_endpoint):
     # This will replace the named graph with only the triples supplied
     replace_stmt = (
-        "DELETE {GRAPH <"
+        "DELETE { GRAPH <"
         + graph_name
         + "> {?s ?p ?o} } INSERT { GRAPH <"
         + graph_name
@@ -766,10 +766,11 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         + serialized_nt
         + "} } USING <"
         + graph_name
-        + "> WHERE {GRAPH <"
+        + "> WHERE { GRAPH <"
         + graph_name
         + "> { OPTIONAL {?s ?p ?o} } };"
     )
+    current_app.logger.debug(replace_stmt)
     tictoc = time.perf_counter()
     res = requests.post(update_endpoint, data={"update": replace_stmt})
     if res.status_code == 200:
@@ -809,6 +810,7 @@ def graph_delete(graph_name, query_endpoint, update_endpoint):
     # Delete graph from triplestore
     tictoc = time.perf_counter()
     # drop graph
+    current_app.logger.info(f"Attempting to DROP GRAPH <{graph_name}>")
     res = requests.post(
         update_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
     )

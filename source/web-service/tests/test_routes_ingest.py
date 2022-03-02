@@ -486,7 +486,7 @@ class TestNewJSONLDIngest:
         update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
 
         response = process_record_set(
-            [json.dumps({"id": "urn:failure_upon_deletion", "_delete": True})],
+            [json.dumps({"id": "urn:failure_upon_deletion", "_delete": "true"})],
             query_endpoint.replace("http://", "mock-pass://"),
             update_endpoint.replace("http://", "mock-pass://"),
         )
@@ -528,8 +528,8 @@ class TestNewJSONLDIngest:
 
         response = process_record_set(
             [
-                json.dumps({"id": "object/12345", "_delete": True}),
-                json.dumps({"id": "urn:failure_upon_deletion", "_delete": True}),
+                json.dumps({"id": "object/12345", "_delete": "true"}),
+                json.dumps({"id": "urn:failure_upon_deletion", "_delete": "true"}),
             ],
             query_endpoint.replace("http://", "mock-pass://"),
             update_endpoint.replace("http://", "mock-pass://"),

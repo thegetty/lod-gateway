@@ -258,7 +258,7 @@ def process_record(input_rec):
         prim_key = db_rec.id
 
         # delete - only if db record is not a stub record
-        if is_delete_request is True 
+        if is_delete_request is True:
             if db_rec.data is None and db_rec.checksum is None:
                 # stub record
                 return (None, id, Event.Delete)

@@ -733,7 +733,7 @@ def graph_expand(data, proc=None):
         return False
 
     current_app.logger.info(
-        f"Graph {data['id']} expanded in {tictoc - time.perf_counter():0.5f}s"
+        f"Graph {data['id']} expanded in {time.perf_counter() - tictoc:05f}s"
     )
     return serialized_nt
 
@@ -774,7 +774,7 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
     res = requests.post(update_endpoint, data={"update": replace_stmt})
     if res.status_code == 200:
         current_app.logger.info(
-            f"Graph {graph_name} replaced in {tictoc - time.perf_counter():0.5f}s"
+            f"Graph {graph_name} replaced in {time.perf_counter() - tictoc:05f}s"
         )
         return True
     elif res.status_code in [502, 503, 504]:
@@ -814,7 +814,7 @@ def graph_delete(graph_name, query_endpoint, update_endpoint):
     )
     if res.status_code == 200:
         current_app.logger.info(
-            f"Graph {graph_name} deleted in {tictoc - time.perf_counter():0.5f}s"
+            f"Graph {graph_name} deleted in {time.perf_counter() - tictoc:05f}s"
         )
         return True
     elif res.status_code in [502, 503, 504]:
@@ -936,7 +936,7 @@ def graph_insert(graph_name, serialized_nt, update_endpoint):
     tictoc = time.perf_counter()
     res = requests.post(update_endpoint, data={"update": insert_stmt})
     current_app.logger.info(
-        f"Graph {graph_name} inserted in {tictoc - time.perf_counter():0.5f}s"
+        f"Graph {graph_name} inserted in {time.perf_counter() - tictoc:05f}s"
     )
     if res.status_code == 200:
         return True

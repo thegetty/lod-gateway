@@ -534,7 +534,7 @@ class TestNewJSONLDIngest:
             query_endpoint.replace("http://", "mock-pass://"),
             update_endpoint.replace("http://", "mock-pass://"),
         )
-        
+
         assert isinstance(response, status_nt)
         assert response.code == 500
         assert b"failure happened" in response.detail

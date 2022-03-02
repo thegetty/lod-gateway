@@ -439,7 +439,7 @@ class TestGraphStoreConnection:
         assert asserted and asserted.code == 500
 
 
-class TestJSONLDIngestSuccess:
+class TestNewJSONLDIngest:
     def test_ingest_single_jsonld(self, client, namespace, auth_token, test_db):
         response = client.post(
             f"/{namespace}/ingest",
@@ -480,3 +480,55 @@ class TestJSONLDIngestSuccess:
         )
         assert response.status_code == 200
         assert b"object/12345" in response.data
+
+    def test_deletion_failure(self, client, namespace, auth_token, test_db):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps({"id": "urn:failure_upon_deletion", "_delete": True}),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 500
+        assert b"failure happened" in response.data
+
+    def test_batch_deletion_rollback(self, client, namespace, auth_token, test_db):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                    "type": "HumanMadeObject",
+                    "_label": "Irises",
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "https://data.getty.edu/museum/collection/object/12346",
+                    "type": "HumanMadeObject",
+                    "_label": "New Object",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # Now attempt to delete the 12345 item, and then a failure one and check to see
+        # if the 12345 exists after the post and that the revert attempt worked.
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps({"id": "object/12345", "_delete": True})
+            + "\n"
+            + json.dumps({"id": "urn:failure_upon_deletion", "_delete": True}),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 500
+        assert b"failure happened" in response.data
+
+        # Make sure record still exists
+        response = client.get(f"/{namespace}/object/12345")
+        assert response.status_code == 200
+        assert "LOD Gateway" in response.headers["Server"]
+        assert "Irises" in response.text

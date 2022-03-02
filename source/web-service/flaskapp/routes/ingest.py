@@ -758,17 +758,14 @@ def graph_exists(graph_name, query_endpoint):
 def graph_replace(graph_name, serialized_nt, update_endpoint):
     # This will replace the named graph with only the triples supplied
     replace_stmt = (
-        "DELETE { GRAPH <"
+        "DROP SILENT GRAPH <"
         + graph_name
-        + "> {?s ?p ?o} } INSERT { GRAPH <"
+        + "> ; \n"
+        + "INSERT DATA { GRAPH <"
         + graph_name
         + "> {"
         + serialized_nt
-        + "} } USING <"
-        + graph_name
-        + "> WHERE { GRAPH <"
-        + graph_name
-        + "> { OPTIONAL {?s ?p ?o} } };"
+        + "} } ;"
     )
     current_app.logger.debug(replace_stmt)
     tictoc = time.perf_counter()

@@ -176,6 +176,7 @@ def process_record_set(record_list):
             # graphstore_result should contain a list of graphs successfully updated that need to be rolled back
             # Given that this failure should only happen if an out of band error has occurred (Neptune overloaded)
             # the attempt to rollback these graphs may also not be successful.
+            current_app.logger.error(f"Attempting to revert {graphstore_result}")
             revert_triplestore_if_possible(graphstore_result)
 
             # This should be treated as a server error
@@ -624,6 +625,9 @@ def revert_triplestore_if_possible(list_of_relative_ids):
 
     for relative_id in list_of_relative_ids:
         # get current record
+        current_app.logger.warning(
+            f"Attempting to revert '{relative_id}' in triplestore to DB version"
+        )
         record = get_record(relative_id)
         if record is None or record.data is None:
             # this record did not exist before the bulk request

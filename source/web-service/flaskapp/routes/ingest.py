@@ -120,75 +120,77 @@ def process_record_set(record_list):
     idx_to_process_further = []
 
     current_app.logger.debug(f"Processing {len(record_list)} records for updates")
+    with db.session.no_autoflush:
+        try:
+            for idx, rec in enumerate(record_list):
 
-    try:
-        for idx, rec in enumerate(record_list):
+                # 'prim_key' - primary key (integer) returned by db. Used in Activities
+                # 'id' - string ID submitted by client. Used in result dict
+                # 'crud' - one of 3 operations ('create', 'update', 'delete')
+                prim_key, id, crud_event = process_record(rec)
 
-            # 'prim_key' - primary key (integer) returned by db. Used in Activities
-            # 'id' - string ID submitted by client. Used in result dict
-            # 'crud' - one of 3 operations ('create', 'update', 'delete')
-            prim_key, id, crud_event = process_record(rec)
+                # some operations may not return primary key e.g. 'delete' for non-existing record
+                # if primary key is valid, process 'Activities'
+                if prim_key:
+                    process_activity(prim_key, crud_event)
 
-            # some operations may not return primary key e.g. 'delete' for non-existing record
-            # if primary key is valid, process 'Activities'
-            if prim_key:
-                process_activity(prim_key, crud_event)
+                    # add pair of IDs to result dict
+                    result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'
 
-                # add pair of IDs to result dict
-                result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'
+                    # add the list index to the list of updates to process through the graph store
+                    idx_to_process_further.append(idx)
 
-                # add the list index to the list of updates to process through the graph store
-                idx_to_process_further.append(idx)
+                # add to result dict pair ('id': 'None') which will signify to client no operation was done
+                else:
+                    result_dict[id] = "null"
 
-            # add to result dict pair ('id': 'None') which will signify to client no operation was done
-            else:
-                result_dict[id] = "null"
-
-    # Catch only OperationalError exception (e.g. DB is down)
-    except exc.OperationalError as e:
-        current_app.logger.error(e)
-        current_app.logger.critical("Critical failure writing the updated Record to DB")
-        db.session.rollback()
-        return status_db_save_error
-
-    # Process graph store entries. Check the graph store flag - if not set, do not process, return 'True'
-    # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
-    graphstore_result = True
-    if current_app.config["PROCESS_RDF"] == "True":
-        current_app.logger.info(
-            f"PROCESS_RDF is true - process records as valid JSON-LD"
-        )
-        graphstore_result = process_graphstore_record_set(
-            [record_list[x] for x in idx_to_process_further]
-        )
-
-        # if RDF process fails, roll back and return graph store specific error
-        if graphstore_result is not True:
-            current_app.logger.error(
-                f"Error occurred processing JSON-LD. Rolling back."
+        # Catch only OperationalError exception (e.g. DB is down)
+        except exc.OperationalError as e:
+            current_app.logger.error(e)
+            current_app.logger.critical(
+                "Critical failure writing the updated Record to DB"
             )
             db.session.rollback()
+            return status_db_save_error
 
-            # Failure happened when expanding the graphs?
-            if isinstance(graphstore_result, status_nt):
-                return graphstore_result
-
-            # graphstore_result should contain a list of graphs successfully updated that need to be rolled back
-            # Given that this failure should only happen if an out of band error has occurred (Neptune overloaded)
-            # the attempt to rollback these graphs may also not be successful.
-            current_app.logger.error(f"Attempting to revert {graphstore_result}")
-            revert_triplestore_if_possible(graphstore_result)
-
-            # This should be treated as a server error
-            return status_nt(
-                500,
-                "Triplestore Update Error",
-                "A failure happened when trying to update the triplestore. Check logs for details.",
+        # Process graph store entries. Check the graph store flag - if not set, do not process, return 'True'
+        # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
+        graphstore_result = True
+        if current_app.config["PROCESS_RDF"] == "True":
+            current_app.logger.info(
+                f"PROCESS_RDF is true - process records as valid JSON-LD"
+            )
+            graphstore_result = process_graphstore_record_set(
+                [record_list[x] for x in idx_to_process_further]
             )
 
-    # Everything went fine - commit the transaction
-    db.session.commit()
-    return result_dict
+            # if RDF process fails, roll back and return graph store specific error
+            if graphstore_result is not True:
+                current_app.logger.error(
+                    f"Error occurred processing JSON-LD. Rolling back."
+                )
+                db.session.rollback()
+
+                # Failure happened when expanding the graphs?
+                if isinstance(graphstore_result, status_nt):
+                    return graphstore_result
+
+                # graphstore_result should contain a list of graphs successfully updated that need to be rolled back
+                # Given that this failure should only happen if an out of band error has occurred (Neptune overloaded)
+                # the attempt to rollback these graphs may also not be successful.
+                current_app.logger.error(f"Attempting to revert {graphstore_result}")
+                revert_triplestore_if_possible(graphstore_result)
+
+                # This should be treated as a server error
+                return status_nt(
+                    500,
+                    "Triplestore Update Error",
+                    "A failure happened when trying to update the triplestore. Check logs for details.",
+                )
+
+        # Everything went fine - commit the transaction
+        db.session.commit()
+        return result_dict
 
 
 def process_record(input_rec):

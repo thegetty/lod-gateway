@@ -246,10 +246,7 @@ def requests_mocker(requests_mock):
                         context.status_code = 200
                     return None
                 elif sparql.startswith("DROP SILENT GRAPH"):
-                    if "failure_upon_deletion" in sparql:
-                        context.status_code = 500
-                    else:
-                        context.status_code = 200
+                    context.status_code = 200
                     return None
                 elif sparql.startswith("DROP GRAPH"):
                     if "failure_upon_deletion" in sparql:

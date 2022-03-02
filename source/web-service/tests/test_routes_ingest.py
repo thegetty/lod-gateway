@@ -485,6 +485,23 @@ class TestNewJSONLDIngest:
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
 
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "urn:failure_upon_deletion",
+                    "type": "HumanMadeObject",
+                    "_label": "DELETE ME",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # Make sure record exists
+        response = client.get(f"/{namespace}/urn:failure_upon_deletion")
+        assert response.status_code == 200
+
         response = process_record_set(
             [json.dumps({"id": "urn:failure_upon_deletion", "_delete": "true"})],
             query_endpoint.replace("http://", "mock-pass://"),
@@ -512,6 +529,15 @@ class TestNewJSONLDIngest:
                     "id": "object/12346",
                     "type": "HumanMadeObject",
                     "_label": "New Object",
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "urn:failure_upon_deletion",
+                    "type": "HumanMadeObject",
+                    "_label": "DELETE ME",
                 }
             ),
             headers={"Authorization": "Bearer " + auth_token},

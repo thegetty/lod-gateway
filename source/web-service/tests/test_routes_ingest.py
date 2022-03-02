@@ -509,7 +509,7 @@ class TestNewJSONLDIngest:
         )
         assert isinstance(response, status_nt)
         assert response.code == 500
-        assert b"failure happened" in response.detail
+        assert "failure happened" in response.detail
 
     def test_batch_deletion_rollback(self, client, namespace, auth_token, test_db):
         response = client.post(
@@ -563,7 +563,7 @@ class TestNewJSONLDIngest:
 
         assert isinstance(response, status_nt)
         assert response.code == 500
-        assert b"failure happened" in response.detail
+        assert "failure happened" in response.detail
 
         # Make sure record still exists
         response = client.get(f"/{namespace}/object/12345")

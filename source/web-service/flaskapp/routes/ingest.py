@@ -795,7 +795,8 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         current_app.logger.error(
             f"Error code {res.status_code} encountered - delay, then retry suggested"
         )
-        delay_time = 1
+        delay_time = 5
+        # With backoff, it will wait for approx 5s, then 10s, then 15s before retries, and then fail
         if "Retry-After" in res.headers:
             try:
                 delay_time = int(res.headers["Retry-After"])

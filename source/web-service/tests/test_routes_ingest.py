@@ -570,4 +570,4 @@ class TestNewJSONLDIngest:
         assert response.status_code == 200
 
         assert "LOD Gateway" in response.headers["Server"]
-        assert "Irises" in response.text
+        assert b"Irises" in response.data

@@ -446,7 +446,7 @@ class TestNewJSONLDIngest:
             data=json.dumps(
                 {
                     "@context": "https://linked.art/ns/v1/linked-art.json",
-                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                    "id": "object/12345",
                     "type": "HumanMadeObject",
                     "_label": "Irises",
                 }
@@ -462,7 +462,7 @@ class TestNewJSONLDIngest:
             data=json.dumps(
                 {
                     "@context": "https://linked.art/ns/v1/linked-art.json",
-                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                    "id": "object/12345",
                     "type": "HumanMadeObject",
                     "_label": "Irises",
                 }
@@ -471,7 +471,7 @@ class TestNewJSONLDIngest:
             + json.dumps(
                 {
                     "@context": "https://linked.art/ns/v1/linked-art.json",
-                    "id": "https://data.getty.edu/museum/collection/object/12346",
+                    "id": "object/12346",
                     "type": "HumanMadeObject",
                     "_label": "New Object",
                 }
@@ -497,7 +497,7 @@ class TestNewJSONLDIngest:
             data=json.dumps(
                 {
                     "@context": "https://linked.art/ns/v1/linked-art.json",
-                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                    "id": "object/12345",
                     "type": "HumanMadeObject",
                     "_label": "Irises",
                 }
@@ -506,13 +506,17 @@ class TestNewJSONLDIngest:
             + json.dumps(
                 {
                     "@context": "https://linked.art/ns/v1/linked-art.json",
-                    "id": "https://data.getty.edu/museum/collection/object/12346",
+                    "id": "object/12346",
                     "type": "HumanMadeObject",
                     "_label": "New Object",
                 }
             ),
             headers={"Authorization": "Bearer " + auth_token},
         )
+
+        # Make sure record exists
+        response = client.get(f"/{namespace}/object/12345")
+        assert response.status_code == 200
 
         # Now attempt to delete the 12345 item, and then a failure one and check to see
         # if the 12345 exists after the post and that the revert attempt worked.
@@ -530,5 +534,6 @@ class TestNewJSONLDIngest:
         # Make sure record still exists
         response = client.get(f"/{namespace}/object/12345")
         assert response.status_code == 200
+
         assert "LOD Gateway" in response.headers["Server"]
         assert "Irises" in response.text

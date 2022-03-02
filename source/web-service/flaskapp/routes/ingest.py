@@ -206,7 +206,11 @@ def process_record(input_rec):
     # Find if Record with this 'id' exists
     db_rec = get_record(id)
 
-    is_delete_request = "_delete" in data.keys() and data["_delete"] == "true"
+    is_delete_request = "_delete" in data.keys() and data["_delete"] in [
+        "true",
+        "True",
+        True,
+    ]
 
     # Record with such 'id' does not exist
     if db_rec == None:
@@ -634,7 +638,7 @@ def revert_triplestore_if_possible(list_of_relative_ids):
         if record is None or record.data is None:
             # this record did not exist before the bulk request
             try:
-                graph_delete(record, query_endpoint, update_endpoint)
+                graph_delete(relative_id, query_endpoint, update_endpoint)
                 current_app.logger.warning(
                     f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
                 )
@@ -813,30 +817,36 @@ def graph_delete(graph_name, query_endpoint, update_endpoint):
     # Delete graph from triplestore
     tictoc = time.perf_counter()
     # drop graph
-    current_app.logger.info(f"Attempting to DROP GRAPH <{graph_name}>")
-    res = requests.post(
-        update_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
-    )
-    if res.status_code == 200:
-        current_app.logger.info(
-            f"Graph {graph_name} deleted in {time.perf_counter() - tictoc:05f}s"
+    if graph_name is not None:
+        current_app.logger.info(f"Attempting to DROP GRAPH <{graph_name}>")
+        res = requests.post(
+            update_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
         )
-        return True
-    elif res.status_code in [502, 503, 504]:
-        # a potentially temporary server error - retry
-        current_app.logger.error(
-            f"Error code {res.status_code} encountered - delay, then retry suggested"
-        )
-        delay_time = 1
-        if "Retry-After" in res.headers:
-            try:
-                delay_time = int(res.headers["Retry-After"])
-            except (ValueError, TypeError) as e:
-                pass
-        raise RetryAfter(delay_time)
+        if res.status_code == 200:
+            current_app.logger.info(
+                f"Graph {graph_name} deleted in {time.perf_counter() - tictoc:05f}s"
+            )
+            return True
+        elif res.status_code in [502, 503, 504]:
+            # a potentially temporary server error - retry
+            current_app.logger.error(
+                f"Error code {res.status_code} encountered - delay, then retry suggested"
+            )
+            delay_time = 1
+            if "Retry-After" in res.headers:
+                try:
+                    delay_time = int(res.headers["Retry-After"])
+                except (ValueError, TypeError) as e:
+                    pass
+            raise RetryAfter(delay_time)
+        else:
+            current_app.logger.error(f"Graph delete error code: {res.status_code}")
+            current_app.logger.error(f"Graph delete error: {res.text}")
+            return False
     else:
-        current_app.logger.error(f"Graph delete error code: {res.status_code}")
-        current_app.logger.error(f"Graph delete error: {res.text}")
+        current_app.logger.error(
+            f"graph_delete was passed graph_name=None - not doing anything"
+        )
         return False
 
 

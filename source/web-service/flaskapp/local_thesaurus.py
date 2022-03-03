@@ -26,7 +26,7 @@ def insert_record_set(csv_line_list):
     ingest.process_record_set(rec_set)
 
 
-def create_record(csv_line): 
+def create_record(csv_line):
     r = {}
     r_label = csv_line[0]
     r_id = csv_line[1]

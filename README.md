@@ -218,6 +218,27 @@ Example response HTTP headers for a record that has a previous version:
 In this case, the previous version can be retrieved from `http(s)://{HOST}:{PORT}/{NAMESPACE}/05358b54-4781-4d3e-bd08-7e9d06321c23`.
 The response will include the header `X-Is-Old-Version` set to `True`.
 
+### ETags
+
+Versioned resources will include an ETag header with a sha256 checksum in GET/HEAD request responses.
+
+The `If-None-Match` header is also supported. If a checksum is supplied, it will be checked against the requested resource if the resource exists.
+- If they match, it will respond with an HTTP 304 and empty body. 
+- If they do not match (the resource is different compared to the local version), a normal HTTP 200 response is sent. 
+
+The checksum type is sha256 and the algorithm is also part of the lodgatewayclient package [LODGatewayClient -> checksum_json()](https://github.com/thegetty/lod-gateway-client)
+
+The code to create one outside of using the LODGatewayClient is as follows:
+
+    import hashlib, json
+    
+    def checksum_json(json_obj):
+        # Expects a JSON-serializable data structure to be passed to it.
+        checksum = hashlib.sha256()
+        # dump the object as JSON, with the sort_keys flag on to ensure repeatability
+        checksum.update(json.dumps(json_obj, sort_keys=True).encode("utf-8"))
+        return checksum.hexdigest()
+
 ## Technical Architecture
 
 The LOD Gateway project consists of the following primary software components:

@@ -26,23 +26,65 @@ def insert_record_set(csv_line_list):
     ingest.process_record_set(rec_set)
 
 
-def create_record(csv_line):
+def create_record(csv_line): 
     r = {}
-    r["@context"] = "https://static.getty.edu/contexts/skos/skos-lite.json"
-    r["id"] = csv_line[1]
-    r["type"] = "Concept"
-    if len(csv_line[0]) == 0:
-        r["pref_label"] = None
-    else:
-        r["pref_label"] = csv_line[0]
-    if len(csv_line[2]) == 0:
-        r["scope_note"] = None
-    else:
-        r["scope_note"] = csv_line[2]
-    if len(csv_line[3]) == 0:
-        r["exact_match"] = None
-    else:
-        r["exact_match"] = csv_line[3].split(", ")
+    r_label = csv_line[0]
+    r_id = csv_line[1]
+    r_sn = csv_line[2]
+    r_exact_match = csv_line[3].split(", ")
+
+    r["@context"] = "https://linked.art/ns/v1/linked-art.json"
+    r["id"] = r_id
+    r["type"] = "Type"
+    r["_label"] = r_label
+
+    # identified_by
+    ident_by_list = []
+    ident_by = {}
+    ident_by["type"] = "Name"
+    class_as_list = []
+    class_as = {}
+    class_as["id"] = "http://vocab.getty.edu/aat/300404670"
+    class_as["type"] = "Type"
+    class_as["_label"] = "Primary Name"
+    class_as_list.append(class_as)
+    ident_by["classified_as"] = class_as
+    ident_by["content"] = r_label
+    lang_list = []
+    lang = {}
+    lang["id"] = "http://vocab.getty.edu/aat/300388277"
+    lang["type"] = "Language"
+    lang["_label"] = "English"
+    lang_list.append(lang)
+    ident_by["language"] = lang_list
+    ident_by_list.append(ident_by)
+    r["identified_by"] = ident_by_list
+
+    # referred_to_by
+    ref_to_by_list = []
+    ref_to_by = {}
+    ref_to_by["type"] = "LinguisticObject"
+    class_as_list = []
+    class_as = {}
+    class_as["id"] = "http://vocab.getty.edu/aat/300435416"
+    class_as["type"] = "Type"
+    class_as["_label"] = "Description"
+    class_as_int_list = []
+    class_as_int = {}
+    class_as_int["id"] = "http://vocab.getty.edu/aat/300418049"
+    class_as_int["type"] = "Type"
+    class_as_int["_label"] = "Brief Text"
+    class_as_int_list.append(class_as_int)
+    class_as["classified_as"] = class_as_int_list
+    class_as_list.append(class_as)
+    ref_to_by["classified_as"] = class_as_list
+    ref_to_by["content"] = r_sn
+    ref_to_by_list.append(ref_to_by)
+    r["referred_to_by"] = ref_to_by_list
+
+    # exact_match
+    r["exact_match"] = r_exact_match
+
     return json.dumps(r)
 
 

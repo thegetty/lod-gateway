@@ -23,9 +23,26 @@ def app(mocker):
 
 
 @pytest.fixture
+def app_no_rdf(mocker):
+    flask_app = create_app()
+    flask_app.config["TESTING"] = True
+    flask_app.config["PROCESS_RDF"] = "False"
+    flask_app.config["SPARQL_QUERY_ENDPOINT"] = None
+    flask_app.config["SPARQL_UPDATE_ENDPOINT"] = None
+
+    yield flask_app
+
+
+@pytest.fixture
 def current_app(app):
     with app.app_context():
         yield app
+
+
+@pytest.fixture
+def current_app_no_rdf(app_no_rdf):
+    with app_no_rdf.app_context():
+        yield app_no_rdf
 
 
 @pytest.fixture
@@ -56,9 +73,32 @@ def client(app):
 
 
 @pytest.fixture
+def client_no_rdf(app_no_rdf):
+
+    testing_client = app_no_rdf.test_client()
+
+    ctx = app_no_rdf.app_context()
+    ctx.push()
+    yield testing_client  # this is where the testing happens!
+    ctx.pop()
+
+
+@pytest.fixture
 def test_db(current_app):
     # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
     if ".amazonaws.com" in current_app.config["SQLALCHEMY_DATABASE_URI"]:
+        pytest.exit(
+            ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
+        )
+    db.drop_all()
+    db.create_all()
+    return db
+
+
+@pytest.fixture
+def test_db_no_rdf(current_app_no_rdf):
+    # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
+    if ".amazonaws.com" in current_app_no_rdf.config["SQLALCHEMY_DATABASE_URI"]:
         pytest.exit(
             ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
         )
@@ -197,8 +237,22 @@ def requests_mocker(requests_mock):
                 elif sparql.startswith("INSERT DATA"):
                     context.status_code = 200
                     return None
-                elif sparql.startswith("DROP GRAPH"):
+                elif sparql.startswith("DELETE {GRAPH <"):
+                    if "failure_uri_503" in sparql:
+                        context.status_code = 503
+                        context.headers["Retry-After"] = 5
+                    else:
+                        # Graph replace SPARQL update
+                        context.status_code = 200
+                    return None
+                elif sparql.startswith("DROP SILENT GRAPH"):
                     context.status_code = 200
+                    return None
+                elif sparql.startswith("DROP GRAPH"):
+                    if "failure_upon_deletion" in sparql:
+                        context.status_code = 500
+                    else:
+                        context.status_code = 200
                     return None
         else:
             print(f"*** unhandled mock request: {request.path_url}")

@@ -71,4 +71,7 @@ def construct_error_response(status, source=None):
         response=json.dumps(result), mimetype="application/json", status=status.code
     )
 
+    if status.code == 503:
+        response.headers["Retry-After"] = "30"
+
     return response

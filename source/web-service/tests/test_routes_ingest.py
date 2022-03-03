@@ -1,7 +1,8 @@
 import json
 
 from flask import current_app
-from flaskapp.routes.ingest import process_graphstore_record_set
+from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
+from flaskapp.errors import status_nt
 
 
 class TestIngestErrors:
@@ -141,8 +142,8 @@ class TestIngestErrors:
 
 
 class TestIngestSuccess:
-    def test_ingest_single(self, client, namespace, auth_token, test_db):
-        response = client.post(
+    def test_ingest_single(self, client_no_rdf, namespace, auth_token, test_db_no_rdf):
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(
                 {"id": "object/12345", "name": "John", "age": 31, "city": "New York"}
@@ -152,8 +153,10 @@ class TestIngestSuccess:
         assert response.status_code == 200
         assert b"object/12345" in response.data
 
-    def test_ingest_multiple(self, client, namespace, auth_token, test_db):
-        response = client.post(
+    def test_ingest_multiple(
+        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
+    ):
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data='{"id": "person/12345", "name": "John", "age": 31, "city": "New York"}'
             + "\n"
@@ -166,10 +169,12 @@ class TestIngestSuccess:
         assert response.status_code == 200
         assert b"group/12345" in response.data
 
-    def test_ingest_same_data_twice(self, client, namespace, auth_token, test_db):
+    def test_ingest_same_data_twice(
+        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
+    ):
         data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -178,7 +183,7 @@ class TestIngestSuccess:
         assert b"person/12345" in response.data
 
         # Do it again - should get a 200, but nothing in response.
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -187,14 +192,16 @@ class TestIngestSuccess:
         data_resp = response.get_json()
         assert data_resp["person/12345"] == "null"
 
-    def test_ingest_new_versions(self, client, namespace, auth_token, test_db):
+    def test_ingest_new_versions(
+        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
+    ):
         data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
 
         # Make sure that the versioning flag is set
         assert current_app.config["KEEP_LAST_VERSION"] is True
 
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -203,14 +210,14 @@ class TestIngestSuccess:
 
         data["new property"] = "new data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/12345",
             headers={"Authorization": "Bearer " + auth_token},
         )
@@ -218,14 +225,14 @@ class TestIngestSuccess:
         assert "X-Previous-Version" in response.headers
         assert "X-Is-Old-Version" in response.headers
 
-        old_version = client.get(
+        old_version = client_no_rdf.get(
             f"/{namespace}/{response.headers['X-Previous-Version']}",
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert old_version.status_code == 200
 
     def test_ingest_test_old_version_deletion(
-        self, client, namespace, auth_token, test_db
+        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):
         data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
 
@@ -233,7 +240,7 @@ class TestIngestSuccess:
         assert current_app.config["KEEP_LAST_VERSION"] is True
 
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -242,14 +249,14 @@ class TestIngestSuccess:
 
         data["new property"] = "new data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/12345",
             headers={"Authorization": "Bearer " + auth_token},
         )
@@ -257,28 +264,28 @@ class TestIngestSuccess:
 
         data["new property"] = "newer data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/12345",
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
         assert response.headers["X-Previous-Version"] != old_version_id
 
-        old_version = client.get(
+        old_version = client_no_rdf.get(
             f"/{namespace}/{old_version_id}",
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert old_version.status_code == 404
 
     def test_ingest_test_direct_delete_on_old_version(
-        self, client, namespace, auth_token, test_db
+        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):
         data = {"id": "person/123456", "name": "John", "age": 31, "city": "New York"}
 
@@ -286,7 +293,7 @@ class TestIngestSuccess:
         assert current_app.config["KEEP_LAST_VERSION"] is True
 
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -295,41 +302,41 @@ class TestIngestSuccess:
 
         data["new property"] = "new data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/123456",
             headers={"Authorization": "Bearer " + auth_token},
         )
         old_version_id = response.headers["X-Previous-Version"]
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps({"id": old_version_id, "_delete": "true"}),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/123456",
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
         assert response.headers["X-Previous-Version"] == "None"
 
-        old_version = client.get(
+        old_version = client_no_rdf.get(
             f"/{namespace}/{old_version_id}",
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert old_version.status_code == 404
 
     def test_ingest_test_update_null_on_old_version(
-        self, client, namespace, auth_token, test_db
+        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):
         data = {"id": "person/123456", "name": "John", "age": 31, "city": "New York"}
 
@@ -337,7 +344,7 @@ class TestIngestSuccess:
         assert current_app.config["KEEP_LAST_VERSION"] is True
 
         # load one record:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
@@ -346,21 +353,21 @@ class TestIngestSuccess:
 
         data["new property"] = "new data"
 
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
 
-        response = client.get(
+        response = client_no_rdf.get(
             f"/{namespace}/person/123456",
             headers={"Authorization": "Bearer " + auth_token},
         )
         old_version_id = response.headers["X-Previous-Version"]
 
         # update old version:
-        response = client.post(
+        response = client_no_rdf.post(
             f"/{namespace}/ingest",
             data=json.dumps({"id": old_version_id, "some": "garbage"}),
             headers={"Authorization": "Bearer " + auth_token},
@@ -390,6 +397,27 @@ class TestGraphStoreConnection:
         )
         assert asserted == True
 
+    def test_graphstore_zero_triples(self, client, namespace, auth_token):
+        query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+        update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
+        records = [
+            json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "https://data.getty.edu/museum/collection/object/12345",
+                }
+            )
+        ]
+
+        asserted = process_graphstore_record_set(
+            records,
+            query_endpoint.replace("http://", "mock-pass://"),
+            update_endpoint.replace("http://", "mock-pass://"),
+        )
+
+        assert isinstance(asserted, status_nt)
+        assert asserted.code == 422
+
     def test_graphstore_connection_fail(self, client, namespace, auth_token):
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
@@ -409,3 +437,149 @@ class TestGraphStoreConnection:
             update_endpoint.replace("http://", "mock-fail://"),
         )
         assert asserted and asserted.code == 500
+
+
+class TestNewJSONLDIngest:
+    def test_ingest_single_jsonld(self, client, namespace, auth_token, test_db):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "object/12345",
+                    "type": "HumanMadeObject",
+                    "_label": "Irises",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert b"object/12345" in response.data
+
+    def test_ingest_multiple_jsonld(self, client, namespace, auth_token, test_db):
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "object/12345",
+                    "type": "HumanMadeObject",
+                    "_label": "Irises",
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "object/12346",
+                    "type": "HumanMadeObject",
+                    "_label": "New Object",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert b"object/12345" in response.data
+
+    def test_deletion_failure(self, client, namespace, auth_token, test_db):
+        # Trying to issue a SPARQL Update to delete he 'failure_upon_deletion' object id
+        # will result in the mock service responding with a Server Error to simulate the
+        # triplestore going down mid-request.
+
+        # As the LOD Gateway can never guess why the triplestore service dies (could be
+        # temporary, could be a misconfiguration, could be -ro for some reason, etc), the
+        # LOD instance should respond with a Server Error itself to communicate this service issue.
+        # The client should assume that state may have changed, but reattempting their request when
+        # the service is back online should result in a consistent state.
+        query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+        update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "urn:failure_upon_deletion",
+                    "type": "HumanMadeObject",
+                    "_label": "DELETE ME",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # Make sure record exists
+        response = client.get(f"/{namespace}/urn:failure_upon_deletion")
+        assert response.status_code == 200
+
+        response = process_record_set(
+            [json.dumps({"id": "urn:failure_upon_deletion", "_delete": "true"})],
+            query_endpoint.replace("http://", "mock-pass://"),
+            update_endpoint.replace("http://", "mock-pass://"),
+        )
+        assert isinstance(response, status_nt)
+        assert response.code == 500
+        assert "failure happened" in response.detail
+
+    def test_batch_deletion_rollback(self, client, namespace, auth_token, test_db):
+        # This simulates a triplestore failure as part of a batch request.
+        # The service should make best efforts to revert, but this should always be
+        # treated as untrusted (as with all out-of-band failures).
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "object/12345",
+                    "type": "HumanMadeObject",
+                    "_label": "Irises",
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "object/12346",
+                    "type": "HumanMadeObject",
+                    "_label": "New Object",
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "urn:failure_upon_deletion",
+                    "type": "HumanMadeObject",
+                    "_label": "DELETE ME",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # Make sure record exists
+        response = client.get(f"/{namespace}/object/12345")
+        assert response.status_code == 200
+
+        # Now attempt to delete the 12345 item, and then a failure one and check to see
+        # if the 12345 exists after the post and that the revert attempt worked.
+        query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+        update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
+
+        response = process_record_set(
+            [
+                json.dumps({"id": "object/12345", "_delete": "true"}),
+                json.dumps({"id": "urn:failure_upon_deletion", "_delete": "true"}),
+            ],
+            query_endpoint.replace("http://", "mock-pass://"),
+            update_endpoint.replace("http://", "mock-pass://"),
+        )
+
+        assert isinstance(response, status_nt)
+        assert response.code == 500
+        assert "failure happened" in response.detail
+
+        # Make sure record still exists
+        response = client.get(f"/{namespace}/object/12345")
+        assert response.status_code == 200
+
+        assert "LOD Gateway" in response.headers["Server"]
+        assert b"Irises" in response.data

@@ -385,7 +385,7 @@ def get_record(rec_id):
 
 
 # RDF processing
-class RetryAfter(Exception):
+class RetryAfterError(Exception):
     def __init__(
         self,
         waittime,
@@ -406,7 +406,7 @@ def retry_request_function(func, args, kwargs=None, retry_limit=3):
                 resp = func(*args)
             if isinstance(resp, bool):
                 return resp
-        except RetryAfter as e:
+        except RetryAfterError as e:
             # wait the requested time * the retry number (backoff) + a random 0.0->1.0s duration for jitter
             retry_time = (e.waittime * retries) + random()
             current_app.logger.warning(
@@ -650,7 +650,7 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                 current_app.logger.warning(
                     f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
                 )
-            except (requests.exceptions.ConnectionError, RetryAfter) as e:
+            except (requests.exceptions.ConnectionError, RetryAfterError) as e:
                 current_app.logger.error(
                     f"REVERT: Rollback failure - couldn't revert {relative_id} to a deleted state in the triplestore"
                 )
@@ -674,7 +674,7 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                     current_app.logger.warning(
                         f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data['id']})"
                     )
-            except (requests.exceptions.ConnectionError, RetryAfter) as e:
+            except (requests.exceptions.ConnectionError, RetryAfterError) as e:
                 current_app.logger.error(
                     f"REVERT: Rollback failure - couldn't revert {relative_id} to match the DB"
                 )
@@ -805,7 +805,7 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
                 delay_time = int(res.headers["Retry-After"])
             except (ValueError, TypeError) as e:
                 pass
-        raise RetryAfter(delay_time)
+        raise RetryAfterError(delay_time)
     elif res.status_code in [411, 412, 413]:
         # request was too large or unacceptable
         current_app.logger.critical(
@@ -847,7 +847,7 @@ def graph_delete(graph_name, query_endpoint, update_endpoint):
                     delay_time = int(res.headers["Retry-After"])
                 except (ValueError, TypeError) as e:
                     pass
-            raise RetryAfter(delay_time)
+            raise RetryAfterError(delay_time)
         else:
             current_app.logger.error(f"Graph delete error code: {res.status_code}")
             current_app.logger.error(f"Graph delete error: {res.text}")

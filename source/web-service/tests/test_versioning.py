@@ -166,4 +166,4 @@ class TestVersioning:
             client_uri, headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
-        assert response.as_json()["content"] == foo_jsonld["content"]
+        assert response.json["content"] == foo_jsonld["content"]

@@ -174,6 +174,42 @@ def sample_record_with_ids(test_db):
 
 
 @pytest.fixture
+def linguisticobject():
+    def _generator(name, id):
+        return {
+            "@context": "https://linked.art/ns/v1/linked-art.json",
+            "id": id,
+            "content": name,
+            "classified_as": [
+                {
+                    "id": "https://data.getty.edu/local/thesaurus/aspace-subject-topical",
+                    "type": "Type",
+                    "_label": "Subject Heading - Topical",
+                }
+            ],
+        }
+
+    return _generator
+
+
+@pytest.fixture
+def sample_jsonldrecord_with_id(test_db, linguisticobject):
+    def _sample_record(name, id):
+        record = Record(
+            entity_id=id,
+            entity_type="LinguisticObject",
+            datetime_created=datetime(2019, 11, 22, 13, 2, 53),
+            datetime_updated=datetime(2019, 12, 18, 11, 22, 7),
+            data=linguisticobject(name, id),
+        )
+        test_db.session.add(record)
+        test_db.session.commit()
+        return record
+
+    return _sample_record
+
+
+@pytest.fixture
 def sample_activity_with_ids(test_db, sample_record_with_ids):
     def _sample_activity(record_id):
 

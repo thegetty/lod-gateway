@@ -18,6 +18,7 @@ from flaskapp.routes.ingest import ingest
 from flaskapp.routes.health import health
 from flaskapp.routes.sparql import sparql
 from flaskapp.routes.yasgui import yasgui
+from flaskapp.routes.timegate import timegate
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
@@ -83,6 +84,9 @@ def create_app():
     if environ.get("KEEP_LAST_VERSION", "False").lower() == "true":
         app.config["KEEP_LAST_VERSION"] = True
 
+    if environ.get("KEEP_VERSIONS_AFTER_DELETION", "False").lower() == "true":
+        app.config["KEEP_VERSIONS_AFTER_DELETION"] = True
+
     if app.env == "development":
         app.config["SQLALCHEMY_ECHO"] = True
 
@@ -106,6 +110,7 @@ def create_app():
         app.register_blueprint(ingest, url_prefix=f"/{ns}")
         app.register_blueprint(sparql, url_prefix=f"/{ns}")
         app.register_blueprint(yasgui, url_prefix=f"/{ns}")
+        app.register_blueprint(timegate, url_prefix=f"/{ns}")
         app.register_blueprint(health, url_prefix=f"/{ns}")
 
         # Index Route

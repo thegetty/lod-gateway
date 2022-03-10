@@ -61,22 +61,22 @@ def get_timemap(entity_id):
         for idx, version in enumerate(record.versions):
             mm = {
                 "uri": f"{idPrefix}{ url_for('records.entity_version', entity_id=version.entity_id) }",
-                "datetime": format_datetime(version.datetime_created),
+                "datetime": format_datetime(version.datetime_updated),
                 "rel": "memento",
             }
             if idx == 0:
                 # Should be an ordered list from the DB, first as newest
                 mm["rel"] = "first memento"
                 # mark timemap with until datetime
-                timemap[0]["until"] = format_datetime(version.datetime_created)
+                timemap[0]["until"] = format_datetime(version.datetime_updated)
             elif num_versions - idx == 1:
                 mm["rel"] = "last memento"
                 # mark timemap with until datetime
-                timemap[0]["from"] = format_datetime(version.datetime_created)
+                timemap[0]["from"] = format_datetime(version.datetime_updated)
             timemap.append(mm)
 
     # Accept?
-    if "application/link-format" in request.headers.get("Accept"):
+    if "application/link-format" in request.headers.get("Accept", "application/json"):
         lf = ",\n".join([json_to_linkformat(x) for x in timemap])
         response = current_app.make_response(lf)
         response.headers["Content-Type"] = "application/link-format"

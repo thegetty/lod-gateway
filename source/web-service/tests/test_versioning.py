@@ -41,7 +41,6 @@ class TestVersioning:
         )
 
         assert response.status_code == 200
-        assert identifier in response.text
 
         # make new versions:
         for _ in range(2):
@@ -82,7 +81,6 @@ class TestVersioning:
         )
 
         assert response.status_code == 200
-        assert identifier in response.text
 
         # Timemap should be at this URL. Get the JSON version
         response = client.get(

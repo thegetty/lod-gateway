@@ -3,10 +3,11 @@ import re
 import uuid
 
 from flask import current_app
+from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
 
 
 class TestVersioning:
-    def test_timemap_in_link_header(self, client, namespace, sample_data):
+    def test_timemap_in_link_header(self, client, namespace, sample_data, test_db):
         response = client.get(f"/{namespace}/{sample_data['record'].entity_id}")
 
         assert response.status_code == 200
@@ -21,10 +22,12 @@ class TestVersioning:
         m = p.match(link)
 
         assert m is not None
-        assert m.groups()[0].endswith(f"{namespace}/-tm-/{identifier}")
+        assert m.groups()[0].endswith(
+            f"{namespace}/-tm-/{sample_data['record'].entity_id}"
+        )
 
     def test_multiple_versions_in_timemap_json(
-        self, client, namespace, auth_token, linguisticobject
+        self, client, namespace, auth_token, linguisticobject, test_db
     ):
         identifier = str(uuid.uuid4())
 
@@ -66,7 +69,7 @@ class TestVersioning:
         assert len(timemap) > 5
 
     def test_timemap_in_link_format(
-        self, client, namespace, auth_token, linguisticobject
+        self, client, namespace, auth_token, linguisticobject, test_db
     ):
         identifier = str(uuid.uuid4())
 

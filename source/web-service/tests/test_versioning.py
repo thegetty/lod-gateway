@@ -116,3 +116,54 @@ class TestVersioning:
                     assert rel == "rel not understood."
 
         assert len(rels) == 0
+
+    def test_getting_version_is_authenticated(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # new version
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(bar_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # Timemap should be at this URL. Get the JSON version
+        response = client.get(
+            f"/{namespace}/-tm-/{identifier}", headers={"Accept": "application/json"}
+        )
+
+        assert response.status_code == 200
+        timemap = response.get_json()
+
+        firstmemento = None
+        for item in timemap:
+            if item["rel"].endswith["first memento"]:
+                firstmemento = item
+
+        assert firstmemento is not None
+
+        assert "-VERSION-" in firstmemento["uri"]
+
+        # get client version
+        client_uri = f"{namespace}/{firstmemento['uri'].split(namespace+'/')[-1]}"
+
+        # check if it requires authentication
+        response = client.get(client_uri)
+        assert response.status_code == 401
+
+        response = client.get(
+            client_uri, headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert response.as_json()["content"] == foo_jsonld["content"]

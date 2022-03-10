@@ -1,4 +1,5 @@
 import json
+import re
 
 from flask import current_app
 from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
@@ -222,158 +223,20 @@ class TestIngestSuccess:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
-        assert "X-Previous-Version" in response.headers
-        assert "X-Is-Old-Version" in response.headers
+        assert "Memento-Datetime" in response.headers
+        assert "Link" in response.headers
 
-        old_version = client_no_rdf.get(
-            f"/{namespace}/{response.headers['X-Previous-Version']}",
-            headers={"Authorization": "Bearer " + auth_token},
+        p = re.compile(r".*<(.*)>.*")
+
+        m = p.match(response.headers["Link"])
+        assert m is not None
+
+        uri = m.groups()[0]
+
+        timemap = client_no_rdf.get(
+            uri, headers={"Authorization": "Bearer " + auth_token},
         )
-        assert old_version.status_code == 200
-
-    def test_ingest_test_old_version_deletion(
-        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
-    ):
-        data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
-
-        # Make sure that the versioning flag is set
-        assert current_app.config["KEEP_LAST_VERSION"] is True
-
-        # load one record:
-        response = client_no_rdf.post(
-            f"/{namespace}/ingest",
-            data=json.dumps(data),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-
-        data["new property"] = "new data"
-
-        response = client_no_rdf.post(
-            f"/{namespace}/ingest",
-            data=json.dumps(data),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-
-        response = client_no_rdf.get(
-            f"/{namespace}/person/12345",
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        old_version_id = response.headers["X-Previous-Version"]
-
-        data["new property"] = "newer data"
-
-        response = client_no_rdf.post(
-            f"/{namespace}/ingest",
-            data=json.dumps(data),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-
-        response = client_no_rdf.get(
-            f"/{namespace}/person/12345",
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-        assert response.headers["X-Previous-Version"] != old_version_id
-
-        old_version = client_no_rdf.get(
-            f"/{namespace}/{old_version_id}",
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert old_version.status_code == 404
-
-    def test_ingest_test_direct_delete_on_old_version(
-        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
-    ):
-        data = {"id": "person/123456", "name": "John", "age": 31, "city": "New York"}
-
-        # Make sure that the versioning flag is set
-        assert current_app.config["KEEP_LAST_VERSION"] is True
-
-        # load one record:
-        response = client_no_rdf.post(
-            f"/{namespace}/ingest",
-            data=json.dumps(data),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-
-        data["new property"] = "new data"
-
-        response = client_no_rdf.post(
-            f"/{namespace}/ingest",
-            data=json.dumps(data),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-
-        response = client_no_rdf.get(
-            f"/{namespace}/person/123456",
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        old_version_id = response.headers["X-Previous-Version"]
-
-        response = client_no_rdf.post(
-            f"/{namespace}/ingest",
-            data=json.dumps({"id": old_version_id, "_delete": "true"}),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-
-        response = client_no_rdf.get(
-            f"/{namespace}/person/123456",
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-        assert response.headers["X-Previous-Version"] == "None"
-
-        old_version = client_no_rdf.get(
-            f"/{namespace}/{old_version_id}",
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert old_version.status_code == 404
-
-    def test_ingest_test_update_null_on_old_version(
-        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
-    ):
-        data = {"id": "person/123456", "name": "John", "age": 31, "city": "New York"}
-
-        # Make sure that the versioning flag is set
-        assert current_app.config["KEEP_LAST_VERSION"] is True
-
-        # load one record:
-        response = client_no_rdf.post(
-            f"/{namespace}/ingest",
-            data=json.dumps(data),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-
-        data["new property"] = "new data"
-
-        response = client_no_rdf.post(
-            f"/{namespace}/ingest",
-            data=json.dumps(data),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-
-        response = client_no_rdf.get(
-            f"/{namespace}/person/123456",
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        old_version_id = response.headers["X-Previous-Version"]
-
-        # update old version:
-        response = client_no_rdf.post(
-            f"/{namespace}/ingest",
-            data=json.dumps({"id": old_version_id, "some": "garbage"}),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-        assert response.status_code == 200
-        assert response.get_json()[old_version_id] == "null"
+        assert timemap.status_code == 200
 
 
 class TestGraphStoreConnection:

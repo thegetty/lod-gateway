@@ -302,7 +302,7 @@ def record_update(db_rec, input_rec):
         db.session.add(prev)
 
     # With the update to the model, this should be automatic
-    #db_rec.datetime_updated = datetime.utcnow()
+    # db_rec.datetime_updated = datetime.utcnow()
     db_rec.data = input_rec
     db_rec.checksum = checksum_json(input_rec)
 

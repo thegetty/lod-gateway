@@ -150,7 +150,7 @@ def entity_record(entity_id):
                 # using HTTP 304 Not Modified, with the etag and last modified date in the headers
                 headers = {
                     "Last-Modified": format_datetime(record.datetime_updated),
-                    "ETag": record.checksum,
+                    "ETag": f'"{record.checksum}"',
                 }
 
                 if current_app.config["KEEP_LAST_VERSION"] is True:
@@ -188,7 +188,7 @@ def entity_record(entity_id):
             response = current_app.make_response(data)
             response.headers["Content-Type"] = "application/json;charset=UTF-8"
             response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
-            response.headers["ETag"] = record.checksum
+            response.headers["ETag"] = f'"{record.checksum}"'
             if current_app.config["KEEP_LAST_VERSION"] is True:
                 response.headers["Memento-Datetime"] = format_datetime(
                     record.datetime_updated
@@ -245,7 +245,7 @@ def entity_version(entity_id):
                 # using HTTP 304 Not Modified, with the etag and last modified date in the headers
                 headers = {
                     "Last-Modified": format_datetime(version.datetime_updated),
-                    "ETag": version.checksum,
+                    "ETag": f'"{version.checksum}"',
                 }
 
                 headers["Memento-Datetime"] = format_datetime(version.datetime_updated)
@@ -286,7 +286,7 @@ def entity_version(entity_id):
             response.headers["Last-Modified"] = format_datetime(
                 version.datetime_updated
             )
-            response.headers["ETag"] = version.checksum
+            response.headers["ETag"] = f'"{version.checksum}"'
             response.headers["Link"] = ",".join(
                 [
                     f'<{idPrefix}/{version.record.entity_id}>; rel="original"',

@@ -53,7 +53,7 @@ def get_timemap(entity_id):
         timemap.append(
             {
                 "uri": f"{idPrefix}{ url_for('records.entity_version', entity_id=record.versions[0].entity_id) }",
-                "datetime": format_datetime(record.versions[0].datetime_created),
+                "datetime": format_datetime(record.versions[0].datetime_updated),
                 "rel": "first memento",
             }
         )

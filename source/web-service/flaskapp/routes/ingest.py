@@ -290,7 +290,8 @@ def record_update(db_rec, input_rec):
         prev = Version()
         prev.entity_id = prev_id
         prev.entity_type = db_rec.entity_type
-        prev.datetime_created = db_rec.datetime_created
+        # Setting the 'created' date to be equal to when the record was last updated.
+        prev.datetime_created = db_rec.datetime_updated
         prev.datetime_updated = db_rec.datetime_updated
         prev.data = db_rec.data
         prev.checksum = db_rec.checksum
@@ -317,7 +318,8 @@ def record_delete(db_rec, input_rec):
             prev = Version()
             prev.entity_id = prev_id
             prev.entity_type = db_rec.entity_type
-            prev.datetime_created = db_rec.datetime_created
+            # Setting the 'created' date to be equal to when the record was last updated.
+            prev.datetime_created = db_rec.datetime_updated
             prev.datetime_updated = db_rec.datetime_updated
             prev.data = db_rec.data
             prev.checksum = db_rec.checksum

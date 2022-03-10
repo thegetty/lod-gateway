@@ -15,4 +15,4 @@ class TestVersioning:
         headers = response.headers
 
         assert "Memento-Datetime" in headers
-        assert "timemap" in headers['Link']
+        assert "timemap" in headers["Link"]

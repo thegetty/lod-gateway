@@ -15,8 +15,14 @@ from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
     status_page_not_found,
+    status_ok,
 )
 from flaskapp.utilities import checksum_json
+
+# authentication function from ingest. This really should be changed at some point to a
+# better library like JWT
+from flaskapp.routes.ingest import authenticate_bearer
+
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
@@ -213,6 +219,12 @@ def entity_record(entity_id):
 # old version of a record
 @records.route("/-VERSION-/<path:entity_id>")
 def entity_version(entity_id):
+    # Authentication. If fails, abort with 401
+    status = authenticate_bearer(request)
+    if status != status_ok:
+        response = construct_error_response(status)
+        return abort(response)
+
     if current_app.config["KEEP_LAST_VERSION"] is True:
         """GET the version that exactly matches the id supplied"""
 

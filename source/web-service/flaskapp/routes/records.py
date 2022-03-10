@@ -128,7 +128,7 @@ def entity_record(entity_id):
         # Pagination will be in the usual "first", "prev", "next" pattern
         if page_request.has_next is True:
             r_json["next"] = f"{idPrefix}/{entity_id}?page={page+1}"
-            r_json["last"] = f"{idPrefix}/{entity_id}?page={int(total/page_size)}"
+            r_json["last"] = f"{idPrefix}/{entity_id}?page={math.ceil(total/page_size)}"
         if page > 1:
             r_json["prev"] = f"{idPrefix}/{entity_id}?page={page-1}"
 

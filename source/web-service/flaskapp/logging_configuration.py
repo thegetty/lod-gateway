@@ -35,7 +35,7 @@ def get_logging_config(level="INFO", disable_existing=True):
             "flaskapp": {
                 "level": level,
                 "handlers": ["stderr_error_only", "stdout_all"],
-                "propagate": False,
-            },
+                "propagate": True,
+            }
         },
     }

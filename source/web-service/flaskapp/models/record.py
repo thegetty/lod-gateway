@@ -1,5 +1,6 @@
 from flaskapp.models import db
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, DateTime
+from sqlalchemy.sql import func
 
 # Keeping the old columns to allow for migration
 class Record(db.Model):
@@ -7,8 +8,13 @@ class Record(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     entity_id = db.Column(db.String, nullable=False, index=True, unique=True)
     entity_type = db.Column(db.String, index=True)
-    datetime_created = db.Column(db.TIMESTAMP, nullable=False)
-    datetime_updated = db.Column(db.TIMESTAMP, nullable=False)
+    datetime_created = db.Column(db.TIMESTAMP, nullable=False, index=True)
+    datetime_updated = db.Column(
+        DateTime(timezone=True),
+        onupdate=func.now(),
+        server_default=func.now(),
+        index=True,
+    )
     datetime_deleted = db.Column(db.TIMESTAMP)
     data = db.Column(db.JSON)
     previous_version = db.Column(db.String, nullable=True, index=True)
@@ -22,7 +28,12 @@ class Version(db.Model):
     entity_id = db.Column(db.String, nullable=False, index=True, unique=True)
     entity_type = db.Column(db.String, index=True)
     datetime_created = db.Column(db.TIMESTAMP, nullable=False, index=True)
-    datetime_updated = db.Column(db.TIMESTAMP, nullable=False, index=True)
+    datetime_updated = db.Column(
+        DateTime(timezone=True),
+        onupdate=func.now(),
+        server_default=func.now(),
+        index=True,
+    )
     datetime_deleted = db.Column(db.TIMESTAMP)
     data = db.Column(db.JSON)
     checksum = db.Column(db.String, nullable=True)

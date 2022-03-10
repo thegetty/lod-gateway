@@ -41,6 +41,7 @@ class TestVersioning:
         )
 
         assert response.status_code == 200
+        assert identifier in response.data.decode("utf-8")
 
         # make new versions:
         for _ in range(2):
@@ -81,6 +82,7 @@ class TestVersioning:
         )
 
         assert response.status_code == 200
+        assert identifier in response.data.decode("utf-8")
 
         # Timemap should be at this URL. Get the JSON version
         response = client.get(
@@ -91,7 +93,7 @@ class TestVersioning:
         assert response.status_code == 200
 
         # Even though there are no 'versions' the timemap should include the timemap and the original
-        lines = response.text.split(",")
+        lines = response.data.decode("utf-8").split(",")
 
         p = re.compile(r".*<(.*)>\s*;.*rel=\"([^\"]*)\"")
 

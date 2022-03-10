@@ -2,13 +2,13 @@ import click
 import math
 
 from datetime import datetime, timezone
-from flask import Blueprint, current_app, abort, request, jsonify
+from flask import Blueprint, current_app, abort, request, jsonify, url_for
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import load_only
 from sqlalchemy import func
 
 from flaskapp.models import db
-from flaskapp.models.record import Record
+from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
 from flaskapp.utilities import format_datetime, containerRecursiveCallback, idPrefixer
 from flaskapp.errors import (
@@ -65,11 +65,11 @@ def entity_record(entity_id):
     search for items in the LOD Gateway"""
 
     # idPrefix will be used by either the API route returning the record, or the route listing matches
-    idPrefix = current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"]
+    hostPrefix = current_app.config["BASE_URL"]
+    idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
     if entity_id.endswith("*"):
         # Instead of responding with a single record, find and list the responses that match the 'glob' in the request
-        # load_only - we only care about three columns, and will filter on the fourth (is_old_version).
-        # Only records that exist, and are not flagged as an old version will be part of the listing.
+        # load_only - we only care about three columns.
         records = (
             Record.query.options(
                 load_only(
@@ -77,10 +77,8 @@ def entity_record(entity_id):
                     Record.entity_type,
                     Record.datetime_updated,
                     Record.datetime_deleted,
-                    Record.is_old_version,
                 )
             )
-            .filter(Record.is_old_version == False)
             .filter(Record.datetime_deleted == None)
             .filter(Record.entity_id.like(entity_id[:-1] + "%"))
         )
@@ -135,6 +133,7 @@ def entity_record(entity_id):
         return jsonify(r_json)
     else:
         record = Record.query.filter(Record.entity_id == entity_id).one_or_none()
+        current_app.logger.info(f"Looking up resource {entity_id}")
 
         # if data == None, the record was deleted
         if record and record.data:
@@ -149,8 +148,13 @@ def entity_record(entity_id):
                 }
 
                 if current_app.config["KEEP_LAST_VERSION"] is True:
-                    headers["X-Previous-Version"] = record.previous_version
-                    headers["X-Is-Old-Version"] = record.is_old_version
+                    headers["Memento-Datetime"] = format_datetime(
+                        record.datetime_updated
+                    )
+                    # TODO update URI when TIME MAP API is in place.
+                    headers[
+                        "Link"
+                    ] = f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"'
                 return ("", 304, headers)
 
             # If the etag(s) did not match, then the record is not cached or known to the client
@@ -180,12 +184,111 @@ def entity_record(entity_id):
             response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
             response.headers["ETag"] = record.checksum
             if current_app.config["KEEP_LAST_VERSION"] is True:
-                response.headers["X-Previous-Version"] = record.previous_version
-                response.headers["X-Is-Old-Version"] = record.is_old_version
+                response.headers["Memento-Datetime"] = format_datetime(
+                    record.datetime_updated
+                )
+                # Timemap
+                response.headers[
+                    "Link"
+                ] = f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }> ; rel="timemap"'
+            return response
+        elif record and record.data is None:
+            # Record existed but has been deleted.
+            response = construct_error_response(status_record_not_found)
+            if current_app.config["KEEP_LAST_VERSION"] is True:
+                response.headers["Memento-Datetime"] = format_datetime(
+                    record.datetime_deleted
+                )
+                # Timemap.
+                response.headers[
+                    "Link"
+                ] = f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }> ; rel="timemap"'
+            return abort(response)
+        else:
+            response = construct_error_response(status_record_not_found)
+            return abort(response)
+
+
+# old version of a record
+@records.route("/-VERSION-/<path:entity_id>")
+def entity_version(entity_id):
+    if current_app.config["KEEP_LAST_VERSION"] is True:
+        """GET the version that exactly matches the id supplied"""
+
+        # idPrefix will be used by either the API route returning the record, or the route listing matches
+        hostPrefix = current_app.config["BASE_URL"]
+        idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
+
+        version = Version.query.filter(Version.entity_id == entity_id).one_or_none()
+
+        if version is not None:
+            # There is a record of a version of a resource here. The record is available through version.record
+            current_app.logger.debug(
+                "Version -- If-None-Match header: " + str(request.if_none_match)
+            )
+            if version.checksum in request.if_none_match:
+                # Client has supplied etags of the resources it has cached for this URI
+                # If the current checksum for this record matches, send back an empty response
+                # using HTTP 304 Not Modified, with the etag and last modified date in the headers
+                headers = {
+                    "Last-Modified": format_datetime(version.datetime_updated),
+                    "ETag": version.checksum,
+                }
+
+                headers["Memento-Datetime"] = format_datetime(version.datetime_updated)
+                # TODO update URI when TIME MAP API is in place.
+                headers["Link"] = ",".join(
+                    [
+                        f'<{idPrefix}/{version.record.entity_id}>; rel="original"',
+                        f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=version.record.entity_id) }> ; rel="timemap"',
+                    ]
+                )
+                return ("", 304, headers)
+
+            # If the etag(s) did not match, then the record is not cached or known to the client
+            # and should be sent:
+
+            # Recursively prefix each 'id' attribute that currently lacks a http(s):// prefix
+            data = version.data
+            if data is not None:
+                prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
+                if (
+                    prefixRecordIDs != "NONE"
+                ):  # when "NONE", record "id" field prefixing is not enabled
+                    # otherwise, record "id" field prefixing is enabled, as configured
+                    recursive = (
+                        False if prefixRecordIDs == "TOP" else True
+                    )  # recursive by default
+
+                    data = containerRecursiveCallback(
+                        data=data,
+                        attr="id",
+                        callback=idPrefixer,
+                        prefix=idPrefix,
+                        recursive=recursive,
+                    )
+
+            response = current_app.make_response(data)
+            response.headers["Content-Type"] = "application/json;charset=UTF-8"
+            response.headers["Last-Modified"] = format_datetime(
+                version.datetime_updated
+            )
+            response.headers["ETag"] = version.checksum
+            response.headers["Link"] = ",".join(
+                [
+                    f'<{idPrefix}/{version.record.entity_id}>; rel="original"',
+                    f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=version.record.entity_id) }> ; rel="timemap"',
+                ]
+            )
             return response
         else:
             response = construct_error_response(status_record_not_found)
             return abort(response)
+    else:
+        response = construct_error_response(
+            status_nt(405, "Method not Allowed", "Versioning has been disabled.")
+        )
+        return response
 
 
 ### Activity Stream of the record ###

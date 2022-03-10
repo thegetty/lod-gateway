@@ -338,7 +338,7 @@ def record_delete(db_rec, input_rec):
             for version in db_rec.versions:
                 db.session.delete(version)
 
-    current_app.logger.info(f"Deleting {db_rec.entity_id}")
+    current_app.logger.debug(f"Deleting {db_rec.entity_id}")
     db_rec.data = None
     db_rec.checksum = None
     db_rec.datetime_deleted = datetime.utcnow()

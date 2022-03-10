@@ -196,9 +196,10 @@ def entity_record(entity_id):
             # Record existed but has been deleted.
             response = construct_error_response(status_record_not_found)
             if current_app.config["KEEP_LAST_VERSION"] is True:
-                response.headers["Memento-Datetime"] = format_datetime(
-                    record.datetime_deleted
-                )
+                if record.datetime_deleted is not None:
+                    response.headers["Memento-Datetime"] = format_datetime(
+                        record.datetime_deleted
+                    )
                 # Timemap.
                 response.headers[
                     "Link"

@@ -44,7 +44,13 @@ def get_timemap(entity_id):
     # MUST URI-R as rel "original"
     # and MUST each URI-M (Version)
     timemap = []
-    timemap.append({"uri": uri_t, "rel": "self"})
+    timemap.append(
+        {
+            "uri": uri_t,
+            "rel": "self",
+            "until": format_datetime(record.datetime_updated),
+        }
+    )
     timemap.append({"uri": uri_r, "rel": "original"})
 
     num_versions = len(record.versions)
@@ -67,8 +73,6 @@ def get_timemap(entity_id):
             if idx == 0:
                 # Should be an ordered list from the DB, first as newest
                 mm["rel"] = "first memento"
-                # mark timemap with until datetime
-                timemap[0]["until"] = format_datetime(version.datetime_updated)
             elif num_versions - idx == 1:
                 mm["rel"] = "last memento"
                 # mark timemap with until datetime

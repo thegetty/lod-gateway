@@ -148,7 +148,7 @@ class TestVersioning:
 
         firstmemento = None
         for item in timemap:
-            if item["rel"].endswith["first memento"]:
+            if item["rel"].endswith("first memento"):
                 firstmemento = item
 
         assert firstmemento is not None

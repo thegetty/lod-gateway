@@ -167,3 +167,88 @@ class TestVersioning:
         )
         assert response.status_code == 200
         assert response.json["content"] == foo_jsonld["content"]
+
+    def test_deleting_a_version(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # new version
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(bar_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # Timemap should be at this URL. Get the JSON version
+        response = client.get(
+            f"/{namespace}/-tm-/{identifier}", headers={"Accept": "application/json"}
+        )
+
+        assert response.status_code == 200
+        timemap = response.get_json()
+
+        firstmemento = None
+        for item in timemap:
+            if item["rel"].endswith("first memento"):
+                firstmemento = item
+
+        assert firstmemento is not None
+
+        response = client.delete(
+            f"/{namespace}/-VERSION-/{item['uri'].split('-VERSION-/')[-1]}",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+
+    def test_deleting_a_version_with_no_auth(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # new version
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(bar_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # Timemap should be at this URL. Get the JSON version
+        response = client.get(
+            f"/{namespace}/-tm-/{identifier}", headers={"Accept": "application/json"}
+        )
+
+        assert response.status_code == 200
+        timemap = response.get_json()
+
+        firstmemento = None
+        for item in timemap:
+            if item["rel"].endswith("first memento"):
+                firstmemento = item
+
+        assert firstmemento is not None
+
+        response = client.delete(
+            f"/{namespace}/-VERSION-/{item['uri'].split('-VERSION-/')[-1]}",
+        )
+
+        assert response.status_code == 401

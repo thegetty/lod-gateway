@@ -3,7 +3,7 @@ import math
 
 from datetime import datetime, timezone
 from flask import Blueprint, current_app, abort, request, jsonify, url_for
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import load_only
 from sqlalchemy import func
 
@@ -217,7 +217,7 @@ def entity_record(entity_id):
 
 
 # old version of a record
-@records.route("/-VERSION-/<path:entity_id>")
+@records.route("/-VERSION-/<path:entity_id>", methods=["GET", "HEAD"])
 def entity_version(entity_id):
     # Authentication. If fails, abort with 401
     status = authenticate_bearer(request)
@@ -302,6 +302,45 @@ def entity_version(entity_id):
             status_nt(405, "Method not Allowed", "Versioning has been disabled.")
         )
         return response
+
+
+# old version of a record
+@records.route("/-VERSION-/<path:entity_id>", methods=["DELETE"])
+def delete_entity_version(entity_id):
+    # Authentication. If fails, abort with 401
+    status = authenticate_bearer(request)
+    if status != status_ok:
+        response = construct_error_response(status)
+        return abort(response)
+
+    if current_app.config["KEEP_LAST_VERSION"] is True:
+        """GET the version that exactly matches the id supplied"""
+
+        # idPrefix will be used by either the API route returning the record, or the route listing matches
+        hostPrefix = current_app.config["BASE_URL"]
+        idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
+
+        version = Version.query.filter(Version.entity_id == entity_id).one_or_none()
+
+        if version is None:
+            response = construct_error_response(status_record_not_found)
+            return abort(response)
+
+        try:
+            current_app.logger.warning(
+                f"Deleting version '-VERSION-/{entity_id}' as requested."
+            )
+            db.session.delete(version)
+            db.session.commit()
+            return jsonify({"message": f"-VERSION-/{entity_id} deleted."}), 200
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.error(
+                f"Hit an error attempting to delete -VERSION-/{entity_id}"
+            )
+            current_app.logger.error(e)
+            response = construct_error_response(status_db_error)
+            return abort(response)
 
 
 ### Activity Stream of the record ###

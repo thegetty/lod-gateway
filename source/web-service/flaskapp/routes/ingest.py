@@ -269,6 +269,7 @@ def record_create(input_rec):
 
     r.datetime_created = datetime.utcnow()
     r.datetime_updated = r.datetime_created
+    r.datetime_deleted = None
     r.data = input_rec
     r.checksum = checksum_json(input_rec)
 
@@ -293,6 +294,7 @@ def record_update(db_rec, input_rec):
         # Setting the 'created' date to be equal to when the record was last updated.
         prev.datetime_created = db_rec.datetime_updated
         prev.datetime_updated = db_rec.datetime_updated
+        prev.datetime_deleted = db_rec.datetime_deleted
         prev.data = db_rec.data
         prev.checksum = db_rec.checksum
         # Link back to old record
@@ -304,6 +306,7 @@ def record_update(db_rec, input_rec):
     # With the update to the model, this should be automatic
     # db_rec.datetime_updated = datetime.utcnow()
     db_rec.data = input_rec
+    db_rec.datetime_deleted = None
     db_rec.checksum = checksum_json(input_rec)
 
 

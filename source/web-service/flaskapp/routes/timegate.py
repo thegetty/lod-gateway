@@ -83,7 +83,8 @@ def get_timemap(entity_id):
     if "application/link-format" in request.headers.get("Accept", "application/json"):
         lf = ",\n".join([json_to_linkformat(x) for x in timemap])
         response = current_app.make_response(lf)
-        response.headers["Content-Type"] = "application/link-format"
+        response.content_type = "applcation/link-format"
+        response.content_encoding = "utf-8"
         return response
     else:
         return jsonify(timemap), 200

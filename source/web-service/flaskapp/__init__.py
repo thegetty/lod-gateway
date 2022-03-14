@@ -122,7 +122,7 @@ def create_app():
 
         @app.after_request
         def add_header(response):
-            response.headers["Server"] = "LOD Gateway/0.2"
+            response.headers["Server"] = "LOD Gateway/2.0.0"
             return response
 
         return app

@@ -145,6 +145,11 @@ def entity_record(entity_id):
         record = Record.query.filter(Record.entity_id == entity_id).one_or_none()
         current_app.logger.info(f"Looking up resource {entity_id}")
 
+        if record is None:
+            # no record, not even a stub:
+            response = construct_error_response(status_record_not_found)
+            return abort(response)
+
         prev = None
         if record is not None and len(record.versions) > 0:
 
@@ -152,15 +157,15 @@ def entity_record(entity_id):
             prev = record.versions[0]
 
         link_headers = basic_link_headers = (
-            f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/link-format",'
-            + f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/json",'
-            + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate"'
+            f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/link-format" , '
+            + f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/json" , '
+            + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate" '
         )
 
         if prev is not None:
             link_headers = (
                 basic_link_headers
-                + f',<{hostPrefix}{ url_for("records.entity_version", entity_id=prev.entity_id) }>; rel="prev"'
+                + f', <{hostPrefix}{ url_for("records.entity_version", entity_id=prev.entity_id) }>; rel="prev"'
             )
 
         # Is the client trying to negotiate for an earlier version through Accept-Datetime
@@ -296,7 +301,7 @@ def entity_version(entity_id):
                     usegmt=True,
                 )
                 # TODO update URI when TIME MAP API is in place.
-                headers["Link"] = ",".join(
+                headers["Link"] = " , ".join(
                     [
                         f'<{idPrefix}/{version.record.entity_id}>; rel="original timegate"',
                         f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=version.record.entity_id) }> ; rel="timemap"',
@@ -338,7 +343,7 @@ def entity_version(entity_id):
                 usegmt=True,
             )
             response.headers["ETag"] = f'"{version.checksum}"'
-            response.headers["Link"] = ",".join(
+            response.headers["Link"] = " , ".join(
                 [
                     f'<{idPrefix}/{version.record.entity_id}>; rel="original timegate"',
                     f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=version.record.entity_id) }> ; rel="timemap"',

@@ -18,13 +18,22 @@ class TestVersioning:
         assert "timemap" in headers["Link"]
 
         link = response.headers["Link"]
-        p = re.compile(r".*<([^>]*)>.*")
-        m = p.match(link)
 
-        assert m is not None
-        assert m.groups()[0].endswith(
-            f"{namespace}/-tm-/{sample_data['record'].entity_id}"
-        )
+        p = re.compile(r".*<([^>]*)>\s*;.*rel=\"([^\"]*)\"")
+
+        for line in link.split(" , "):
+            m = p.match(line)
+
+            assert m is not None
+            print(m.groups())
+            uri, rel = m.groups()
+
+            if "timemap" in rel:
+                assert uri.endswith(
+                    f"{namespace}/-tm-/{sample_data['record'].entity_id}"
+                )
+            if "original" in rel:
+                assert uri.endswith(f"{namespace}/{sample_data['record'].entity_id}")
 
     def test_multiple_versions_in_timemap_json(
         self, client, namespace, auth_token, linguisticobject, test_db
@@ -93,13 +102,14 @@ class TestVersioning:
         assert response.status_code == 200
 
         # Even though there are no 'versions' the timemap should include the timemap and the original
-        lines = response.data.decode("utf-8").split(",")
+        lines = response.data.decode("utf-8").split(" , ")
 
         p = re.compile(r".*<([^>]*)>\s*;.*rel=\"([^\"]*)\"")
 
         rels = ["original timegate", "self"]
         for line in lines:
             if line.strip() != "":
+                print("LINE:  '" + line + "'")
                 m = p.match(line.strip())
 
                 assert m is not None
@@ -108,12 +118,10 @@ class TestVersioning:
                 if rel in rels:
                     rels.remove(rel)
 
-                if rel == "original":
+                if rel == "original timegate":
                     assert uri.endswith(f"{namespace}/{identifier}")
                 elif rel == "self":
                     assert uri.endswith(f"{namespace}/-tm-/{identifier}")
-                else:
-                    assert rel == "rel not understood."
 
         assert len(rels) == 0
 

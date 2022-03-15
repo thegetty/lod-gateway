@@ -95,7 +95,7 @@ def get_timemap(entity_id):
 
     # Accept?
     if "application/link-format" in request.headers.get("Accept", "application/json"):
-        lf = ",\n".join([json_to_linkformat(x) for x in timemap])
+        lf = " , \n".join([json_to_linkformat(x) for x in timemap])
         response = current_app.make_response(lf)
         response.content_type = "applcation/link-format"
         response.content_encoding = "utf-8"

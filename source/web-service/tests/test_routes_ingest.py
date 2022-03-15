@@ -223,7 +223,9 @@ class TestIngestSuccess:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
-        assert "Memento-Datetime" in response.headers
+        assert (
+            "Vary" in response.headers and "accept-datetime" in response.headers["Vary"]
+        )
         assert "Link" in response.headers
 
         p = re.compile(r".*<(.*)>.*")

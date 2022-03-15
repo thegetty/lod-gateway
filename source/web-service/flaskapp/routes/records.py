@@ -151,7 +151,7 @@ def entity_record(entity_id):
             # Ordered in reverse chronological order.
             prev = record.versions[0]
 
-        basic_link_headers = (
+        link_headers = basic_link_headers = (
             f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/link-format",'
             + f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/json",'
             + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate"'

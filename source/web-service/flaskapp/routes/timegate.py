@@ -57,7 +57,7 @@ def get_timemap(entity_id):
             ),
         }
     )
-    timemap.append({"uri": uri_r, "rel": "original"})
+    timemap.append({"uri": uri_r, "rel": "original timegate"})
 
     num_versions = len(record.versions)
     if num_versions == 1:

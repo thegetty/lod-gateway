@@ -146,7 +146,7 @@ def entity_record(entity_id):
         current_app.logger.info(f"Looking up resource {entity_id}")
 
         prev = None
-        if len(record.versions) > 0:
+        if record is not None and len(record.versions) > 0:
 
             # Ordered in reverse chronological order.
             prev = record.versions[0]
@@ -165,7 +165,8 @@ def entity_record(entity_id):
 
         # Is the client trying to negotiate for an earlier version through Accept-Datetime
         if (
-            current_app.config["KEEP_LAST_VERSION"] is True
+            record is not None
+            and current_app.config["KEEP_LAST_VERSION"] is True
             and "accept-datetime" in request.headers
             and len(record.versions) > 0
         ):

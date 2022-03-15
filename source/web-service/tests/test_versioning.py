@@ -18,7 +18,7 @@ class TestVersioning:
         assert "timemap" in headers["Link"]
 
         link = response.headers["Link"]
-        p = re.compile(r".*<(.*)>.*")
+        p = re.compile(r".*<([^>]*)>.*")
         m = p.match(link)
 
         assert m is not None
@@ -95,9 +95,9 @@ class TestVersioning:
         # Even though there are no 'versions' the timemap should include the timemap and the original
         lines = response.data.decode("utf-8").split(",")
 
-        p = re.compile(r".*<(.*)>\s*;.*rel=\"([^\"]*)\"")
+        p = re.compile(r".*<([^>]*)>\s*;.*rel=\"([^\"]*)\"")
 
-        rels = ["original", "self"]
+        rels = ["original timegate", "self"]
         for line in lines:
             if line.strip() != "":
                 m = p.match(line.strip())
@@ -148,7 +148,7 @@ class TestVersioning:
 
         firstmemento = None
         for item in timemap:
-            if item["rel"].endswith("first memento"):
+            if item["rel"].endswith("first last memento"):
                 firstmemento = item
 
         assert firstmemento is not None
@@ -199,7 +199,7 @@ class TestVersioning:
 
         firstmemento = None
         for item in timemap:
-            if item["rel"].endswith("first memento"):
+            if item["rel"].endswith("first last memento"):
                 firstmemento = item
 
         assert firstmemento is not None
@@ -242,7 +242,7 @@ class TestVersioning:
 
         firstmemento = None
         for item in timemap:
-            if item["rel"].endswith("first memento"):
+            if item["rel"].endswith("first last memento"):
                 firstmemento = item
 
         assert firstmemento is not None

@@ -1,8 +1,12 @@
 import click
 import math
 
+# RFC1128 dates, yuck
+import dateparser
+from email.utils import formatdate
+
 from datetime import datetime, timezone
-from flask import Blueprint, current_app, abort, request, jsonify, url_for
+from flask import Blueprint, current_app, abort, request, jsonify, url_for, redirect
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import load_only
 from sqlalchemy import func
@@ -141,7 +145,58 @@ def entity_record(entity_id):
         record = Record.query.filter(Record.entity_id == entity_id).one_or_none()
         current_app.logger.info(f"Looking up resource {entity_id}")
 
-        # if data == None, the record was deleted
+        prev = None
+        if len(record.versions) > 0:
+
+            # Ordered in reverse chronological order.
+            prev = record.versions[0]
+
+        basic_link_headers = (
+            f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/link-format",'
+            + f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/json",'
+            + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate"'
+        )
+
+        if prev is not None:
+            link_headers = (
+                basic_link_headers
+                + f',<{hostPrefix}{ url_for("records.entity_version", entity_id=prev.entity_id) }>; rel="prev"'
+            )
+
+        # Is the client trying to negotiate for an earlier version through Accept-Datetime
+        if (
+            current_app.config["KEEP_LAST_VERSION"] is True
+            and "accept-datetime" in request.headers
+            and len(record.versions) > 0
+        ):
+            # parse date and try to find a matching version, 302 redirect
+            desired_datetime = dateparser.parse(request.headers["accept-datetime"])
+            if desired_datetime is not None:
+                desired_version = (
+                    db.session.query(Version)
+                    .filter(Version.record == record)
+                    .filter(Version.datetime_updated <= desired_datetime)
+                    .order_by(Version.datetime_updated.desc())
+                    .limit(1)
+                    .one_or_none()
+                )
+                if desired_version is None:
+                    # Return oldest version URL
+                    desired_version = record.versions[-1]
+
+                # found an version predating the version asked for
+                # 302 Redirect to that version.
+                response = redirect(
+                    url_for(
+                        "records.entity_version", entity_id=desired_version.entity_id,
+                    ),
+                    code=302,
+                )
+                response.headers["Link"] = basic_link_headers
+                response.headers["Vary"] = "accept-datetime"
+
+                return response
+
         if record and record.data:
             current_app.logger.debug(request.if_none_match)
             if record.checksum in request.if_none_match:
@@ -154,13 +209,9 @@ def entity_record(entity_id):
                 }
 
                 if current_app.config["KEEP_LAST_VERSION"] is True:
-                    headers["Memento-Datetime"] = format_datetime(
-                        record.datetime_updated
-                    )
-                    # TODO update URI when TIME MAP API is in place.
-                    headers[
-                        "Link"
-                    ] = f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"'
+                    # Timemap and prev (optional) link
+                    headers["Link"] = link_headers
+                    headers["Vary"] = "accept-datetime"
                 return ("", 304, headers)
 
             # If the etag(s) did not match, then the record is not cached or known to the client
@@ -190,26 +241,16 @@ def entity_record(entity_id):
             response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
             response.headers["ETag"] = f'"{record.checksum}"'
             if current_app.config["KEEP_LAST_VERSION"] is True:
-                response.headers["Memento-Datetime"] = format_datetime(
-                    record.datetime_updated
-                )
                 # Timemap
-                response.headers[
-                    "Link"
-                ] = f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }> ; rel="timemap"'
+                response.headers["Link"] = link_headers
+                response.headers["Vary"] = "accept-datetime"
             return response
         elif record and record.data is None:
             # Record existed but has been deleted.
             response = construct_error_response(status_record_not_found)
             if current_app.config["KEEP_LAST_VERSION"] is True:
-                if record.datetime_deleted is not None:
-                    response.headers["Memento-Datetime"] = format_datetime(
-                        record.datetime_deleted
-                    )
-                # Timemap.
-                response.headers[
-                    "Link"
-                ] = f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }> ; rel="timemap"'
+                response.headers["Link"] = link_headers
+                response.headers["Vary"] = "accept-datetime"
             return abort(response)
         else:
             response = construct_error_response(status_record_not_found)
@@ -248,11 +289,15 @@ def entity_version(entity_id):
                     "ETag": f'"{version.checksum}"',
                 }
 
-                headers["Memento-Datetime"] = format_datetime(version.datetime_updated)
+                headers["Memento-Datetime"] = formatdate(
+                    timeval=version.datetime_updated.timestamp(),
+                    localtime=False,
+                    usegmt=True,
+                )
                 # TODO update URI when TIME MAP API is in place.
                 headers["Link"] = ",".join(
                     [
-                        f'<{idPrefix}/{version.record.entity_id}>; rel="original"',
+                        f'<{idPrefix}/{version.record.entity_id}>; rel="original timegate"',
                         f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=version.record.entity_id) }> ; rel="timemap"',
                     ]
                 )
@@ -281,18 +326,25 @@ def entity_version(entity_id):
                         recursive=recursive,
                     )
 
-            response = current_app.make_response(data)
+            response = current_app.make_response(data or "")
             response.headers["Content-Type"] = "application/json;charset=UTF-8"
             response.headers["Last-Modified"] = format_datetime(
                 version.datetime_updated
             )
+            response.headers["Memento-Datetime"] = formatdate(
+                timeval=version.datetime_updated.timestamp(),
+                localtime=False,
+                usegmt=True,
+            )
             response.headers["ETag"] = f'"{version.checksum}"'
             response.headers["Link"] = ",".join(
                 [
-                    f'<{idPrefix}/{version.record.entity_id}>; rel="original"',
+                    f'<{idPrefix}/{version.record.entity_id}>; rel="original timegate"',
                     f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=version.record.entity_id) }> ; rel="timemap"',
                 ]
             )
+            if data is None:
+                response.status_code = 404
             return response
         else:
             response = construct_error_response(status_record_not_found)

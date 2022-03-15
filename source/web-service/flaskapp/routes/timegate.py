@@ -1,3 +1,5 @@
+from email.utils import formatdate
+
 from flask import Blueprint, current_app, abort, request, jsonify, url_for
 from sqlalchemy.exc import IntegrityError
 
@@ -48,7 +50,11 @@ def get_timemap(entity_id):
         {
             "uri": uri_t,
             "rel": "self",
-            "until": format_datetime(record.datetime_updated),
+            "until": formatdate(
+                timeval=record.datetime_updated.timestamp(),
+                localtime=False,
+                usegmt=True,
+            ),
         }
     )
     timemap.append({"uri": uri_r, "rel": "original"})
@@ -59,15 +65,23 @@ def get_timemap(entity_id):
         timemap.append(
             {
                 "uri": f"{idPrefix}{ url_for('records.entity_version', entity_id=record.versions[0].entity_id) }",
-                "datetime": format_datetime(record.versions[0].datetime_updated),
-                "rel": "first memento",
+                "datetime": formatdate(
+                    timeval=record.versions[0].datetime_updated.timestamp(),
+                    localtime=False,
+                    usegmt=True,
+                ),
+                "rel": "first last memento",
             }
         )
     elif num_versions > 1:
         for idx, version in enumerate(record.versions):
             mm = {
                 "uri": f"{idPrefix}{ url_for('records.entity_version', entity_id=version.entity_id) }",
-                "datetime": format_datetime(version.datetime_updated),
+                "datetime": formatdate(
+                    timeval=version.datetime_updated.timestamp(),
+                    localtime=False,
+                    usegmt=True,
+                ),
                 "rel": "memento",
             }
             if idx == 0:

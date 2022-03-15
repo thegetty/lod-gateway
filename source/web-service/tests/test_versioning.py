@@ -14,7 +14,7 @@ class TestVersioning:
 
         headers = response.headers
 
-        assert "Memento-Datetime" in headers
+        assert "accept-datetime" in headers.get("Vary")
         assert "timemap" in headers["Link"]
 
         link = response.headers["Link"]

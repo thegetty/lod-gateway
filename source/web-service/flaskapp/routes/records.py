@@ -173,11 +173,14 @@ def entity_record(entity_id):
             record is not None
             and current_app.config["KEEP_LAST_VERSION"] is True
             and "accept-datetime" in request.headers
-            and len(record.versions) > 0
         ):
             # parse date and try to find a matching version, 302 redirect
             desired_datetime = dateparser.parse(request.headers["accept-datetime"])
-            if desired_datetime is not None:
+
+            # Valid datetime and asking for a datetime older than the current version?
+            if desired_datetime is not None and not (
+                desired_datetime >= record.datetime_updated
+            ):
                 desired_version = (
                     db.session.query(Version)
                     .filter(Version.record == record)
@@ -203,6 +206,7 @@ def entity_record(entity_id):
 
                 return response
 
+        # Otherwise, supply the current record.
         if record and record.data:
             current_app.logger.debug(request.if_none_match)
             if record.checksum in request.if_none_match:

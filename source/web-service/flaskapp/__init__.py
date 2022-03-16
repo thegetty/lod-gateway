@@ -33,7 +33,6 @@ LOG_LEVEL = getenv("DEBUG_LEVEL", "INFO")
 logging.config.dictConfig(get_logging_config(LOG_LEVEL))
 
 
-
 def create_app():
     app = Flask(__name__)
 
@@ -74,7 +73,7 @@ def create_app():
     # to the new version by way of the new entitiy_id being stored. This copy is stored in a different
     # table and has different API endpoints to access it. The versioning API is based on Memento, with
     # fixed URIs for past versions, and provides TimeMap and TimeGate functionality.
-   
+
     app.config["KEEP_LAST_VERSION"] = False
     if environ.get("KEEP_LAST_VERSION", "False").lower() == "true":
         app.config["KEEP_LAST_VERSION"] = True

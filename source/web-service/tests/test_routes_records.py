@@ -23,6 +23,7 @@ class TestObtainRecord:
     def test_empty_data_field(self, sample_data, client, namespace):
         test_record = Record.query.get(1)
         test_record.data = None
+        test_record.datetime_deleted = datetime.now()
         db.session.add(test_record)
         db.session.commit()
         response = client.get(f"/{namespace}/{sample_data['record'].entity_id}")

@@ -20,7 +20,7 @@ from flask import Blueprint, current_app, request, abort, jsonify
 from sqlalchemy import exc
 
 from flaskapp.models import db
-from flaskapp.models.record import Record
+from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
 from flaskapp.errors import (
     status_nt,
@@ -234,25 +234,12 @@ def process_record(input_rec):
 
     # Record exists
     else:
-        if current_app.config["KEEP_LAST_VERSION"] is True:
-            if db_rec.is_old_version is True:
-                # check to see if existing record is the same as uploaded:
-                current_app.logger.warning(
-                    f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version."
-                )
-                if not is_delete_request:
-                    # Delete is allowed but not updates
-                    current_app.logger.error(
-                        f"Ignoring attempted update to Entity ID {db_rec.entity_id}."
-                    )
-                    return (None, id, None)
-
-            chksum = checksum_json(data)
-            if chksum == db_rec.checksum:
-                current_app.logger.info(
-                    f"Data uploaded for {id} is identical to the record already uploaded based on checksum. Ignoring."
-                )
-                return (None, id, None)
+        chksum = checksum_json(data)
+        if chksum == db_rec.checksum:
+            current_app.logger.info(
+                f"Data uploaded for {id} is identical to the record already uploaded based on checksum. Ignoring."
+            )
+            return (None, id, None)
 
         # get primary key of existing record
         prim_key = db_rec.id
@@ -263,9 +250,6 @@ def process_record(input_rec):
                 # stub record
                 return (None, id, Event.Delete)
             record_delete(db_rec, data)
-            if db_rec.is_old_version is True:
-                # Don't mark deleting an old version as an event in the activity stream
-                return (None, id, None)
             return (prim_key, id, Event.Delete)
 
         # update
@@ -285,7 +269,7 @@ def record_create(input_rec):
 
     r.datetime_created = datetime.utcnow()
     r.datetime_updated = r.datetime_created
-    r.is_old_version = False
+    r.datetime_deleted = None
     r.data = input_rec
     r.checksum = checksum_json(input_rec)
 
@@ -299,72 +283,66 @@ def record_create(input_rec):
 # Do not return anything. Calling function has all the info
 def record_update(db_rec, input_rec):
     if current_app.config["KEEP_LAST_VERSION"] is True:
-        if db_rec.is_old_version != True:
-            if db_rec.previous_version is not None:
-                old_version = get_record(db_rec.previous_version)
-                if old_version is not None:
-                    db.session.delete(old_version)
-
-            prev_id = str(uuid.uuid4())
-            prev = Record()
-            prev.entity_id = prev_id
-            prev.entity_type = db_rec.entity_type
-            prev.datetime_created = db_rec.datetime_created
-            prev.datetime_updated = db_rec.datetime_updated
-            prev.data = db_rec.data
-            prev.checksum = db_rec.checksum
-            prev.is_old_version = True
-
-            db.session.add(prev)
-
-            db_rec.previous_version = prev_id
-            # reassert the new version is_old... to False
-            db_rec.is_old_version = False
-
-    # Don't allow updates to old versions - this should be stopped earlier in the normal ingest flow, but if this function is
-    # called through a different route this is a good safeguard.
-    if db_rec.is_old_version == True:
-        current_app.logger.warning(
-            f"Entity ID {db_rec.entity_id} ({db_rec.entity_type}) is an old version. Updates are disabled."
+        # Versioning
+        current_app.logger.info(
+            f"Versioning enabled: archiving a copy of {db_rec.entity_id} and replacing current with new data."
         )
-        return
+        prev_id = str(uuid.uuid4())
+        prev = Version()
+        prev.entity_id = prev_id
+        prev.entity_type = db_rec.entity_type
+        # Setting the 'created' date to be equal to when the record was last updated.
+        prev.datetime_created = db_rec.datetime_updated
+        prev.datetime_updated = db_rec.datetime_updated
+        prev.datetime_deleted = db_rec.datetime_deleted
+        prev.data = db_rec.data
+        prev.checksum = db_rec.checksum
+        # Link back to old record
+        prev.record = db_rec
+        prev.record_id = db_rec.id
 
-    db_rec.datetime_updated = datetime.utcnow()
+        db.session.add(prev)
+
+    # With the update to the model, this should be automatic
+    # db_rec.datetime_updated = datetime.utcnow()
     db_rec.data = input_rec
+    db_rec.datetime_deleted = None
     db_rec.checksum = checksum_json(input_rec)
 
 
-# For now just delete json from 'data' column
+# Delete record by leaving a stub record (no .data, w/ a datatime_deleted.)
 def record_delete(db_rec, input_rec):
+    # Versioning
     if current_app.config["KEEP_LAST_VERSION"] is True:
-        # Delete old version if it exists
-        if db_rec.previous_version is not None:
-            old_version = get_record(db_rec.previous_version)
-            if old_version is not None:
-                db.session.delete(old_version)
-        # Is this an old version? null the previous_version of the item it refers to
-        elif db_rec.is_old_version is True:
-            # Remove link from
-            oldv_id = db_rec.entity_id
-            curr_id = db_rec.data["id"]
+        if current_app.config.get("KEEP_VERSIONS_AFTER_DELETION") is True:
             current_app.logger.info(
-                f"Delete requested on entity {oldv_id} that is marked as an old version."
+                f"KEEP_VERSIONS_AFTER_DELETION enabled: archiving a copy of {db_rec.entity_id} and deleting the current data."
             )
-            curr_rec = get_record(curr_id)
-            if curr_rec is not None and curr_rec.previous_version == oldv_id:
-                current_app.logger.info(
-                    f"Removing reference from entity {curr_id} that refers to this old version {oldv_id[:10]}..."
-                )
-                curr_rec.previous_version = None
-            else:
-                current_app.logger.error(
-                    f"Deleting record marked as old version of {curr_id}, but current record is not linked to this."
-                )
+            prev_id = str(uuid.uuid4())
+            prev = Version()
+            prev.entity_id = prev_id
+            prev.entity_type = db_rec.entity_type
+            # Setting the 'created' date to be equal to when the record was last updated.
+            prev.datetime_created = db_rec.datetime_updated
+            prev.datetime_updated = db_rec.datetime_updated
+            prev.data = db_rec.data
+            prev.checksum = db_rec.checksum
+            # Link back to old record
+            prev.record = db_rec
+            prev.record_id = db_rec.id
 
-            # First add this to session for deletion
-            db.session.delete(db_rec)
-            return
+            db.session.add(prev)
+        else:
+            # Hard delete?
+            # Remove all old versions?
+            current_app.logger.info(
+                f"KEEP_VERSIONS_AFTER_DELETION not enabled: also removing all versions of {db_rec.entity_id}."
+            )
 
+            for version in db_rec.versions:
+                db.session.delete(version)
+
+    current_app.logger.debug(f"Deleting {db_rec.entity_id}")
     db_rec.data = None
     db_rec.checksum = None
     db_rec.datetime_deleted = datetime.utcnow()

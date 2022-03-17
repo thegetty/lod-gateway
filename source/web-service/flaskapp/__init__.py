@@ -84,6 +84,15 @@ def create_app():
     app.config["SUBADDRESSING"] = False
     if environ.get("SUBADDRESSING", "False").lower() == "true":
         app.config["SUBADDRESSING"] = True
+        if environ.get("SUBADDRESSING_DEPTH") is not None:
+            try:
+                app.config["SUBADDRESSING_DEPTH"] = int(
+                    environ.get("SUBADDRESSING_DEPTH")
+                )
+            except (ValueError, TypeError) as e:
+                app.logger.error(
+                    f"Value for SUBADDRESSING_DEPTH could not be interpreted as an integer. Ignoring."
+                )
 
     if app.env == "development":
         app.config["SQLALCHEMY_ECHO"] = True

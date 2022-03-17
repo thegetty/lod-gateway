@@ -137,6 +137,8 @@ def handle_prefix_listing(entity_id, request, idPrefix):
 
 
 def _findobj(obj, key, val=None):
+    # Recursively hunt through a JSON object, looking for a key:value match
+    # within a dict, and returning the first match if true, or None
     if isinstance(obj, str):
         return None
 
@@ -159,8 +161,8 @@ def subaddressing_search(entity_id):
     # Trying a non-SPARQL method first
     parts = entity_id.split("/")
 
-    depth = 4
-    if len(parts) < 4:
+    depth = current_app.config.get("SUBADDRESSING_DEPTH", 4)
+    if len(parts) < depth:
         if len(parts) > 1:
             depth = len(parts) - 1
         else:

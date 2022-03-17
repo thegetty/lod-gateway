@@ -81,6 +81,10 @@ def create_app():
     if environ.get("KEEP_VERSIONS_AFTER_DELETION", "False").lower() == "true":
         app.config["KEEP_VERSIONS_AFTER_DELETION"] = True
 
+    app.config["SUBADDRESSING"] = False
+    if environ.get("SUBADDRESSING", "False").lower() == "true":
+        app.config["SUBADDRESSING"] = True
+
     if app.env == "development":
         app.config["SQLALCHEMY_ECHO"] = True
 

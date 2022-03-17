@@ -557,3 +557,23 @@ class TestSubaddressing:
         )
 
         assert response.status_code == 404
+
+    def test_get_location_of_doc(self, client, namespace, auth_token, test_db):
+        # identifier of an resource within hmo1 jsonld:
+        subaddress_entity_id = "object/24f72b76-b751-42ed-b747-f368ab19b259/tile/4274a758-3d5c-4848-b1ea-fd0b53e25f79/node/ef084d12-550d-11ea-a96c-02ba3a331460"
+        # Make sure it is there
+        response = client.post(
+            f"/{namespace}/ingest",
+            json=hmo1,
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # Get the subaddress
+        response = client.get(
+            f"/{namespace}/{subaddress_entity_id}",
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+        assert "Location" in response.headers
+        assert response.headers["Location"].endswith(hmo1["id"])

@@ -124,6 +124,11 @@ KEEP_VERSIONS_AFTER_DELETION=
 
 LOCAL_THESAURUS_URL=        # This entry is required if APPLICATION_NAMESPACE=local/thesaurus.
                             # It is the URL to the CSV file containing Local Thesaurus data
+
+SUBADDRESSING=
+                            # True or False (default). This enables the subaddressing check for identifiers
+                            # that may be within other resources. 
+                      
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
@@ -145,6 +150,73 @@ uWSGI hosts the Python application as a WSGI application. It pipes the `STDOUT` 
 
 - Python logger output? `ERROR` and `CRITICAL` only.
 - uWSGI messages? Only HTTP 50X messages (via a `log-route` match defined in `uwsgi.ini`)
+
+## Sub-addressing
+
+Turning this on by setting the environment variable `SUBADDRESSING` will allow the LOD Gateway to check to see if a given requested entity is within a parent document and to return the section of the data that corresponds to it.
+
+  - Must be hierarchically named (prefixed by the id path of the parent object eg 'document/1')
+  - Not supported on old versions of documents (retrieved via Memento, see Versionin)
+  - HTTP Location response header will have the full URI to the parent resource which it was drawn from
+
+For example:
+
+```
+LOD Gateway -> https://lodgateway/namespace
+
+Upload:
+
+{
+    "@context": "https://linked.art/ns/v1/linked-art.json",
+    "id": "place/c0380b6c-931f-11ea-9d86-068d38c13b76",
+    "identified_by": [
+        {
+            "classified_as": [
+                {
+                    "_label": "thoroughfare names",
+                    "id": "http://vocab.getty.edu/aat/300419273",
+                    "type": "Type",
+                }
+            ],
+            "content": "Sunset Boulevard",
+            "id": "place/c0380b6c-931f-11ea-9d86-068d38c13b76/name",
+            "type": "Name",
+        },
+    "type": "Place",
+}
+```
+
+
+Resolving `https://lodgateway/namespace/place/c0380b6c-931f-11ea-9d86-068d38c13b76/name` should result in something like the following:
+
+
+HTTP Response:
+
+```
+Access-Control-Allow-Origin: *
+Content-Length: 264
+Content-Type: application/json;charset=UTF-8
+ETag: "abc1fba295f1b6aa146cc3417d7a00dff9be0f8593ff0d07104d24f2cd9ef845"
+Last-Modified: 2021-08-27T09:07:49
+Link: <https://lodgateway/namespace/-tm-/place/c0380b6c-931f-11ea-9d86-068d38c13b76>; rel="timemap"; type="application/link-format" , <https://lodgateway/namespace/-tm-/place/c0380b6c-931f-11ea-9d86-068d38c13b76>; rel="timemap"; type="application/json" , <https://lodgateway/namespace/place/c0380b6c-931f-11ea-9d86-068d38c13b76>; rel="original timegate"
+Location: https://lodgateway/namespace/place/c0380b6c-931f-11ea-9d86-068d38c13b76
+Server: LOD Gateway/2.0.0
+Vary: accept-datetime, Accept-Encoding
+
+
+ {
+    "content": "Sunset Boulevard",
+    "id": "https://lodgateway/namespace/place/c0380b6c-931f-11ea-9d86-068d38c13b76/name",
+    "type": "Name",
+     "classified_as": [
+        {
+            "_label": "thoroughfare names",
+            "id": "http://vocab.getty.edu/aat/300419273",
+            "type": "Type",
+        }
+    ],
+}
+```
 
 ## Versioning
 

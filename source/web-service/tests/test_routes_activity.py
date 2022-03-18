@@ -1,4 +1,5 @@
 import json
+import uuid
 import re
 
 from datetime import datetime
@@ -352,3 +353,114 @@ class TestActivityRecord:
             records.url_activity("someactivityid")
             == f"{base_url}/activity-stream/someactivityid"
         )
+
+
+class TestItemActivityStream:
+    def test_get_actstr_by_entity_id(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+        assert identifier in response.data.decode("utf-8")
+
+        # make new versions:
+        for _ in range(2):
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(bar_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(foo_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+        # Now let's retrieve that activity
+        response = client.get(f"/{namespace}/activity-stream/id/{identifier}")
+        assert response.status_code == 200
+
+        doc = response.get_json()
+        assert doc["type"] == "OrderedCollection"
+        assert doc["totalItems"] > 4
+
+        # Now let's retrieve that activity
+        response = client.get(f"/{namespace}/activity-stream/id/{identifier}/page/1")
+        assert response.status_code == 200
+
+        doc = response.get_json()
+        assert doc["type"] == "OrderedCollectionPage"
+
+    def test_get_actstr_by_entity_id(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+        assert identifier in response.data.decode("utf-8")
+
+        # make new versions:
+        for _ in range(2):
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(bar_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(foo_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+        # Now let's retrieve that activity
+        response = client.get(f"/{namespace}/activity-stream/id/{identifier}")
+        assert response.status_code == 200
+
+        doc = response.get_json()
+        assert doc["type"] == "OrderedCollection"
+
+        amount = doc["totalItems"]
+
+        # Truncate to the latest single event
+        response = client.post(
+            f"/{namespace}/activity-stream/id/{identifier}",
+            data={"keep": 1},
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+
+        doc = response.get_json()
+
+        assert "number_of_events_removed" in doc
+        assert doc["number_of_events_removed"] == 4
+
+        # Now let's retrieve that activitystream again
+        response = client.get(f"/{namespace}/activity-stream/id/{identifier}")
+        assert response.status_code == 200
+
+        doc = response.get_json()
+        assert doc["type"] == "OrderedCollection"
+
+        assert doc["totalItems"] == 1

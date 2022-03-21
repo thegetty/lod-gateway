@@ -104,9 +104,9 @@ def truncate_activity_stream_of_entity_id(entity_id):
         )
 
     # Should we keep the oldest event?
-    keep_latest_events = request.values.get("keep_oldest_event")
+    keep_oldest_event = request.values.get("keep_oldest_event")
     end_of_truncate = None
-    if keep_latest_events is not None and keep_latest_events.lower() == "true":
+    if keep_oldest_event is not None and keep_oldest_event.lower() == "true":
         end_of_truncate = -1
 
     # A valid keep number was passed but is it at least as big as the

@@ -79,6 +79,7 @@ def truncate_activity_stream_of_entity_id(entity_id):
         response = construct_error_response(status_record_not_found)
         return abort(response)
 
+    # How many events to keep
     keep_latest_events = request.values.get("keep")
     try:
         keep_latest_events = int(keep_latest_events)
@@ -102,10 +103,19 @@ def truncate_activity_stream_of_entity_id(entity_id):
             400,
         )
 
-    # A valid keep number was passed but it is at least as big as the
-    # total number of events for this entity
-    if keep_latest_events >= count:
+    # Should we keep the oldest event?
+    keep_latest_events = request.values.get("keep_oldest_event")
+    end_of_truncate = None
+    if keep_latest_events is not None and keep_latest_events.lower() == "true"
+        end_of_truncate = -1
+
+
+    # A valid keep number was passed but is it at least as big as the
+    # total number of events for this entity?
+    # Adjust if the oldest event is being kept. 
+    if keep_latest_events >= (count + (end_of_truncate or 0)):
         return jsonify({"number_of_events_removed": 0}), 200
+
 
     # should have a valid number of items to remove from the activitystream.
     # There is a way to do this 'cleverly' with multiple subquerys, and other
@@ -123,7 +133,7 @@ def truncate_activity_stream_of_entity_id(entity_id):
     deleted = 0
     # python slice will pull all the list into memory
     # should be fine, given the above note.
-    for a in activity_list[keep_latest_events:]:
+    for a in activity_list[keep_latest_events:end_of_truncate]:
         db.session.delete(a)
         deleted += 1
 

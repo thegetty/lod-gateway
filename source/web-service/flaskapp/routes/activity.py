@@ -154,9 +154,8 @@ def activity_stream_item(uuid):
 def compute_total_pages():
     limit = current_app.config["ITEMS_PER_PAGE"]
     # Quick count
-    query = Activity.query
-    count_q = query.statement.with_only_columns([func.count()]).order_by(None)
-    count = query.session.execute(count_q).scalar()
+    count = Activity.query(func.count(Activity.id)).scalar()
+
     print(count)
     return math.ceil(count / limit)
 

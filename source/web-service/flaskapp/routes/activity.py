@@ -6,7 +6,7 @@ from sqlalchemy.sql.functions import coalesce, max
 from sqlalchemy import desc, func
 
 from flaskapp.models import db
-from flaskapp.models.activity import Activity
+from flaskapp.models.activity import Activity, Record
 from flaskapp.utilities import format_datetime
 from flaskapp.errors import (
     construct_error_response,

@@ -355,116 +355,7 @@ class TestActivityRecord:
         )
 
 
-class TestItemActivityStream:
-    def test_get_actstr_by_entity_id(
-        self, client, namespace, auth_token, linguisticobject, test_db
-    ):
-        identifier = str(uuid.uuid4())
-
-        foo_jsonld = linguisticobject("Subject name Foo", identifier)
-        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
-
-        response = client.post(
-            f"/{namespace}/ingest",
-            data=json.dumps(foo_jsonld),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-
-        assert response.status_code == 200
-        assert identifier in response.data.decode("utf-8")
-
-        # make new versions:
-        for _ in range(2):
-            response = client.post(
-                f"/{namespace}/ingest",
-                data=json.dumps(bar_jsonld),
-                headers={"Authorization": "Bearer " + auth_token},
-            )
-
-            response = client.post(
-                f"/{namespace}/ingest",
-                data=json.dumps(foo_jsonld),
-                headers={"Authorization": "Bearer " + auth_token},
-            )
-
-        # Now let's retrieve that activity
-        response = client.get(f"/{namespace}/activity-stream/id/{identifier}")
-        assert response.status_code == 200
-
-        doc = response.get_json()
-        assert doc["type"] == "OrderedCollection"
-        assert doc["totalItems"] > 4
-
-        # Now let's retrieve that activity
-        response = client.get(f"/{namespace}/activity-stream/id/{identifier}/page/1")
-        assert response.status_code == 200
-
-        doc = response.get_json()
-        assert doc["type"] == "OrderedCollectionPage"
-
-    def test_get_actstr_by_entity_id(
-        self, client, namespace, auth_token, linguisticobject, test_db
-    ):
-        identifier = str(uuid.uuid4())
-
-        foo_jsonld = linguisticobject("Subject name Foo", identifier)
-        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
-
-        response = client.post(
-            f"/{namespace}/ingest",
-            data=json.dumps(foo_jsonld),
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-
-        assert response.status_code == 200
-        assert identifier in response.data.decode("utf-8")
-
-        # make new versions:
-        for _ in range(2):
-            response = client.post(
-                f"/{namespace}/ingest",
-                data=json.dumps(bar_jsonld),
-                headers={"Authorization": "Bearer " + auth_token},
-            )
-
-            response = client.post(
-                f"/{namespace}/ingest",
-                data=json.dumps(foo_jsonld),
-                headers={"Authorization": "Bearer " + auth_token},
-            )
-
-        # Now let's retrieve that activity
-        response = client.get(f"/{namespace}/activity-stream/id/{identifier}")
-        assert response.status_code == 200
-
-        doc = response.get_json()
-        assert doc["type"] == "OrderedCollection"
-
-        amount = doc["totalItems"]
-
-        # Truncate to the latest single event
-        response = client.post(
-            f"/{namespace}/activity-stream/id/{identifier}",
-            data={"keep": 1},
-            headers={"Authorization": "Bearer " + auth_token},
-        )
-
-        assert response.status_code == 200
-
-        doc = response.get_json()
-
-        assert "number_of_events_removed" in doc
-        assert doc["number_of_events_removed"] == 4
-
-        # Now let's retrieve that activitystream again
-        response = client.get(f"/{namespace}/activity-stream/id/{identifier}")
-        assert response.status_code == 200
-
-        doc = response.get_json()
-        assert doc["type"] == "OrderedCollection"
-
-        assert doc["totalItems"] == 1
-
+class TestTruncateActivityStream:
     def test_truncate_entity_id_keep_oldest(
         self, client, namespace, auth_token, linguisticobject, test_db
     ):
@@ -495,7 +386,7 @@ class TestItemActivityStream:
 
         # Truncate to the latest single event PLUS keep the oldest
         response = client.post(
-            f"/{namespace}/activity-stream/id/{identifier}",
+            f"/{namespace}/{identifier}/activity-stream",
             data={"keep": 1, "keep_oldest_event": True},
             headers={"Authorization": "Bearer " + auth_token},
         )
@@ -508,7 +399,7 @@ class TestItemActivityStream:
         assert doc["number_of_events_removed"] == 3
 
         # Now let's retrieve that activitystream again
-        response = client.get(f"/{namespace}/activity-stream/id/{identifier}")
+        response = client.get(f"/{namespace}/{identifier}/activity-stream")
         assert response.status_code == 200
 
         doc = response.get_json()

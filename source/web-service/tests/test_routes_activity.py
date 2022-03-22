@@ -77,7 +77,8 @@ class TestBaseRoute:
 
         response = client.get(f"/{namespace}/activity-stream")
         assert json.loads(response.data)["totalItems"] == 1
-        assert "page/2" in json.loads(response.data)["last"]["id"]
+        # No longer maintaining empty pages of activity-stream
+        assert "page/1" in json.loads(response.data)["last"]["id"]
 
 
 class TestPageRoute:
@@ -187,12 +188,13 @@ class TestPageRoute:
         response = json.loads(client.get(f"/{namespace}/activity-stream/page/1").data)
         response2 = json.loads(client.get(f"/{namespace}/activity-stream/page/2").data)
 
-        assert len(response["orderedItems"]) == 1
-        assert len(response2["orderedItems"]) == 2
+        # Not maintaining empty activity-stream pages now
+        assert len(response["orderedItems"]) == 2
+        assert len(response2["orderedItems"]) == 1
 
         assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
-        assert a2.record.entity_id in response2["orderedItems"][0]["object"]["id"]
-        assert a3.record.entity_id in response2["orderedItems"][1]["object"]["id"]
+        assert a2.record.entity_id in response["orderedItems"][1]["object"]["id"]
+        assert a3.record.entity_id in response2["orderedItems"][0]["object"]["id"]
 
     def test_id_missing(self, client, current_app, sample_activity, test_db, namespace):
         current_app.config["ITEMS_PER_PAGE"] = 2
@@ -211,13 +213,14 @@ class TestPageRoute:
         response3 = json.loads(client.get(f"/{namespace}/activity-stream/page/3").data)
 
         assert len(response["orderedItems"]) == 2
-        assert len(response2["orderedItems"]) == 1
-        assert len(response3["orderedItems"]) == 1
+        assert len(response2["orderedItems"]) == 2
+        assert "errors" in response3
 
+        # Not maintaining empty activity-stream pages now
         assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
         assert a2.record.entity_id in response["orderedItems"][1]["object"]["id"]
         assert a4.record.entity_id in response2["orderedItems"][0]["object"]["id"]
-        assert a5.record.entity_id in response3["orderedItems"][0]["object"]["id"]
+        assert a5.record.entity_id in response2["orderedItems"][1]["object"]["id"]
 
     def test_all_page_ids_missing(
         self, client, current_app, sample_activity, test_db, namespace
@@ -238,13 +241,14 @@ class TestPageRoute:
         response2 = json.loads(client.get(f"/{namespace}/activity-stream/page/2").data)
         response3 = json.loads(client.get(f"/{namespace}/activity-stream/page/3").data)
 
+        # Not maintaining empty activity-stream pages now
         assert len(response["orderedItems"]) == 2
-        assert len(response2["orderedItems"]) == 0
-        assert len(response3["orderedItems"]) == 1
+        assert len(response2["orderedItems"]) == 1
+        assert "errors" in response3
 
         assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
         assert a2.record.entity_id in response["orderedItems"][1]["object"]["id"]
-        assert a5.record.entity_id in response3["orderedItems"][0]["object"]["id"]
+        assert a5.record.entity_id in response2["orderedItems"][0]["object"]["id"]
 
     def test_all_first_page_ids_missing(
         self, client, current_app, sample_activity, test_db, namespace
@@ -265,13 +269,14 @@ class TestPageRoute:
         response2 = json.loads(client.get(f"/{namespace}/activity-stream/page/2").data)
         response3 = json.loads(client.get(f"/{namespace}/activity-stream/page/3").data)
 
-        assert len(response["orderedItems"]) == 0
-        assert len(response2["orderedItems"]) == 2
-        assert len(response3["orderedItems"]) == 1
+        # Not maintaining empty activity-stream pages now
+        assert len(response["orderedItems"]) == 2
+        assert len(response2["orderedItems"]) == 1
+        assert "errors" in response3
 
-        assert a3.record.entity_id in response2["orderedItems"][0]["object"]["id"]
-        assert a4.record.entity_id in response2["orderedItems"][1]["object"]["id"]
-        assert a5.record.entity_id in response3["orderedItems"][0]["object"]["id"]
+        assert a3.record.entity_id in response["orderedItems"][0]["object"]["id"]
+        assert a4.record.entity_id in response["orderedItems"][1]["object"]["id"]
+        assert a5.record.entity_id in response2["orderedItems"][0]["object"]["id"]
 
     def test_out_of_bounds_page(self, client, sample_data, namespace):
         url = f"/{namespace}/activity-stream/page/99999"

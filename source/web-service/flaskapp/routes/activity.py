@@ -141,7 +141,7 @@ def activity_stream_item(uuid):
         )
         .join(Record)
         .filter(Activity.uuid == uuid)
-    )
+    ).one_or_none()
 
     if not activity:
         response = construct_error_response(status_record_not_found)

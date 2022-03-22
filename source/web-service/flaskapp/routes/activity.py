@@ -184,6 +184,15 @@ def generate_url(sub=[], base=False):
     return "/".join(parts)
 
 
+def url_base(entity_id=None):
+    base_url = current_app.config["BASE_URL"]
+    namespace = current_app.config["NAMESPACE"]
+    url = base_url + "/" + namespace
+    if entity_id:
+        url = url + "/" + entity_id
+    return url
+
+
 def generate_item(activity):
     """Generate the ActivityStream Create record
 

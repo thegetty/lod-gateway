@@ -100,6 +100,19 @@ def activity_stream_page(pagenum):
             "type": "OrderedCollectionPage",
         }
 
+    # Find the id at the top of the page requested
+    # Why? This should just hit a single index and be quick
+    # Get the page size of rows after this id using the slow join query
+    # This should be faster than the original at high offset values
+    # but will slightly increase query time in the first few pages.
+    offset_id = db.session.execute(
+        f"select id from activities order by id limit 1 offset {offset};"
+    ).scalar()
+    if offset_id is None:
+        # Somehow managed to send through an offset that is too high
+        response = construct_error_response(status_page_not_found)
+        return abort(response)
+
     activities = (
         (
             Activity.query.with_entities(
@@ -110,9 +123,9 @@ def activity_stream_page(pagenum):
                 Record.entity_type,
             ).join(Record)
         )
+        .filter(Activity.id >= offset_id)
         .order_by(Activity.id)
         .limit(limit)
-        .offset(offset)
     )
     items = [generate_item(a) for a in activities]
     data["orderedItems"] = items

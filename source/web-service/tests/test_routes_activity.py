@@ -411,3 +411,105 @@ class TestTruncateActivityStream:
         assert doc["type"] == "OrderedCollection"
 
         assert doc["totalItems"] == 2
+
+    def test_truncate_entity_id_dont_keep_oldest(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # make new versions:
+        for _ in range(2):
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(bar_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(foo_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+        # Truncate to the latest single event and DONT keep the oldest
+        response = client.post(
+            f"/{namespace}/{identifier}/activity-stream",
+            data={"keep": 1, "keep_oldest_event": False},
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+
+        doc = response.get_json()
+
+        assert "number_of_events_removed" in doc
+        assert doc["number_of_events_removed"] == 4
+
+        # Now let's retrieve that activitystream again
+        response = client.get(f"/{namespace}/{identifier}/activity-stream")
+        assert response.status_code == 200
+
+        doc = response.get_json()
+        assert doc["type"] == "OrderedCollection"
+
+        assert doc["totalItems"] == 1
+
+    def test_default_keep_oldest_event_as_true(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # make new versions:
+        for _ in range(2):
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(bar_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(foo_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+        # Truncate to the latest single event and BY DEFAULT keep the oldest
+        response = client.post(
+            f"/{namespace}/{identifier}/activity-stream",
+            data={"keep": 1},
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+
+        doc = response.get_json()
+
+        assert "number_of_events_removed" in doc
+        assert doc["number_of_events_removed"] == 3
+
+        # Now let's retrieve that activitystream again
+        response = client.get(f"/{namespace}/{identifier}/activity-stream")
+        assert response.status_code == 200
+
+        doc = response.get_json()
+        assert doc["type"] == "OrderedCollection"
+
+        assert doc["totalItems"] == 2

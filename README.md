@@ -290,10 +290,6 @@ Return activity stream for the whole data set broken into pages of no greater th
 
 Return activity stream for a specific 'entity_type'. Examples of entity types from LOD 'museum/collection' - 'Group', 'Person', 'HumanMadeObject', etc. The same pagination structure implemented as for the main 'activity-stream'.
 
-#### base_url/ns/activity-stream/id/entity_id
-
-Return activity stream for a specific 'entity_id'. 
-
 #### base_url/ns/sparql
 
 SPARQL endpoint for querying RDF triples representation of data stored in the LOD Gateway. No authentication is required.

@@ -170,9 +170,18 @@ class TestPageRoute:
         assert len(response["orderedItems"]) == 2
         assert len(response2["orderedItems"]) == 1
 
-        assert f"{namespace}/{a1.record.entity_id}" in response["orderedItems"][0]["object"]["id"]
-        assert f"{namespace}/{a2.record.entity_id}" in response["orderedItems"][1]["object"]["id"]
-        assert f"{namespace}/{a3.record.entity_id}" in response2["orderedItems"][0]["object"]["id"]
+        assert (
+            f"{namespace}/{a1.record.entity_id}"
+            in response["orderedItems"][0]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a2.record.entity_id}"
+            in response["orderedItems"][1]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a3.record.entity_id}"
+            in response2["orderedItems"][0]["object"]["id"]
+        )
 
     def test_id_offset(self, client, current_app, sample_activity, test_db, namespace):
         current_app.config["ITEMS_PER_PAGE"] = 2
@@ -192,9 +201,18 @@ class TestPageRoute:
         assert len(response["orderedItems"]) == 2
         assert len(response2["orderedItems"]) == 1
 
-        assert f"{namespace}/{a1.record.entity_id}" in response["orderedItems"][0]["object"]["id"]
-        assert f"{namespace}/{a2.record.entity_id}" in response["orderedItems"][1]["object"]["id"]
-        assert f"{namespace}/{a3.record.entity_id}" in response2["orderedItems"][0]["object"]["id"]
+        assert (
+            f"{namespace}/{a1.record.entity_id}"
+            in response["orderedItems"][0]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a2.record.entity_id}"
+            in response["orderedItems"][1]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a3.record.entity_id}"
+            in response2["orderedItems"][0]["object"]["id"]
+        )
 
     def test_id_missing(self, client, current_app, sample_activity, test_db, namespace):
         current_app.config["ITEMS_PER_PAGE"] = 2
@@ -217,10 +235,22 @@ class TestPageRoute:
         assert "errors" in response3
 
         # Not maintaining empty activity-stream pages now
-        assert f"{namespace}/{a1.record.entity_id}" in response["orderedItems"][0]["object"]["id"]
-        assert f"{namespace}/{a2.record.entity_id}" in response["orderedItems"][1]["object"]["id"]
-        assert f"{namespace}/{a4.record.entity_id}" in response2["orderedItems"][0]["object"]["id"]
-        assert f"{namespace}/{a5.record.entity_id}" in response2["orderedItems"][1]["object"]["id"]
+        assert (
+            f"{namespace}/{a1.record.entity_id}"
+            in response["orderedItems"][0]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a2.record.entity_id}"
+            in response["orderedItems"][1]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a4.record.entity_id}"
+            in response2["orderedItems"][0]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a5.record.entity_id}"
+            in response2["orderedItems"][1]["object"]["id"]
+        )
 
     def test_all_page_ids_missing(
         self, client, current_app, sample_activity, test_db, namespace
@@ -246,9 +276,18 @@ class TestPageRoute:
         assert len(response2["orderedItems"]) == 1
         assert "errors" in response3
 
-        assert f"{namespace}/{a1.record.entity_id}" in response["orderedItems"][0]["object"]["id"]
-        assert f"{namespace}/{a2.record.entity_id}" in response["orderedItems"][1]["object"]["id"]
-        assert f"{namespace}/{a5.record.entity_id}" in response2["orderedItems"][0]["object"]["id"]
+        assert (
+            f"{namespace}/{a1.record.entity_id}"
+            in response["orderedItems"][0]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a2.record.entity_id}"
+            in response["orderedItems"][1]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a5.record.entity_id}"
+            in response2["orderedItems"][0]["object"]["id"]
+        )
 
     def test_all_first_page_ids_missing(
         self, client, current_app, sample_activity, test_db, namespace
@@ -274,9 +313,18 @@ class TestPageRoute:
         assert len(response2["orderedItems"]) == 1
         assert "errors" in response3
 
-        assert f"{namespace}/{a3.record.entity_id}" in response["orderedItems"][0]["object"]["id"]
-        assert f"{namespace}/{a4.record.entity_id}" in response["orderedItems"][1]["object"]["id"]
-        assert f"{namespace}/{a5.record.entity_id}" in response2["orderedItems"][0]["object"]["id"]
+        assert (
+            f"{namespace}/{a3.record.entity_id}"
+            in response["orderedItems"][0]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a4.record.entity_id}"
+            in response["orderedItems"][1]["object"]["id"]
+        )
+        assert (
+            f"{namespace}/{a5.record.entity_id}"
+            in response2["orderedItems"][0]["object"]["id"]
+        )
 
     def test_out_of_bounds_page(self, client, sample_data, namespace):
         url = f"/{namespace}/activity-stream/page/99999"

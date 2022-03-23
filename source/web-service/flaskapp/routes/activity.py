@@ -31,7 +31,7 @@ def activity_stream_collection():
         Response: A JSON-encoded OrderedCollection
     """
 
-    count = Activity.query.count()
+    count = db.session.query(func.count(Activity.id)).scalar()
     total_pages = str(compute_total_pages())
 
     data = {

@@ -106,7 +106,7 @@ def activity_stream_page(pagenum):
     # This should be faster than the original at high offset values
     # but will slightly increase query time in the first few pages.
     offset_id = db.session.execute(
-        f"select id from activities order by id offset {offset} limit 1;"
+        f"select id from activities order by id limit 1 offset {offset};"
     ).scalar()
     if offset_id is None:
         # Somehow managed to send through an offset that is too high

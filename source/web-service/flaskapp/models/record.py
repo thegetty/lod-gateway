@@ -1,5 +1,5 @@
 from flaskapp.models import db
-from sqlalchemy import ForeignKey, DateTime
+from sqlalchemy import ForeignKey, DateTime, Index
 from sqlalchemy.sql import func
 
 # Keeping the old columns to allow for migration
@@ -20,6 +20,11 @@ class Record(db.Model):
     previous_version = db.Column(db.String, nullable=True, index=True)
     is_old_version = db.Column(db.Boolean, nullable=True, default=False)
     checksum = db.Column(db.String, nullable=True)
+
+
+Index(
+    "ix_records_record_id_and_type", Record.entity_id, Record.entity_type, unique=True
+)
 
 
 class Version(db.Model):

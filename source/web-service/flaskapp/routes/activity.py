@@ -213,7 +213,7 @@ def generate_item(activity):
         "created": format_datetime(activity.datetime_created),
         "endTime": format_datetime(activity.datetime_created),
         "object": {
-            "id": generate_url([activity.entity_id]),
+            "id": generate_url([activity.entity_id], base=True),
             "type": activity.entity_type,
         },
     }

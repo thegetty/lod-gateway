@@ -1,4 +1,5 @@
 import json
+import uuid
 import re
 
 from datetime import datetime
@@ -76,7 +77,8 @@ class TestBaseRoute:
 
         response = client.get(f"/{namespace}/activity-stream")
         assert json.loads(response.data)["totalItems"] == 1
-        assert "page/2" in json.loads(response.data)["last"]["id"]
+        # No longer maintaining empty pages of activity-stream
+        assert "page/1" in json.loads(response.data)["last"]["id"]
 
 
 class TestPageRoute:
@@ -186,12 +188,13 @@ class TestPageRoute:
         response = json.loads(client.get(f"/{namespace}/activity-stream/page/1").data)
         response2 = json.loads(client.get(f"/{namespace}/activity-stream/page/2").data)
 
-        assert len(response["orderedItems"]) == 1
-        assert len(response2["orderedItems"]) == 2
+        # Not maintaining empty activity-stream pages now
+        assert len(response["orderedItems"]) == 2
+        assert len(response2["orderedItems"]) == 1
 
         assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
-        assert a2.record.entity_id in response2["orderedItems"][0]["object"]["id"]
-        assert a3.record.entity_id in response2["orderedItems"][1]["object"]["id"]
+        assert a2.record.entity_id in response["orderedItems"][1]["object"]["id"]
+        assert a3.record.entity_id in response2["orderedItems"][0]["object"]["id"]
 
     def test_id_missing(self, client, current_app, sample_activity, test_db, namespace):
         current_app.config["ITEMS_PER_PAGE"] = 2
@@ -210,13 +213,14 @@ class TestPageRoute:
         response3 = json.loads(client.get(f"/{namespace}/activity-stream/page/3").data)
 
         assert len(response["orderedItems"]) == 2
-        assert len(response2["orderedItems"]) == 1
-        assert len(response3["orderedItems"]) == 1
+        assert len(response2["orderedItems"]) == 2
+        assert "errors" in response3
 
+        # Not maintaining empty activity-stream pages now
         assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
         assert a2.record.entity_id in response["orderedItems"][1]["object"]["id"]
         assert a4.record.entity_id in response2["orderedItems"][0]["object"]["id"]
-        assert a5.record.entity_id in response3["orderedItems"][0]["object"]["id"]
+        assert a5.record.entity_id in response2["orderedItems"][1]["object"]["id"]
 
     def test_all_page_ids_missing(
         self, client, current_app, sample_activity, test_db, namespace
@@ -237,13 +241,14 @@ class TestPageRoute:
         response2 = json.loads(client.get(f"/{namespace}/activity-stream/page/2").data)
         response3 = json.loads(client.get(f"/{namespace}/activity-stream/page/3").data)
 
+        # Not maintaining empty activity-stream pages now
         assert len(response["orderedItems"]) == 2
-        assert len(response2["orderedItems"]) == 0
-        assert len(response3["orderedItems"]) == 1
+        assert len(response2["orderedItems"]) == 1
+        assert "errors" in response3
 
         assert a1.record.entity_id in response["orderedItems"][0]["object"]["id"]
         assert a2.record.entity_id in response["orderedItems"][1]["object"]["id"]
-        assert a5.record.entity_id in response3["orderedItems"][0]["object"]["id"]
+        assert a5.record.entity_id in response2["orderedItems"][0]["object"]["id"]
 
     def test_all_first_page_ids_missing(
         self, client, current_app, sample_activity, test_db, namespace
@@ -264,13 +269,14 @@ class TestPageRoute:
         response2 = json.loads(client.get(f"/{namespace}/activity-stream/page/2").data)
         response3 = json.loads(client.get(f"/{namespace}/activity-stream/page/3").data)
 
-        assert len(response["orderedItems"]) == 0
-        assert len(response2["orderedItems"]) == 2
-        assert len(response3["orderedItems"]) == 1
+        # Not maintaining empty activity-stream pages now
+        assert len(response["orderedItems"]) == 2
+        assert len(response2["orderedItems"]) == 1
+        assert "errors" in response3
 
-        assert a3.record.entity_id in response2["orderedItems"][0]["object"]["id"]
-        assert a4.record.entity_id in response2["orderedItems"][1]["object"]["id"]
-        assert a5.record.entity_id in response3["orderedItems"][0]["object"]["id"]
+        assert a3.record.entity_id in response["orderedItems"][0]["object"]["id"]
+        assert a4.record.entity_id in response["orderedItems"][1]["object"]["id"]
+        assert a5.record.entity_id in response2["orderedItems"][0]["object"]["id"]
 
     def test_out_of_bounds_page(self, client, sample_data, namespace):
         url = f"/{namespace}/activity-stream/page/99999"
@@ -352,3 +358,158 @@ class TestActivityRecord:
             records.url_activity("someactivityid")
             == f"{base_url}/activity-stream/someactivityid"
         )
+
+
+class TestTruncateActivityStream:
+    def test_truncate_entity_id_keep_oldest(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # make new versions:
+        for _ in range(2):
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(bar_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(foo_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+        # Truncate to the latest single event PLUS keep the oldest
+        response = client.post(
+            f"/{namespace}/{identifier}/activity-stream",
+            data={"keep": 1, "keep_oldest_event": True},
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+
+        doc = response.get_json()
+
+        assert "number_of_events_removed" in doc
+        assert doc["number_of_events_removed"] == 3
+
+        # Now let's retrieve that activitystream again
+        response = client.get(f"/{namespace}/{identifier}/activity-stream")
+        assert response.status_code == 200
+
+        doc = response.get_json()
+        assert doc["type"] == "OrderedCollection"
+
+        assert doc["totalItems"] == 2
+
+    def test_truncate_entity_id_dont_keep_oldest(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # make new versions:
+        for _ in range(2):
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(bar_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(foo_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+        # Truncate to the latest single event and DONT keep the oldest
+        response = client.post(
+            f"/{namespace}/{identifier}/activity-stream",
+            data={"keep": 1, "keep_oldest_event": False},
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+
+        doc = response.get_json()
+
+        assert "number_of_events_removed" in doc
+        assert doc["number_of_events_removed"] == 4
+
+        # Now let's retrieve that activitystream again
+        response = client.get(f"/{namespace}/{identifier}/activity-stream")
+        assert response.status_code == 200
+
+        doc = response.get_json()
+        assert doc["type"] == "OrderedCollection"
+
+        assert doc["totalItems"] == 1
+
+    def test_default_keep_oldest_event_as_true(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        # make new versions:
+        for _ in range(2):
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(bar_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(foo_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+        # Truncate to the latest single event and BY DEFAULT keep the oldest
+        response = client.post(
+            f"/{namespace}/{identifier}/activity-stream",
+            data={"keep": 1},
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+
+        doc = response.get_json()
+
+        assert "number_of_events_removed" in doc
+        assert doc["number_of_events_removed"] == 3
+
+        # Now let's retrieve that activitystream again
+        response = client.get(f"/{namespace}/{identifier}/activity-stream")
+        assert response.status_code == 200
+
+        doc = response.get_json()
+        assert doc["type"] == "OrderedCollection"
+
+        assert doc["totalItems"] == 2

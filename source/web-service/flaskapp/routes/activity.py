@@ -3,10 +3,11 @@ import math
 from flask import Blueprint, current_app, abort
 from sqlalchemy.orm import joinedload, load_only, defer
 from sqlalchemy.sql.functions import coalesce, max
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
+from flaskapp.models.record import Record
 from flaskapp.utilities import format_datetime
 from flaskapp.errors import (
     construct_error_response,
@@ -30,7 +31,7 @@ def activity_stream_collection():
         Response: A JSON-encoded OrderedCollection
     """
 
-    count = Activity.query.count()
+    count = db.session.query(func.count(Activity.id)).scalar()
     total_pages = str(compute_total_pages())
 
     data = {
@@ -100,11 +101,18 @@ def activity_stream_page(pagenum):
         }
 
     activities = (
-        Activity.query.options(
-            joinedload(Activity.record, innerjoin=True), defer("record.data")
+        (
+            Activity.query.with_entities(
+                Activity.uuid,
+                Activity.event,
+                Activity.datetime_created,
+                Record.entity_id,
+                Record.entity_type,
+            ).join(Record)
         )
-        .filter(Activity.id > offset, Activity.id <= offset + limit)
-        .order_by("id")
+        .order_by(Activity.id)
+        .limit(limit)
+        .offset(offset)
     )
     items = [generate_item(a) for a in activities]
     data["orderedItems"] = items
@@ -124,10 +132,16 @@ def activity_stream_item(uuid):
     """
 
     activity = (
-        Activity.query.options(joinedload(Activity.record, innerjoin=True))
+        Activity.query.with_entities(
+            Activity.uuid,
+            Activity.event,
+            Activity.datetime_created,
+            Record.entity_id,
+            Record.entity_type,
+        )
+        .join(Record)
         .filter(Activity.uuid == uuid)
-        .one_or_none()
-    )
+    ).one_or_none()
 
     if not activity:
         response = construct_error_response(status_record_not_found)
@@ -140,8 +154,9 @@ def activity_stream_item(uuid):
 
 def compute_total_pages():
     limit = current_app.config["ITEMS_PER_PAGE"]
-    last = db.session.query(coalesce(max(Activity.id), 0).label("num")).one()
-    return math.ceil(last.num / limit)
+    # Quick count
+    count = db.session.query(func.count(Activity.id)).scalar()
+    return math.ceil(count / limit)
 
 
 def generate_url(sub=[], base=False):
@@ -182,7 +197,7 @@ def generate_item(activity):
         "created": format_datetime(activity.datetime_created),
         "endTime": format_datetime(activity.datetime_created),
         "object": {
-            "id": generate_url(base=True, sub=[str(activity.record.entity_id)]),
-            "type": activity.record.entity_type,
+            "id": generate_url([activity.entity_id]),
+            "type": activity.entity_type,
         },
     }

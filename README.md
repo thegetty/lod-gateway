@@ -128,6 +128,12 @@ LOCAL_THESAURUS_URL=        # This entry is required if APPLICATION_NAMESPACE=lo
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
 
+## Python Client (current v 2.1.1)
+
+The LODGatewayClient in the `lodgatewayclient` package simplifies a lot of the API interaction with the LOD Gateway and can be pulled down from the Getty Nexus PyPi repository. 
+
+Github: https://github.com/thegetty/lod-gateway-client
+
 ## Logging and Access logs
 
 The logging configuration creates two `logging.StreamHandler` instances - one that will output all Python logger messages to `STDOUT`, and only `logging.CRITICAL` and `logging.ERROR` to `STDERR`. This is desired to make it easier to track fatal errors once deployed. This configuration is written to the root logger, and is inherited by any `logging` objects created subsequently. The log level is set using the `DEBUG_LEVEL` environment variable, and should be set to a standard Python log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`). The log levels are defined in order of severity, and run from left to right from least to most severe. What this means is that if the level is set to `DEBUG`, all messages marked `DEBUG` and more severe (all the way up to `CRITICAL` level) are logged. Set the level to `ERROR`, then only `ERROR` and more severe (only `CRITICAL` by default) messages are logged.

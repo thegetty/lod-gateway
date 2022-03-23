@@ -156,8 +156,6 @@ def compute_total_pages():
     limit = current_app.config["ITEMS_PER_PAGE"]
     # Quick count
     count = db.session.query(func.count(Activity.id)).scalar()
-
-    print(count)
     return math.ceil(count / limit)
 
 

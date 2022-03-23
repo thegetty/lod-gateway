@@ -128,7 +128,7 @@ LOCAL_THESAURUS_URL=        # This entry is required if APPLICATION_NAMESPACE=lo
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
 
-## Python Client (current v 2.1.0)
+## Python Client (current v 2.1.1)
 
 The LODGatewayClient in the `lodgatewayclient` package simplifies a lot of the API interaction with the LOD Gateway and can be pulled down from the Getty Nexus PyPi repository. 
 

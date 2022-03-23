@@ -104,7 +104,7 @@ def activity_stream_page(pagenum):
     # Why? This should just hit a single index and be quick
     # Get the page size of rows after this id using the slow join query
     # This should be faster than the original at high offset values
-    # but will slightly increase query time in the first few pages. 
+    # but will slightly increase query time in the first few pages.
     offset_id = db.session.execute(
         f"select id from activities order by id offset {offset} limit 1;"
     ).scalar()

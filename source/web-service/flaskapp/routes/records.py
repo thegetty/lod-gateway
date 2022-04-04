@@ -184,7 +184,7 @@ def subaddressing_search(entity_id):
 
     if len(parts) < sub_max_parts:
         if len(parts) > sub_min_parts:
-            sub_max_parts = len(parts) - 1
+            sub_max_parts = len(parts)
         else:
             # Can't possibly find a subaddressed item
             return (None, None)

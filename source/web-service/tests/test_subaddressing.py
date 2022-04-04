@@ -534,6 +534,18 @@ class TestSubaddressing:
         assert doc["content"] == "Sunset Boulevard"
         assert doc["type"] == "Name"
 
+    def test_get_place_subsection_slug(self, client, namespace, auth_token, test_db):
+        # identifier of an resource within hmo1 jsonld:
+        subaddress_entity_id = "place/c0380b6c-931f-11ea-9d86-068d38c13b76/tile/80524a55-7a93-4afd-94a1-8e75b4b55d5b/node/53ad433c-8e78-11ea-9d86-068d38c13b76"
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            json=place,
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
+
         sub2 = "place/c0380b6c-931f-11ea-9d86-068d38c13b76/slug"
         response = client.get(
             f"/{namespace}/{sub2}", headers={"Authorization": "Bearer " + auth_token},
@@ -547,6 +559,18 @@ class TestSubaddressing:
         assert doc["id"].endswith(sub2)
         assert doc["content"] == "100B4W"
         assert doc["type"] == "Identifier"
+
+    def test_get_non_existant_subsection(self, client, namespace, auth_token, test_db):
+        # identifier of an resource within hmo1 jsonld:
+        subaddress_entity_id = "place/c0380b6c-931f-11ea-9d86-068d38c13b76/tile/80524a55-7a93-4afd-94a1-8e75b4b55d5b/node/53ad433c-8e78-11ea-9d86-068d38c13b76"
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            json=place,
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert response.status_code == 200
 
         sub_non_existent = (
             "place/c0380b6c-931f-11ea-9d86-068d38c13b76/slug/does/not/exist"

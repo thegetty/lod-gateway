@@ -128,7 +128,11 @@ LOCAL_THESAURUS_URL=        # This entry is required if APPLICATION_NAMESPACE=lo
 SUBADDRESSING=
                             # True or False (default). This enables the subaddressing check for identifiers
                             # that may be within other resources. 
-                      
+                            
+                            SUBADDRESSING_MIN_PARTS - smallest number of (path) parts to consider when resolving a 
+                                                      subaddressed path to a parent entity (default: 1)
+                            SUBADDRESSING_MAX_PARTS - largest number of (path) parts to consider when resolving a 
+                                                      subaddressed path to a parent entity (default: 4)
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
@@ -222,6 +226,20 @@ Vary: accept-datetime, Accept-Encoding
         }
     ],
 }
+```
+
+Subaddressing starts by searching from the max length to the minimum. For example:
+
+```
+entity 'a/b/c/d/e/f/g/h/i' does not exist as a record. Max/min are at defaults:
+
+Search for 'a/b/c/d/e/f/g/h/i' in the following records if they exist:
+    a/b/c/d
+    a/b/c
+    a/b
+    a
+    
+The search will stop as soon as it finds a valid record, and will return either the part of the document that matches, or HTTP 404
 ```
 
 ## Versioning

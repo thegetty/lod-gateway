@@ -170,7 +170,7 @@ def subaddressing_search(entity_id):
             return (None, None)
 
     record = None
-    for x in range(depth):
+    for x in reversed(range(depth)):
         record = (
             Record.query.filter(Record.entity_id == "/".join(parts[: x + 1]))
             .filter(Record.data != None)

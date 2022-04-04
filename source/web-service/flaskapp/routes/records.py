@@ -504,7 +504,7 @@ def delete_entity_version(entity_id):
 ### Activity Stream of the record ###
 
 
-@records.route("/<path:entity_id>/activity-stream")
+@records.route("/<path:entity_id>/activity-stream", methods=["GET", "HEAD"])
 def entity_record_activity_stream(entity_id):
     count = get_record_activities_count(entity_id)
     limit = current_app.config["ITEMS_PER_PAGE"]
@@ -525,6 +525,88 @@ def entity_record_activity_stream(entity_id):
     }
 
     return current_app.make_response(data)
+
+
+@records.route("/<path:entity_id>/activity-stream", methods=["POST"])
+def truncate_activity_stream_of_entity_id(entity_id):
+    # Authentication. If fails, abort with 401
+    status = authenticate_bearer(request)
+    if status != status_ok:
+        response = construct_error_response(status)
+        return abort(response)
+
+    count = get_record_activities_count(entity_id)
+    # Are there events for this ID?
+    if count == 0:
+        response = construct_error_response(status_record_not_found)
+        return abort(response)
+
+    # How many events to keep
+    keep_latest_events = request.values.get("keep")
+    try:
+        keep_latest_events = int(keep_latest_events)
+    except (ValueError, TypeError) as e:
+        current_app.logger.error(f"'keep' parameter was not an integer.")
+        keep_latest_events = None
+
+    if keep_latest_events is None or keep_latest_events < 1:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "message": (
+                            "To truncate an entity's activity-stream, the parameter 'keep' "
+                            "must be provided and set equal to the number of events to keep for "
+                            "the entity and must not be less than 1"
+                        )
+                    }
+                }
+            ),
+            400,
+        )
+
+    # Should we keep the oldest event?
+    keep_oldest_event = request.values.get("keep_oldest_event", "true")
+    end_of_truncate = None
+    if keep_oldest_event is not None and keep_oldest_event.lower() == "true":
+        end_of_truncate = -1
+
+    # A valid keep number was passed but is it at least as big as the
+    # total number of events for this entity?
+    # Adjust if the oldest event is being kept.
+    if keep_latest_events >= (count + (end_of_truncate or 0)):
+        return jsonify({"number_of_events_removed": 0}), 200
+
+    # should have a valid number of items to remove from the activitystream.
+    # There is a way to do this 'cleverly' with multiple subquerys, and other
+    # things, but there won't be that many events per resource so we can
+    # process it client-side.
+
+    # Get the list of events, sorted by id but DESCENDING
+    # Should be from newest to oldest event.
+    activity_list = (
+        Activity.query.filter(Activity.record.has(entity_id=entity_id))
+        .order_by(Activity.id.desc())
+        .all()
+    )
+
+    deleted = 0
+    # python slice will pull all the list into memory
+    # should be fine, given the above note.
+    for a in activity_list[keep_latest_events:end_of_truncate]:
+        db.session.delete(a)
+        deleted += 1
+
+    current_app.logger.warning(
+        f"Truncating {entity_id} activity-stream to most recent {keep_latest_events} event(s)"
+    )
+    try:
+        db.session.commit()
+        return jsonify({"number_of_events_removed": deleted}), 200
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f"SQLAlchemyError! {e}")
+        raise e
 
 
 @records.route("/<path:entity_id>/activity-stream/page/<string:pagenum>")

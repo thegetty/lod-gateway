@@ -90,7 +90,11 @@ def get_timemap(entity_id):
             elif num_versions - idx == 1:
                 mm["rel"] = "last memento"
                 # mark timemap with until datetime
-                timemap[0]["from"] = format_datetime(version.datetime_updated)
+                timemap[0]["from"] = formatdate(
+                    timeval=version.datetime_updated.timestamp(),
+                    localtime=False,
+                    usegmt=True,
+                )
             timemap.append(mm)
 
     # Accept?

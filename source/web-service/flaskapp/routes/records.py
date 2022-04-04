@@ -161,18 +161,38 @@ def subaddressing_search(entity_id):
     # Trying a non-SPARQL method first
     parts = entity_id.split("/")
 
-    depth = current_app.config.get("SUBADDRESSING_DEPTH", 4)
-    if len(parts) < depth:
-        if len(parts) > 1:
-            depth = len(parts) - 1
+    # MAX/MIN search limits by example:
+
+    # Consider the path a/b/c/d/e/f/g/h/i
+    # If SUBADDRESSING_MAX_PARTS = 4, then it will start the search at entity 'a/b/c/d' (4 parts)
+    # If SUBADDRESSING_MIN_PARTS = 1, then it will search through 'a/b/c/d', 'a/b/c', 'a/b' to 'a' for a record
+    # If SUBADDRESSING_MIN_PARTS was 3 instead, the search would be two items: 'a/b/c/d' and 'a/b/c'
+
+    try:
+        sub_max_parts = int(current_app.config.get("SUBADDRESSING_MAX_PARTS", 4))
+        sub_min_parts = int(current_app.config.get("SUBADDRESSING_MIN_PARTS", 1))
+        if sub_min_parts > sub_max_parts:
+            current_app.logger.error(
+                f"Misconfiguration! SUBADDRESSING_MIN_PARTS {sub_min_parts} is set "
+                f"to more than SUBADDRESSING_MAX_PARTS {sub_max_parts}. Limiting it to the max."
+            )
+            sub_min_parts = sub_max_parts
+    except (ValueError, TypeError) as e:
+        raise Exception(
+            f"ENV Misconfiguration: SUBADDRESSING_MIN_PARTS and SUBADDRESSING_MAX_PARTS must be integers."
+        )
+
+    if len(parts) < sub_max_parts:
+        if len(parts) > sub_min_parts:
+            sub_max_parts = len(parts) - 1
         else:
-            # Can't possibly find anything
+            # Can't possibly find a subaddressed item
             return (None, None)
 
     record = None
-    for x in reversed(range(depth)):
+    for x in reversed(range(sub_min_parts - 1, sub_max_parts)):
         record = (
-            Record.query.filter(Record.entity_id == "/".join(parts[: x + 1]))
+            Record.query.filter(Record.entity_id == "/".join(parts[:x]))
             .filter(Record.data != None)
             .one_or_none()
         )

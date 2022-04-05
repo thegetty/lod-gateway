@@ -163,13 +163,15 @@ class TestIngestSuccess:
                     "name": "Airport",
                     "name_en": "Airport",
                     "name_cn": "机场",
-                    "display": false,
+                    "display": False,
                 }
             ],
         }
+
+        # Python 3.5+ (maybe earlier) handles UTF-8 by default
         response = client_no_rdf.post(
             f"/{namespace}/ingest",
-            data=json.dumps(data, ensure_ascii=False),
+            data=json.dumps(data),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200

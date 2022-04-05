@@ -181,7 +181,7 @@ class TestIngestSuccess:
         rdoc = response.json
 
         # check unicode
-        assert rdoc['tags'][0]["name_cn"] = "机场"
+        assert rdoc["tags"][0]["name_cn"] == "机场"
 
     def test_ingest_multiple(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf

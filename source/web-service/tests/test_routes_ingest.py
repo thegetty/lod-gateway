@@ -154,6 +154,35 @@ class TestIngestSuccess:
         assert response.status_code == 200
         assert b"object/12345" in response.data
 
+    def test_ingest_unicode(self, client_no_rdf, namespace, auth_token, test_db_no_rdf):
+        data = {
+            "id": "unicodetest/1",
+            "tags": [
+                {
+                    "id": "123",
+                    "name": "Airport",
+                    "name_en": "Airport",
+                    "name_cn": "机场",
+                    "display": false,
+                }
+            ],
+        }
+        response = client_no_rdf.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data, ensure_ascii=False),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        assert b"unicodetest/1" in response.data
+
+        response = client_no_rdf.get(f"/{namespace}/unicodetest/1")
+        assert response.status_code == 200
+
+        rdoc = response.json
+
+        # check unicode
+        assert rdoc['tags'][0]["name_cn"] = "机场"
+
     def test_ingest_multiple(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):

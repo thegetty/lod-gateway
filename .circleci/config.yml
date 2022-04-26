@@ -14,9 +14,6 @@ workflows:
           context: GETTY
   poc:
     jobs:
-      - machine:
-          docker_layer_caching: true
-          image: ubuntu-2004:202201-02
       - pocBuild:
           context: GETTY
       - getty-devops-release/deployTo:

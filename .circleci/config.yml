@@ -38,7 +38,7 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^v1.*$/
+              only: /^v2.*$/
 
 jobs:
   build:

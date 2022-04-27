@@ -69,6 +69,144 @@ def _quick_count(query):
     return count
 
 
+# Parse the request for the prefix listing and pass back the JSON-encodable listing for the given page
+def handle_prefix_listing(entity_id, request, idPrefix):
+    # Instead of responding with a single record, find and list the responses that match the 'glob' in the request
+    # load_only - we only care about three columns.
+    records = (
+        Record.query.options(
+            load_only(
+                Record.entity_id,
+                Record.entity_type,
+                Record.datetime_updated,
+                Record.datetime_deleted,
+            )
+        )
+        .filter(Record.datetime_deleted == None)
+        .filter(Record.entity_id.like(entity_id[:-1] + "%"))
+    )
+    # Pagination - GET URL parameter 'page'
+    page = 1
+    if "page" in request.args:
+        try:
+            page = int(request.args["page"])
+        except (ValueError, TypeError) as e:
+            current_app.logger.error(f"Bad value supplied for 'page' parameter.")
+
+    # BROWSE_PAGE_SIZE - optional app config value
+    page_size = 200
+    try:
+        page_size = int(current_app.config["BROWSE_PAGE_SIZE"])
+    except (ValueError, TypeError, KeyError) as e:
+        current_app.logger.warning(
+            f"Bad value supplied for BROWSE_PAGE_SIZE environment var."
+        )
+
+    # Use SQLAlchemy's inbuilt pagination routine
+    page_request = records.paginate(page=page, per_page=page_size)
+
+    # Do a quick count based on the query. Might not be that much quicker than .count() with the load_only
+    # option above, but this way is the quickest method for doing a count.
+    total = _quick_count(records)
+
+    # Return the URL, the entity type and the datetime_updated
+    # (Maybe sort by the date?)
+    items = [
+        {
+            "id": f"{idPrefix}/{item.entity_id}",
+            "type": item.entity_type,
+            "datetime_updated": item.datetime_updated,
+        }
+        for item in page_request.items
+    ]
+
+    r_json = {
+        "items": items,
+        "total": total,
+        "first": f"{idPrefix}/{entity_id}?page=1",
+    }
+
+    # Pagination will be in the usual "first", "prev", "next" pattern
+    if page_request.has_next is True:
+        r_json["next"] = f"{idPrefix}/{entity_id}?page={page+1}"
+        r_json["last"] = f"{idPrefix}/{entity_id}?page={math.ceil(total/page_size)}"
+    if page > 1:
+        r_json["prev"] = f"{idPrefix}/{entity_id}?page={page-1}"
+
+    return r_json
+
+
+def _findobj(obj, key, val=None):
+    # Recursively hunt through a JSON object, looking for a key:value match
+    # within a dict, and returning the first match if true, or None
+    if isinstance(obj, str):
+        return None
+
+    if key in obj:
+        if val is not None and obj[key] == val:
+            return obj
+    for k, v in obj.items():
+        if isinstance(v, dict):
+            item = _findobj(v, key, val)
+            if item is not None:
+                return item
+        elif isinstance(v, list):
+            for bit in v:
+                item = _findobj(bit, key, val)
+                if item is not None:
+                    return item
+
+
+def subaddressing_search(entity_id):
+    # Trying a non-SPARQL method first
+    parts = entity_id.split("/")
+
+    # MAX/MIN search limits by example:
+
+    # Consider the path a/b/c/d/e/f/g/h/i
+    # If SUBADDRESSING_MAX_PARTS = 4, then it will start the search at entity 'a/b/c/d' (4 parts)
+    # If SUBADDRESSING_MIN_PARTS = 1, then it will search through 'a/b/c/d', 'a/b/c', 'a/b' to 'a' for a record
+    # If SUBADDRESSING_MIN_PARTS was 3 instead, the search would be two items: 'a/b/c/d' and 'a/b/c'
+
+    try:
+        sub_max_parts = int(current_app.config.get("SUBADDRESSING_MAX_PARTS", 4))
+        sub_min_parts = int(current_app.config.get("SUBADDRESSING_MIN_PARTS", 1))
+        if sub_min_parts > sub_max_parts:
+            current_app.logger.error(
+                f"Misconfiguration! SUBADDRESSING_MIN_PARTS {sub_min_parts} is set "
+                f"to more than SUBADDRESSING_MAX_PARTS {sub_max_parts}. Limiting it to the max."
+            )
+            sub_min_parts = sub_max_parts
+    except (ValueError, TypeError) as e:
+        raise Exception(
+            f"ENV Misconfiguration: SUBADDRESSING_MIN_PARTS and SUBADDRESSING_MAX_PARTS must be integers."
+        )
+
+    if len(parts) < sub_max_parts:
+        if len(parts) > sub_min_parts:
+            sub_max_parts = len(parts)
+        else:
+            # Can't possibly find a subaddressed item
+            return (None, None)
+
+    record = None
+    for x in reversed(range(sub_min_parts - 1, sub_max_parts)):
+        record = (
+            Record.query.filter(Record.entity_id == "/".join(parts[:x]))
+            .filter(Record.data != None)
+            .one_or_none()
+        )
+        if record is not None:
+            break
+
+    if record is not None:
+        subpart = _findobj(record.data, "id", entity_id)
+        if subpart is not None:
+            return (record, subpart)
+
+    return (None, None)
+
+
 @records.route("/<path:entity_id>")
 def entity_record(entity_id):
     """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard
@@ -78,75 +216,37 @@ def entity_record(entity_id):
     hostPrefix = current_app.config["BASE_URL"]
     idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
     if entity_id.endswith("*"):
-        # Instead of responding with a single record, find and list the responses that match the 'glob' in the request
-        # load_only - we only care about three columns.
-        records = (
-            Record.query.options(
-                load_only(
-                    Record.entity_id,
-                    Record.entity_type,
-                    Record.datetime_updated,
-                    Record.datetime_deleted,
-                )
-            )
-            .filter(Record.datetime_deleted == None)
-            .filter(Record.entity_id.like(entity_id[:-1] + "%"))
-        )
-        # Pagination - GET URL parameter 'page'
-        page = 1
-        if "page" in request.args:
-            try:
-                page = int(request.args["page"])
-            except (ValueError, TypeError) as e:
-                current_app.logger.error(f"Bad value supplied for 'page' parameter.")
+        ####################
+        # Prefix searching #
+        ####################
 
-        # BROWSE_PAGE_SIZE - optional app config value
-        page_size = 200
-        try:
-            page_size = int(current_app.config["BROWSE_PAGE_SIZE"])
-        except (ValueError, TypeError, KeyError) as e:
-            current_app.logger.warning(
-                f"Bad value supplied for BROWSE_PAGE_SIZE environment var."
-            )
-
-        # Use SQLAlchemy's inbuilt pagination routine
-        page_request = records.paginate(page=page, per_page=page_size)
-
-        # Do a quick count based on the query. Might not be that much quicker than .count() with the load_only
-        # option above, but this way is the quickest method for doing a count.
-        total = _quick_count(records)
-
-        # Return the URL, the entity type and the datetime_updated
-        # (Maybe sort by the date?)
-        items = [
-            {
-                "id": f"{idPrefix}/{item.entity_id}",
-                "type": item.entity_type,
-                "datetime_updated": item.datetime_updated,
-            }
-            for item in page_request.items
-        ]
-
-        r_json = {
-            "items": items,
-            "total": total,
-            "first": f"{idPrefix}/{entity_id}?page=1",
-        }
-
-        # Pagination will be in the usual "first", "prev", "next" pattern
-        if page_request.has_next is True:
-            r_json["next"] = f"{idPrefix}/{entity_id}?page={page+1}"
-            r_json["last"] = f"{idPrefix}/{entity_id}?page={math.ceil(total/page_size)}"
-        if page > 1:
-            r_json["prev"] = f"{idPrefix}/{entity_id}?page={page-1}"
+        # entity_id ends with a '*'
+        r_json = handle_prefix_listing(entity_id, request, idPrefix)
 
         return jsonify(r_json)
     else:
-        record = Record.query.filter(Record.entity_id == entity_id).one_or_none()
+        ########################
+        # Direct record access #
+        ########################
+
         current_app.logger.info(f"Looking up resource {entity_id}")
+        record = Record.query.filter(Record.entity_id == entity_id).one_or_none()
+
+        # Sub-addressing vars
+        subaddressed = None
+        subdata = None
+
+        if record is None and current_app.config["SUBADDRESSING"] is True:
+            current_app.logger.warning(
+                f"{entity_id} not found - attempting subaddress to find a document containing this identifier."
+            )
+            record, subdata = subaddressing_search(entity_id)
+            if record is not None:
+                subaddressed = url_for(
+                    "records.entity_record", entity_id=record.entity_id
+                )
 
         if record is None:
-            # no record, not even a stub:
             response = construct_error_response(status_record_not_found)
             return abort(response)
 
@@ -222,6 +322,9 @@ def entity_record(entity_id):
                     # Timemap and prev (optional) link
                     headers["Link"] = link_headers
                     headers["Vary"] = "accept-datetime"
+
+                if subaddressed is not None:
+                    headers["Location"] = subaddressed
                 return ("", 304, headers)
 
             # If the etag(s) did not match, then the record is not cached or known to the client
@@ -232,14 +335,18 @@ def entity_record(entity_id):
             if (
                 prefixRecordIDs == "NONE"
             ):  # when "NONE", record "id" field prefixing is not enabled
-                data = record.data  # so pass back the record data as-is to the client
+                # Use the subaddressing data if it has been set (and subaddressing is enabled)
+                # Use record data otherwise
+                data = (
+                    subdata or record.data
+                )  # so pass back the record data as-is to the client
             else:  # otherwise, record "id" field prefixing is enabled, as configured
                 recursive = (
                     False if prefixRecordIDs == "TOP" else True
                 )  # recursive by default
 
                 data = containerRecursiveCallback(
-                    data=record.data,
+                    data=subdata or record.data,
                     attr="id",
                     callback=idPrefixer,
                     prefix=idPrefix,
@@ -254,6 +361,10 @@ def entity_record(entity_id):
                 # Timemap
                 response.headers["Link"] = link_headers
                 response.headers["Vary"] = "accept-datetime"
+
+            if subaddressed is not None:
+                response.headers["Location"] = subaddressed
+
             return response
         elif record and record.data is None:
             # Record existed but has been deleted.
@@ -261,6 +372,9 @@ def entity_record(entity_id):
             if current_app.config["KEEP_LAST_VERSION"] is True:
                 response.headers["Link"] = link_headers
                 response.headers["Vary"] = "accept-datetime"
+
+                if subaddressed is not None:
+                    response.headers["Location"] = subaddressed
             return abort(response)
         else:
             response = construct_error_response(status_record_not_found)
@@ -318,6 +432,7 @@ def entity_version(entity_id):
 
             # Recursively prefix each 'id' attribute that currently lacks a http(s):// prefix
             data = version.data
+
             if data is not None:
                 prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
                 if (
@@ -353,6 +468,7 @@ def entity_version(entity_id):
                     f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=version.record.entity_id) }> ; rel="timemap"',
                 ]
             )
+
             if data is None:
                 response.status_code = 404
             return response

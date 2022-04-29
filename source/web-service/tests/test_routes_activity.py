@@ -77,8 +77,8 @@ class TestBaseRoute:
 
         response = client.get(f"/{namespace}/activity-stream")
         assert json.loads(response.data)["totalItems"] == 1
-        # No longer maintaining empty pages of activity-stream
-        assert "page/1" in json.loads(response.data)["last"]["id"]
+
+        assert "page/2" in json.loads(response.data)["last"]["id"]
 
 
 class TestPageRoute:

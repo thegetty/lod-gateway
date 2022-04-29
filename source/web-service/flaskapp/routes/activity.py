@@ -100,36 +100,14 @@ def activity_stream_page(pagenum):
             "type": "OrderedCollectionPage",
         }
 
-    # Find the id at the top of the page requested (subquery)
-    # Why? This should just hit a single index and be quick
-    # Get the page size of rows after this id using the slower join query
-    # This should be faster than the original at high offset values
-    # but will slightly increase query time in the first few pages.
-
-    # Subquery:
-    subq = (
-        db.session.query(Activity.id)
-        .order_by(Activity.id)
-        .limit(1)
-        .offset(offset)
-        .scalar_subquery()
-    )
-
-    # full query:
     activities = (
-        (
-            Activity.query.with_entities(
-                Activity.uuid,
-                Activity.event,
-                Activity.datetime_created,
-                Record.entity_id,
-                Record.entity_type,
-            ).join(Record)
+        Activity.query.options(
+            joinedload(Activity.record, innerjoin=True), defer("record.data")
         )
-        .filter(Activity.id >= subq)
-        .order_by(Activity.id)
-        .limit(limit)
+        .filter(Activity.id > offset, Activity.id <= offset + limit)
+        .order_by("id")
     )
+
     items = [generate_item(a) for a in activities]
     data["orderedItems"] = items
 
@@ -148,16 +126,10 @@ def activity_stream_item(uuid):
     """
 
     activity = (
-        Activity.query.with_entities(
-            Activity.uuid,
-            Activity.event,
-            Activity.datetime_created,
-            Record.entity_id,
-            Record.entity_type,
-        )
-        .join(Record)
+        Activity.query.options(joinedload(Activity.record, innerjoin=True))
         .filter(Activity.uuid == uuid)
-    ).one_or_none()
+        .one_or_none()
+    )
 
     if not activity:
         response = construct_error_response(status_record_not_found)
@@ -213,7 +185,7 @@ def generate_item(activity):
         "created": format_datetime(activity.datetime_created),
         "endTime": format_datetime(activity.datetime_created),
         "object": {
-            "id": generate_url([activity.entity_id], base=True),
-            "type": activity.entity_type,
+            "id": generate_url(base=True, sub=[str(activity.record.entity_id)]),
+            "type": activity.record.entity_type,
         },
     }

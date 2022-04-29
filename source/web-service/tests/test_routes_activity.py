@@ -77,8 +77,8 @@ class TestBaseRoute:
 
         response = client.get(f"/{namespace}/activity-stream")
         assert json.loads(response.data)["totalItems"] == 1
-        # No longer maintaining empty pages of activity-stream
-        assert "page/1" in json.loads(response.data)["last"]["id"]
+
+        assert "page/2" in json.loads(response.data)["last"]["id"]
 
 
 class TestPageRoute:
@@ -197,9 +197,8 @@ class TestPageRoute:
         response = json.loads(client.get(f"/{namespace}/activity-stream/page/1").data)
         response2 = json.loads(client.get(f"/{namespace}/activity-stream/page/2").data)
 
-        # Not maintaining empty activity-stream pages now
-        assert len(response["orderedItems"]) == 2
-        assert len(response2["orderedItems"]) == 1
+        assert len(response["orderedItems"]) == 1
+        assert len(response2["orderedItems"]) == 2
 
         assert (
             f"{namespace}/{a1.record.entity_id}"
@@ -207,11 +206,11 @@ class TestPageRoute:
         )
         assert (
             f"{namespace}/{a2.record.entity_id}"
-            in response["orderedItems"][1]["object"]["id"]
+            in response2["orderedItems"][0]["object"]["id"]
         )
         assert (
             f"{namespace}/{a3.record.entity_id}"
-            in response2["orderedItems"][0]["object"]["id"]
+            in response2["orderedItems"][1]["object"]["id"]
         )
 
     def test_id_missing(self, client, current_app, sample_activity, test_db, namespace):
@@ -231,8 +230,8 @@ class TestPageRoute:
         response3 = json.loads(client.get(f"/{namespace}/activity-stream/page/3").data)
 
         assert len(response["orderedItems"]) == 2
-        assert len(response2["orderedItems"]) == 2
-        assert "errors" in response3
+        assert len(response2["orderedItems"]) == 1
+        assert len(response3["orderedItems"]) == 1
 
         # Not maintaining empty activity-stream pages now
         assert (
@@ -249,7 +248,7 @@ class TestPageRoute:
         )
         assert (
             f"{namespace}/{a5.record.entity_id}"
-            in response2["orderedItems"][1]["object"]["id"]
+            in response3["orderedItems"][0]["object"]["id"]
         )
 
     def test_all_page_ids_missing(
@@ -273,8 +272,8 @@ class TestPageRoute:
 
         # Not maintaining empty activity-stream pages now
         assert len(response["orderedItems"]) == 2
-        assert len(response2["orderedItems"]) == 1
-        assert "errors" in response3
+        assert len(response2["orderedItems"]) == 0
+        assert len(response3["orderedItems"]) == 1
 
         assert (
             f"{namespace}/{a1.record.entity_id}"
@@ -286,7 +285,7 @@ class TestPageRoute:
         )
         assert (
             f"{namespace}/{a5.record.entity_id}"
-            in response2["orderedItems"][0]["object"]["id"]
+            in response3["orderedItems"][0]["object"]["id"]
         )
 
     def test_all_first_page_ids_missing(
@@ -309,21 +308,21 @@ class TestPageRoute:
         response3 = json.loads(client.get(f"/{namespace}/activity-stream/page/3").data)
 
         # Not maintaining empty activity-stream pages now
-        assert len(response["orderedItems"]) == 2
-        assert len(response2["orderedItems"]) == 1
-        assert "errors" in response3
+        assert len(response["orderedItems"]) == 0
+        assert len(response2["orderedItems"]) == 2
+        assert len(response3["orderedItems"]) == 1
 
         assert (
             f"{namespace}/{a3.record.entity_id}"
-            in response["orderedItems"][0]["object"]["id"]
+            in response2["orderedItems"][0]["object"]["id"]
         )
         assert (
             f"{namespace}/{a4.record.entity_id}"
-            in response["orderedItems"][1]["object"]["id"]
+            in response2["orderedItems"][1]["object"]["id"]
         )
         assert (
             f"{namespace}/{a5.record.entity_id}"
-            in response2["orderedItems"][0]["object"]["id"]
+            in response3["orderedItems"][0]["object"]["id"]
         )
 
     def test_out_of_bounds_page(self, client, sample_data, namespace):

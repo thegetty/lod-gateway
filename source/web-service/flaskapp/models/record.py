@@ -17,7 +17,7 @@ class Record(db.Model):
         index=True,
     )
     datetime_deleted = db.Column(db.TIMESTAMP)
-    data = db.Column(db.JSON)
+    data = deferred(db.Column(db.JSON))
     previous_version = db.Column(db.String, nullable=True, index=True)
     is_old_version = db.Column(db.Boolean, nullable=True, default=False)
     checksum = db.Column(db.String, nullable=True)
@@ -47,6 +47,6 @@ class Version(db.Model):
     record = db.relationship(
         "Record",
         backref=db.backref(
-            "versions", lazy=True, order_by="Version.datetime_updated.desc()"
+            "versions", lazy="select", order_by="Version.datetime_updated.desc()"
         ),
     )

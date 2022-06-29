@@ -1,6 +1,7 @@
 from flaskapp.models import db
 from sqlalchemy import ForeignKey, DateTime, Index
 from sqlalchemy.sql import func
+from sqlalchemy.orm import deferred
 
 # Keeping the old columns to allow for migration
 class Record(db.Model):
@@ -32,7 +33,7 @@ class Version(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     entity_id = db.Column(db.String, nullable=False, index=True, unique=True)
     entity_type = db.Column(db.String, index=True)
-    datetime_created = db.Column(db.TIMESTAMP, nullable=False, index=True)
+    datetime_created = deferred(db.Column(db.TIMESTAMP, nullable=False, index=True))
     datetime_updated = db.Column(
         DateTime(timezone=True),
         onupdate=func.now(),
@@ -40,8 +41,8 @@ class Version(db.Model):
         index=True,
     )
     datetime_deleted = db.Column(db.TIMESTAMP)
-    data = db.Column(db.JSON)
-    checksum = db.Column(db.String, nullable=True)
+    data = deferred(db.Column(db.JSON))
+    checksum = deferred(db.Column(db.String, nullable=True))
     record_id = db.Column(db.Integer, ForeignKey("records.id"))
     record = db.relationship(
         "Record",

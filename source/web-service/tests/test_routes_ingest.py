@@ -236,7 +236,8 @@ class TestIngestSuccess:
         uri = m.groups()[0]
 
         timemap = client_no_rdf.get(
-            uri, headers={"Authorization": "Bearer " + auth_token},
+            uri,
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert timemap.status_code == 200
 

@@ -37,7 +37,10 @@ def upgrade():
         sa.Column("datetime_created", sa.TIMESTAMP(), nullable=False),
         sa.Column("record_id", sa.Integer(), nullable=False),
         sa.Column("event", sa.String(), nullable=False),
-        sa.ForeignKeyConstraint(["record_id"], ["records.id"],),
+        sa.ForeignKeyConstraint(
+            ["record_id"],
+            ["records.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

@@ -171,7 +171,8 @@ class TestVersioning:
         assert response.status_code == 401
 
         response = client.get(
-            client_uri, headers={"Authorization": "Bearer " + auth_token},
+            client_uri,
+            headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
         assert response.json["content"] == foo_jsonld["content"]

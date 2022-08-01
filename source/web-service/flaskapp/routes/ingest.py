@@ -416,14 +416,14 @@ def process_graphstore_record_set(
     to the triplestore. While it would be possible to push all operations into a single request
     one of the operational issues has been that Neptune becoming resource constrained and
     failing. A concatenated request could be extremely large and there is no guarantee that
-    Neptune would treat a single request as a transaction in any case. 
+    Neptune would treat a single request as a transaction in any case.
 
     An update request will be retried, if the response is an error that corresponds to a
     suspected issue with deployment (eg overloaded), but if this retry fails, then it is the
     clients responsbility to ensure the eventual consistency of the graphs supplied once the
     service has become healthy again (the LOD Gateway instance cannot accurately tell this.)
 
-    In case of a graph update error, the db transaction will be rolled back, and the instance 
+    In case of a graph update error, the db transaction will be rolled back, and the instance
     will make an attempt to undo the graph updates that went successfully based on the JSON-LD
     stored in the DB. This process cannot be guaranteed due to the nature of the failure but an
     attempt is made out of due dilligence.

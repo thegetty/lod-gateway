@@ -330,7 +330,8 @@ def entity_record(entity_id):
                 # 302 Redirect to that version.
                 response = redirect(
                     url_for(
-                        "records.entity_version", entity_id=desired_version.entity_id,
+                        "records.entity_version",
+                        entity_id=desired_version.entity_id,
                     ),
                     code=302,
                 )

@@ -163,7 +163,14 @@ def sample_record_with_ids(test_db):
             data={
                 "id": "object/123",
                 "example": "data",
-                "nested": [{"id": "object/456",}, {"id": "object/789",},],
+                "nested": [
+                    {
+                        "id": "object/456",
+                    },
+                    {
+                        "id": "object/789",
+                    },
+                ],
             },
         )
         test_db.session.add(record)
@@ -250,7 +257,11 @@ def requests_mocker(requests_mock):
 
         if request.path_url.endswith("/status"):
             context.status_code = 200
-            return json.dumps({"status": "healthy",})
+            return json.dumps(
+                {
+                    "status": "healthy",
+                }
+            )
         elif request.path_url.endswith("/sparql") or request.path_url.endswith(
             "/update"
         ):  # TODO: this is not portable
@@ -268,7 +279,17 @@ def requests_mocker(requests_mock):
                 if sparql.startswith("SELECT"):
                     context.status_code = 200
                     return json.dumps(
-                        {"results": {"bindings": [{"count": {"value": 0,}}],},}
+                        {
+                            "results": {
+                                "bindings": [
+                                    {
+                                        "count": {
+                                            "value": 0,
+                                        }
+                                    }
+                                ],
+                            },
+                        }
                     )
                 elif sparql.startswith("INSERT DATA"):
                     context.status_code = 200

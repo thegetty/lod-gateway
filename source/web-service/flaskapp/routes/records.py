@@ -394,6 +394,9 @@ def entity_record(entity_id):
             response.headers["Content-Type"] = "application/json;charset=UTF-8"
             response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
             response.headers["ETag"] = f'"{record.checksum}"'
+            response.headers[
+                "Cache-Control"
+            ] = "max-age=21600, stale-while-revalidate=608400"
             if current_app.config["KEEP_LAST_VERSION"] is True:
                 # Timemap
                 response.headers["Link"] = link_headers

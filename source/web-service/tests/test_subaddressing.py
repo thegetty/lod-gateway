@@ -16,7 +16,12 @@ hmo1 = {
             "type": "Type",
         }
     ],
-    "depicts": [{"id": "place/8d48f901-21ff-4526-b803-d10d59f7f823", "type": "Place",}],
+    "depicts": [
+        {
+            "id": "place/8d48f901-21ff-4526-b803-d10d59f7f823",
+            "type": "Place",
+        }
+    ],
     "dimension": [
         {
             "_label": "Archival Object Sequence",
@@ -548,7 +553,8 @@ class TestSubaddressing:
 
         sub2 = "place/c0380b6c-931f-11ea-9d86-068d38c13b76/slug"
         response = client.get(
-            f"/{namespace}/{sub2}", headers={"Authorization": "Bearer " + auth_token},
+            f"/{namespace}/{sub2}",
+            headers={"Authorization": "Bearer " + auth_token},
         )
 
         assert response.status_code == 200

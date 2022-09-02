@@ -34,7 +34,10 @@ def upgrade():
         sa.Column("data", sa.JSON(), nullable=True),
         sa.Column("checksum", sa.String(), nullable=True),
         sa.Column("record_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["record_id"], ["records.id"],),
+        sa.ForeignKeyConstraint(
+            ["record_id"],
+            ["records.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

@@ -8,7 +8,7 @@ from email.utils import formatdate
 from datetime import datetime, timezone
 from flask import Blueprint, current_app, abort, request, jsonify, url_for, redirect
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import load_only
+from sqlalchemy.orm import load_only, defer
 from sqlalchemy import func
 
 from flaskapp.models import db
@@ -26,6 +26,8 @@ from flaskapp.utilities import checksum_json
 # authentication function from ingest. This really should be changed at some point to a
 # better library like JWT
 from flaskapp.routes.ingest import authenticate_bearer
+
+import time
 
 
 # Create a new "records" route blueprint
@@ -211,10 +213,13 @@ def subaddressing_search(entity_id):
 def entity_record(entity_id):
     """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard
     search for items in the LOD Gateway"""
-
     # idPrefix will be used by either the API route returning the record, or the route listing matches
     hostPrefix = current_app.config["BASE_URL"]
     idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
+
+    current_app.logger.debug(f"{entity_id} - Profiling started 0.0000000")
+    profile_time = time.perf_counter()
+
     if entity_id.endswith("*"):
         ####################
         # Prefix searching #
@@ -222,7 +227,9 @@ def entity_record(entity_id):
 
         # entity_id ends with a '*'
         r_json = handle_prefix_listing(entity_id, request, idPrefix)
-
+        current_app.logger.debug(
+            f"{entity_id} - Handle prefix listing took {time.perf_counter() - profile_time}"
+        )
         return jsonify(r_json)
     else:
         ########################
@@ -230,8 +237,17 @@ def entity_record(entity_id):
         ########################
 
         current_app.logger.info(f"Looking up resource {entity_id}")
-        record = Record.query.filter(Record.entity_id == entity_id).one_or_none()
+        record = (
+            db.session.query(Record)
+            .filter(Record.entity_id == entity_id)
+            .options(defer(Record.data))
+            .limit(1)
+            .first()
+        )
 
+        current_app.logger.debug(
+            f"{entity_id} - Record lookup at {time.perf_counter() - profile_time}"
+        )
         # Sub-addressing vars
         subaddressed = None
         subdata = None
@@ -241,6 +257,9 @@ def entity_record(entity_id):
                 f"{entity_id} not found - attempting subaddress to find a document containing this identifier."
             )
             record, subdata = subaddressing_search(entity_id)
+            current_app.logger.debug(
+                f"{entity_id} - Subaddressing lookup at {time.perf_counter() - profile_time}"
+            )
             if record is not None:
                 subaddressed = url_for(
                     "records.entity_record", entity_id=record.entity_id
@@ -250,23 +269,30 @@ def entity_record(entity_id):
             response = construct_error_response(status_record_not_found)
             return abort(response)
 
-        prev = None
-        if record is not None and len(record.versions) > 0:
-
-            # Ordered in reverse chronological order.
-            prev = record.versions[0]
-
         link_headers = basic_link_headers = (
             f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/link-format" , '
             + f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/json" , '
             + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate" '
         )
 
-        if prev is not None:
-            link_headers = (
-                basic_link_headers
-                + f', <{hostPrefix}{ url_for("records.entity_version", entity_id=prev.entity_id) }>; rel="prev"'
+        if record is not None:
+            prev = (
+                db.session.query(Version)
+                .options(load_only("record_id", "entity_id", "datetime_updated"))
+                .filter(Version.record_id == record.id)
+                .order_by(Version.datetime_updated.desc())
+                .limit(1)
+                .first()
             )
+            if prev is not None:
+                link_headers = (
+                    basic_link_headers
+                    + f', <{hostPrefix}{ url_for("records.entity_version", entity_id=prev.entity_id) }>; rel="prev"'
+                )
+
+        current_app.logger.debug(
+            f"{entity_id} - Version query run and Link headers generated at {time.perf_counter() - profile_time}"
+        )
 
         # Is the client trying to negotiate for an earlier version through Accept-Datetime
         if (
@@ -291,13 +317,21 @@ def entity_record(entity_id):
                 )
                 if desired_version is None:
                     # Return oldest version URL
-                    desired_version = record.versions[-1]
+                    response = construct_error_response(status_record_not_found)
+                    response.headers["Link"] = link_headers
+                    response.headers["Vary"] = "accept-datetime"
 
+                    return abort(response)
+
+                current_app.logger.debug(
+                    f"{entity_id} - Desired version generated at {time.perf_counter() - profile_time}"
+                )
                 # found an version predating the version asked for
                 # 302 Redirect to that version.
                 response = redirect(
                     url_for(
-                        "records.entity_version", entity_id=desired_version.entity_id,
+                        "records.entity_version",
+                        entity_id=desired_version.entity_id,
                     ),
                     code=302,
                 )
@@ -352,6 +386,9 @@ def entity_record(entity_id):
                     prefix=idPrefix,
                     recursive=recursive,
                 )
+            current_app.logger.debug(
+                f"{entity_id} - prefixRecordIDs generated at {time.perf_counter() - profile_time}"
+            )
 
             response = current_app.make_response(data)
             response.headers["Content-Type"] = "application/json;charset=UTF-8"

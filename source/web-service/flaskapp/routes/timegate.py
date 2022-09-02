@@ -2,6 +2,7 @@ from email.utils import formatdate
 
 from flask import Blueprint, current_app, abort, request, jsonify, url_for
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import defer, load_only
 
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
@@ -26,7 +27,12 @@ def get_timemap(entity_id):
     # Get the timemap for the given entity_id, if one exists
     idPrefix = current_app.config["BASE_URL"]
     current_app.logger.info(f"Looking up timemap for entity {entity_id}")
-    record = Record.query.filter(Record.entity_id == entity_id).one_or_none()
+    record = (
+        Record.query.filter(Record.entity_id == entity_id)
+        .options(load_only("entity_id", "id", "datetime_updated"))
+        .limit(1)
+        .first()
+    )
 
     # if there is no record, return 404
     if record is None:
@@ -59,14 +65,22 @@ def get_timemap(entity_id):
     )
     timemap.append({"uri": uri_r, "rel": "original timegate"})
 
-    num_versions = len(record.versions)
+    versions = (
+        db.session.query(Version)
+        .options(load_only("record_id", "entity_id", "datetime_updated"))
+        .filter(Version.record_id == record.id)
+        .order_by(Version.datetime_updated.desc())
+        .all()
+    )
+
+    num_versions = len(versions)
     if num_versions == 1:
         # spec doesn't really talk about how to format in this case
         timemap.append(
             {
-                "uri": f"{idPrefix}{ url_for('records.entity_version', entity_id=record.versions[0].entity_id) }",
+                "uri": f"{idPrefix}{ url_for('records.entity_version', entity_id=versions[0].entity_id) }",
                 "datetime": formatdate(
-                    timeval=record.versions[0].datetime_updated.timestamp(),
+                    timeval=versions[0].datetime_updated.timestamp(),
                     localtime=False,
                     usegmt=True,
                 ),
@@ -74,7 +88,7 @@ def get_timemap(entity_id):
             }
         )
     elif num_versions > 1:
-        for idx, version in enumerate(record.versions):
+        for idx, version in enumerate(versions):
             mm = {
                 "uri": f"{idPrefix}{ url_for('records.entity_version', entity_id=version.entity_id) }",
                 "datetime": formatdate(

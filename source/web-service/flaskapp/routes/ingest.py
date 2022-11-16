@@ -147,7 +147,8 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                 elif crud_event == Event.Refresh:
                     # add the list index to the list of updates to process through the graph store
                     ids_to_refresh.append(id)
-                    result_dict[id] = ""
+                    # This will be overwritten with a status if RDF Processing occurs later.
+                    result_dict[id] = "rdf_processing_disabled"
                 # add to result dict pair ('id': 'None') which will signify to client no operation was done
                 else:
                     result_dict[id] = "null"
@@ -164,7 +165,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
         # Process graph store entries. Check the graph store flag - if not set, do not process, return 'True'
         # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
         graphstore_result = True
-        if current_app.config["PROCESS_RDF"] == "True":
+        if current_app.config["PROCESS_RDF"].lower() == "true":
             current_app.logger.debug(
                 f"PROCESS_RDF is true - process records as valid JSON-LD"
             )

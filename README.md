@@ -137,7 +137,7 @@ SUBADDRESSING=
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
 
-## Python Client (current v 2.1.1)
+## Python Client (current v 2.2.3)
 
 The LODGatewayClient in the `lodgatewayclient` package simplifies a lot of the API interaction with the LOD Gateway and can be pulled down from the Getty Nexus PyPi repository. 
 
@@ -363,6 +363,8 @@ Method - POST. Authentication - 'bearer token'. Accepts a set of line-delimited 
 In the case of a 'delete' operation, only the data part is deleted. A record remains in the database that indicates that the record existed and its lifecycle is recorded in the activity stream. A record delete operation is done by ingesting a JSON record with the relevant entity id and a single key/value pair, `"_delete": "true"`.  
 
 When records are ingested into the LOD Gateway, they are also expanded into RDF and added to the graph store if a valid context is given and the ["PROCESS_RDF"] flag = "True". Atomic processing is implemented, i.e. if one of the records fails or the RDF expansion operations are unsuccessful, the entire transaction is rolled back.
+
+If the LOD Gateway is configured to process RDF, then there is an additional ingest procedure available: `refresh`. This refreshes the triplestore with a record's RDF (expanded from the JSON-LD). This is useful when the triplestore is out of sync with the contents of the LOD Gateway for some reason (directly updated in error, or starting a new triplestore backend from scratch). This works in the same manner as the `delete` procedure - to refresh an id "entity_id", the ingest JSON line should be `{"id": "entity_id", "_refresh": true}`.
 
 #### base_url/ns/entity_type/entity_id
 

@@ -148,7 +148,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                     # add the list index to the list of updates to process through the graph store
                     ids_to_refresh.append(id)
                     # This will be overwritten with a status if RDF Processing occurs later.
-                    result_dict[id] = "rdf_processing_disabled"
+                    result_dict[id] = "rdf_processing_is_off"
                 # add to result dict pair ('id': 'None') which will signify to client no operation was done
                 else:
                     result_dict[id] = "null"

@@ -121,6 +121,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
     #  This dict will be returned by function. key: 'id', value: 'namespace/id'
     result_dict = {}
     idx_to_process_further = []
+    ids_to_refresh = []
 
     current_app.logger.debug(f"Processing {len(record_list)} records for updates")
     with db.session.no_autoflush:
@@ -143,6 +144,11 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                     # add the list index to the list of updates to process through the graph store
                     idx_to_process_further.append(idx)
 
+                elif crud_event == Event.Refresh:
+                    # add the list index to the list of updates to process through the graph store
+                    ids_to_refresh.append(id)
+                    # This will be overwritten with a status if RDF Processing occurs later.
+                    result_dict[id] = "rdf_processing_is_off"
                 # add to result dict pair ('id': 'None') which will signify to client no operation was done
                 else:
                     result_dict[id] = "null"
@@ -159,39 +165,47 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
         # Process graph store entries. Check the graph store flag - if not set, do not process, return 'True'
         # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
         graphstore_result = True
-        if current_app.config["PROCESS_RDF"] == "True":
+        if current_app.config["PROCESS_RDF"].lower() == "true":
             current_app.logger.debug(
                 f"PROCESS_RDF is true - process records as valid JSON-LD"
             )
-            graphstore_result = process_graphstore_record_set(
-                [record_list[x] for x in idx_to_process_further],
-                query_endpoint=query_endpoint,
-                update_endpoint=update_endpoint,
-            )
-
-            # if RDF process fails, roll back and return graph store specific error
-            if graphstore_result is not True:
-                current_app.logger.error(
-                    f"Error occurred processing JSON-LD. Rolling back."
+            if idx_to_process_further:
+                graphstore_result = process_graphstore_record_set(
+                    [record_list[x] for x in idx_to_process_further],
+                    query_endpoint=query_endpoint,
+                    update_endpoint=update_endpoint,
                 )
-                db.session.rollback()
 
-                # Failure happened when expanding the graphs?
-                if isinstance(graphstore_result, status_nt):
-                    return graphstore_result
+                # if RDF process fails, roll back and return graph store specific error
+                if graphstore_result is not True:
+                    current_app.logger.error(
+                        f"Error occurred processing JSON-LD. Rolling back."
+                    )
+                    db.session.rollback()
 
-                # graphstore_result should contain a list of graphs successfully updated that need to be rolled back
-                # Given that this failure should only happen if an out of band error has occurred (Neptune overloaded)
-                # the attempt to rollback these graphs may also not be successful.
-                current_app.logger.error(f"Attempting to revert {graphstore_result}")
-                revert_triplestore_if_possible(graphstore_result)
+                    # Failure happened when expanding the graphs?
+                    if isinstance(graphstore_result, status_nt):
+                        return graphstore_result
 
-                # This should be treated as a server error
-                return status_nt(
-                    500,
-                    "Triplestore Update Error",
-                    "A failure happened when trying to update the triplestore. Check logs for details.",
-                )
+                    # graphstore_result should contain a list of graphs successfully updated that need to be rolled back
+                    # Given that this failure should only happen if an out of band error has occurred (Neptune overloaded)
+                    # the attempt to rollback these graphs may also not be successful.
+                    current_app.logger.error(
+                        f"Attempting to revert {graphstore_result}"
+                    )
+                    revert_triplestore_if_possible(graphstore_result)
+
+                    # This should be treated as a server error
+                    return status_nt(
+                        500,
+                        "Triplestore Update Error",
+                        "A failure happened when trying to update the triplestore. Check logs for details.",
+                    )
+
+            # Only handle refresh requests if the PROCESS_RDF is enabled
+            if ids_to_refresh:
+                results = revert_triplestore_if_possible(ids_to_refresh)
+                result_dict.update(results)
 
         # Everything went fine - commit the transaction
         db.session.commit()
@@ -208,14 +222,23 @@ def process_record(input_rec):
     data = json.loads(input_rec)
     id = data["id"]
 
-    # Find if Record with this 'id' exists
-    db_rec = get_record(id)
-
     is_delete_request = "_delete" in data.keys() and data["_delete"] in [
         "true",
         "True",
         True,
     ]
+
+    if "_refresh" in data.keys() and data["_refresh"] in [
+        "true",
+        "True",
+        True,
+    ]:
+        # The graph refresh step will load the current data and determine whether to
+        # delete or update the graphstore.
+        return (None, id, Event.Refresh)
+
+    # Find if Record with this 'id' exists
+    db_rec = get_record(id)
 
     # Record with such 'id' does not exist
     if db_rec == None:
@@ -598,14 +621,12 @@ def process_graphstore_record_set(
 
 
 def revert_triplestore_if_possible(list_of_relative_ids):
-    # This method should only be called if there is some sort of failure in updating the triplestore index for a multi-resource
-    # update request (more than one delete, update, or create in a single request).
-    # Given that the errors that led to this situation are unknown and could be due to resource issues or other critical issues,
-    # this attempt to realign the triplestore with the data in the LOD Gateway should not be trusted to have succeeded, and the client
-    # MUST ensure that the resources are consistent with each other, as the LOD Gateway instance should be considered to be in a failure
-    # state with respect to the triplestore. The following is just for due dilligence, and to provide log informaton for the admin to check
-    # consistency.
+    """This method loads the requested ids from the DB and attempts to refresh the triplestore with the expanded triples.
 
+    If there is a DB error on update or create, this function will also be called in an attempt to revert the triplestore to match the
+    DB records. Note that this should not be trusted, as the DB is already in an error state but it is due dilligence in case of an error.
+
+    """
     query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
     update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
 
@@ -614,6 +635,8 @@ def revert_triplestore_if_possible(list_of_relative_ids):
     idPrefix = (
         current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE_FOR_RDF"]
     )
+
+    results = {}
 
     for relative_id in list_of_relative_ids:
         # get current record
@@ -628,10 +651,12 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                 current_app.logger.warning(
                     f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
                 )
+                results[relative_id] = "deleted"
             except (requests.exceptions.ConnectionError, RetryAfterError) as e:
                 current_app.logger.error(
                     f"REVERT: Rollback failure - couldn't revert {relative_id} to a deleted state in the triplestore"
                 )
+                results[relative_id] = "connection_error"
         else:
             # expand, skip if zero triples or fail, and reassert
             try:
@@ -647,15 +672,20 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                     current_app.logger.warning(
                         f"REVERT: Attempted to revert {relative_id} to DB version, JSON-LD failed to expand. Skipping."
                     )
+                    results[relative_id] = "graph_expansion_error"
                 else:
                     graph_replace(data["id"], nt, update_endpoint)
                     current_app.logger.warning(
                         f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data['id']})"
                     )
+                    results[relative_id] = "refreshed"
             except (requests.exceptions.ConnectionError, RetryAfterError) as e:
                 current_app.logger.error(
                     f"REVERT: Rollback failure - couldn't revert {relative_id} to match the DB"
                 )
+                results[relative_id] = "connection_error"
+
+    return results
 
 
 def graph_expand(data, proc=None):

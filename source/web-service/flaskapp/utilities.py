@@ -15,6 +15,7 @@ class Event(Enum):
     Update = 2
     Delete = 3
     Move = 4
+    Refresh = 5
 
 
 # gathers the full stack trace from the call site as a formatted string; useful for exception handling

@@ -12,7 +12,8 @@ pytest==7.0.1
 pytest-cov==3.0.0
 pytest-mock==3.7.0
 pytest-watch==4.2.0
-PyLD==2.0.2
+#PyLD==2.0.2
+git+https://github.com/benosteen/pyld.git@threadlocking#egg=pyld
 rdflib==6.1.1
 rdflib-jsonld==0.6.2
 requests==2.27.1

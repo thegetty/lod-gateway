@@ -81,6 +81,10 @@ def create_app():
     if environ.get("KEEP_VERSIONS_AFTER_DELETION", "False").lower() == "true":
         app.config["KEEP_VERSIONS_AFTER_DELETION"] = True
 
+    app.config["LINK_HEADER_PREV_VERSION"] = False
+    if environ.get("LINK_HEADER_PREV_VERSION", "False").lower() == "true":
+        app.config["LINK_HEADER_PREV_VERSION"] = True
+
     app.config["SUBADDRESSING"] = False
     if environ.get("SUBADDRESSING", "False").lower() == "true":
         app.config["SUBADDRESSING"] = True

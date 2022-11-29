@@ -275,7 +275,7 @@ def entity_record(entity_id):
             + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate" '
         )
 
-        if record is not None:
+        if current_app.config["LINK_HEADER_PREV_VERSION"] and record is not None:
             prev = (
                 db.session.query(Version)
                 .options(load_only("record_id", "entity_id", "datetime_updated"))
@@ -287,12 +287,14 @@ def entity_record(entity_id):
             if prev is not None:
                 link_headers = (
                     basic_link_headers
-                    + f', <{hostPrefix}{ url_for("records.entity_version", entity_id=prev.entity_id) }>; rel="prev"'
+                    + f', <{hostPrefix}{ url_for("records.entity_version", entity_id=prev.entity_id) }>; rel="previous"'
                 )
 
-        current_app.logger.debug(
-            f"{entity_id} - Version query run and Link headers generated at {time.perf_counter() - profile_time}"
-        )
+            current_app.logger.debug(
+                f"{entity_id} - Version query run and Link headers generated at {time.perf_counter() - profile_time}"
+            )
+        else:
+            current_app.logger.debug(f"{entity_id} - Version query run disabled.")
 
         # Is the client trying to negotiate for an earlier version through Accept-Datetime
         if (

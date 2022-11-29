@@ -275,7 +275,7 @@ def entity_record(entity_id):
             + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate" '
         )
 
-        if app.config["LINK_HEADER_PREV_VERSION"] and record is not None:
+        if current_app.config["LINK_HEADER_PREV_VERSION"] and record is not None:
             prev = (
                 db.session.query(Version)
                 .options(load_only("record_id", "entity_id", "datetime_updated"))

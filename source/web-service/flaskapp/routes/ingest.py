@@ -45,9 +45,10 @@ from flaskapp.utilities import (
     full_stack_trace,
 )
 
-# Match ntriples only
+# Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
+# be specific to things like repeated triples and not general use. The regex could be  smarter
 QUADS = re.compile(
-    r"^([\<\"][^\>\"]*[\>\"]\s[\<\"][^\>\"]*[\>\"]\s[\<\"][^\>\"]*[\>\"]\s[\<\"][^\>\"]*[\>\"])\s\.$"
+    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\<[^\>]*\>\s\.$"
 )
 
 # Create a new "ingest" route blueprint

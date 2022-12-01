@@ -39,6 +39,7 @@ FORMATS = {
     "application/rdf+xml": "xml",
     "application/ld+json": "json-ld",
     "text/n3": "n3",
+    "application/n-quads": "nquads",
 }
 
 
@@ -437,7 +438,7 @@ def entity_record(entity_id):
                     request.headers.get("accept"), request.values.get("format")
                 ):
                     # wants a particular format
-                    if desired[1] is not "json-ld":
+                    if desired[1] != "json-ld":
                         # Set the mimetype:
                         content_type = desired[0]
                         if request.values.get("force-plain-text", "").lower() == "true":

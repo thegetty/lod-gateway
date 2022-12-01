@@ -1,5 +1,6 @@
 import json
 import uuid
+import re
 
 # Timing requests
 import time
@@ -44,6 +45,10 @@ from flaskapp.utilities import (
     full_stack_trace,
 )
 
+# Match ntriples only
+QUADS = re.compile(
+    r"^([\<\"][^\>\"]*[\>\"]\s[\<\"][^\>\"]*[\>\"]\s[\<\"][^\>\"]*[\>\"]\s[\<\"][^\>\"]*[\>\"])\s\.$"
+)
 
 # Create a new "ingest" route blueprint
 ingest = Blueprint("ingest", __name__)
@@ -775,6 +780,14 @@ def graph_expand(data, proc=None):
     return serialized_nt
 
 
+def is_quads(line):
+    if line:
+        if match := QUADS.match(line):
+            return True
+
+    return False
+
+
 def graph_exists(graph_name, query_endpoint):
     # function left here for utility
     res = requests.post(
@@ -794,6 +807,13 @@ def graph_exists(graph_name, query_endpoint):
 
 def graph_replace(graph_name, serialized_nt, update_endpoint):
     # This will replace the named graph with only the triples supplied
+
+    # Quads supplied instead?
+    if is_quads(serialized_nt.split("\n")[0]):
+        serialized_nt = "\n".join(
+            [f"{x.rsplit(' ', 2)[0]} ." for x in serialized_nt.split("\n") if x.strip()]
+        )
+
     replace_stmt = (
         "DROP SILENT GRAPH <"
         + graph_name
@@ -804,6 +824,7 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         + serialized_nt
         + "} } ;"
     )
+
     current_app.logger.debug(replace_stmt)
     tictoc = time.perf_counter()
     res = requests.post(update_endpoint, data={"update": replace_stmt})

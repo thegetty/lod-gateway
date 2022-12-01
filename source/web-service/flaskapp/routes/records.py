@@ -290,7 +290,7 @@ def entity_record(entity_id):
                 subaddressed = url_for(
                     "records.entity_record", entity_id=record.entity_id
                 )
-                current_app.logger.info(f"{record.data['@context']}")
+                current_app.logger.debug(f"{record.data['@context']}")
                 if "@context" in record.data:
                     subdata["@context"] = record.data["@context"]
 
@@ -410,9 +410,14 @@ def entity_record(entity_id):
                     False if prefixRecordIDs == "TOP" else True
                 )  # recursive by default
 
+                data = subdata or record.data
+
+                # Assume that id/@id choice used in the data is the same as the top level
+                attr = "@id" if "@id" in data else "id"
+
                 data = containerRecursiveCallback(
-                    data=subdata or record.data,
-                    attr="id",
+                    data=data,
+                    attr=attr,
                     callback=idPrefixer,
                     prefix=idPrefix,
                     recursive=recursive,

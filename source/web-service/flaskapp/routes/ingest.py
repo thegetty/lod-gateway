@@ -165,7 +165,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
         # Process graph store entries. Check the graph store flag - if not set, do not process, return 'True'
         # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
         graphstore_result = True
-        if current_app.config["PROCESS_RDF"].lower() == "true":
+        if current_app.config["PROCESS_RDF"] is True:
             current_app.logger.debug(
                 f"PROCESS_RDF is true - process records as valid JSON-LD"
             )
@@ -220,7 +220,16 @@ def process_record(input_rec):
 
     """
     data = json.loads(input_rec)
-    id = data["id"]
+
+    id = data.get("id") or data.get("@id")
+
+    if not id:
+        return status_nt(
+            400,
+            "Request Error",
+            "A failure happened when trying to get the root id for the JSON document. "
+            "It must have a value for either the 'id' or '@id' at the top level.",
+        )
 
     is_delete_request = "_delete" in data.keys() and data["_delete"] in [
         "true",
@@ -698,6 +707,8 @@ def graph_expand(data, proc=None):
             json_ld_cxt = data["@context"]
         if "id" in data:
             json_ld_id = data["id"]
+        if "@id" in data:
+            json_ld_id = data["@id"]
         if "type" in data:
             json_ld_type = data["type"]
 

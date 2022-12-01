@@ -25,7 +25,7 @@ sparql = Blueprint("sparql", __name__)
 # ### ROUTES ###
 @sparql.route("/sparql", methods=["GET", "POST"])
 def query_entrypoint():
-    if current_app.config["PROCESS_RDF"].lower() == "false":
+    if current_app.config["PROCESS_RDF"] is not True:
         response = construct_error_response(
             status_nt(
                 501,

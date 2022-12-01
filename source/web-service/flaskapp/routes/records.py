@@ -29,6 +29,27 @@ from flaskapp.routes.ingest import authenticate_bearer
 
 import time
 
+# RDF format translations
+from rdflib import Graph
+from pyld import jsonld
+
+FORMATS = {
+    "application/n-quads": "nquads",
+    "applicaton/ntriples": "nt",
+    "text/turtle": "turtle",
+    "application/rdf+xml": "xml",
+    "application/ld+json": "json-ld",
+}
+
+
+def _desired_format(accept, accept_param):
+    if accept_param.strip() in FORMATS:
+        return (accept_param.strip(), FORMATS[accept_param.strip()])
+    if accept:
+        for k, v in FORMATS.items():
+            if k in accept:
+                return (k, v)
+
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
@@ -392,8 +413,34 @@ def entity_record(entity_id):
                 f"{entity_id} - prefixRecordIDs generated at {time.perf_counter() - profile_time}"
             )
 
+            # data holds a version of the JSON with the FQDN version of the ids
+            # If this instance is RDF-enabled, do they want an alternate format?
+            # either accept header or 'format' URL parameter
+            content_type = "application/json;charset=UTF-8"
+            if current_app.config["PROCESS_RDF"]:
+                content_type = "application/ld+json;charset=UTF-8"
+                if desired := _desired_format(
+                    request.headers.get("accept"), request.values.get("format")
+                ):
+                    # wants a particular format
+                    if desired[1] is not "json-ld":
+                        # Set the mimetype:
+                        content_type = desired[0]
+
+                        # Use the PyLD library to parse into nquads, and rdflib to convert
+                        # rdflib's json-ld import has not been tested on our data, so not relying on it
+                        proc = jsonld.JsonLdProcessor()
+                        serialized_nt = proc.to_rdf(
+                            data, {"format": "application/n-quads"}
+                        )
+
+                        # rdflib to load and format the nquads
+                        g = Graph()
+                        g.parse(data=serialized_nt, format="nquads")
+                        data = g.serialize(format=desired[1])
+
             response = current_app.make_response(data)
-            response.headers["Content-Type"] = "application/json;charset=UTF-8"
+            response.headers["Content-Type"] = content_type
             response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
             response.headers["ETag"] = f'"{record.checksum}"'
             if current_app.config["KEEP_LAST_VERSION"] is True:

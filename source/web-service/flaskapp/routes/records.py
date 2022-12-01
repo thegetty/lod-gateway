@@ -30,7 +30,7 @@ from flaskapp.routes.ingest import authenticate_bearer
 import time
 
 # RDF format translations
-from rdflib import Graph
+from rdflib import ConjunctiveGraph as Graph, Namespace
 from pyld import jsonld
 
 FORMATS = {
@@ -43,8 +43,13 @@ FORMATS = {
 
 
 def _desired_format(accept, accept_param):
-    if accept_param.strip() in FORMATS:
-        return (accept_param.strip(), FORMATS[accept_param.strip()])
+    current_app.logger.debug(
+        f"Accept: {str(accept)}, format url param: '{str(accept_param)}'"
+    )
+    if accept_param:
+        for k, v in FORMATS.items():
+            if v == accept_param.strip():
+                return (k, v)
     if accept:
         for k, v in FORMATS.items():
             if k in accept:
@@ -285,6 +290,9 @@ def entity_record(entity_id):
                 subaddressed = url_for(
                     "records.entity_record", entity_id=record.entity_id
                 )
+                current_app.logger.info(f"{record.data['@context']}")
+                if "@context" in record.data:
+                    subdata["@context"] = record.data["@context"]
 
         if record is None:
             response = construct_error_response(status_record_not_found)
@@ -417,7 +425,8 @@ def entity_record(entity_id):
             # If this instance is RDF-enabled, do they want an alternate format?
             # either accept header or 'format' URL parameter
             content_type = "application/json;charset=UTF-8"
-            if current_app.config["PROCESS_RDF"]:
+
+            if current_app.config["PROCESS_RDF"] is True:
                 content_type = "application/ld+json;charset=UTF-8"
                 if desired := _desired_format(
                     request.headers.get("accept"), request.values.get("format")
@@ -435,7 +444,9 @@ def entity_record(entity_id):
                         )
 
                         # rdflib to load and format the nquads
-                        g = Graph()
+                        g = Graph(identifier=data.get("id") or data.get("@id"))
+                        # Add the crm binding to the default set
+                        g.bind("crm", Namespace("http://www.cidoc-crm.org/cidoc-crm/"))
                         g.parse(data=serialized_nt, format="nquads")
                         data = g.serialize(format=desired[1])
 

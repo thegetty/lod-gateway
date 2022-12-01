@@ -34,11 +34,11 @@ from rdflib import ConjunctiveGraph as Graph, Namespace
 from pyld import jsonld
 
 FORMATS = {
-    "application/n-quads": "nquads",
     "applicaton/ntriples": "nt",
     "text/turtle": "turtle",
     "application/rdf+xml": "xml",
     "application/ld+json": "json-ld",
+    "text/n3": "n3",
 }
 
 
@@ -435,6 +435,9 @@ def entity_record(entity_id):
                     if desired[1] is not "json-ld":
                         # Set the mimetype:
                         content_type = desired[0]
+                        if request.values.get("force-plain-text", "").lower() == "true":
+                            # Browsers typically don't handle ntriples/turtle
+                            content_type = "text/plain"
 
                         # Use the PyLD library to parse into nquads, and rdflib to convert
                         # rdflib's json-ld import has not been tested on our data, so not relying on it

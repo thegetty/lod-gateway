@@ -264,7 +264,7 @@ If there was a resource 'object/1' in the LOD Gateway 'http://lodgateway/collect
 GET http://lodgateway/collection/object/1    --> JSON-LD
 
 GET http://lodgateway/collection/object/1&format=nt    --> ntriples, "Content-Type: application/n-triples"
-GET http://lodgateway/collection/object/1&format=nt&force-plain-text    --> ntriples, "Content-Type: text/plain"
+GET http://lodgateway/collection/object/1&format=nt&force-plain-text=true    --> ntriples, "Content-Type: text/plain"
 ```
 
 Or via Accept header:

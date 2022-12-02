@@ -44,12 +44,7 @@ from flaskapp.utilities import (
     checksum_json,
     full_stack_trace,
 )
-
-# Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
-# be specific to things like repeated triples and not general use. The regex could be  smarter
-QUADS = re.compile(
-    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\<[^\>]*\>\s\.$"
-)
+from flaskapp.base_graph_utils import is_quads, quads_to_triples, graph_filter
 
 # Create a new "ingest" route blueprint
 ingest = Blueprint("ingest", __name__)
@@ -781,14 +776,6 @@ def graph_expand(data, proc=None):
     return serialized_nt
 
 
-def is_quads(line):
-    if line:
-        if match := QUADS.match(line):
-            return True
-
-    return False
-
-
 def graph_exists(graph_name, query_endpoint):
     # function left here for utility
     res = requests.post(
@@ -811,8 +798,18 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
 
     # Quads supplied instead?
     if is_quads(serialized_nt.split("\n")[0]):
-        serialized_nt = "\n".join(
-            [f"{x.rsplit(' ', 2)[0]} ." for x in serialized_nt.split("\n") if x.strip()]
+        serialized_nt = quads_to_triples(serialized_nt)
+
+    # Filter base graph triples out?
+    if (
+        current_app.config["RDF_FILTER_SET"] is not None
+        and graph_name != current_app.config["FULL_BASE_GRAPH"]
+    ):
+        current_app.logger.info(
+            f"Filtering base triples ({len(current_app.config['RDF_FILTER_SET'])}) from graph n-triples"
+        )
+        serialized_nt = graph_filter(
+            serialized_nt, current_app.config["RDF_FILTER_SET"]
         )
 
     replace_stmt = (

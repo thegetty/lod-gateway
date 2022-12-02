@@ -30,23 +30,8 @@ from flaskapp.routes.ingest import authenticate_bearer
 import time
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
+from flaskapp.graph_prefix_bindings import get_bound_graph, desired_rdf_format
 from pyld import jsonld
-
-
-def _desired_format(accept, accept_param):
-    current_app.logger.debug(
-        f"Accept: {str(accept)}, format url param: '{str(accept_param)}'"
-    )
-    if accept_param:
-        for k, v in FORMATS.items():
-            if v == accept_param.strip():
-                return (k, v)
-    if accept:
-        for k, v in FORMATS.items():
-            if k in accept:
-                return (k, v)
-
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
@@ -425,7 +410,7 @@ def entity_record(entity_id):
 
             if current_app.config["PROCESS_RDF"] is True:
                 content_type = "application/ld+json;charset=UTF-8"
-                if desired := _desired_format(
+                if desired := desired_rdf_format(
                     request.headers.get("accept"), request.values.get("format")
                 ):
                     # wants a particular format

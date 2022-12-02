@@ -25,6 +25,7 @@ from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
 from flaskapp import local_thesaurus
+from flaskapp.base_graph_utils import base_graph_filter
 
 
 # top-level logging configuration should provide the basic configuration for any logger Flask sets in the
@@ -116,6 +117,18 @@ def create_app():
     with app.app_context():
 
         ns = app.config["NAMESPACE"]
+
+        # Needs the app context and the db to be initialized:
+        app.config["RDF_BASE_GRAPH"] = None
+        app.config["RDF_FILTER_SET"] = None
+        if basegraph := environ.get("RDF_BASE_GRAPH"):
+            app.config["RDF_BASE_GRAPH"] = basegraph
+            app.config[
+                "FULL_BASE_GRAPH"
+            ] = f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
+            app.config["RDF_FILTER_SET"] = base_graph_filter(
+                app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
+            )
 
         app.register_blueprint(activity, url_prefix=f"/{ns}")
         app.register_blueprint(activity_entity, url_prefix=f"/{ns}")

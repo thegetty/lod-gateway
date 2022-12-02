@@ -1,5 +1,6 @@
 from rdflib import ConjunctiveGraph, Namespace
 
+
 BINDING = {
     "crm": "http://www.cidoc-crm.org/cidoc-crm/",
     "aat": "http://vocab.getty.edu/aat/",
@@ -31,3 +32,14 @@ def get_bound_graph(identifier):
     for k, v in BINDING.items():
         g.bind(k, Namespace(v))
     return g
+
+
+def desired_rdf_format(accept, accept_param):
+    if accept_param:
+        for k, v in FORMATS.items():
+            if v == accept_param.strip():
+                return (k, v)
+    if accept:
+        for k, v in FORMATS.items():
+            if k in accept:
+                return (k, v)

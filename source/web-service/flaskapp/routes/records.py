@@ -30,17 +30,8 @@ from flaskapp.routes.ingest import authenticate_bearer
 import time
 
 # RDF format translations
-from rdflib import ConjunctiveGraph as Graph, Namespace
+from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
 from pyld import jsonld
-
-FORMATS = {
-    "applicaton/ntriples": "nt",
-    "text/turtle": "turtle",
-    "application/rdf+xml": "xml",
-    "application/ld+json": "json-ld",
-    "text/n3": "n3",
-    "application/n-quads": "nquads",
-}
 
 
 def _desired_format(accept, accept_param):
@@ -453,9 +444,9 @@ def entity_record(entity_id):
                         )
 
                         # rdflib to load and format the nquads
-                        g = Graph(identifier=data.get("id") or data.get("@id"))
-                        # Add the crm binding to the default set
-                        g.bind("crm", Namespace("http://www.cidoc-crm.org/cidoc-crm/"))
+                        g = get_bound_graph(
+                            identifier=data.get("id") or data.get("@id")
+                        )
                         g.parse(data=serialized_nt, format="nquads")
                         data = g.serialize(format=desired[1])
 

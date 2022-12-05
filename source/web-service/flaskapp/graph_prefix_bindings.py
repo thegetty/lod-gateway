@@ -2,19 +2,19 @@ from rdflib import ConjunctiveGraph, Namespace
 
 
 BINDING = {
-    "crm": "http://www.cidoc-crm.org/cidoc-crm/",
-    "aat": "http://vocab.getty.edu/aat/",
-    "sci": "http://www.ics.forth.gr/isl/CRMsci/",
-    "schema": "http://schema.org/",
-    "dig": "http://www.ics.forth.gr/isl/CRMdig/",
-    "la": "https://linked.art/ns/terms/",
-    "archaeo": "http://www.cidoc-crm.org/cidoc-crm/CRMarchaeo/",
-    "as": "https://www.w3.org/ns/activitystreams#",
-    "ldp": "http://www.w3.org/ns/ldp#",
-    "vcard": "http://www.w3.org/2006/vcard/ns#",
-    "oa": "http://www.w3.org/ns/oa#",
-    "owl": "http://www.w3.org/2002/07/owl#",
-    "prov": "http://www.w3.org/ns/prov#",
+    "crm": Namespace("http://www.cidoc-crm.org/cidoc-crm/"),
+    "aat": Namespace("http://vocab.getty.edu/aat/"),
+    "sci": Namespace("http://www.ics.forth.gr/isl/CRMsci/"),
+    "schema": Namespace("http://schema.org/"),
+    "dig": Namespace("http://www.ics.forth.gr/isl/CRMdig/"),
+    "la": Namespace("https://linked.art/ns/terms/"),
+    "archaeo": Namespace("http://www.cidoc-crm.org/cidoc-crm/CRMarchaeo/"),
+    "as": Namespace("https://www.w3.org/ns/activitystreams#"),
+    "ldp": Namespace("http://www.w3.org/ns/ldp#"),
+    "vcard": Namespace("http://www.w3.org/2006/vcard/ns#"),
+    "oa": Namespace("http://www.w3.org/ns/oa#"),
+    "owl": Namespace("http://www.w3.org/2002/07/owl#"),
+    "prov": Namespace("http://www.w3.org/ns/prov#"),
 }
 
 FORMATS = {
@@ -30,7 +30,7 @@ FORMATS = {
 def get_bound_graph(identifier):
     g = ConjunctiveGraph(identifier=identifier)
     for k, v in BINDING.items():
-        g.bind(k, Namespace(v))
+        g.bind(k, v)
     return g
 
 

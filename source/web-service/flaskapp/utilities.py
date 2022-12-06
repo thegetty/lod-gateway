@@ -3,6 +3,7 @@ import json
 import hashlib
 import traceback
 import sys
+import re
 
 from datetime import datetime
 from enum import Enum
@@ -16,6 +17,31 @@ class Event(Enum):
     Delete = 3
     Move = 4
     Refresh = 5
+
+
+# Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
+# be specific to things like repeated triples and not general use. The regex could be  smarter
+QUADS = re.compile(
+    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\<[^\>]*\>\s\.$"
+)
+
+
+def is_quads(line):
+    if line:
+        if match := QUADS.match(line):
+            return True
+
+    return False
+
+
+def quads_to_triples(quads):
+    return "\n".join(
+        [f"{x.rsplit(' ', 2)[0]} ." for x in quads.split("\n") if x.strip()]
+    )
+
+
+def graph_filter(ntriples, filterset):
+    return "\n".join([x for x in ntriples.split("\n") if x not in filterset])
 
 
 # gathers the full stack trace from the call site as a formatted string; useful for exception handling
@@ -160,11 +186,7 @@ def idPrefixer(attr, value, prefix=None, **kwargs):
 
     temp = value
 
-    if (
-        (attr == "id")
-        and (not (temp.startswith("http://") or temp.startswith("https://")))
-        and (isinstance(prefix, str) and len(prefix) > 0)
-    ):
+    if (not (temp.startswith("http://") or temp.startswith("https://"))) and prefix:
         temp = prefix + "/" + temp
 
     return temp

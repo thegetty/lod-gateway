@@ -1,39 +1,36 @@
-import re
-
 from flaskapp.models import db
 from flaskapp.models.record import Record
+
+from flask import current_app
 
 # To parse out the base graph
 from pyld import jsonld
 
-# Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
-# be specific to things like repeated triples and not general use. The regex could be  smarter
-QUADS = re.compile(
-    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\<[^\>]*\>\s\.$"
-)
+from sqlalchemy.exc import ProgrammingError
 
-
-def is_quads(line):
-    if line:
-        if match := QUADS.match(line):
-            return True
-
-    return False
-
-
-def quads_to_triples(quads):
-    return "\n".join(
-        [f"{x.rsplit(' ', 2)[0]} ." for x in quads.split("\n") if x.strip()]
-    )
+from flaskapp.utilities import is_quads, quads_to_triples
+from flaskapp.storage_utilities.record import get_record, record_create
 
 
 def base_graph_filter(basegraphobj, fqdn_id):
-    record = (
-        db.session.query(Record).filter(Record.entity_id == basegraphobj).one_or_none()
-    )
-    if record and record.data:
-        # only change the named graph to be a FQDN
-        data = dict(record.data)
+    try:
+        record = get_record(basegraphobj)
+
+        if record and record.data:
+            # only change the named graph to be a FQDN
+            data = dict(record.data)
+        else:
+            current_app.logger.warning(
+                f"No base graph was present at {basegraphobj} - adding an empty base graph."
+            )
+            data = {
+                "@id": basegraphobj,
+                "@type": "https://www.w3.org/2004/03/trix/rdfg-1/Graph",
+                "_label": "Base Graph",
+                "@graph": [],
+            }
+            record_create(data, commit=True)
+
         if "id" in data:
             data["id"] = fqdn_id
         elif "@id" in data:
@@ -45,9 +42,10 @@ def base_graph_filter(basegraphobj, fqdn_id):
             serialized_nt = quads_to_triples(serialized_nt)
 
         return set((x.strip() for x in serialized_nt.split("\n") if x))
-    else:
-        return
 
-
-def graph_filter(ntriples, filterset):
-    return "\n".join([x for x in ntriples.split("\n") if x not in filterset])
+    except ProgrammingError as e:
+        # Most likely the initial DB upgrade migration has not been run
+        current_app.logger.critical(
+            "Failed to access record table - has the initial flask db upgrade been run?"
+        )
+        return set()

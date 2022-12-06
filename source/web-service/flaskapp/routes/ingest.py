@@ -23,6 +23,25 @@ from sqlalchemy import exc
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
+
+# Storage methods for DB and graph store
+from flaskapp.storage_utilities.record import (
+    validate_record_set,
+    get_record,
+    record_delete,
+    record_create,
+    record_update,
+    process_activity,
+)
+from flaskapp.storage_utilities.graph import (
+    graph_check_endpoint,
+    graph_delete,
+    graph_replace,
+    graph_expand,
+    revert_triplestore_if_possible,
+    inflate_relative_uris,
+    RetryAfterError,
+)
 from flaskapp.errors import (
     status_nt,
     status_data_missing,
@@ -39,12 +58,12 @@ from flaskapp.errors import (
 )
 from flaskapp.utilities import (
     Event,
-    containerRecursiveCallback,
-    idPrefixer,
     checksum_json,
-    full_stack_trace,
+    is_quads,
+    quads_to_triples,
+    graph_filter,
 )
-from flaskapp.base_graph_utils import is_quads, quads_to_triples, graph_filter
+
 
 # Create a new "ingest" route blueprint
 ingest = Blueprint("ingest", __name__)
@@ -291,122 +310,6 @@ def process_record(input_rec):
             return (prim_key, id, Event.Update)
 
 
-# There is no entry with this 'id'. Create a new record
-def record_create(input_rec):
-    r = Record()
-    r.entity_id = input_rec["id"]
-
-    # 'entity_type' is not required, so check if exists
-    if "type" in input_rec.keys():
-        r.entity_type = input_rec["type"]
-
-    r.datetime_created = datetime.utcnow()
-    r.datetime_updated = r.datetime_created
-    r.datetime_deleted = None
-    r.data = input_rec
-    r.checksum = checksum_json(input_rec)
-
-    db.session.add(r)
-    db.session.flush()
-
-    # primary key of the newly created record
-    return r.id
-
-
-# Do not return anything. Calling function has all the info
-def record_update(db_rec, input_rec):
-    if current_app.config["KEEP_LAST_VERSION"] is True:
-        # Versioning
-        current_app.logger.info(
-            f"Versioning enabled: archiving a copy of {db_rec.entity_id} and replacing current with new data."
-        )
-        prev_id = str(uuid.uuid4())
-        prev = Version()
-        prev.entity_id = prev_id
-        prev.entity_type = db_rec.entity_type
-        # Setting the 'created' date to be equal to when the record was last updated.
-        prev.datetime_created = db_rec.datetime_updated
-        prev.datetime_updated = db_rec.datetime_updated
-        prev.datetime_deleted = db_rec.datetime_deleted
-        prev.data = db_rec.data
-        prev.checksum = db_rec.checksum
-        # Link back to old record
-        prev.record = db_rec
-        prev.record_id = db_rec.id
-
-        db.session.add(prev)
-
-    # With the update to the model, this should be automatic
-    # db_rec.datetime_updated = datetime.utcnow()
-    db_rec.data = input_rec
-    db_rec.datetime_deleted = None
-    db_rec.checksum = checksum_json(input_rec)
-
-
-# Delete record by leaving a stub record (no .data, w/ a datatime_deleted.)
-def record_delete(db_rec, input_rec):
-    # Versioning
-    if current_app.config["KEEP_LAST_VERSION"] is True:
-        if current_app.config.get("KEEP_VERSIONS_AFTER_DELETION") is True:
-            current_app.logger.info(
-                f"KEEP_VERSIONS_AFTER_DELETION enabled: archiving a copy of {db_rec.entity_id} and deleting the current data."
-            )
-            prev_id = str(uuid.uuid4())
-            prev = Version()
-            prev.entity_id = prev_id
-            prev.entity_type = db_rec.entity_type
-            # Setting the 'created' date to be equal to when the record was last updated.
-            prev.datetime_created = db_rec.datetime_updated
-            prev.datetime_updated = db_rec.datetime_updated
-            prev.data = db_rec.data
-            prev.checksum = db_rec.checksum
-            # Link back to old record
-            prev.record = db_rec
-            prev.record_id = db_rec.id
-
-            db.session.add(prev)
-        else:
-            # Hard delete?
-            # Remove all old versions?
-            current_app.logger.info(
-                f"KEEP_VERSIONS_AFTER_DELETION not enabled: also removing all versions of {db_rec.entity_id}."
-            )
-
-            for version in db_rec.versions:
-                db.session.delete(version)
-
-    current_app.logger.debug(f"Deleting {db_rec.entity_id}")
-    db_rec.data = None
-    db_rec.checksum = None
-    db_rec.datetime_deleted = datetime.utcnow()
-
-
-def process_activity(prim_key, crud_event):
-    a = Activity()
-    a.uuid = str(uuid.uuid4())
-    a.datetime_created = datetime.utcnow()
-    a.record_id = prim_key
-    a.event = crud_event.name
-    db.session.add(a)
-
-
-def get_record(rec_id):
-    result = Record.query.filter(Record.entity_id == rec_id).one_or_none()
-    return result
-
-
-# RDF processing
-class RetryAfterError(Exception):
-    def __init__(
-        self,
-        waittime,
-        message="Upstream is having temporary issues - retry later suggested.",
-    ):
-        self.waittime = waittime
-        self.message = message
-        super().__init__(self.message)
-
-
 def retry_request_function(func, args, kwargs=None, retry_limit=3):
     retries = 1
     while retries <= retry_limit:
@@ -498,13 +401,6 @@ def process_graphstore_record_set(
             )
             return status_graphstore_error
 
-        graph_uri_prefix = (
-            current_app.config["BASE_URL"]
-            + "/"
-            + current_app.config["NAMESPACE_FOR_RDF"]
-            + "/"
-        )
-
         records_to_delete = []
         serialized_nt_cache = {}
 
@@ -516,22 +412,14 @@ def process_graphstore_record_set(
         for record in record_list:
             data = json.loads(record)
             # Store the relative 'id' URL before the recursive URL prefixing is performed
-            id = data["id"]
+            id_attr = "id" if "id" in data else "@id"
+            id = data[id_attr]
 
             # Assemble the record 'id' attribute base URL prefix
-            idPrefix = (
-                current_app.config["BASE_URL"]
-                + "/"
-                + current_app.config["NAMESPACE_FOR_RDF"]
-            )
-
-            # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
-            data = containerRecursiveCallback(
-                data=data, attr="id", callback=idPrefixer, prefix=idPrefix
-            )
+            data = inflate_relative_uris(data=data, id_attr=id_attr)
 
             # Store the absolute 'id' URL after the recursive URL prefixing is performed
-            graph_uri = data["id"]
+            graph_uri = data[id_attr]
 
             # retain the backwards link from graph_id to relative id for lookup ease
             idmap[graph_uri] = id
@@ -630,292 +518,6 @@ def process_graphstore_record_set(
     return True
 
 
-def revert_triplestore_if_possible(list_of_relative_ids):
-    """This method loads the requested ids from the DB and attempts to refresh the triplestore with the expanded triples.
-
-    If there is a DB error on update or create, this function will also be called in an attempt to revert the triplestore to match the
-    DB records. Note that this should not be trusted, as the DB is already in an error state but it is due dilligence in case of an error.
-
-    """
-    query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
-    update_endpoint = current_app.config["SPARQL_UPDATE_ENDPOINT"]
-
-    proc = None
-
-    idPrefix = (
-        current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE_FOR_RDF"]
-    )
-
-    results = {}
-
-    for relative_id in list_of_relative_ids:
-        # get current record
-        current_app.logger.warning(
-            f"Attempting to revert '{relative_id}' in triplestore to DB version"
-        )
-        record = get_record(relative_id)
-        if record is None or record.data is None:
-            # this record did not exist before the bulk request
-            try:
-                graph_delete(relative_id, query_endpoint, update_endpoint)
-                current_app.logger.warning(
-                    f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
-                )
-                results[relative_id] = "deleted"
-            except (requests.exceptions.ConnectionError, RetryAfterError) as e:
-                current_app.logger.error(
-                    f"REVERT: Rollback failure - couldn't revert {relative_id} to a deleted state in the triplestore"
-                )
-                results[relative_id] = "connection_error"
-        else:
-            # expand, skip if zero triples or fail, and reassert
-            try:
-                current_app.logger.warning(
-                    f"REVERT: Attempting to expand and reinsert {relative_id} into the triplestore."
-                )
-                # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
-                data = containerRecursiveCallback(
-                    data=record.data, attr="id", callback=idPrefixer, prefix=idPrefix
-                )
-                nt = graph_expand(data, proc=proc)
-                if nt is False:
-                    current_app.logger.warning(
-                        f"REVERT: Attempted to revert {relative_id} to DB version, JSON-LD failed to expand. Skipping."
-                    )
-                    results[relative_id] = "graph_expansion_error"
-                else:
-                    graph_replace(data["id"], nt, update_endpoint)
-                    current_app.logger.warning(
-                        f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data['id']})"
-                    )
-                    results[relative_id] = "refreshed"
-            except (requests.exceptions.ConnectionError, RetryAfterError) as e:
-                current_app.logger.error(
-                    f"REVERT: Rollback failure - couldn't revert {relative_id} to match the DB"
-                )
-                results[relative_id] = "connection_error"
-
-    return results
-
-
-def graph_expand(data, proc=None):
-    json_ld_cxt = None
-    json_ld_id = None
-    json_ld_type = None
-
-    if isinstance(data, dict):
-        if "@context" in data:
-            json_ld_cxt = data["@context"]
-        if "id" in data:
-            json_ld_id = data["id"]
-        if "@id" in data:
-            json_ld_id = data["@id"]
-        if "type" in data:
-            json_ld_type = data["type"]
-
-    # time the expansion
-    tictoc = time.perf_counter()
-    try:
-        if isinstance(json_ld_cxt, str) and len(json_ld_cxt) > 0:
-            # raise RuntimeError("Graph expansion error: No @context URL has been defined in the data for %s!" % (json_ld_id))
-
-            # attempt to obtain the JSON-LD @context document
-            resp = requests.get(json_ld_cxt)
-            if not resp.status_code == 200:  # if there is a failure, report it...
-                current_app.logger.error(
-                    "Graph expansion error for %s (%s): Failed to obtain @context URL (%s) with HTTP status: %d"
-                    % (json_ld_id, json_ld_type, json_ld_cxt, resp.status_code)
-                )
-
-        if proc is None:
-            proc = jsonld.JsonLdProcessor()
-
-        serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
-    except Exception as e:
-        current_app.logger.error(
-            "Graph expansion error of type '%s' for %s (%s): %s"
-            % (type(e), json_ld_id, json_ld_type, str(e))
-        )
-
-        # As the call to `str(e)` above does not seem to provide detailed insight into the exception, do so manually here...
-        # The `pyld` library's `JsonLdError` type (a subclass of `Exception`) defines unique properties, so we need to
-        # check the instance type of `e` before attempting to access these properties, lest we cause more exceptions...
-        # See https://github.com/digitalbazaar/pyld/blob/316fbc2c9e25b3cf718b4ee189012a64b91f17e7/lib/pyld/jsonld.py#L5646
-        if isinstance(e, JsonLdError):
-            current_app.logger.error(
-                "Graph expansion error type:    %s" % (str(e.type))
-            )
-            current_app.logger.error(
-                "Graph expansion error details: %s" % (repr(e.details))
-            )
-            current_app.logger.error(
-                "Graph expansion error code:    %s" % (str(e.code))
-            )
-            current_app.logger.error(
-                "Graph expansion error cause:   %s" % (str(e.cause))
-            )
-            current_app.logger.error(
-                "Graph expansion error trace:   %s"
-                % (str("".join(traceback.format_list(e.causeTrace))))
-            )
-        else:
-            current_app.logger.error(
-                "Graph expansion error stack trace:\n%s" % (full_stack_trace())
-            )
-
-        current_app.logger.error(
-            "Graph expansion error current record:  %s"
-            % (json.dumps(data, sort_keys=True).encode("utf-8"))
-        )
-
-        return False
-
-    current_app.logger.info(
-        f"Graph {data['id']} expanded in {time.perf_counter() - tictoc:05f}s"
-    )
-    return serialized_nt
-
-
-def graph_exists(graph_name, query_endpoint):
-    # function left here for utility
-    res = requests.post(
-        query_endpoint,
-        data={
-            "query": "SELECT (count(?s) as ?count) { GRAPH <"
-            + graph_name
-            + "> {?s ?p ?o}}"
-        },
-    )
-    count_json = json.loads(res.content)
-    if int(count_json["results"]["bindings"][0]["count"]["value"]) > 0:
-        return True
-    else:
-        return False
-
-
-def graph_replace(graph_name, serialized_nt, update_endpoint):
-    # This will replace the named graph with only the triples supplied
-
-    # Quads supplied instead?
-    if is_quads(serialized_nt.split("\n")[0]):
-        serialized_nt = quads_to_triples(serialized_nt)
-
-    # Filter base graph triples out?
-    if (
-        current_app.config["RDF_FILTER_SET"] is not None
-        and graph_name != current_app.config["FULL_BASE_GRAPH"]
-    ):
-        current_app.logger.info(
-            f"Filtering base triples ({len(current_app.config['RDF_FILTER_SET'])}) from graph n-triples"
-        )
-        serialized_nt = graph_filter(
-            serialized_nt, current_app.config["RDF_FILTER_SET"]
-        )
-
-    replace_stmt = (
-        "DROP SILENT GRAPH <"
-        + graph_name
-        + "> ; \n"
-        + "INSERT DATA { GRAPH <"
-        + graph_name
-        + "> {"
-        + serialized_nt
-        + "} } ;"
-    )
-
-    current_app.logger.debug(replace_stmt)
-    tictoc = time.perf_counter()
-    res = requests.post(update_endpoint, data={"update": replace_stmt})
-    if res.status_code == 200:
-        current_app.logger.info(
-            f"Graph {graph_name} replaced in {time.perf_counter() - tictoc:05f}s"
-        )
-        return True
-    elif res.status_code in [502, 503, 504]:
-        # a potentially temporary server error - retry
-        current_app.logger.error(
-            f"Error code {res.status_code} encountered - delay, then retry suggested"
-        )
-        delay_time = 5
-        # With backoff, it will wait for approx 5s, then 10s, then 15s before retries, and then fail
-        if "Retry-After" in res.headers:
-            try:
-                delay_time = int(res.headers["Retry-After"])
-            except (ValueError, TypeError) as e:
-                pass
-        raise RetryAfterError(delay_time)
-    elif res.status_code in [411, 412, 413]:
-        # request was too large or unacceptable
-        current_app.logger.critical(
-            f"REQUEST TOO LARGE - error {res.status_code} encountered with graph replacement {graph_name}."
-        )
-        current_app.logger.error(f"Response error for {graph_name} - '{res.text}'")
-        return False
-    else:
-        # something out of flow occurred, potential data issue
-        current_app.logger.critical(
-            f"FATAL - error {res.status_code} encountered with graph replacement {graph_name}"
-        )
-        current_app.logger.error(f"Error for {graph_name} - '{res.text}'")
-        return False
-
-
-def graph_delete(graph_name, query_endpoint, update_endpoint):
-    # Delete graph from triplestore
-    tictoc = time.perf_counter()
-    # drop graph
-    if graph_name is not None:
-        current_app.logger.info(f"Attempting to DROP GRAPH <{graph_name}>")
-        res = requests.post(
-            update_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
-        )
-        if res.status_code == 200:
-            current_app.logger.info(
-                f"Graph {graph_name} deleted in {time.perf_counter() - tictoc:05f}s"
-            )
-            return True
-        elif res.status_code in [502, 503, 504]:
-            # a potentially temporary server error - retry
-            current_app.logger.error(
-                f"Error code {res.status_code} encountered - delay, then retry suggested"
-            )
-            delay_time = 1
-            if "Retry-After" in res.headers:
-                try:
-                    delay_time = int(res.headers["Retry-After"])
-                except (ValueError, TypeError) as e:
-                    pass
-            raise RetryAfterError(delay_time)
-        else:
-            current_app.logger.error(f"Graph delete error code: {res.status_code}")
-            current_app.logger.error(f"Graph delete error: {res.text}")
-            return False
-    else:
-        current_app.logger.error(
-            f"graph_delete was passed graph_name=None - not doing anything"
-        )
-        return False
-
-
-def graph_check_endpoint(query_endpoint):
-    res = requests.get(query_endpoint.replace("sparql", "status"))
-    try:
-        res.raise_for_status()
-        res_json = json.loads(res.content)
-        if res_json["status"] == "healthy":
-            return True
-        else:
-            return False
-    except requests.exceptions.HTTPError as e:
-        resp = e.response
-        if resp.status_code == 404:
-            # the endpoint we're connecting to does not have a /status
-            # (perhaps it's a locally running endpoint instead of something like AWS Neptune)
-            # assume its status is OK
-            return True
-        return False
-
-
 # ### AUTHENTICATION FUNCTIONS ###
 def authenticate_bearer(request):
 
@@ -945,62 +547,3 @@ def authenticate_bearer(request):
             return error
 
     return status_ok
-
-
-# ### VALIDATION FUNCTIONS ###
-def validate_record(rec):
-    """
-    Validate a single json record.
-    Check valid json syntax plus some other params
-    """
-    try:
-        # JSON syntax is good, validate other params
-        data = json.loads(rec)
-
-        # return 'id_missing' if no 'id' present
-        if "id" not in data.keys():
-            return status_id_missing
-
-        # check 'id' is not empty
-        if not data["id"].strip():
-            return status_id_missing
-
-        # all validations succeeded, return OK
-        return status_ok
-
-    except Exception as e:
-        # JSON syntax is not valid
-        current_app.logger.error("JSON Record Parse/Validation Error: " + str(e))
-        return status_nt(422, "JSON Record Parse/Validation Error", str(e))
-
-
-def validate_record_set(record_list):
-    """
-    Validate a list of json records.
-    Break and return status if at least one record is invalid
-    Return line number where the error occured
-    """
-    for index, rec in enumerate(record_list, start=1):
-        status = validate_record(rec)
-        if status != status_ok:
-            return (status, index)
-
-    else:
-        return True
-
-
-### Deprecated RDF functions:
-
-
-def graph_insert(graph_name, serialized_nt, update_endpoint):
-    # This will append triples to a given named graph
-    insert_stmt = "INSERT DATA {GRAPH <" + graph_name + "> {" + serialized_nt + "}}"
-    tictoc = time.perf_counter()
-    res = requests.post(update_endpoint, data={"update": insert_stmt})
-    current_app.logger.info(
-        f"Graph {graph_name} inserted in {time.perf_counter() - tictoc:05f}s"
-    )
-    if res.status_code == 200:
-        return True
-    else:
-        return False

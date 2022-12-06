@@ -7,7 +7,7 @@ yasgui = Blueprint("yasgui", __name__)
 # ### ROUTES ###
 @yasgui.route("/sparql-ui", methods=["GET"])
 def get_yasgui():
-    if current_app.config["PROCESS_RDF"].lower() == "false":
+    if current_app.config["PROCESS_RDF"] is not True:
         response = construct_error_response(
             status_nt(
                 501,

@@ -15,7 +15,7 @@ health = Blueprint("health", __name__)
 @health.route("/health", methods=["GET"])
 def healthcheck_get():
     if health_db():
-        if current_app.config["PROCESS_RDF"] == "True":
+        if current_app.config["PROCESS_RDF"] is True:
             query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
             if health_graphstore(query_endpoint):
                 return "OK"

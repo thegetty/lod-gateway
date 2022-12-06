@@ -242,6 +242,60 @@ Search for 'a/b/c/d/e/f/g/h/i' in the following records if they exist:
 The search will stop as soon as it finds a valid record, and will return either the part of the document that matches, or HTTP 404
 ```
 
+## RDF formats
+
+If RDF processing is enabled, the resources will be treated as valid JSON-LD documents. Alternate formats of the RDF data can be requested by either using an Accept header with an allowed mimetype, or using a 'format' GET url parameter to specify the format:
+
+| MIME type            | format   |
+| ---------------      |----------|
+| applicaton/ntriples  | nt       |
+| text/turtle          | turtle   |
+| application/rdf+xml  | xml      |
+| application/ld+json  | json-ld (default) |
+| text/n3              | n3  |
+
+Browsers do not handle a number of these text-based formats, and will assume that the user wants to download them. To force the response Content-Type to be text/plain to enable the browser to show them, set the URL get parameter "force-plain-text" to be "true"
+
+Examples:
+
+If there was a resource 'object/1' in the LOD Gateway 'http://lodgateway/collection/':
+
+```
+GET http://lodgateway/collection/object/1    --> JSON-LD
+
+GET http://lodgateway/collection/object/1&format=nt    --> ntriples, "Content-Type: application/n-triples"
+GET http://lodgateway/collection/object/1&format=nt&force-plain-text=true    --> ntriples, "Content-Type: text/plain"
+```
+
+Or via Accept header:
+```
+$ curl -i -H "Accept: application/rdf+xml" http://lodgateway/collection/object/1
+HTTP/1.1 200 OK
+Content-Type: application/rdf+xml
+Content-Length: 44775
+Last-Modified: 2022-11-28T23:14:28
+ETag: "8b6bfe250f3bbc4fa5b0f797036bea93be25f003bb9571afa87fdb43d27ff8df"
+Link: <http://lodgateway/collection/-tm-/object/1>; rel="timemap"; type="application/link-format" , <http://lodgateway/collection/-tm-/object/1>; rel="timemap"; type="application/json" , <http://lodgateway/collection/object/1>; rel="original timegate"
+Vary: accept-datetime, Accept-Encoding
+Server: LOD Gateway/2.0.0
+Access-Control-Allow-Origin: *
+
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+   xmlns:crm="http://www.cidoc-crm.org/cidoc-crm/"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:dcterms="http://purl.org/dc/terms/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+   xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+>
+  <rdf:Description rdf:about="http://vocab.getty.edu/aat/300053588">
+    <rdf:type rdf:resource="http://www.cidoc-crm.org/cidoc-crm/E55_Type"/>
+    <rdfs:label>Object-Making Processes and Techniques</rdfs:label>
+    
+    ...
+```
+
 ## Versioning
 
 If the `KEEP_LAST_VERSION` environment variable is present and set to `True`, the Versioning functionality is enabled and a subset of the [Memento specification](http://mementoweb.org/guide/rfc/#RFC6690) will be provided:
@@ -253,9 +307,6 @@ If the `KEEP_LAST_VERSION` environment variable is present and set to `True`, th
 - The past versions are only available to authenticated clients. They include HTTP Link headers to the current version of the resource ('original'), and the timemap.
 - The KEEP_VERSIONS_AFTER_DELETION affects deletion behaviour. If unset, or set to False, all old versions will be deleted when the current resource is deleted. If this is set to True, all versions will be retained even if the resource is deleted, and the history will be maintained if data for the resource is uploaded again.
 - While not required in the specifications, the ordering of the resource and version links in the timemap will be in reverse chronological order, from newest to oldest. The first link will be the timemap, then the link to the original, and then the versions. This ordering is present in both the JSON and the application/link-format versions of the timemap.
-
-Memento guidelines NOT IMPLEMENTED:
-- Datetime content negotiation with the resource (`TimeGate` functionality)
 
 Example HTTP Headers for a resource `GET /research/collections/place/c0380b6c-931f-11ea-9d86-068d38c13b76`:
 

@@ -29,6 +29,24 @@ from flaskapp.routes.ingest import authenticate_bearer
 
 import time
 
+# RDF format translations
+from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
+from pyld import jsonld
+
+
+def _desired_format(accept, accept_param):
+    current_app.logger.debug(
+        f"Accept: {str(accept)}, format url param: '{str(accept_param)}'"
+    )
+    if accept_param:
+        for k, v in FORMATS.items():
+            if v == accept_param.strip():
+                return (k, v)
+    if accept:
+        for k, v in FORMATS.items():
+            if k in accept:
+                return (k, v)
+
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
@@ -264,6 +282,9 @@ def entity_record(entity_id):
                 subaddressed = url_for(
                     "records.entity_record", entity_id=record.entity_id
                 )
+                current_app.logger.debug(f"{record.data['@context']}")
+                if "@context" in record.data:
+                    subdata["@context"] = record.data["@context"]
 
         if record is None:
             response = construct_error_response(status_record_not_found)
@@ -381,9 +402,14 @@ def entity_record(entity_id):
                     False if prefixRecordIDs == "TOP" else True
                 )  # recursive by default
 
+                data = subdata or record.data
+
+                # Assume that id/@id choice used in the data is the same as the top level
+                attr = "@id" if "@id" in data else "id"
+
                 data = containerRecursiveCallback(
-                    data=subdata or record.data,
-                    attr="id",
+                    data=data,
+                    attr=attr,
                     callback=idPrefixer,
                     prefix=idPrefix,
                     recursive=recursive,
@@ -392,8 +418,40 @@ def entity_record(entity_id):
                 f"{entity_id} - prefixRecordIDs generated at {time.perf_counter() - profile_time}"
             )
 
+            # data holds a version of the JSON with the FQDN version of the ids
+            # If this instance is RDF-enabled, do they want an alternate format?
+            # either accept header or 'format' URL parameter
+            content_type = "application/json;charset=UTF-8"
+
+            if current_app.config["PROCESS_RDF"] is True:
+                content_type = "application/ld+json;charset=UTF-8"
+                if desired := _desired_format(
+                    request.headers.get("accept"), request.values.get("format")
+                ):
+                    # wants a particular format
+                    if desired[1] != "json-ld":
+                        # Set the mimetype:
+                        content_type = desired[0]
+                        if request.values.get("force-plain-text", "").lower() == "true":
+                            # Browsers typically don't handle ntriples/turtle
+                            content_type = "text/plain"
+
+                        # Use the PyLD library to parse into nquads, and rdflib to convert
+                        # rdflib's json-ld import has not been tested on our data, so not relying on it
+                        proc = jsonld.JsonLdProcessor()
+                        serialized_nt = proc.to_rdf(
+                            data, {"format": "application/n-quads"}
+                        )
+
+                        # rdflib to load and format the nquads
+                        g = get_bound_graph(
+                            identifier=data.get("id") or data.get("@id")
+                        )
+                        g.parse(data=serialized_nt, format="nquads")
+                        data = g.serialize(format=desired[1])
+
             response = current_app.make_response(data)
-            response.headers["Content-Type"] = "application/json;charset=UTF-8"
+            response.headers["Content-Type"] = content_type
             response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
             response.headers["ETag"] = f'"{record.checksum}"'
             if current_app.config["KEEP_LAST_VERSION"] is True:

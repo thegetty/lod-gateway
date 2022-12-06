@@ -53,7 +53,13 @@ def create_app():
     app.config["JSON_SORT_KEYS"] = False
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
-    app.config["PROCESS_RDF"] = environ["PROCESS_RDF"]
+
+    # SPARQL endpoints only apply if LOD Gateway is configured to process input into RDF triples
+    app.config["PROCESS_RDF"] = False
+    if environ.get("PROCESS_RDF", "False").lower() == "true":
+        app.config["PROCESS_RDF"] = True
+        app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
+        app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
 
     # Setting the limit on number of records returned due to a glob browse request
     try:
@@ -61,10 +67,6 @@ def create_app():
     except (ValueError, TypeError) as e:
         app.config["BROWSE_PAGE_SIZE"] = 200
 
-    # SPARQL endpoints only apply if LOD Gateway is configured to process input into RDF triples
-    if app.config["PROCESS_RDF"].lower() == "true":
-        app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
-        app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
     app.config["JSON_AS_ASCII"] = False
     app.config["FLASK_GZIP_COMPRESSION"] = environ["FLASK_GZIP_COMPRESSION"]
     app.config["PREFIX_RECORD_IDS"] = getenv("PREFIX_RECORD_IDS", default="RECURSIVE")

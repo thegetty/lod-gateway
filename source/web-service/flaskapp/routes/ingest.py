@@ -1,5 +1,6 @@
 import json
 import uuid
+import re
 
 # Timing requests
 import time
@@ -44,6 +45,11 @@ from flaskapp.utilities import (
     full_stack_trace,
 )
 
+# Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
+# be specific to things like repeated triples and not general use. The regex could be  smarter
+QUADS = re.compile(
+    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\<[^\>]*\>\s\.$"
+)
 
 # Create a new "ingest" route blueprint
 ingest = Blueprint("ingest", __name__)
@@ -165,7 +171,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
         # Process graph store entries. Check the graph store flag - if not set, do not process, return 'True'
         # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean
         graphstore_result = True
-        if current_app.config["PROCESS_RDF"].lower() == "true":
+        if current_app.config["PROCESS_RDF"] is True:
             current_app.logger.debug(
                 f"PROCESS_RDF is true - process records as valid JSON-LD"
             )
@@ -220,7 +226,16 @@ def process_record(input_rec):
 
     """
     data = json.loads(input_rec)
-    id = data["id"]
+
+    id = data.get("id") or data.get("@id")
+
+    if not id:
+        return status_nt(
+            400,
+            "Request Error",
+            "A failure happened when trying to get the root id for the JSON document. "
+            "It must have a value for either the 'id' or '@id' at the top level.",
+        )
 
     is_delete_request = "_delete" in data.keys() and data["_delete"] in [
         "true",
@@ -698,6 +713,8 @@ def graph_expand(data, proc=None):
             json_ld_cxt = data["@context"]
         if "id" in data:
             json_ld_id = data["id"]
+        if "@id" in data:
+            json_ld_id = data["@id"]
         if "type" in data:
             json_ld_type = data["type"]
 
@@ -764,6 +781,14 @@ def graph_expand(data, proc=None):
     return serialized_nt
 
 
+def is_quads(line):
+    if line:
+        if match := QUADS.match(line):
+            return True
+
+    return False
+
+
 def graph_exists(graph_name, query_endpoint):
     # function left here for utility
     res = requests.post(
@@ -783,6 +808,13 @@ def graph_exists(graph_name, query_endpoint):
 
 def graph_replace(graph_name, serialized_nt, update_endpoint):
     # This will replace the named graph with only the triples supplied
+
+    # Quads supplied instead?
+    if is_quads(serialized_nt.split("\n")[0]):
+        serialized_nt = "\n".join(
+            [f"{x.rsplit(' ', 2)[0]} ." for x in serialized_nt.split("\n") if x.strip()]
+        )
+
     replace_stmt = (
         "DROP SILENT GRAPH <"
         + graph_name
@@ -793,6 +825,7 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         + serialized_nt
         + "} } ;"
     )
+
     current_app.logger.debug(replace_stmt)
     tictoc = time.perf_counter()
     res = requests.post(update_endpoint, data={"update": replace_stmt})

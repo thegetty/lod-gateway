@@ -301,7 +301,7 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                     f"REVERT: Attempting to expand and reinsert {relative_id} into the triplestore."
                 )
                 # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
-                id_attr = "id" if "id" in record.data else "@id"
+                id_attr = "@id" if "@id" in record.data else "id"
                 data = inflate_relative_uris(data=record.data, id_attr=id_attr)
 
                 nt = graph_expand(data, proc=proc)

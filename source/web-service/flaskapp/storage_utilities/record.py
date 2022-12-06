@@ -45,7 +45,7 @@ def validate_record_set(record_list):
 # There is no entry with this 'id'. Create a new record
 def record_create(input_rec, commit=False):
     r = Record()
-    id_attr = "id" if "id" in input_rec else "@id"
+    id_attr = "@id" if "@id" in input_rec else "id"
     r.entity_id = input_rec[id_attr]
 
     # 'entity_type' is not required, so check if exists

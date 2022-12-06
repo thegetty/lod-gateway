@@ -412,7 +412,7 @@ def process_graphstore_record_set(
         for record in record_list:
             data = json.loads(record)
             # Store the relative 'id' URL before the recursive URL prefixing is performed
-            id_attr = "id" if "id" in data else "@id"
+            id_attr = "@id" if "@id" in data else "id"
             id = data[id_attr]
 
             # Assemble the record 'id' attribute base URL prefix

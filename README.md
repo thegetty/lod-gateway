@@ -96,6 +96,11 @@ PROCESS_RDF=                # The value must be "True" to enable processing of J
                             # SPARQL_QUERY_ENDPOINT and SPARQL_UPDATE_ENDPOINT. When PROCESS_RDF is
                             # set to "False", the LOD Gateway acts as a simple document store with no RDF
                             # component.
+                            
+RDF_BASE_GRAPH=             # Requires PROCESS_RDF to be set to true to have any effect. The value should be
+                            # the entity id of a resource that will be used as the 'base graph' for the LOD Gateway.
+                            # Any triples in the base graph will be added to the graph store, but these triples
+                            # will be removed from any other RDF resources before they are added to the graph store
 
 FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
 
@@ -295,6 +300,31 @@ Access-Control-Allow-Origin: *
     
     ...
 ```
+## RDF Processing
+
+If PROCESS_RDF is set to true, then the LOD Gateway will connect to a SPARQL Update 1.1 compliant endpoint and synchronize resources uploaded to the gateway with this endpoint. It will turn the JSON-LD into RDF triples, and associate them with a named graph linked to the top 'id' or '@id' of the resource. If the resource is removed from the LOD Gateway, its triples are also removed.
+
+It is required that if PROCESS_RDF is set to true, `SPARQL_QUERY_ENDPOINT` and `SPARQL_UPDATE_ENDPOINT` are set to the URLs of the SPARQL services mentioned, as well as `RDF_NAMESPACE` which is used to determine the named graph URIs for the resources. These URIs are generated from concatenating the environment variable `BASE_URL` with `RDF_NAMESPACE` and adding the resource's `@id`/`id` to the end.
+
+For example, if a JSON-LD document has an `@id` of `foo`, and is uploaded to an LOD Gateway with `BASE_URL` `https://localhost:8000` and `RDF_NAMESPACE` `test`, the named graph URI would be `<https://localhost:8000/test/foo>`.
+
+If the JSON-LD is a `@graph`, the named graph part of its RDF will be overwritten by the LOD Gateway's named graph URI before updating the graph store. It will not change the JSON-LD stored, but it will force the triples present to be in a single named graph.
+
+### RDF Refresh
+
+It may be required to update a graph store with the JSON-LD stored in the LOD Gateway. For example, the graph store is new and empty, or the named graph has been removed or altered by some other method (like a direct SPARQL update) rather than using the LOD Gateway. This can be done through the 'ingest' route, by passing a JSON message of the form `{"id": "entity_id", "_refresh": true}` for a given entity_id (the relative '@id'/'id' value, not the full FQDN).
+
+### RDF Base Graph
+
+If the env variable "RDF_BASE_GRAPH" is set to an entity id (eg '_basegraph'), this document will be used as the **base graph**. The base graph is a set of triples that will be removed from any named graph RDF added to the graph store by the LOD Gateway. The base graph triples will be added to the graph store, so they will be present in the union graph. However, they will not be present in any individual named graph, besides the named graph corresponding to the base graph.
+
+    - The JSON-LD document will be unaffected
+    - Union graph SPARQL queries should be unchanged
+    - BUT queries against specific named graphs will be affected (but querying them specifically is not a use case)
+
+This functionality provides a toolset to deal with the issue of replicated triples between named graphs. Providing a human-readable "_label" to an AAT term may seem innocuous, but the same triple may be present in every named graph, and some of the L2 gateways can have millions of named graphs.
+
+Changing the base graph will **not** change the named graphs stored in the graph store retrospectively. The base graph will be updated in the graph store, and the application should be restarted to ensure that all web workers reload with the updated triple filter set (workers will be reloaded every 1000 or so requests, but to be safe, restarting manually is recommended). To update the graph store, it will be necessary to run a `_refresh` command against all the resources that should be updated in the graph store.
 
 ## Versioning
 

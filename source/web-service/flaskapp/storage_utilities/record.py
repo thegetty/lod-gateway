@@ -70,7 +70,7 @@ def record_create(input_rec, commit=False):
 
 
 # Do not return anything. Calling function has all the info
-def record_update(db_rec, input_rec):
+def record_update(db_rec, input_rec, commit=False):
     if current_app.config["KEEP_LAST_VERSION"] is True:
         # Versioning
         current_app.logger.info(
@@ -98,9 +98,12 @@ def record_update(db_rec, input_rec):
     db_rec.datetime_deleted = None
     db_rec.checksum = checksum_json(input_rec)
 
+    if commit is True:
+        db.session.commit()
+
 
 # Delete record by leaving a stub record (no .data, w/ a datatime_deleted.)
-def record_delete(db_rec, input_rec):
+def record_delete(db_rec, input_rec, commit=False):
     # Versioning
     if current_app.config["KEEP_LAST_VERSION"] is True:
         if current_app.config.get("KEEP_VERSIONS_AFTER_DELETION") is True:
@@ -136,14 +139,20 @@ def record_delete(db_rec, input_rec):
     db_rec.checksum = None
     db_rec.datetime_deleted = datetime.utcnow()
 
+    if commit is True:
+        db.session.commit()
 
-def process_activity(prim_key, crud_event):
+
+def process_activity(prim_key, crud_event, commit=False):
     a = Activity()
     a.uuid = str(uuid.uuid4())
     a.datetime_created = datetime.utcnow()
     a.record_id = prim_key
     a.event = crud_event.name
     db.session.add(a)
+
+    if commit is True:
+        db.session.commit()
 
 
 def validate_record(rec):

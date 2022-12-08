@@ -132,6 +132,22 @@ def create_app():
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
             )
 
+        app.config["SERVER_CAPABILITIES"] = (
+            ", ".join(
+                [
+                    f"{txt}: '{app.config[k]}'"
+                    for k, txt in [
+                        ("PROCESS_RDF", "JSON-LD"),
+                        ("FULL_BASE_GRAPH", "Base Graph"),
+                        ("SUBADDRESSING", "Subaddressing"),
+                        ("KEEP_LAST_VERSION", "Versioning"),
+                    ]
+                    if app.config.get(k)
+                ]
+            )
+            or ""
+        )
+
         app.register_blueprint(activity, url_prefix=f"/{ns}")
         app.register_blueprint(activity_entity, url_prefix=f"/{ns}")
         app.register_blueprint(records, url_prefix=f"/{ns}")
@@ -150,7 +166,11 @@ def create_app():
 
         @app.after_request
         def add_header(response):
-            response.headers["Server"] = "LOD Gateway/2.0.0"
+            response.headers["Server"] = "LOD Gateway/2.3.0"
+            response.headers["X-LODGATEWAY-CAPABILITIES"] = app.config[
+                "SERVER_CAPABILITIES"
+            ]
+
             return response
 
         return app

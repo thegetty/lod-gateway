@@ -186,7 +186,9 @@ def idPrefixer(attr, value, prefix=None, **kwargs):
 
     temp = value
 
-    if (not (temp.startswith("http://") or temp.startswith("https://"))) and prefix:
+    # : is a reserved character for a URI and we shouldn't use them in
+    # relative entity names either. Not prefixing if one is found
+    if ":" not in temp and prefix:
         temp = prefix + "/" + temp
 
     return temp

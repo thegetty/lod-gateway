@@ -311,7 +311,7 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                     )
                     results[relative_id] = "graph_expansion_error"
                 else:
-                    graph_replace(data["id"], nt, update_endpoint)
+                    graph_replace(data[id_attr], nt, update_endpoint)
                     current_app.logger.warning(
                         f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data[id_attr]})"
                     )

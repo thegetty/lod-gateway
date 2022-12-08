@@ -165,11 +165,13 @@ def validate_record(rec):
         data = json.loads(rec)
 
         # return 'id_missing' if no 'id' present
-        if "id" not in data.keys() and "@id" not in data.keys():
+        id_attr = "@id" if "@id" in data.keys() else "id"
+
+        if id_attr not in data.keys():
             return status_id_missing
 
-        # check 'id' is not empty
-        if not data["id"].strip() and not data["@id"].strip():
+        # check id_attr is not empty
+        if not data[id_attr].strip():
             return status_id_missing
 
         # all validations succeeded, return OK

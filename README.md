@@ -142,12 +142,19 @@ SUBADDRESSING=
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
 
-## Python Client (current v 2.2.3)
+## Python Client (current v 2.3.0)
 
 The LODGatewayClient in the `lodgatewayclient` package simplifies a lot of the API interaction with the LOD Gateway and can be pulled down from the Getty Nexus PyPi repository. 
 
 Github: https://github.com/thegetty/lod-gateway-client
 
+## Server Capabilitiess
+
+The LOD Gateway has a set of additional functionality that can be turned on (through the environment variables mentioned above). Each response will include an `X-LODGATEWAY-CAPABILITIES` header that will include a brief summary of which are enabled, and may also include the URI for the base graph, if base graph filtering is enabled. For example:
+
+```
+X-LODGATEWAY-CAPABILITIES: JSON-LD: 'True', Base Graph: 'http://localhost:5100/museum/collection/_basegraph', Subaddressing: 'True', Versioning: 'True'
+```
 ## Logging and Access logs
 
 The logging configuration creates two `logging.StreamHandler` instances - one that will output all Python logger messages to `STDOUT`, and only `logging.CRITICAL` and `logging.ERROR` to `STDERR`. This is desired to make it easier to track fatal errors once deployed. This configuration is written to the root logger, and is inherited by any `logging` objects created subsequently. The log level is set using the `DEBUG_LEVEL` environment variable, and should be set to a standard Python log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`). The log levels are defined in order of severity, and run from left to right from least to most severe. What this means is that if the level is set to `DEBUG`, all messages marked `DEBUG` and more severe (all the way up to `CRITICAL` level) are logged. Set the level to `ERROR`, then only `ERROR` and more severe (only `CRITICAL` by default) messages are logged.
@@ -215,7 +222,8 @@ ETag: "abc1fba295f1b6aa146cc3417d7a00dff9be0f8593ff0d07104d24f2cd9ef845"
 Last-Modified: 2021-08-27T09:07:49
 Link: <https://lodgateway/namespace/-tm-/place/c0380b6c-931f-11ea-9d86-068d38c13b76>; rel="timemap"; type="application/link-format" , <https://lodgateway/namespace/-tm-/place/c0380b6c-931f-11ea-9d86-068d38c13b76>; rel="timemap"; type="application/json" , <https://lodgateway/namespace/place/c0380b6c-931f-11ea-9d86-068d38c13b76>; rel="original timegate"
 Location: https://lodgateway/namespace/place/c0380b6c-931f-11ea-9d86-068d38c13b76
-Server: LOD Gateway/2.0.0
+Server: LOD Gateway/2.3.0
+X-LODGATEWAY-CAPABILITIES: "JSON-LD: 'True', Base Graph: 'http://localhost:5100/museum/collection/_basegraph', Subaddressing: 'True', Versioning: 'True'"
 Vary: accept-datetime, Accept-Encoding
 
 
@@ -284,7 +292,7 @@ Last-Modified: 2022-11-28T23:14:28
 ETag: "8b6bfe250f3bbc4fa5b0f797036bea93be25f003bb9571afa87fdb43d27ff8df"
 Link: <http://lodgateway/collection/-tm-/object/1>; rel="timemap"; type="application/link-format" , <http://lodgateway/collection/-tm-/object/1>; rel="timemap"; type="application/json" , <http://lodgateway/collection/object/1>; rel="original timegate"
 Vary: accept-datetime, Accept-Encoding
-Server: LOD Gateway/2.0.0
+Server: LOD Gateway/2.3.0
 Access-Control-Allow-Origin: *
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -350,7 +358,7 @@ Last-Modified: 2022-03-10T16:45:07
 ETag: "9fc38eb8089641560326f35e1690897100af99ea9e5166ae56802735754ecd07:gzip"
 Memento-Datetime: 2022-03-10T16:45:07
 Link: <http://localhost:5100/research/collections/-tm-/place/c0380b6c-931f-11ea-9d86-068d38c13b76> ; rel="timemap"
-Server: LOD Gateway/0.2
+Server: LOD Gateway/2.3.0
 Vary: Accept-Encoding
 Content-Encoding: gzip
 Access-Control-Allow-Origin: *

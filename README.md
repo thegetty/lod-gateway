@@ -258,8 +258,10 @@ If RDF processing is enabled, the resources will be treated as valid JSON-LD doc
 | application/rdf+xml  | xml      |
 | application/ld+json  | json-ld (default) |
 | text/n3              | n3  |
+| application/n-quads  | nquads  |
+| application/trig     | trig  |
 
-Browsers do not handle a number of these text-based formats, and will assume that the user wants to download them. To force the response Content-Type to be text/plain to enable the browser to show them, set the URL get parameter "force-plain-text" to be "true"
+Browsers do not handle a number of these text-based formats, and will assume that the user wants to download them. To force the response Content-Type to be text/plain to enable the browser to show them, set the URL get parameter "force-plain-text" to be "true". NB These formats will be UTF-8 encoded.
 
 Examples:
 

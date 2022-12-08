@@ -419,7 +419,7 @@ def entity_record(entity_id):
                         content_type = desired[0]
                         if request.values.get("force-plain-text", "").lower() == "true":
                             # Browsers typically don't handle ntriples/turtle
-                            content_type = "text/plain"
+                            content_type = "text/plain;charset=UTF-8"
 
                         # Use the PyLD library to parse into nquads, and rdflib to convert
                         # rdflib's json-ld import has not been tested on our data, so not relying on it

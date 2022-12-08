@@ -18,12 +18,12 @@ BINDING = {
 }
 
 FORMATS = {
-    "applicaton/ntriples": "nt",
-    "text/turtle": "turtle",
-    "application/rdf+xml": "xml",
-    "application/ld+json": "json-ld",
-    "text/n3": "n3",
-    "application/n-quads": "nquads",
+    "applicaton/ntriples;charset=UTF-8": "nt11",
+    "text/turtle;charset=UTF-8": "turtle",
+    "application/rdf+xml;charset=UTF-8": "xml",
+    "application/ld+json;charset=UTF-8": "json-ld",
+    "text/n3;charset=UTF-8": "n3",
+    "application/n-quads;charset=UTF-8": "nquads",
 }
 
 
@@ -36,6 +36,8 @@ def get_bound_graph(identifier):
 
 def desired_rdf_format(accept, accept_param):
     if accept_param:
+        if accept_param == "nt":
+            accept_param = "nt11"
         for k, v in FORMATS.items():
             if v == accept_param.strip():
                 return (k, v)

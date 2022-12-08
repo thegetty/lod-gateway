@@ -24,6 +24,7 @@ class Event(Enum):
 QUADS = re.compile(
     r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\<[^\>]*\>\s\.$"
 )
+NTRIPLES = re.compile(r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\.$")
 
 
 def is_quads(line):
@@ -34,9 +35,27 @@ def is_quads(line):
     return False
 
 
+def is_ntriples(line):
+    if line:
+        if match := NTRIPLES.match(line):
+            return True
+
+    return False
+
+
 def quads_to_triples(quads):
     return "\n".join(
         [f"{x.rsplit(' ', 2)[0]} ." for x in quads.split("\n") if x.strip()]
+    )
+
+
+def triples_to_quads(ntriples, namedgraph):
+    return "\n".join(
+        [
+            f"{x.rsplit(' ', 1)[0]} <{namedgraph}> ."
+            for x in ntriples.split("\n")
+            if x.strip()
+        ]
     )
 
 

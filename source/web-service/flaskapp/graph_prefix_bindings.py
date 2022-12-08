@@ -18,12 +18,16 @@ BINDING = {
 }
 
 FORMATS = {
+    # RDF triple formats
     "applicaton/ntriples;charset=UTF-8": "nt11",
     "text/turtle;charset=UTF-8": "turtle",
     "application/rdf+xml;charset=UTF-8": "xml",
-    "application/ld+json;charset=UTF-8": "json-ld",
     "text/n3;charset=UTF-8": "n3",
+    # RDF Quad/Triple formats:
     "application/n-quads;charset=UTF-8": "nquads",
+    "application/ld+json;charset=UTF-8": "json-ld",
+    "application/trig;charset=UTF-8": "trig",
+    # "application/trix;charset=UTF-8": "trix",        the TriX output is not great tbh
 }
 
 

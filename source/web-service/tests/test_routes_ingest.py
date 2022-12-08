@@ -57,7 +57,7 @@ class TestIngestErrors:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
-        assert b"JSON Record Parse/Validation Error" in response.data
+        assert b"ID Missing" in response.data
 
     def test_ingest_multiple_bad_syntax(self, client, namespace, auth_token):
         response = client.post(
@@ -99,7 +99,7 @@ class TestIngestErrors:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
-        assert b"JSON Record Parse/Validation Error" in response.data
+        assert b"ID Missing" in response.data
 
     def test_ingest_error_response_json(self, client, namespace, auth_token):
         response = client.post(
@@ -120,7 +120,7 @@ class TestIngestErrors:
         assert data["errors"]
         assert data["errors"][0]["status"] == 422
         assert data["errors"][0]["source"]["line number"] == 3
-        assert data["errors"][0]["title"] == "JSON Record Parse/Validation Error"
+        assert data["errors"][0]["title"] == "ID Missing"
 
     def test_ingest_bad_auth_header_error_response(self, client, namespace, auth_token):
         response = client.post(

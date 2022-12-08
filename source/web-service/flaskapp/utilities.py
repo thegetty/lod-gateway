@@ -22,9 +22,11 @@ class Event(Enum):
 # Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
 # be specific to things like repeated triples and not general use. The regex could be  smarter
 QUADS = re.compile(
-    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\<[^\>]*\>\s\.$"
+    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\<[^\>]*\>(\^\^\<[^\>]*\>){0,1}\s\.$"
 )
-NTRIPLES = re.compile(r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")\s\.$")
+NTRIPLES = re.compile(
+    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")(\^\^\<[^\>]*\>){0,1}\s\.$"
+)
 
 
 def is_quads(line):

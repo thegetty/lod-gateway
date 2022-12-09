@@ -156,7 +156,12 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                 # some operations may not return primary key e.g. 'delete' for non-existing record
                 # if primary key is valid, process 'Activities'
                 if prim_key:
-                    process_activity(prim_key, crud_event)
+                    # Suppress the base graph from the activity-stream
+                    if id != current_app.config["RDF_BASE_GRAPH"]:
+                        current_app.logger.warning(
+                            f"Base graph changed. Note this event will not be added to the activitystream."
+                        )
+                        process_activity(prim_key, crud_event)
 
                     # add pair of IDs to result dict
                     result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'

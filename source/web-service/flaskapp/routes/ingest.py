@@ -157,7 +157,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                 # if primary key is valid, process 'Activities'
                 if prim_key:
                     # Suppress the base graph from the activity-stream
-                    if id != app.config["RDF_BASE_GRAPH"]:
+                    if id != current_app.config["RDF_BASE_GRAPH"]:
                         current_app.logger.warning(
                             f"Base graph changed. Note this event will not be added to the activitystream."
                         )

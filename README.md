@@ -340,12 +340,11 @@ Changing the base graph will **not** change the named graphs stored in the graph
 
 ## Default base graph
 
-Any triples that are recorded in the JSON-LD will be used as the set of triples to filter from other
-documents. The named graph part of any quads will be discarded and replaced by the URI of the base
-graph in the same way that 
+Any triples that are recorded in the JSON-LD will be used as the set of triples to filter from other documents. The named graph part of any quads will be discarded and replaced by the URI of the base graph in the same way that that part would be for any other uploaded document.
 
-Using [named graphs](https://www.w3.org/TR/json-ld11/#named-graphs]) in JSON-LD with @graph is a useful
-container for triples that may or may not relate to one another.
+A default empty base graph will be added if one does not already exist, and the filter set of its triples will be loaded from this resource when the instance starts up. Changing the base graph is done in the same way as uploading any other document to the LOD Gateway. It only needs to be a parsable JSON-LD document, and have the base graph relative ID.
+
+Using a [named graph](https://www.w3.org/TR/json-ld11/#named-graphs]) in JSON-LD with @graph is a useful container for triples that may or may not relate to one another.
 
 For example:
 
@@ -364,7 +363,7 @@ For example:
 }
 ```
 
-Here, the @graph container holds two unrelated triples which will be used for the filter: 
+Here, the @graph container holds two unrelated triples which will be used for the filter, and a context can be used to make the document easier to read as normal: 
 
 ```
 <urn:test1> <rdfs:label> "nothanks" .

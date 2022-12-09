@@ -310,6 +310,7 @@ Access-Control-Allow-Origin: *
     
     ...
 ```
+
 ## RDF Processing
 
 If PROCESS_RDF is set to true, then the LOD Gateway will connect to a SPARQL Update 1.1 compliant endpoint and synchronize resources uploaded to the gateway with this endpoint. It will turn the JSON-LD into RDF triples, and associate them with a named graph linked to the top 'id' or '@id' of the resource. If the resource is removed from the LOD Gateway, its triples are also removed.
@@ -328,6 +329,7 @@ It may be required to update a graph store with the JSON-LD stored in the LOD Ga
 
 If the env variable "RDF_BASE_GRAPH" is set to an entity id (eg '_basegraph'), this document will be used as the **base graph**. The base graph is a set of triples that will be removed from any named graph RDF added to the graph store by the LOD Gateway. The base graph triples will be added to the graph store, so they will be present in the union graph. However, they will not be present in any individual named graph, besides the named graph corresponding to the base graph.
 
+
     - The JSON-LD document will be unaffected
     - Union graph SPARQL queries should be unchanged
     - BUT queries against specific named graphs will be affected (but querying them specifically is not a use case)
@@ -335,6 +337,39 @@ If the env variable "RDF_BASE_GRAPH" is set to an entity id (eg '_basegraph'), t
 This functionality provides a toolset to deal with the issue of replicated triples between named graphs. Providing a human-readable "_label" to an AAT term may seem innocuous, but the same triple may be present in every named graph, and some of the L2 gateways can have millions of named graphs.
 
 Changing the base graph will **not** change the named graphs stored in the graph store retrospectively. The base graph will be updated in the graph store, and the application should be restarted to ensure that all web workers reload with the updated triple filter set (workers will be reloaded every 1000 or so requests, but to be safe, restarting manually is recommended). To update the graph store, it will be necessary to run a `_refresh` command against all the resources that should be updated in the graph store.
+
+## Default base graph
+
+Any triples that are recorded in the JSON-LD will be used as the set of triples to filter from other
+documents. The named graph part of any quads will be discarded and replaced by the URI of the base
+graph in the same way that 
+
+Using [named graphs](https://www.w3.org/TR/json-ld11/#named-graphs]) in JSON-LD with @graph is a useful
+container for triples that may or may not relate to one another.
+
+For example:
+
+```
+{
+    "@context": {
+        "dc": "http://purl.org/dc/elements/1.1/",
+        "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+        "_label": {"@id": "rdfs:label"},
+    },
+    "@id": "_basegraph",
+    "@graph": [
+        {"@id": "urn:test1", "_label": "nothanks"},
+        {"@id": "urn:test2", "_label": "nothanksagain"},
+    ],
+}
+```
+
+Here, the @graph container holds two unrelated triples which will be used for the filter: 
+
+```
+<urn:test1> <rdfs:label> "nothanks" .
+<urn:test2> <rdfs:label> "nothanksagain" .
+```
 
 ## Versioning
 

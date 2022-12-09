@@ -11,6 +11,45 @@ from sqlalchemy.exc import ProgrammingError
 from flaskapp.utilities import is_quads, quads_to_triples
 from flaskapp.storage_utilities.record import get_record, record_create
 
+"""
+Default base graph
+------------------
+
+Any triples that are recorded in the JSON-LD will be used as the set of triples to filter from other
+documents. The named graph part of any quads will be discarded and replaced by the URI of the base
+graph in the same way that 
+
+Using named graphs in JSON-LD with @graph (https://www.w3.org/TR/json-ld11/#named-graphs) is a useful
+container for triples that may or may not relate to one another.
+
+For example:
+
+{
+    "@context": {
+        "dc": "http://purl.org/dc/elements/1.1/",
+        "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+        "_label": {"@id": "rdfs:label"},
+    },
+    "@id": "_basegraph",
+    "@graph": [
+        {"@id": "urn:test1", "_label": "nothanks"},
+        {"@id": "urn:test2", "_label": "nothanksagain"},
+    ],
+}
+
+Here, the @graph container holds two unrelated triples which will be used for the filter: 
+
+<urn:test1> <rdfs:label> "nothanks" .
+<urn:test2> <rdfs:label> "nothanksagain" .
+
+"""
+DEFAULT_BASE_GRAPH = {
+    "@id": None,
+    "@type": "https://www.w3.org/2004/03/trix/rdfg-1/Graph",
+    "_label": "Base Graph",
+    "@graph": [],
+}
+
 
 def base_graph_filter(basegraphobj, fqdn_id):
     try:
@@ -23,12 +62,10 @@ def base_graph_filter(basegraphobj, fqdn_id):
             current_app.logger.warning(
                 f"No base graph was present at {basegraphobj} - adding an empty base graph."
             )
-            data = {
-                "@id": basegraphobj,
-                "@type": "https://www.w3.org/2004/03/trix/rdfg-1/Graph",
-                "_label": "Base Graph",
-                "@graph": [],
-            }
+
+            data = DEFAULT_BASE_GRAPH
+            data["@id"] = basegraphobj
+
             record_create(data, commit=True)
 
         if "id" in data:

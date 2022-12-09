@@ -96,6 +96,11 @@ PROCESS_RDF=                # The value must be "True" to enable processing of J
                             # SPARQL_QUERY_ENDPOINT and SPARQL_UPDATE_ENDPOINT. When PROCESS_RDF is
                             # set to "False", the LOD Gateway acts as a simple document store with no RDF
                             # component.
+                            
+RDF_BASE_GRAPH=             # Requires PROCESS_RDF to be set to true to have any effect. The value should be
+                            # the entity id of a resource that will be used as the 'base graph' for the LOD Gateway.
+                            # Any triples in the base graph will be added to the graph store, but these triples
+                            # will be removed from any other RDF resources before they are added to the graph store
 
 FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
 
@@ -137,12 +142,19 @@ SUBADDRESSING=
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
 
-## Python Client (current v 2.2.3)
+## Python Client (current v 2.3.0)
 
 The LODGatewayClient in the `lodgatewayclient` package simplifies a lot of the API interaction with the LOD Gateway and can be pulled down from the Getty Nexus PyPi repository. 
 
 Github: https://github.com/thegetty/lod-gateway-client
 
+## Server Capabilitiess
+
+The LOD Gateway has a set of additional functionality that can be turned on (through the environment variables mentioned above). Each response will include an `X-LODGATEWAY-CAPABILITIES` header that will include a brief summary of which are enabled, and may also include the URI for the base graph, if base graph filtering is enabled. For example:
+
+```
+X-LODGATEWAY-CAPABILITIES: JSON-LD: 'True', Base Graph: 'http://localhost:5100/museum/collection/_basegraph', Subaddressing: 'True', Versioning: 'True'
+```
 ## Logging and Access logs
 
 The logging configuration creates two `logging.StreamHandler` instances - one that will output all Python logger messages to `STDOUT`, and only `logging.CRITICAL` and `logging.ERROR` to `STDERR`. This is desired to make it easier to track fatal errors once deployed. This configuration is written to the root logger, and is inherited by any `logging` objects created subsequently. The log level is set using the `DEBUG_LEVEL` environment variable, and should be set to a standard Python log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`). The log levels are defined in order of severity, and run from left to right from least to most severe. What this means is that if the level is set to `DEBUG`, all messages marked `DEBUG` and more severe (all the way up to `CRITICAL` level) are logged. Set the level to `ERROR`, then only `ERROR` and more severe (only `CRITICAL` by default) messages are logged.
@@ -210,7 +222,8 @@ ETag: "abc1fba295f1b6aa146cc3417d7a00dff9be0f8593ff0d07104d24f2cd9ef845"
 Last-Modified: 2021-08-27T09:07:49
 Link: <https://lodgateway/namespace/-tm-/place/c0380b6c-931f-11ea-9d86-068d38c13b76>; rel="timemap"; type="application/link-format" , <https://lodgateway/namespace/-tm-/place/c0380b6c-931f-11ea-9d86-068d38c13b76>; rel="timemap"; type="application/json" , <https://lodgateway/namespace/place/c0380b6c-931f-11ea-9d86-068d38c13b76>; rel="original timegate"
 Location: https://lodgateway/namespace/place/c0380b6c-931f-11ea-9d86-068d38c13b76
-Server: LOD Gateway/2.0.0
+Server: LOD Gateway/2.3.0
+X-LODGATEWAY-CAPABILITIES: "JSON-LD: 'True', Base Graph: 'http://localhost:5100/museum/collection/_basegraph', Subaddressing: 'True', Versioning: 'True'"
 Vary: accept-datetime, Accept-Encoding
 
 
@@ -253,8 +266,10 @@ If RDF processing is enabled, the resources will be treated as valid JSON-LD doc
 | application/rdf+xml  | xml      |
 | application/ld+json  | json-ld (default) |
 | text/n3              | n3  |
+| application/n-quads  | nquads  |
+| application/trig     | trig  |
 
-Browsers do not handle a number of these text-based formats, and will assume that the user wants to download them. To force the response Content-Type to be text/plain to enable the browser to show them, set the URL get parameter "force-plain-text" to be "true"
+Browsers do not handle a number of these text-based formats, and will assume that the user wants to download them. To force the response Content-Type to be text/plain to enable the browser to show them, set the URL get parameter "force-plain-text" to be "true". NB These formats will be UTF-8 encoded.
 
 Examples:
 
@@ -277,7 +292,7 @@ Last-Modified: 2022-11-28T23:14:28
 ETag: "8b6bfe250f3bbc4fa5b0f797036bea93be25f003bb9571afa87fdb43d27ff8df"
 Link: <http://lodgateway/collection/-tm-/object/1>; rel="timemap"; type="application/link-format" , <http://lodgateway/collection/-tm-/object/1>; rel="timemap"; type="application/json" , <http://lodgateway/collection/object/1>; rel="original timegate"
 Vary: accept-datetime, Accept-Encoding
-Server: LOD Gateway/2.0.0
+Server: LOD Gateway/2.3.0
 Access-Control-Allow-Origin: *
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -294,6 +309,65 @@ Access-Control-Allow-Origin: *
     <rdfs:label>Object-Making Processes and Techniques</rdfs:label>
     
     ...
+```
+
+## RDF Processing
+
+If PROCESS_RDF is set to true, then the LOD Gateway will connect to a SPARQL Update 1.1 compliant endpoint and synchronize resources uploaded to the gateway with this endpoint. It will turn the JSON-LD into RDF triples, and associate them with a named graph linked to the top 'id' or '@id' of the resource. If the resource is removed from the LOD Gateway, its triples are also removed.
+
+It is required that if PROCESS_RDF is set to true, `SPARQL_QUERY_ENDPOINT` and `SPARQL_UPDATE_ENDPOINT` are set to the URLs of the SPARQL services mentioned, as well as `RDF_NAMESPACE` which is used to determine the named graph URIs for the resources. These URIs are generated from concatenating the environment variable `BASE_URL` with `RDF_NAMESPACE` and adding the resource's `@id`/`id` to the end.
+
+For example, if a JSON-LD document has an `@id` of `foo`, and is uploaded to an LOD Gateway with `BASE_URL` `https://localhost:8000` and `RDF_NAMESPACE` `test`, the named graph URI would be `<https://localhost:8000/test/foo>`.
+
+If the JSON-LD is a `@graph`, the named graph part of its RDF will be overwritten by the LOD Gateway's named graph URI before updating the graph store. It will not change the JSON-LD stored, but it will force the triples present to be in a single named graph.
+
+### RDF Refresh
+
+It may be required to update a graph store with the JSON-LD stored in the LOD Gateway. For example, the graph store is new and empty, or the named graph has been removed or altered by some other method (like a direct SPARQL update) rather than using the LOD Gateway. This can be done through the 'ingest' route, by passing a JSON message of the form `{"id": "entity_id", "_refresh": true}` for a given entity_id (the relative '@id'/'id' value, not the full FQDN).
+
+### RDF Base Graph
+
+If the env variable "RDF_BASE_GRAPH" is set to an entity id (eg '_basegraph'), this document will be used as the **base graph**. The base graph is a set of triples that will be removed from any named graph RDF added to the graph store by the LOD Gateway. The base graph triples will be added to the graph store, so they will be present in the union graph. However, they will not be present in any individual named graph, besides the named graph corresponding to the base graph.
+
+
+    - The JSON-LD document will be unaffected
+    - Union graph SPARQL queries should be unchanged
+    - BUT queries against specific named graphs will be affected (but querying them specifically is not a use case)
+
+This functionality provides a toolset to deal with the issue of replicated triples between named graphs. Providing a human-readable "_label" to an AAT term may seem innocuous, but the same triple may be present in every named graph, and some of the L2 gateways can have millions of named graphs.
+
+Changing the base graph will **not** change the named graphs stored in the graph store retrospectively. The base graph will be updated in the graph store, and the application should be restarted to ensure that all web workers reload with the updated triple filter set (workers will be reloaded every 1000 or so requests, but to be safe, restarting manually is recommended). To update the graph store, it will be necessary to run a `_refresh` command against all the resources that should be updated in the graph store.
+
+## Default base graph
+
+Any triples that are recorded in the JSON-LD will be used as the set of triples to filter from other documents. The named graph part of any quads will be discarded and replaced by the URI of the base graph in the same way that that part would be for any other uploaded document.
+
+A default empty base graph will be added if one does not already exist, and the filter set of its triples will be loaded from this resource when the instance starts up. Changing the base graph is done in the same way as uploading any other document to the LOD Gateway. It only needs to be a parsable JSON-LD document, and have the base graph relative ID.
+
+Using a [named graph](https://www.w3.org/TR/json-ld11/#named-graphs]) in JSON-LD with @graph is a useful container for triples that may or may not relate to one another.
+
+For example:
+
+```
+{
+    "@context": {
+        "dc": "http://purl.org/dc/elements/1.1/",
+        "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+        "_label": {"@id": "rdfs:label"},
+    },
+    "@id": "_basegraph",
+    "@graph": [
+        {"@id": "urn:test1", "_label": "nothanks"},
+        {"@id": "urn:test2", "_label": "nothanksagain"},
+    ],
+}
+```
+
+Here, the @graph container holds two unrelated triples which will be used for the filter, and a context can be used to make the document easier to read as normal: 
+
+```
+<urn:test1> <rdfs:label> "nothanks" .
+<urn:test2> <rdfs:label> "nothanksagain" .
 ```
 
 ## Versioning
@@ -318,7 +392,7 @@ Last-Modified: 2022-03-10T16:45:07
 ETag: "9fc38eb8089641560326f35e1690897100af99ea9e5166ae56802735754ecd07:gzip"
 Memento-Datetime: 2022-03-10T16:45:07
 Link: <http://localhost:5100/research/collections/-tm-/place/c0380b6c-931f-11ea-9d86-068d38c13b76> ; rel="timemap"
-Server: LOD Gateway/0.2
+Server: LOD Gateway/2.3.0
 Vary: Accept-Encoding
 Content-Encoding: gzip
 Access-Control-Allow-Origin: *

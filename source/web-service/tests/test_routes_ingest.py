@@ -57,7 +57,7 @@ class TestIngestErrors:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
-        assert b"ID for the JSON record not found" in response.data
+        assert b"ID Missing" in response.data
 
     def test_ingest_multiple_bad_syntax(self, client, namespace, auth_token):
         response = client.post(
@@ -99,7 +99,7 @@ class TestIngestErrors:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 422
-        assert b"ID for the JSON record not found" in response.data
+        assert b"ID Missing" in response.data
 
     def test_ingest_error_response_json(self, client, namespace, auth_token):
         response = client.post(
@@ -121,7 +121,6 @@ class TestIngestErrors:
         assert data["errors"][0]["status"] == 422
         assert data["errors"][0]["source"]["line number"] == 3
         assert data["errors"][0]["title"] == "ID Missing"
-        assert data["errors"][0]["detail"] == "ID for the JSON record not found"
 
     def test_ingest_bad_auth_header_error_response(self, client, namespace, auth_token):
         response = client.post(

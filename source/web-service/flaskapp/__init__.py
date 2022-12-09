@@ -25,6 +25,7 @@ from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
 from flaskapp import local_thesaurus
+from flaskapp.base_graph_utils import base_graph_filter
 
 
 # top-level logging configuration should provide the basic configuration for any logger Flask sets in the
@@ -55,6 +56,9 @@ def create_app():
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
 
     # SPARQL endpoints only apply if LOD Gateway is configured to process input into RDF triples
+    app.config["RDF_BASE_GRAPH"] = None
+    app.config["FULL_BASE_GRAPH"] = None
+    app.config["RDF_FILTER_SET"] = None
     app.config["PROCESS_RDF"] = False
     if environ.get("PROCESS_RDF", "False").lower() == "true":
         app.config["PROCESS_RDF"] = True
@@ -117,6 +121,33 @@ def create_app():
 
         ns = app.config["NAMESPACE"]
 
+        # Needs the app context and the db to be initialized:
+        if basegraph := environ.get("RDF_BASE_GRAPH"):
+            app.config["RDF_BASE_GRAPH"] = basegraph
+            app.config[
+                "FULL_BASE_GRAPH"
+            ] = f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
+
+            app.config["RDF_FILTER_SET"] = base_graph_filter(
+                app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
+            )
+
+        app.config["SERVER_CAPABILITIES"] = (
+            ", ".join(
+                [
+                    f"{txt}: '{app.config[k]}'"
+                    for k, txt in [
+                        ("PROCESS_RDF", "JSON-LD"),
+                        ("FULL_BASE_GRAPH", "Base Graph"),
+                        ("SUBADDRESSING", "Subaddressing"),
+                        ("KEEP_LAST_VERSION", "Versioning"),
+                    ]
+                    if app.config.get(k)
+                ]
+            )
+            or ""
+        )
+
         app.register_blueprint(activity, url_prefix=f"/{ns}")
         app.register_blueprint(activity_entity, url_prefix=f"/{ns}")
         app.register_blueprint(records, url_prefix=f"/{ns}")
@@ -135,7 +166,11 @@ def create_app():
 
         @app.after_request
         def add_header(response):
-            response.headers["Server"] = "LOD Gateway/2.0.0"
+            response.headers["Server"] = "LOD Gateway/2.3.0"
+            response.headers["X-LODGATEWAY-CAPABILITIES"] = app.config[
+                "SERVER_CAPABILITIES"
+            ]
+
             return response
 
         return app

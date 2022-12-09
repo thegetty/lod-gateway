@@ -14,7 +14,13 @@ from sqlalchemy import func
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
-from flaskapp.utilities import format_datetime, containerRecursiveCallback, idPrefixer
+from flaskapp.utilities import (
+    format_datetime,
+    containerRecursiveCallback,
+    idPrefixer,
+    is_ntriples,
+    triples_to_quads,
+)
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
@@ -30,23 +36,8 @@ from flaskapp.routes.ingest import authenticate_bearer
 import time
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
+from flaskapp.graph_prefix_bindings import get_bound_graph, desired_rdf_format
 from pyld import jsonld
-
-
-def _desired_format(accept, accept_param):
-    current_app.logger.debug(
-        f"Accept: {str(accept)}, format url param: '{str(accept_param)}'"
-    )
-    if accept_param:
-        for k, v in FORMATS.items():
-            if v == accept_param.strip():
-                return (k, v)
-    if accept:
-        for k, v in FORMATS.items():
-            if k in accept:
-                return (k, v)
-
 
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
@@ -425,7 +416,7 @@ def entity_record(entity_id):
 
             if current_app.config["PROCESS_RDF"] is True:
                 content_type = "application/ld+json;charset=UTF-8"
-                if desired := _desired_format(
+                if desired := desired_rdf_format(
                     request.headers.get("accept"), request.values.get("format")
                 ):
                     # wants a particular format
@@ -434,20 +425,25 @@ def entity_record(entity_id):
                         content_type = desired[0]
                         if request.values.get("force-plain-text", "").lower() == "true":
                             # Browsers typically don't handle ntriples/turtle
-                            content_type = "text/plain"
+                            content_type = "text/plain;charset=UTF-8"
 
                         # Use the PyLD library to parse into nquads, and rdflib to convert
                         # rdflib's json-ld import has not been tested on our data, so not relying on it
                         proc = jsonld.JsonLdProcessor()
-                        serialized_nt = proc.to_rdf(
+                        serialized_rdf = proc.to_rdf(
                             data, {"format": "application/n-quads"}
                         )
 
+                        ident = data.get("id") or data.get("@id")
+
                         # rdflib to load and format the nquads
-                        g = get_bound_graph(
-                            identifier=data.get("id") or data.get("@id")
-                        )
-                        g.parse(data=serialized_nt, format="nquads")
+                        g = get_bound_graph(identifier=ident)
+
+                        # May not be nquads, even though we requested it:
+                        if is_ntriples(serialized_rdf.split("\n")[0]):
+                            serialized_rdf = triples_to_quads(serialized_rdf, ident)
+
+                        g.parse(data=serialized_rdf, format="nquads")
                         data = g.serialize(format=desired[1])
 
             response = current_app.make_response(data)

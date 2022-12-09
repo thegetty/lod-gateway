@@ -3,6 +3,7 @@ import json
 import hashlib
 import traceback
 import sys
+import re
 
 from datetime import datetime
 from enum import Enum
@@ -16,6 +17,52 @@ class Event(Enum):
     Delete = 3
     Move = 4
     Refresh = 5
+
+
+# Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
+# be specific to things like repeated triples and not general use. The regex could be  smarter
+QUADS = re.compile(
+    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")(\^\^\<[^\>]*\>){0,1}\s(\<[^\>]*\>|_\:[A-z0-9]*)\s\.$"
+)
+NTRIPLES = re.compile(
+    r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")(\^\^\<[^\>]*\>){0,1}\s\.$"
+)
+
+
+def is_quads(line):
+    if line:
+        if match := QUADS.match(line):
+            return True
+
+    return False
+
+
+def is_ntriples(line):
+    if line:
+        if match := NTRIPLES.match(line):
+            return True
+
+    return False
+
+
+def quads_to_triples(quads):
+    return "\n".join(
+        [f"{x.rsplit(' ', 2)[0]} ." for x in quads.split("\n") if x.strip()]
+    )
+
+
+def triples_to_quads(ntriples, namedgraph):
+    return "\n".join(
+        [
+            f"{x.rsplit(' ', 1)[0]} <{namedgraph}> ."
+            for x in ntriples.split("\n")
+            if x.strip()
+        ]
+    )
+
+
+def graph_filter(ntriples, filterset):
+    return "\n".join([x for x in ntriples.split("\n") if x not in filterset])
 
 
 # gathers the full stack trace from the call site as a formatted string; useful for exception handling
@@ -160,11 +207,9 @@ def idPrefixer(attr, value, prefix=None, **kwargs):
 
     temp = value
 
-    if (
-        (attr == "id")
-        and (not (temp.startswith("http://") or temp.startswith("https://")))
-        and (isinstance(prefix, str) and len(prefix) > 0)
-    ):
+    # : is a reserved character for a URI and we shouldn't use them in
+    # relative entity names either. Not prefixing if one is found
+    if ":" not in temp and prefix:
         temp = prefix + "/" + temp
 
     return temp

@@ -99,10 +99,11 @@ def get_timemap(entity_id):
                 "rel": "memento",
             }
             if idx == 0:
-                # Should be an ordered list from the DB, first as newest
-                mm["rel"] = "first memento"
-            elif num_versions - idx == 1:
+                # Should be an ordered list from the DB, last as newest
                 mm["rel"] = "last memento"
+            elif num_versions - idx == 1:
+                # last in list will be the oldest - 'first' is the correct type
+                mm["rel"] = "first memento"
                 # mark timemap with until datetime
                 timemap[0]["from"] = formatdate(
                     timeval=version.datetime_updated.timestamp(),

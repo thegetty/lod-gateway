@@ -1,9 +1,12 @@
 import json
 import re
 import uuid
+import time
 
 from flask import current_app
 from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
+
+from dateutil import parser
 
 
 class TestVersioning:
@@ -261,3 +264,57 @@ class TestVersioning:
         )
 
         assert response.status_code == 401
+
+    def test_first_is_oldest_last_is_recent(
+        self, client, namespace, auth_token, linguisticobject, test_db
+    ):
+        # Memento: first memento is the oldest
+        identifier = str(uuid.uuid4())
+
+        foo_jsonld = linguisticobject("Subject name Foo", identifier)
+        bar_jsonld = linguisticobject("Subject name Bar (replaces Foo)", identifier)
+
+        response = client.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(foo_jsonld),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        time.sleep(2)
+
+        # make new versions:
+        for _ in range(2):
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(bar_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+            response = client.post(
+                f"/{namespace}/ingest",
+                data=json.dumps(foo_jsonld),
+                headers={"Authorization": "Bearer " + auth_token},
+            )
+
+        # Timemap should be at this URL. Get the JSON version
+        response = client.get(
+            f"/{namespace}/-tm-/{identifier}", headers={"Accept": "application/json"}
+        )
+
+        assert response.status_code == 200
+        timemap = response.get_json()
+
+        # timemap, Original (current) and 4 versions (timemap, foo, bar, foo, bar, foo)
+        first = last = None
+        for mapitem in timemap:
+            if "first" in mapitem["rel"]:
+                first = parser.parse(mapitem["datetime"])
+
+            if "last" in mapitem["rel"]:
+                last = parser.parse(mapitem["datetime"])
+
+        assert first
+        assert last
+
+        # Newer date is 'bigger' than the older.
+        assert last > first

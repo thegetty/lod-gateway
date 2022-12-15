@@ -42,6 +42,8 @@ from pyld import jsonld
 # Create a new "records" route blueprint
 records = Blueprint("records", __name__)
 
+trueset = {"true", "t", "y"}
+
 
 @records.cli.command("checksum")
 @click.argument("extent")
@@ -382,13 +384,23 @@ def entity_record(entity_id):
                 request.headers.get("accept"), request.values.get("format")
             )
 
+            current_app.logger.debug(f"Desired RDF format? {desired}")
+            current_app.logger.debug(
+                f"REQUESTS - relativeid? '{request.values.get('relativeid', '')}'"
+            )
+
             # Recursively prefix each 'id' attribute that currently lacks a http(s):// prefix
             prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
             if (
-                prefixRecordIDs == "NONE"
+                request.values.get("relativeid", "").lower() in trueset
+                or prefixRecordIDs == "NONE"
             ):  # when "NONE", record "id" field prefixing is not enabled
                 # Use the subaddressing data if it has been set (and subaddressing is enabled)
                 # Use record data otherwise
+
+                # Don't allow format rewriting:
+                desired = None
+
                 data = (
                     subdata or record.data
                 )  # so pass back the record data as-is to the client
@@ -402,25 +414,13 @@ def entity_record(entity_id):
                 # Assume that id/@id choice used in the data is the same as the top level
                 attr = "@id" if "@id" in data else "id"
 
-                current_app.logger.debug(
-                    f"REQUESTS - relativeid? '{request.values.get('relativeid', '')}'"
+                data = containerRecursiveCallback(
+                    data=data,
+                    attr=attr,
+                    callback=idPrefixer,
+                    prefix=idPrefix,
+                    recursive=recursive,
                 )
-
-                if request.values.get("relativeid", "").lower() not in [
-                    "true",
-                    "t",
-                    "y",
-                ]:
-                    # override the format request
-                    desired = None
-
-                    data = containerRecursiveCallback(
-                        data=data,
-                        attr=attr,
-                        callback=idPrefixer,
-                        prefix=idPrefix,
-                        recursive=recursive,
-                    )
 
                 current_app.logger.debug(
                     f"{entity_id} - prefixRecordIDs generated at {time.perf_counter() - profile_time}"

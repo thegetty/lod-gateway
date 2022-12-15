@@ -402,7 +402,7 @@ def entity_record(entity_id):
                 # Assume that id/@id choice used in the data is the same as the top level
                 attr = "@id" if "@id" in data else "id"
 
-                logger.debug(
+                current_app.logger.debug(
                     f"REQUESTS - relativeid? '{request.values.get('relativeid', '')}'"
                 )
 

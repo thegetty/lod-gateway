@@ -378,6 +378,10 @@ def entity_record(entity_id):
             # If the etag(s) did not match, then the record is not cached or known to the client
             # and should be sent:
 
+            desired = desired_rdf_format(
+                request.headers.get("accept"), request.values.get("format")
+            )
+
             # Recursively prefix each 'id' attribute that currently lacks a http(s):// prefix
             prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
             if (
@@ -402,7 +406,9 @@ def entity_record(entity_id):
                     f"REQUESTS - relativeid? '{request.values.get('relativeid', '')}'"
                 )
 
-                if request.values.get("relativeid", "").lower() != "true":
+                if request.values.get("relativeid", "").lower() != "true" and (
+                    desired is None or desired[1] == "json-ld"
+                ):
                     data = containerRecursiveCallback(
                         data=data,
                         attr=attr,
@@ -421,9 +427,7 @@ def entity_record(entity_id):
 
             if current_app.config["PROCESS_RDF"] is True:
                 content_type = "application/ld+json;charset=UTF-8"
-                if desired := desired_rdf_format(
-                    request.headers.get("accept"), request.values.get("format")
-                ):
+                if desired is not None:
                     # wants a particular format
                     if desired[1] != "json-ld":
                         # Set the mimetype:

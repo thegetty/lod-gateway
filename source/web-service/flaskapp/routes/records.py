@@ -406,7 +406,7 @@ def entity_record(entity_id):
                     f"REQUESTS - relativeid? '{request.values.get('relativeid', '')}'"
                 )
 
-                if request.values.get("relativeid", "").lower():
+                if request.values.get("relativeid", "").lower() in ["true", "t", "y"]:
                     # override the format request
                     desired = None
 

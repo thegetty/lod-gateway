@@ -398,13 +398,18 @@ def entity_record(entity_id):
                 # Assume that id/@id choice used in the data is the same as the top level
                 attr = "@id" if "@id" in data else "id"
 
-                data = containerRecursiveCallback(
-                    data=data,
-                    attr=attr,
-                    callback=idPrefixer,
-                    prefix=idPrefix,
-                    recursive=recursive,
+                print(
+                    f"REQUESTS - relativeid: '{request.values.get('relativeid', '')}'"
                 )
+
+                if request.values.get("relativeid", "").lower() != "true":
+                    data = containerRecursiveCallback(
+                        data=data,
+                        attr=attr,
+                        callback=idPrefixer,
+                        prefix=idPrefix,
+                        recursive=recursive,
+                    )
             current_app.logger.debug(
                 f"{entity_id} - prefixRecordIDs generated at {time.perf_counter() - profile_time}"
             )

@@ -406,9 +406,10 @@ def entity_record(entity_id):
                     f"REQUESTS - relativeid? '{request.values.get('relativeid', '')}'"
                 )
 
-                if request.values.get("relativeid", "").lower() != "true" and (
-                    desired is None or desired[1] == "json-ld"
-                ):
+                if request.values.get("relativeid", "").lower():
+                    # override the format request
+                    desired = None
+
                     data = containerRecursiveCallback(
                         data=data,
                         attr=attr,
@@ -416,9 +417,10 @@ def entity_record(entity_id):
                         prefix=idPrefix,
                         recursive=recursive,
                     )
-            current_app.logger.debug(
-                f"{entity_id} - prefixRecordIDs generated at {time.perf_counter() - profile_time}"
-            )
+
+                current_app.logger.debug(
+                    f"{entity_id} - prefixRecordIDs generated at {time.perf_counter() - profile_time}"
+                )
 
             # data holds a version of the JSON with the FQDN version of the ids
             # If this instance is RDF-enabled, do they want an alternate format?

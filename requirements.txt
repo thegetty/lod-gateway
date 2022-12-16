@@ -1,5 +1,5 @@
 uWSGI==2.0.20
-psycopg2==2.9.3
+psycopg2-binary==2.9.3
 SQLAlchemy==1.4.32
 alembic==1.7.6
 Flask==2.0.3

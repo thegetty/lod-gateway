@@ -79,7 +79,6 @@ def ingest_get():
 
 @ingest.route("/ingest", methods=["POST"])
 def ingest_post():
-
     # Authentication. If fails, abort with 401
     status = authenticate_bearer(request)
     if status != status_ok:
@@ -101,7 +100,6 @@ def ingest_post():
 
     # Validation error
     if validates != True:
-
         # unpack result tuple into variables
         status, line_number = validates
 
@@ -147,7 +145,6 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
     with db.session.no_autoflush:
         try:
             for idx, rec in enumerate(record_list):
-
                 # 'prim_key' - primary key (integer) returned by db. Used in Activities
                 # 'id' - string ID submitted by client. Used in result dict
                 # 'crud' - one of 3 operations ('create', 'update', 'delete')
@@ -158,10 +155,11 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                 if prim_key:
                     # Suppress the base graph from the activity-stream
                     if id != current_app.config["RDF_BASE_GRAPH"]:
+                        process_activity(prim_key, crud_event)
+                    else:
                         current_app.logger.warning(
                             f"Base graph changed. Note this event will not be added to the activitystream."
                         )
-                        process_activity(prim_key, crud_event)
 
                     # add pair of IDs to result dict
                     result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'
@@ -276,7 +274,6 @@ def process_record(input_rec):
 
     # Record with such 'id' does not exist
     if db_rec == None:
-
         # this is a 'delete' request for record that is not in DB
         if is_delete_request is True:
             return (None, id, Event.Delete)
@@ -525,7 +522,6 @@ def process_graphstore_record_set(
 
 # ### AUTHENTICATION FUNCTIONS ###
 def authenticate_bearer(request):
-
     # For now return the same error for all failing scenarios
     error = status_wrong_auth_token
 

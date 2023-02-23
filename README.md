@@ -66,6 +66,9 @@ AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality, i.e. lo
                             # be formatted as "Bearer {AUTHORIZATION_TOKEN}" in
                             # the HTTP POST request Authorization header.
 
+VERSIONING_AUTHENTICATION=  # if True, authentication required for versioning
+                            # if missing in .env, default value True will be set in the app
+
 DATABASE=                   # This should be the full URL to the database
                             # for example, postgresql://mart:mart@postgres/mart.
                             # If APPLICATION_NAMESPACE=local/thesaurus, then a local sqlite db

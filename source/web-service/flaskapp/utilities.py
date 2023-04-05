@@ -47,7 +47,13 @@ def is_ntriples(line):
 
 def quads_to_triples(quads):
     return "\n".join(
-        [f"{x.rsplit(' ', 2)[0]} ." for x in quads.split("\n") if x.strip()]
+        [
+            (lambda l: f"{l.rsplit(' ', 2)[0]} ." if QUADS.match(l) is not None else l)(
+                x
+            )
+            for x in quads.split("\n")
+            if x.strip()
+        ]
     )
 
 

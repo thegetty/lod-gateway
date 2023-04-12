@@ -492,8 +492,12 @@ def entity_record(entity_id):
 # old version of a record
 @records.route("/-VERSION-/<path:entity_id>", methods=["GET", "HEAD"])
 def entity_version(entity_id):
-    # Authentication. If fails, abort with 401
-    status = authenticate_bearer(request)
+    # check if versioning authentication required
+    if current_app.config["VERSION_AUTH"].lower() == "true":
+        status = authenticate_bearer(request)
+    else:
+        status = status_ok
+
     if status != status_ok:
         response = construct_error_response(status)
         return abort(response)

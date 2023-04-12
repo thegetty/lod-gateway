@@ -44,6 +44,7 @@ def create_app():
     CORS(app, send_wildcard=True)
     # Setup global configuration
     app.config["AUTH_TOKEN"] = environ["AUTHORIZATION_TOKEN"]
+    app.config["VERSION_AUTH"] = environ.get("VERSIONING_AUTHENTICATION", "True")
     app.config["BASE_URL"] = environ["BASE_URL"]
     app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"]
     app.config["NAMESPACE_FOR_RDF"] = environ.get(

@@ -146,8 +146,7 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
     # This will replace the named graph with only the triples supplied
 
     # Quads supplied instead?
-    if is_quads(serialized_nt.split("\n")[0]):
-        serialized_nt = quads_to_triples(serialized_nt)
+    serialized_nt = quads_to_triples(serialized_nt)
 
     # Update the RDF filter set ['RDF_FILTER_SET'] after success (only if this is the base graph)?
     update_filterset = False

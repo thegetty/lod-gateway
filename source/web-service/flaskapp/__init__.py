@@ -38,6 +38,7 @@ def create_app():
     app = Flask(__name__)
 
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
+    app.config["FLASK_ENV"] = getenv("FLASK_ENV", "production")
 
     app.logger.info(f"LOD Gateway logging INFO at level {app.config['DEBUG_LEVEL']}")
 
@@ -105,7 +106,7 @@ def create_app():
                     f"Value for SUBADDRESSING_DEPTH could not be interpreted as an integer. Ignoring."
                 )
 
-    if app.env == "development":
+    if app.config["FLASK_ENV"].lower() == "development":
         app.config["SQLALCHEMY_ECHO"] = True
 
     db.init_app(app)

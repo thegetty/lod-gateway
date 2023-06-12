@@ -3,6 +3,7 @@ import math
 
 # RFC1128 dates, yuck
 import dateparser
+import pytz
 from email.utils import formatdate
 
 from datetime import datetime, timezone
@@ -317,11 +318,17 @@ def entity_record(entity_id):
             and "accept-datetime" in request.headers
         ):
             # parse date and try to find a matching version, 302 redirect
-            desired_datetime = dateparser.parse(request.headers["accept-datetime"])
+            desired_datetime = dateparser.parse(
+                request.headers["accept-datetime"],
+                settings={"RETURN_AS_TIMEZONE_AWARE": True},
+            )
+
+            # force tzaware
+            tzaware_updated = record.datetime_updated.replace(tzinfo=pytz.UTC)
 
             # Valid datetime and asking for a datetime older than the current version?
             if desired_datetime is not None and not (
-                desired_datetime >= record.datetime_updated
+                desired_datetime >= tzaware_updated
             ):
                 desired_version = (
                     db.session.query(Version)

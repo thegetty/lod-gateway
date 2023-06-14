@@ -8,6 +8,7 @@ from pyld import jsonld
 from pyld.jsonld import set_document_loader
 
 # docloader caching
+import requests
 from datetime import datetime, timedelta
 
 from sqlalchemy.exc import ProgrammingError

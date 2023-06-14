@@ -5,6 +5,10 @@ from flask import current_app
 
 # To parse out the base graph
 from pyld import jsonld
+from pyld.jsonld import set_document_loader
+
+# docloader caching
+from datetime import datetime, timedelta
 
 from sqlalchemy.exc import ProgrammingError
 
@@ -51,6 +55,41 @@ DEFAULT_BASE_GRAPH = {
 }
 
 
+# This is a custom document loader for PyLD - it allows us to set up a preloadable cache for contexts that are regularly retrieved.
+# docCache format:
+# {
+#     "url": {
+#         "expires": specific datetime, or None to never expire,
+#         "document": context document, decoded from JSON,
+#         "contextUrl": None,
+#         "documentUrl": None,
+#     }
+# }
+def document_loader(docCache, cache_expires=30):
+    def load_document_and_cache(url, *args, **kwargs):
+        now = datetime.now()
+        if url in docCache:
+            doc = docCache[url]
+            expires = doc["expires"]
+            if expires is not None:
+                diff = now - expires
+                if expires > now:
+                    return doc
+            else:
+                # Expires: None - never expire
+                return doc
+
+        doc = {"expires": None, "contextUrl": None, "documentUrl": None, "document": ""}
+        resp = requests.get(url)
+        data = resp.json()
+        doc["document"] = data
+        doc["expires"] = now + timedelta(minutes=cache_expires)
+        docCache[url] = doc
+        return doc
+
+    return load_document_and_cache
+
+
 def base_graph_filter(basegraphobj, fqdn_id):
     try:
         record = get_record(basegraphobj)
@@ -74,7 +113,13 @@ def base_graph_filter(basegraphobj, fqdn_id):
             data["@id"] = fqdn_id
 
         proc = jsonld.JsonLdProcessor()
-        serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
+        serialized_nt = proc.to_rdf(
+            data,
+            {
+                "format": "application/n-quads",
+                "documentLoader": current_app.config["RDF_DOCLOADER"],
+            },
+        )
         if is_quads(serialized_nt.split("\n")[0]):
             serialized_nt = quads_to_triples(serialized_nt)
 

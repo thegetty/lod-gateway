@@ -82,21 +82,16 @@ def graph_expand(data, proc=None):
     # time the expansion
     tictoc = time.perf_counter()
     try:
-        if isinstance(json_ld_cxt, str) and len(json_ld_cxt) > 0:
-            # raise RuntimeError("Graph expansion error: No @context URL has been defined in the data for %s!" % (json_ld_id))
-
-            # attempt to obtain the JSON-LD @context document
-            resp = requests.get(json_ld_cxt)
-            if not resp.status_code == 200:  # if there is a failure, report it...
-                current_app.logger.error(
-                    "Graph expansion error for %s (%s): Failed to obtain @context URL (%s) with HTTP status: %d"
-                    % (json_ld_id, json_ld_type, json_ld_cxt, resp.status_code)
-                )
-
         if proc is None:
             proc = jsonld.JsonLdProcessor()
 
-        serialized_nt = proc.to_rdf(data, {"format": "application/n-quads"})
+        serialized_nt = proc.to_rdf(
+            data,
+            {
+                "format": "application/n-quads",
+                "documentLoader": current_app.config["RDF_DOCLOADER"],
+            },
+        )
     except Exception as e:
         current_app.logger.error(
             "Graph expansion error of type '%s' for %s (%s): %s"

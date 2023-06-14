@@ -2,6 +2,7 @@ import logging
 import logging.config
 from os import environ, getenv
 from flaskapp.logging_configuration import get_logging_config
+import json
 
 from datetime import datetime
 import sqlite3
@@ -25,7 +26,7 @@ from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
 from flaskapp import local_thesaurus
-from flaskapp.base_graph_utils import base_graph_filter
+from flaskapp.base_graph_utils import base_graph_filter, document_loader
 
 
 # top-level logging configuration should provide the basic configuration for any logger Flask sets in the
@@ -66,6 +67,28 @@ def create_app():
         app.config["PROCESS_RDF"] = True
         app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
         app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
+
+        # set up a default RDF context cache?
+        doccache_default_expiry = int(environ.get("RDF_CONTEXT_CACHE_EXPIRES", 30))
+        app.config["RDF_DOCLOADER"] = document_loader(
+            docCache={}, cache_expires=doccache_default_expiry
+        )
+
+        # Preload the cache?
+        # See the base_graph_utils.document_loader for what structure to use for the cache object
+        # What should be in the environment variable is a JSON-encoded string, eg:
+        # >>> print(json.dumps(docCache))
+        # and copy and paste the result into the field.
+        if doccache_json := environ.get("RDF_CONTEXT_CACHE"):
+            try:
+                doc_cache = json.loads(doccache_json)
+                app.config["RDF_DOCLOADER"] = document_loader(
+                    docCache=doc_cache, cache_expires=doccache_default_expiry
+                )
+            except json.decoder.JSONDecodeError as e:
+                app.logger.error(
+                    f"The data in ENV: 'RDF_CONTEXT_CACHE' is not JSON! Will not load presets."
+                )
 
     # Setting the limit on number of records returned due to a glob browse request
     try:
@@ -120,7 +143,6 @@ def create_app():
         local_thesaurus.populate_db(app.app_context())
 
     with app.app_context():
-
         ns = app.config["NAMESPACE"]
 
         # Needs the app context and the db to be initialized:

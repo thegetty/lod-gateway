@@ -453,7 +453,11 @@ def entity_record(entity_id):
                         # rdflib's json-ld import has not been tested on our data, so not relying on it
                         proc = jsonld.JsonLdProcessor()
                         serialized_rdf = proc.to_rdf(
-                            data, {"format": "application/n-quads"}
+                            data,
+                            {
+                                "format": "application/n-quads",
+                                "documentLoader": current_app.config["RDF_DOCLOADER"],
+                            },
                         )
 
                         ident = data.get("id") or data.get("@id")

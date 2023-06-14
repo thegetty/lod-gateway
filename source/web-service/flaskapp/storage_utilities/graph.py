@@ -17,6 +17,7 @@ from flaskapp.utilities import (
 )
 
 from pyld import jsonld
+from pyld.jsonld import JsonLdError
 
 from flaskapp.base_graph_utils import base_graph_filter
 

@@ -105,6 +105,10 @@ RDF_BASE_GRAPH=             # Requires PROCESS_RDF to be set to true to have any
                             # Any triples in the base graph will be added to the graph store, but these triples
                             # will be removed from any other RDF resources before they are added to the graph store
 
+RDF_CONTEXT_CACHE=          # A JSON-encoded value that holds a context cache to preload into the PyLD document loader
+                            # It should be in the form: {"url": context object, ...} with the context object as follows:
+                            # context object -> {"document": context document, "expires": None/datetime, "contextUrl": None, "documentUrl": None}
+
 FLASK_GZIP_COMPRESSION =    # The value must be "True" to enable gzip compression option
 
 PREFIX_RECORD_IDS=          # Configure the Prefixing of Record "id" Values:

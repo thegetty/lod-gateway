@@ -195,6 +195,9 @@ def create_app():
                 "SERVER_CAPABILITIES"
             ]
 
+            # Cache-control
+            response.headers["Cache-Control"] = "no-cache"
+
             return response
 
         return app

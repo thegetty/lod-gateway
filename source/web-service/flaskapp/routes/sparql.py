@@ -128,9 +128,14 @@ def execute_query_post(data, accept_header, query_endpoint):
         res = requests.post(
             query_endpoint, data=data, headers={"Accept": accept_header}
         )
-        current_app.logger.info(
-            f"Remote SPARQL (raw) query (...{data[-20:]}) executed in {time.perf_counter() - st:.2f}s"
-        )
+        if query := data.get("query", data.get("update", "")):
+            current_app.logger.info(
+                f"Remote SPARQL query (...{query[-20:]}) executed in {time.perf_counter() - st:.2f}s"
+            )
+        else:
+            current_app.logger.info(
+                f"Remote SPARQL query executed in {time.perf_counter() - st:.2f}s"
+            )
         res.raise_for_status()
         return res
     except requests.exceptions.HTTPError as e:

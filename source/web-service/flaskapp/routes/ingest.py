@@ -63,6 +63,7 @@ from flaskapp.utilities import (
     quads_to_triples,
     graph_filter,
 )
+from flaskapp.base_graph_utils import base_graph_filter
 
 
 # Create a new "ingest" route blueprint
@@ -227,6 +228,12 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
 
             # Only handle refresh requests if the PROCESS_RDF is enabled
             if ids_to_refresh:
+                if current_app.config["TESTMODE_BASEGRAPH"] is True:
+                    # refresh the base graph for this instance
+                    current_app.config["RDF_FILTER_SET"] = base_graph_filter(
+                        current_app.config["RDF_BASE_GRAPH"],
+                        current_app.config["FULL_BASE_GRAPH"],
+                    )
                 results = revert_triplestore_if_possible(ids_to_refresh)
                 result_dict.update(results)
 

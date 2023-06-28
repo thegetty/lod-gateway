@@ -68,6 +68,11 @@ def create_app():
         app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
         app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
 
+        # Testing mode for basegraph?
+        app.config["TESTMODE_BASEGRAPH"] = (
+            environ.get("TESTMODE_BASEGRAPH", "False").lower() == "true"
+        )
+
         # set up a default RDF context cache?
         doccache_default_expiry = int(environ.get("RDF_CONTEXT_CACHE_EXPIRES", 30))
         app.config["RDF_DOCLOADER"] = document_loader(
@@ -155,6 +160,8 @@ def create_app():
             app.config["RDF_FILTER_SET"] = base_graph_filter(
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
             )
+
+            RDF_BASE_GRAPH
 
         app.config["SERVER_CAPABILITIES"] = (
             ", ".join(

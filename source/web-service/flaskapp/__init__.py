@@ -161,8 +161,6 @@ def create_app():
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
             )
 
-            RDF_BASE_GRAPH
-
         app.config["SERVER_CAPABILITIES"] = (
             ", ".join(
                 [

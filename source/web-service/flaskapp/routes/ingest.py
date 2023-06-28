@@ -63,6 +63,7 @@ from flaskapp.utilities import (
     quads_to_triples,
     graph_filter,
 )
+from flaskapp.base_graph_utils import base_graph_filter
 
 
 # Create a new "ingest" route blueprint
@@ -156,6 +157,15 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                     # Suppress the base graph from the activity-stream
                     if id != current_app.config["RDF_BASE_GRAPH"]:
                         process_activity(prim_key, crud_event)
+                    elif current_app.config["TESTMODE_BASEGRAPH"] is True:
+                        current_app.logger.warning(
+                            f"Base graph changed. TESTMODE_BASEGRAPH is on, so reloading base graph filter. Test instance MUST BE single worker!"
+                        )
+                        # refresh the base graph for this instance
+                        current_app.config["RDF_FILTER_SET"] = base_graph_filter(
+                            current_app.config["RDF_BASE_GRAPH"],
+                            current_app.config["FULL_BASE_GRAPH"],
+                        )
                     else:
                         current_app.logger.warning(
                             f"Base graph changed. Note this event will not be added to the activitystream."

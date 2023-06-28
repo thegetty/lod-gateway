@@ -1,6 +1,9 @@
 import json
 import requests
 
+# timing
+import time
+
 from flask import (
     Blueprint,
     current_app,
@@ -21,6 +24,7 @@ from flaskapp.routes.ingest import authenticate_bearer
 
 # Create a new "sparql" route blueprint
 sparql = Blueprint("sparql", __name__)
+
 
 # ### ROUTES ###
 @sparql.route("/sparql", methods=["GET", "POST"])
@@ -102,8 +106,12 @@ def query_entrypoint():
 
 def execute_query(query, accept_header, query_endpoint):
     try:
+        st = time.perf_counter()
         res = requests.post(
             query_endpoint, data={"query": query}, headers={"Accept": accept_header}
+        )
+        current_app.logger.info(
+            f"Remote SPARQL query (...{query[-20:]}) executed in {time.perf_counter() - st:.2f}s"
         )
         res.raise_for_status()
         return res.content
@@ -116,9 +124,18 @@ def execute_query(query, accept_header, query_endpoint):
 
 def execute_query_post(data, accept_header, query_endpoint):
     try:
+        st = time.perf_counter()
         res = requests.post(
             query_endpoint, data=data, headers={"Accept": accept_header}
         )
+        if query := data.get("query", data.get("update", "")):
+            current_app.logger.info(
+                f"Remote SPARQL query (...{query[-20:]}) executed in {time.perf_counter() - st:.2f}s"
+            )
+        else:
+            current_app.logger.info(
+                f"Remote SPARQL query executed in {time.perf_counter() - st:.2f}s"
+            )
         res.raise_for_status()
         return res
     except requests.exceptions.HTTPError as e:

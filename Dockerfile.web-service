@@ -4,7 +4,7 @@ FROM python:3.10
 WORKDIR /app
 
 # Install ca-certificates so that SSL/TLS can function from within the container
-RUN apt-get update && apt-get -y install ca-certificates
+RUN apt-get update && apt-get -y install ca-certificates libpcre3 libpcre3-dev
 
 # Copy and install our dependencies from requirements.txt
 COPY requirements.txt requirements.txt

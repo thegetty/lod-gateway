@@ -166,6 +166,9 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                             current_app.config["RDF_BASE_GRAPH"],
                             current_app.config["FULL_BASE_GRAPH"],
                         )
+                        current_app.logger.info(
+                            f"Current Base graph filter: {list(current_app.config['RDF_FILTER_SET'])}"
+                        )
                     else:
                         current_app.logger.warning(
                             f"Base graph changed. Note this event will not be added to the activitystream."

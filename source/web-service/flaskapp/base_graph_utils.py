@@ -121,8 +121,7 @@ def base_graph_filter(basegraphobj, fqdn_id):
                 "documentLoader": current_app.config["RDF_DOCLOADER"],
             },
         )
-        if is_quads(serialized_nt.split("\n")[0]):
-            serialized_nt = quads_to_triples(serialized_nt)
+        serialized_nt = quads_to_triples(serialized_nt)
 
         return set((x.strip() for x in serialized_nt.split("\n") if x))
 

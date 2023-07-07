@@ -29,10 +29,28 @@ from flaskapp import local_thesaurus
 from flaskapp.base_graph_utils import base_graph_filter, document_loader
 
 
+# For JSON access logs:
+from pythonjsonlogger.jsonlogger import JsonFormatter, merge_record_extra
+
+
+class GunicornLogFormatter(JsonFormatter):
+    def add_fields(self, log_record, record, message_dict):
+        """
+        This method allows us to inject gunicorn's args as fields for the formatter
+        """
+        super(GunicornLogFormatter, self).add_fields(log_record, record, message_dict)
+        for field in self._required_fields:
+            if field in self.rename_fields:
+                log_record[self.rename_fields[field]] = record.args.get(field)
+            else:
+                log_record[field] = record.args.get(field)
+
+
 # top-level logging configuration should provide the basic configuration for any logger Flask sets in the
 # create_app step (and in other modules).
 LOG_LEVEL = getenv("DEBUG_LEVEL", "INFO")
-logging.config.dictConfig(get_logging_config(LOG_LEVEL))
+ENABLE_JSON = getenv("JSON_LOGGING", "false").lower() == "true"
+logging.config.dictConfig(get_logging_config(LOG_LEVEL, json=ENABLE_JSON))
 
 
 def create_app():

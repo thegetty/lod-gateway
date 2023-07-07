@@ -25,7 +25,8 @@ services:
             context: ./
             dockerfile: ./Dockerfile.web-service
         #command: flask db upgrade
-        command: flask run --host=0.0.0.0
+        #command: flask run --host=0.0.0.0
+        command: ./startup.sh
         env_file: .env
         volumes:
             - ./source/web-service/flaskapp:/app/flaskapp

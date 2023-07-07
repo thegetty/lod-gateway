@@ -7,7 +7,9 @@ class ErrorFilter(logging.Filter):
         return thingy.levelno in [logging.ERROR, logging.CRITICAL]
 
 
-def get_logging_config(level="INFO", json=False, disable_existing=True):
+def get_logging_config(
+    level="INFO", json=False, disable_existing=True, json_access=False
+):
     if not json:
         return {
             "version": 1,
@@ -38,17 +40,13 @@ def get_logging_config(level="INFO", json=False, disable_existing=True):
             },
         }
     else:
-        return {
+        base = {
             "version": 1,
             "disable_existing_loggers": False,
             "formatters": {
                 "json": {
                     "format": "%(asctime)s %(levelname)s %(module)s %(message)s",
                     "class": "pythonjsonlogger.jsonlogger.JsonFormatter",
-                },
-                "accessjson": {
-                    "format": "%(h)s %(l)s %(u)s %(t)s %(r)s %(s)s %(b)s %(f)s %(a)s %(D)s",
-                    "()": "flaskapp.GunicornLogFormatter",
                 },
             },
             "handlers": {
@@ -57,11 +55,6 @@ def get_logging_config(level="INFO", json=False, disable_existing=True):
                     "stream": "ext://sys.stdout",
                     "formatter": "json",
                 },
-                "accesslog_stdout_all": {
-                    "class": "logging.StreamHandler",
-                    "stream": "ext://sys.stdout",
-                    "formatter": "accessjson",
-                },
             },
             "loggers": {
                 "root": {
@@ -69,10 +62,22 @@ def get_logging_config(level="INFO", json=False, disable_existing=True):
                     "handlers": ["stdout_all"],
                     "propagate": True,
                 },
-                "gunicorn.access": {
-                    "level": level,
-                    "handlers": ["accesslog_stdout_all"],
-                    "propagate": 0,
-                },
             },
         }
+        if json_access is True:
+            base["formatters"]["accessjson"] = {
+                "format": "%(h)s %(l)s %(u)s %(t)s %(r)s %(s)s %(b)s %(f)s %(a)s %(D)s",
+                "()": "flaskapp.GunicornLogFormatter",
+            }
+            base["handlers"]["accesslog_stdout_all"] = {
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout",
+                "formatter": "accessjson",
+            }
+            base["loggers"]["gunicorn.access"] = {
+                "level": level,
+                "handlers": ["accesslog_stdout_all"],
+                "propagate": 0,
+            }
+
+        return base

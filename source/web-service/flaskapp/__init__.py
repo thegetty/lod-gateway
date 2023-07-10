@@ -143,7 +143,7 @@ def create_app():
         compress.init_app(app)
     migrate = Migrate(app, db)
 
-    if environ.get("LOCAL_THESAURUS_URL",None) is not None:
+    if environ.get("LOCAL_THESAURUS_URL", None) is not None:
         app.config["LOCAL_THESAURUS_URL"] = environ["LOCAL_THESAURUS_URL"]
         local_thesaurus.populate_db(app.app_context())
 

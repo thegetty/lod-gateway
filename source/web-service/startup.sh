@@ -9,7 +9,7 @@ WORKER_CLASS="${WORKER_CLASS:-sync}"
 THREADS="${WEB_THREADS:-1}"
 
 # Workers rule of thumb -> 2 to 4 X (number of cores available)
-WORKERS="${WEB_WORKERS:-3}"
+WORKERS="${WEB_WORKERS:-8}"
 WORKER_CONNECTIONS="${WORKER_CONNECTIONS:-1000}"
 
 FLASK_RUN_PORT="${FLASK_RUN_PORT:-5100}"

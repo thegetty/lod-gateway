@@ -19,7 +19,7 @@ workflows:
       - getty-devops-release/deployTo:
           context: GETTY
           tag: *imageTag
-          service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-provenance-l2,lod-gateway-annotations-l2,lod-gateway-tms-l1,lod-gateway-aspace-jpc-l1,lod-gateway-rcv-jpc-l2,lod-gateway-consonance-l1
+          service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-provenance-l2,lod-gateway-annotations-l2,lod-gateway-tms-l1,lod-gateway-aspace-jpc-l1,lod-gateway-rcv-jpc-l2,lod-gateway-consonance-l1,lod-gateway-thesaurus-l2
           environment: stage
           requires:
             - pocBuild

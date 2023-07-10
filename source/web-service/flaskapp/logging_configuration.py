@@ -45,7 +45,7 @@ def get_logging_config(
             "disable_existing_loggers": False,
             "formatters": {
                 "json": {
-                    "format": "%(asctime)s %(levelname)s %(module)s %(message)s",
+                    "format": "%(asctime)s %(levelname)s %(module)s %(name)s %(message)s",
                     "class": "pythonjsonlogger.jsonlogger.JsonFormatter",
                 },
             },

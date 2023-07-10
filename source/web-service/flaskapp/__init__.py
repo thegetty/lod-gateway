@@ -49,8 +49,8 @@ class GunicornLogFormatter(JsonFormatter):
 # top-level logging configuration should provide the basic configuration for any logger Flask sets in the
 # create_app step (and in other modules).
 LOG_LEVEL = getenv("DEBUG_LEVEL", "INFO")
-ENABLE_JSON = getenv("JSON_LOGGING", "false").lower() == "true"
-ENABLE_ACCESS_JSON = getenv("ACCESS_JSON_LOGGING", "false").lower() == "true"
+ENABLE_JSON = getenv("JSON_LOGGING", "true").lower() == "true"
+ENABLE_ACCESS_JSON = getenv("ACCESS_JSON_LOGGING", "true").lower() == "true"
 logging.config.dictConfig(get_logging_config(LOG_LEVEL, json=ENABLE_JSON))
 
 

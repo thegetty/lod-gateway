@@ -51,7 +51,9 @@ class GunicornLogFormatter(JsonFormatter):
 LOG_LEVEL = getenv("DEBUG_LEVEL", "INFO")
 ENABLE_JSON = getenv("JSON_LOGGING", "true").lower() == "true"
 ENABLE_ACCESS_JSON = getenv("ACCESS_JSON_LOGGING", "true").lower() == "true"
-logging.config.dictConfig(get_logging_config(LOG_LEVEL, json=ENABLE_JSON))
+logging.config.dictConfig(
+    get_logging_config(LOG_LEVEL, json=ENABLE_JSON, json_access=ENABLE_ACCESS_JSON)
+)
 
 
 def create_app():

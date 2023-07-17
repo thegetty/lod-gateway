@@ -61,13 +61,7 @@ def get_logging_config(
                 "handlers": ["stdout_all"],
                 "propagate": True,
             },
-            "loggers": {
-                "flaskapp": {
-                    "level": level,
-                    "handlers": ["stdout_all"],
-                    "propagate": True,
-                },
-            },
+            "loggers": {},
         }
         if json_access is True:
             base["formatters"]["accessjson"] = {

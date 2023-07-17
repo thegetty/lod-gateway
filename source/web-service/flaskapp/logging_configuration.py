@@ -56,8 +56,13 @@ def get_logging_config(
                     "formatter": "json",
                 },
             },
+            "root": {
+                "level": level,
+                "handlers": ["stdout_all"],
+                "propagate": True,
+            },
             "loggers": {
-                "root": {
+                "flaskapp": {
                     "level": level,
                     "handlers": ["stdout_all"],
                     "propagate": True,

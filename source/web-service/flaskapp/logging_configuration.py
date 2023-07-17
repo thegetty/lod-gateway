@@ -56,13 +56,12 @@ def get_logging_config(
                     "formatter": "json",
                 },
             },
-            "loggers": {
-                "root": {
-                    "level": level,
-                    "handlers": ["stdout_all"],
-                    "propagate": True,
-                },
+            "root": {
+                "level": level,
+                "handlers": ["stdout_all"],
+                "propagate": True,
             },
+            "loggers": {},
         }
         if json_access is True:
             base["formatters"]["accessjson"] = {

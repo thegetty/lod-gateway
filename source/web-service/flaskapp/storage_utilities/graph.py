@@ -160,6 +160,11 @@ def graph_expand(data, proc=None):
         current_app.logger.debug(
             f"{json_ld_id} - RDFLIB parsing END, START serialization at timecode {time.perf_counter() - tictoc}"
         )
+        if len(g) == 0:
+            current_app.logger.error(
+                f"No suitable quads or triples were parsed from the supplied JSON-LD. Is {json_ld_id} actually JSON-LD?"
+            )
+            return False
         return g.serialize(format="nquads")
 
 

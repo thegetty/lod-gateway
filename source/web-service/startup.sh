@@ -12,6 +12,8 @@ THREADS="${WEB_THREADS:-1}"
 WORKERS="${WEB_WORKERS:-8}"
 WORKER_CONNECTIONS="${WORKER_CONNECTIONS:-100}"
 
+TIMEOUT="${WEB_TIMEOUT:-600}"
+
 FLASK_RUN_PORT="${FLASK_RUN_PORT:-5100}"
 
 # sync/threads? or green threads?
@@ -21,6 +23,7 @@ if [[ "$WORKER_CLASS" != "gevent" ]]; then
          --threads ${THREADS} \
          --workers ${WORKERS} \
          --worker-class ${WORKER_CLASS} \
+         --timeout ${TIMEOUT} \
          --access-logfile '-' \
          --error-logfile '-' \
          wsgi:app
@@ -31,6 +34,7 @@ else
          --worker-connections ${WORKER_CONNECTIONS} \
          --workers ${WORKERS} \
          --worker-class ${WORKER_CLASS} \
+         --timeout ${TIMEOUT} \
          --access-logfile '-' \
          --error-logfile '-' \
          wsgi:app

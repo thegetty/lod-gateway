@@ -110,7 +110,7 @@ commands:
             << parameters.image>>:<< parameters.tag >>
             black --check .
       - run:
-          name: Testing using pytest
+          name: Testing PyLD using pytest
           command: >
             docker run
             --env-file .env.example
@@ -122,6 +122,21 @@ commands:
             --junitxml=/output/test-results/pytest/junit.xml
             --cov=flaskapp
             --cov-report html:/output/test-reports/pytest
+      - run:
+          name: Testing RDFLib using pytest
+          command: >
+            docker run
+            --env-file .env.example
+            --env DATABASE=sqlite://
+            --env APPLICATION_NAMESPACE="ns"
+            --env USE_PYLD_REFORMAT=false
+            --volume /tmp/output:/output
+            << parameters.image>>:<< parameters.tag >>
+            pytest
+            --junitxml=/output/test-results/pytest/junit.xml
+            --cov=flaskapp
+            --cov-report html:/output/test-reports/pytest
+
   store:
     steps:
       - store_test_results:

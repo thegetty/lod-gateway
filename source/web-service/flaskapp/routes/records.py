@@ -463,11 +463,11 @@ def entity_record(entity_id):
                         ident = data.get("id") or data.get("@id")
 
                         # rdflib to load and format the nquads
+                        # forcing it, because of pyld's awful nquad export
                         g = get_bound_graph(identifier=ident)
 
                         # May not be nquads, even though we requested it:
-                        if is_ntriples(serialized_rdf.split("\n")[0]):
-                            serialized_rdf = triples_to_quads(serialized_rdf, ident)
+                        serialized_rdf = triples_to_quads(serialized_rdf, ident)
 
                         g.parse(data=serialized_rdf, format="nquads")
                         data = g.serialize(format=desired[1])

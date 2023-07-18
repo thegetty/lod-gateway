@@ -60,7 +60,11 @@ def quads_to_triples(quads):
 def triples_to_quads(ntriples, namedgraph):
     return "\n".join(
         [
-            f"{x.rsplit(' ', 1)[0]} <{namedgraph}> ."
+            (
+                lambda l: f"{l.rsplit(' ', 1)[0]} <{namedgraph}> ."
+                if NTRIPLES.match(l) is not None
+                else l
+            )(x)
             for x in ntriples.split("\n")
             if x.strip()
         ]

@@ -19,7 +19,7 @@ BINDING = {
 
 FORMATS = {
     # RDF triple formats
-    "applicaton/ntriples;charset=UTF-8": "nt11",
+    "application/ntriples;charset=UTF-8": "nt11",
     "text/turtle;charset=UTF-8": "turtle",
     "application/rdf+xml;charset=UTF-8": "xml",
     "text/n3;charset=UTF-8": "n3",

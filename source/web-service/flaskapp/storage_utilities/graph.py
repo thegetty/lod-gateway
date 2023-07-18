@@ -16,10 +16,13 @@ from flaskapp.utilities import (
     graph_filter,
 )
 
+import rdflib
+
 from pyld import jsonld
 from pyld.jsonld import JsonLdError
 
 from flaskapp.base_graph_utils import base_graph_filter
+from flaskapp.graph_prefix_bindings import get_bound_graph
 
 
 # RDF processing
@@ -82,60 +85,82 @@ def graph_expand(data, proc=None):
 
     # time the expansion
     tictoc = time.perf_counter()
-    try:
-        if proc is None:
-            proc = jsonld.JsonLdProcessor()
 
-        serialized_nt = proc.to_rdf(
-            data,
-            {
-                "format": "application/n-quads",
-                "documentLoader": current_app.config["RDF_DOCLOADER"],
-            },
+    # PyLD expansion? or RDFLIB?
+    if current_app.config["USE_PYLD_REFORMAT"] is True:
+        current_app.logger.info(f"{json_ld_id} - expanding using PyLD")
+        try:
+            if proc is None:
+                proc = jsonld.JsonLdProcessor()
+
+            current_app.logger.debug(
+                f"{json_ld_id} - PyLD parsing START at timecode {time.perf_counter() - tictoc}"
+            )
+            serialized_nt = proc.to_rdf(
+                data,
+                {
+                    "format": "application/n-quads",
+                    "documentLoader": current_app.config["RDF_DOCLOADER"],
+                },
+            )
+
+            current_app.logger.debug(
+                f"{json_ld_id} - PyLD parsing END at timecode {time.perf_counter() - tictoc}"
+            )
+        except Exception as e:
+            current_app.logger.error(
+                "Graph expansion error of type '%s' for %s (%s): %s"
+                % (type(e), json_ld_id, json_ld_type, str(e))
+            )
+
+            # As the call to `str(e)` above does not seem to provide detailed insight into the exception, do so manually here...
+            # The `pyld` library's `JsonLdError` type (a subclass of `Exception`) defines unique properties, so we need to
+            # check the instance type of `e` before attempting to access these properties, lest we cause more exceptions...
+            # See https://github.com/digitalbazaar/pyld/blob/316fbc2c9e25b3cf718b4ee189012a64b91f17e7/lib/pyld/jsonld.py#L5646
+            if isinstance(e, JsonLdError):
+                current_app.logger.error(
+                    "Graph expansion error type:    %s" % (str(e.type))
+                )
+                current_app.logger.error(
+                    "Graph expansion error details: %s" % (repr(e.details))
+                )
+                current_app.logger.error(
+                    "Graph expansion error code:    %s" % (str(e.code))
+                )
+                current_app.logger.error(
+                    "Graph expansion error cause:   %s" % (str(e.cause))
+                )
+                current_app.logger.error(
+                    "Graph expansion error trace:   %s"
+                    % (str("".join(traceback.format_list(e.causeTrace))))
+                )
+            else:
+                current_app.logger.error(
+                    "Graph expansion error stack trace:\n%s" % (full_stack_trace())
+                )
+
+            current_app.logger.error(
+                "Graph expansion error current record:  %s"
+                % (json.dumps(data, sort_keys=True).encode("utf-8"))
+            )
+
+            return False
+
+        current_app.logger.info(
+            f"Graph {data[id_attr]} expanded in {time.perf_counter() - tictoc:05f}s"
         )
-    except Exception as e:
-        current_app.logger.error(
-            "Graph expansion error of type '%s' for %s (%s): %s"
-            % (type(e), json_ld_id, json_ld_type, str(e))
+        return serialized_nt
+    else:
+        current_app.logger.info(f"{json_ld_id} - expanding using PyLD")
+        current_app.logger.debug(
+            f"{json_ld_id} - RDFLIB parsing START at timecode {time.perf_counter() - tictoc}"
         )
-
-        # As the call to `str(e)` above does not seem to provide detailed insight into the exception, do so manually here...
-        # The `pyld` library's `JsonLdError` type (a subclass of `Exception`) defines unique properties, so we need to
-        # check the instance type of `e` before attempting to access these properties, lest we cause more exceptions...
-        # See https://github.com/digitalbazaar/pyld/blob/316fbc2c9e25b3cf718b4ee189012a64b91f17e7/lib/pyld/jsonld.py#L5646
-        if isinstance(e, JsonLdError):
-            current_app.logger.error(
-                "Graph expansion error type:    %s" % (str(e.type))
-            )
-            current_app.logger.error(
-                "Graph expansion error details: %s" % (repr(e.details))
-            )
-            current_app.logger.error(
-                "Graph expansion error code:    %s" % (str(e.code))
-            )
-            current_app.logger.error(
-                "Graph expansion error cause:   %s" % (str(e.cause))
-            )
-            current_app.logger.error(
-                "Graph expansion error trace:   %s"
-                % (str("".join(traceback.format_list(e.causeTrace))))
-            )
-        else:
-            current_app.logger.error(
-                "Graph expansion error stack trace:\n%s" % (full_stack_trace())
-            )
-
-        current_app.logger.error(
-            "Graph expansion error current record:  %s"
-            % (json.dumps(data, sort_keys=True).encode("utf-8"))
+        g = get_bound_graph(identifier=json_ld_id)
+        g.parse(data=json.dumps(data), format="json-ld")
+        current_app.logger.debug(
+            f"{json_ld_id} - RDFLIB parsing END, START serialization at timecode {time.perf_counter() - tictoc}"
         )
-
-        return False
-
-    current_app.logger.info(
-        f"Graph {data[id_attr]} expanded in {time.perf_counter() - tictoc:05f}s"
-    )
-    return serialized_nt
+        return g.serialize(format="nquads")
 
 
 def graph_replace(graph_name, serialized_nt, update_endpoint):
@@ -175,7 +200,9 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         + "} } ;"
     )
 
-    current_app.logger.debug(replace_stmt)
+    current_app.logger.debug(
+        f"Size of graph replace statement: {len(replace_stmt)} characters"
+    )
     tictoc = time.perf_counter()
     res = requests.post(update_endpoint, data={"update": replace_stmt})
     if res.status_code == 200:

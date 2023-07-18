@@ -33,7 +33,6 @@ def is_quads(line):
     if line:
         if match := QUADS.match(line):
             return True
-
     return False
 
 
@@ -41,7 +40,6 @@ def is_ntriples(line):
     if line:
         if match := NTRIPLES.match(line):
             return True
-
     return False
 
 

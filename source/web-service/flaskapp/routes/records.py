@@ -550,6 +550,9 @@ def entity_version(entity_id):
         response = construct_error_response(status)
         return abort(response)
 
+    current_app.logger.debug(f"{entity_id} - Profiling started 0.0000000")
+    profile_time = time.perf_counter()
+
     if current_app.config["KEEP_LAST_VERSION"] is True:
         """GET the version that exactly matches the id supplied"""
 
@@ -564,6 +567,7 @@ def entity_version(entity_id):
             current_app.logger.debug(
                 "Version -- If-None-Match header: " + str(request.if_none_match)
             )
+
             if version.checksum in request.if_none_match:
                 # Client has supplied etags of the resources it has cached for this URI
                 # If the current checksum for this record matches, send back an empty response
@@ -603,16 +607,84 @@ def entity_version(entity_id):
                         False if prefixRecordIDs == "TOP" else True
                     )  # recursive by default
 
+                    attr = "@id" if "@id" in data else "id"
+
                     data = containerRecursiveCallback(
                         data=data,
-                        attr="id",
+                        attr=attr,
                         callback=idPrefixer,
                         prefix=idPrefix,
                         recursive=recursive,
                     )
 
+            content_type = "application/json;charset=UTF-8"
+
+            if current_app.config["PROCESS_RDF"] is True and data:
+                # rdfformat:
+                desired = desired_rdf_format(
+                    request.headers.get("accept"), request.values.get("format")
+                )
+                if desired is not None:
+                    # wants a particular format
+                    if desired[1] != "json-ld":
+                        # Set the mimetype:
+                        current_app.logger.debug(
+                            f"VERSION {entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
+                        )
+                        content_type = desired[0]
+                        if "force-plain-text" in request.values:
+                            # Browsers typically don't handle ntriples/turtle
+                            content_type = "text/plain;charset=UTF-8"
+
+                        if (
+                            current_app.config["USE_PYLD_REFORMAT"] is True
+                            and "rdflib" not in request.values
+                        ):
+                            current_app.logger.debug(
+                                f"VERSION {entity_id} - using PyLD to parse JSON-LD"
+                            )
+                            # Use the PyLD library to parse into nquads, and rdflib to convert
+                            # rdflib's json-ld import has not been tested on our data, so not relying on it
+                            proc = jsonld.JsonLdProcessor()
+                            serialized_rdf = proc.to_rdf(
+                                data,
+                                {
+                                    "format": "application/n-quads",
+                                    "documentLoader": current_app.config[
+                                        "RDF_DOCLOADER"
+                                    ],
+                                },
+                            )
+
+                            ident = data.get("id") or data.get("@id")
+
+                            # rdflib to load and format the nquads
+                            # forcing it, because of pyld's awful nquad export
+                            g = get_bound_graph(identifier=ident)
+
+                            # May not be nquads, even though we requested it:
+                            serialized_rdf = triples_to_quads(serialized_rdf, ident)
+
+                            g.parse(data=serialized_rdf, format="nquads")
+                            data = g.serialize(format=desired[1])
+                        else:
+                            current_app.logger.debug(
+                                f"{entity_id} - using RDFLIB to parse JSON-LD"
+                            )
+                            ident = data.get("id") or data.get("@id")
+
+                            # using rdflib to both parse and re-serialize the RDF:
+                            g = get_bound_graph(identifier=ident)
+
+                            g.parse(data=json.dumps(data), format="json-ld")
+                            data = g.serialize(format=desired[1])
+
+                        current_app.logger.debug(
+                            f"VERSION {entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"
+                        )
+
             response = current_app.make_response(data or "")
-            response.headers["Content-Type"] = "application/json;charset=UTF-8"
+            response.headers["Content-Type"] = content_type
             response.headers["Last-Modified"] = format_datetime(
                 version.datetime_updated
             )

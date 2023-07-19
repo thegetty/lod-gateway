@@ -83,6 +83,7 @@ def create_app():
     app.config["RDF_BASE_GRAPH"] = None
     app.config["FULL_BASE_GRAPH"] = None
     app.config["RDF_FILTER_SET"] = None
+    app.config["USE_PYLD_REFORMAT"] = True
     app.config["PROCESS_RDF"] = False
     if environ.get("PROCESS_RDF", "False").lower() == "true":
         app.config["PROCESS_RDF"] = True
@@ -92,6 +93,10 @@ def create_app():
         # Testing mode for basegraph?
         app.config["TESTMODE_BASEGRAPH"] = (
             environ.get("TESTMODE_BASEGRAPH", "False").lower() == "true"
+        )
+
+        app.config["USE_PYLD_REFORMAT"] = (
+            environ.get("USE_PYLD_REFORMAT", "true").lower() == "true"
         )
 
         # set up a default RDF context cache?

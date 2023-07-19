@@ -359,6 +359,7 @@ def entity_record(entity_id):
                     url_for(
                         "records.entity_version",
                         entity_id=desired_version.entity_id,
+                        **request.args,
                     ),
                     code=302,
                 )

@@ -497,8 +497,7 @@ def entity_record(entity_id):
                             )
                             ident = data.get("id") or data.get("@id")
 
-                            # rdflib to load and format the nquads
-                            # forcing it, because of pyld's awful nquad export
+                            # using rdflib to both parse and re-serialize the RDF:
                             g = get_bound_graph(identifier=ident)
 
                             g.parse(data=json.dumps(data), format="json-ld")

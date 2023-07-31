@@ -1,4 +1,5 @@
 import json
+import pytest
 
 from flask import current_app
 from flaskapp.routes.sparql import execute_query
@@ -55,20 +56,22 @@ class TestSparqlSuccess:
 
 
 class TestGraphStoreConnection:
-    def test_graphstore_connection_good(self, client, namespace, auth_token):
+    @pytest.mark.asyncio
+    async def test_graphstore_connection_good(self, client, namespace, auth_token):
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         query = "SELECT * {?s ?p ?o} LIMIT 1"
         accept_header = "*/*"
-        response = execute_query(
+        response = await execute_query(
             query, accept_header, query_endpoint.replace("http://", "mock-pass://")
         )
         assert b"results" in response
 
-    def test_graphstore_connection_fail(self, client, namespace, auth_token):
+    @pytest.mark.asyncio
+    async def test_graphstore_connection_fail(self, client, namespace, auth_token):
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         query = "SELECT * {?s ?p ?o} LIMIT 1"
         accept_header = "*/*"
-        asserted = execute_query(
+        asserted = await execute_query(
             query, accept_header, query_endpoint.replace("http://", "mock-fail://")
         )
         assert asserted and asserted.code == 500

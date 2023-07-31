@@ -1,5 +1,5 @@
 import json
-import httpx
+import requests
 
 # timing
 import time
@@ -28,7 +28,7 @@ sparql = Blueprint("sparql", __name__)
 
 # ### ROUTES ###
 @sparql.route("/sparql", methods=["GET", "POST"])
-async def query_entrypoint():
+def query_entrypoint():
     if current_app.config["PROCESS_RDF"] is not True:
         response = construct_error_response(
             status_nt(
@@ -50,6 +50,9 @@ async def query_entrypoint():
         query = request.args["query"]
     else:
         query = request.form.get("query")
+
+    current_app.logger.debug(str(request.form))
+    current_app.logger.debug(str(request.data))
 
     if (
         query is None
@@ -74,7 +77,7 @@ async def query_entrypoint():
 
     query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
     if request.method == "POST":
-        res = await execute_query_post(request.form, accept_header, query_endpoint)
+        res = execute_query_post(request.form, accept_header, query_endpoint)
         if isinstance(res, status_nt):
             response = construct_error_response(res)
             return abort(response)
@@ -93,7 +96,7 @@ async def query_entrypoint():
 
             return make_response(res.content, res.status_code, headers)
     else:
-        res = await execute_query(query, accept_header, query_endpoint)
+        res = execute_query(query, accept_header, query_endpoint)
     if isinstance(res, status_nt):
         response = construct_error_response(res)
         return abort(response)
@@ -101,40 +104,38 @@ async def query_entrypoint():
         return Response(res, direct_passthrough=True, content_type=accept_header)
 
 
-async def execute_query(query, accept_header, query_endpoint):
+def execute_query(query, accept_header, query_endpoint):
     try:
         st = time.perf_counter()
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            res = await client.post(
-                query_endpoint, data={"query": query}, headers={"Accept": accept_header}
-            )
-            current_app.logger.info(
-                f"Remote SPARQL query executed in {time.perf_counter() - st:.2f}s"
-            )
-            res.raise_for_status()
-            return res.content
-    except httpx.HTTPError as e:
-        response = status_nt(e.response.status_code, type(e).__name__, str(e))
+        res = requests.post(
+            query_endpoint, data={"query": query}, headers={"Accept": accept_header}
+        )
+        current_app.logger.info(
+            f"Remote SPARQL query executed in {time.perf_counter() - st:.2f}s"
+        )
+        res.raise_for_status()
+        return res.content
+    except requests.exceptions.HTTPError as e:
+        response = status_nt(res.status_code, type(e).__name__, str(res.content))
         return response
-    except httpx.ConnectionError as e:
+    except requests.exceptions.ConnectionError as e:
         return status_graphstore_error
 
 
-async def execute_query_post(data, accept_header, query_endpoint):
+def execute_query_post(data, accept_header, query_endpoint):
     try:
         st = time.perf_counter()
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            res = await client.post(
-                query_endpoint, data=data, headers={"Accept": accept_header}
-            )
+        res = requests.post(
+            query_endpoint, data=data, headers={"Accept": accept_header}
+        )
 
-            current_app.logger.info(
-                f"Remote SPARQL query executed in {time.perf_counter() - st:.2f}s"
-            )
-            res.raise_for_status()
-            return res
-    except httpx.HTTPError as e:
-        response = status_nt(e.status_code, type(e).__name__, str(e))
+        current_app.logger.info(
+            f"Remote SPARQL query executed in {time.perf_counter() - st:.2f}s"
+        )
+        res.raise_for_status()
+        return res
+    except requests.exceptions.HTTPError as e:
+        response = status_nt(res.status_code, type(e).__name__, str(res.content))
         return response
-    except httpx.ConnectionError as e:
+    except requests.exceptions.ConnectionError as e:
         return status_graphstore_error

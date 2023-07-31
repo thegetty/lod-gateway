@@ -114,7 +114,7 @@ async def execute_query(query, accept_header, query_endpoint):
             res.raise_for_status()
             return res.content
     except httpx.HTTPError as e:
-        response = status_nt(res.status_code, type(e).__name__, str(res.content))
+        response = status_nt(e.status_code, type(e).__name__, str(e))
         return response
     except httpx.ConnectionError as e:
         return status_graphstore_error
@@ -133,8 +133,8 @@ async def execute_query_post(data, accept_header, query_endpoint):
             )
             res.raise_for_status()
             return res
-    except requests.exceptions.HTTPError as e:
-        response = status_nt(res.status_code, type(e).__name__, str(res.content))
+    except httpx.HTTPError as e:
+        response = status_nt(e.status_code, type(e).__name__, str(e))
         return response
-    except requests.exceptions.ConnectionError as e:
+    except httpx.ConnectionError as e:
         return status_graphstore_error

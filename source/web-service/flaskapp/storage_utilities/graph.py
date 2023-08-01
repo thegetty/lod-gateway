@@ -151,7 +151,7 @@ def graph_expand(data, proc=None):
         )
         return serialized_nt
     else:
-        current_app.logger.info(f"{json_ld_id} - expanding using PyLD")
+        current_app.logger.info(f"{json_ld_id} - expanding using RDFLib")
         current_app.logger.debug(
             f"{json_ld_id} - RDFLIB parsing START at timecode {time.perf_counter() - tictoc}"
         )

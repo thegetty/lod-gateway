@@ -210,6 +210,12 @@ def containerRecursiveCallback(
     return data
 
 
+def idPrefixRemover(attr, value, prefix=None, **kwargs):
+    """Helper callback method to remove prefixes from JSON-LD document 'id' attributes"""
+
+    return value.removeprefix(prefix) if prefix else value
+
+
 def idPrefixer(attr, value, prefix=None, **kwargs):
     """Helper callback method to prefix non-prefixed JSON-LD document 'id' attributes"""
 

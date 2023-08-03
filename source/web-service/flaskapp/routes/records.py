@@ -16,18 +16,36 @@ from sqlalchemy import func
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
+from flaskapp.storage_utilities.record import (
+    validate_record_set,
+    get_record,
+    record_delete,
+    record_create,
+    record_update,
+    process_activity,
+)
+from flaskapp.storage_utilities.graph import (
+    graph_expand,
+    graph_replace,
+)
 from flaskapp.utilities import (
     format_datetime,
+    Event,
     containerRecursiveCallback,
     idPrefixer,
+    idPrefixRemover,
     is_ntriples,
     triples_to_quads,
 )
+from flaskapp.base_graph_utils import DEFAULT_BASE_GRAPH
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
     status_page_not_found,
+    status_patch_method_not_allowed,
+    status_patch_request_unparsable,
     status_ok,
+    status_not_modified,
 )
 from flaskapp.utilities import checksum_json
 
@@ -222,7 +240,324 @@ def subaddressing_search(entity_id):
     return (None, None)
 
 
-@records.route("/<path:entity_id>")
+def _prefix_json_ld(json_ld):
+    hostPrefix = current_app.config["BASE_URL"]
+    idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
+
+    attr = "@id" if "@id" in json_ld["@graph"] else "id"
+
+    return containerRecursiveCallback(
+        data=json_ld,
+        attr=attr,
+        callback=idPrefixer,
+        prefix=idPrefix,
+        recursive=False if current_app.config["PREFIX_RECORD_IDS"] == "TOP" else True,
+    )
+
+
+def _remove_prefix_json_ld(json_ld):
+    hostPrefix = current_app.config["BASE_URL"]
+    idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
+    if not idPrefix.endswith("/"):
+        idPrefix += "/"
+
+    attr = "@id" if "@id" in json_ld["@graph"] else "id"
+
+    return containerRecursiveCallback(
+        data=json_ld,
+        attr=attr,
+        callback=idPrefixRemover,
+        prefix=idPrefix,
+        recursive=False if current_app.config["PREFIX_RECORD_IDS"] == "TOP" else True,
+    )
+
+
+def _parse_to_nt(json_obj, rdf_format):
+    if rdf_format in ["jsonld", "json-ld"]:
+        # prefix to make FQDN
+        if "@graph" not in json_obj.keys():
+            current_app.logger.error(
+                f"The JSON-LD formatted PATCH request did not express it as a @graph - rejecting"
+            )
+            return
+        data = _prefix_json_ld(json_obj)
+        g = ConjunctiveGraph()
+        g.parse(data=data, format="json-ld")
+        if len(g) == 0:
+            current_app.logger.error(
+                f"PATCH JSON-LD did not render down to any triples - rejecting"
+            )
+            return None
+        return g.serialize(format="nt11")
+    elif rdf_format in ["nt", "nt11"]:
+        # skip roundtripping this
+        if len(json_obj.strip()) > 0:
+            return json_obj
+        else:
+            current_app.logger.error(
+                f"PATCH n-triples was empty or non-existent - rejecting"
+            )
+            return None
+    else:
+        g = ConjunctiveGraph()
+        g.parse(data=data, format=rdf_format)
+        if len(g) == 0:
+            current_app.logger.error(
+                f"PATCH {rdf_format} RDF did not render down to any triples - rejecting"
+            )
+            return None
+        return g.serialize(format="nt11")
+
+
+def _generate_patch_update(json_obj):
+    # Expecting a JSON object with at least one of "add" or "delete" keys, with a "format" indicator
+    # create a valid SPARQL Update request using it and return the string
+    # If the request cannot be parsed, return None
+    if "format" not in json_obj:
+        current_app.logger.debug(f"No 'format' value was present in the PATCH request")
+        return
+
+    match json_obj:
+        case {"add": add, "format": rdf_format} | {
+            "add": add,
+            "format": rdf_format,
+            "update_graphstore": _,
+        }:
+            # add only:
+            current_app.logger.debug(
+                f"Attempting to parse 'add' PATCH request data in {rdf_format} format"
+            )
+            if add_nt := _parse_to_nt(add, rdf_format):
+                return "INSERT DATA {\n" + add_nt + "\n};"
+            else:
+                return
+        case {"delete": delete, "format": rdf_format} | {
+            "delete": delete,
+            "format": rdf_format,
+            "update_graphstore": _,
+        }:
+            # delete only:
+            current_app.logger.debug(
+                f"Attempting to parse 'delete' PATCH request data in {rdf_format} format"
+            )
+            if delete_nt := _parse_to_nt(delete, rdf_format):
+                return "DELETE DATA {\n" + delete_nt + "\n};"
+            else:
+                return
+        case {"add": add, "delete": delete, "format": rdf_format} | {
+            "add": add,
+            "delete": delete,
+            "format": rdf_format,
+            "update_graphstore": _,
+        }:
+            # add AND delete:
+            current_app.logger.debug(
+                f"Attempting to parse 'delete' portion of delete->add PATCH request data in {rdf_format} format"
+            )
+            delete_nt = _parse_to_nt(delete, rdf_format)
+
+            current_app.logger.debug(
+                f"Attempting to parse 'add' portion of delete->add PATCH request data in {rdf_format} format"
+            )
+            add_nt = _parse_to_nt(add, rdf_format)
+
+            if delete_nt is not None and add_nt is not None:
+                return (
+                    "DELETE DATA {\n"
+                    + delete_nt
+                    + "\n};\nINSERT DATA {\n"
+                    + add_nt
+                    + "\n};"
+                )
+            else:
+                return
+
+
+def _update_beyond_threshold(record):
+    # Get the newest activity-stream created date, and see if it is more than
+    # PATCH_UPDATE_THRESHOLD timedelta in the past. Returns True is so.
+    # We need the DB TIME, not the local server time!
+    if dt := current_app.config["PATCH_UPDATE_THRESHOLD"]:
+        results = db.session.execute(
+            f"SELECT now()::timestamp, activities.datetime_created FROM activities "
+            f"WHERE activities.record_id = {record.id} "
+            f"ORDER BY activities.id DESC "
+            f"LIMIT 1;"
+        )
+        if results.rowcount != 1:
+            current_app.logger.debug(
+                f"Couldn't find a latest activity record for {record.entity_id} - should make one!"
+            )
+            return True
+        else:
+            now, then = next(results)
+            # Is the difference between now and the latest event more than the patch threshold?
+            return (now - then) > dt
+    else:
+        current_app.logger.warning(
+            "PATCH_UPDATE_THRESHOLD is disabled - all PATCH changes will be logged"
+        )
+        return True
+
+
+@records.route("/<path:entity_id>", methods=["PATCH"])
+def entity_record_patch(entity_id):
+    hostPrefix = current_app.config["BASE_URL"]
+    idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
+    graph_uri = idPrefix + entity_id
+
+    current_app.logger.debug(f"{entity_id} PATCH - Profiling started 0.0000000")
+    profile_time = time.perf_counter()
+
+    if entity_id.endswith("*") or "-VERSION-" in entity_id:
+        response = construct_error_response(status_patch_method_not_allowed)
+        return abort(response)
+
+    # Validate request:
+    if not request.is_json:
+        current_app.logger.error(
+            f"No JSON body to the PATCH endpoint for {entity_id} - rejecting"
+        )
+        response = construct_error_response(status_patch_request_unparsable)
+        return abort(response)
+
+    patch_request = request.get_json()
+
+    # Update graphstore?
+    update_graphstore = patch_request.get("update_graphstore") == True
+
+    current_app.logger.debug(
+        f"{entity_id} - STARTED PATCH Update string at {time.perf_counter() - profile_time}"
+    )
+    patch_update = _generate_patch_update(patch_request)
+    current_app.logger.debug(
+        f"{entity_id} - FINISHED PATCH Update string at {time.perf_counter() - profile_time}"
+    )
+
+    if patch_update is None:
+        response = construct_error_response(status_patch_request_unparsable)
+        return abort(response)
+
+    with db.session.no_autoflush:
+        try:
+            current_app.logger.debug(
+                f"{entity_id} - STARTED db look up at {time.perf_counter() - profile_time}"
+            )
+
+            record = (
+                db.session.query(Record)
+                .filter(Record.entity_id == entity_id)
+                .options(defer(Record.data))
+                .limit(1)
+                .first()
+            )
+            current_app.logger.debug(
+                f"{entity_id} - FINISHED db look up at {time.perf_counter() - profile_time}"
+            )
+            new_record = False
+            EMPTY = {
+                "@id": None,
+                "@graph": [],
+            }
+            if record is None:
+                current_app.logger.warning(
+                    f"{entity_id} not found in db - creating blank graph resource"
+                )
+                base = EMPTY.copy()
+                base["@id"] = entity_id
+                record = Record.query.get(record_create(base, commit=True))
+                new_record = True
+            elif record.data is None:
+                current_app.logger.warning(
+                    f"{entity_id} was deleted - creating blank graph resource inside"
+                )
+                base = EMPTY.copy()
+                base["@id"] = entity_id
+                record_update(record, base)
+                new_record = True
+
+            # inflate relative URIs
+            data = _prefix_json_ld(record.data)
+            original_checksum = record.checksum
+
+            # Perform parse
+            current_app.logger.debug(
+                f"{entity_id} - STARTED graph parse at {time.perf_counter() - profile_time}"
+            )
+            g = get_bound_graph(data["@id"])
+            g.parse(data=data, format="json-ld")
+            orig_len = len(g)
+            # Perform update
+            current_app.logger.info(
+                f"{entity_id} - STARTED graph update at {time.perf_counter() - profile_time}"
+            )
+            g.update(patch_update)
+            current_app.logger.info(
+                f"{entity_id} - FINISHED graph parse + update at {time.perf_counter() - profile_time}"
+            )
+            new_len = len(g)
+            current_app.logger.info(
+                f"{entity_id} - PATCH Δtriples: {new_len - orig_len}, total: {new_len}"
+            )
+
+            data = json.loads(g.serialize(format="json-ld", auto_compact=True))
+
+            # Deflate uri prefixes!
+            data = _remove_prefix_json_ld(data)
+            data["@id"] = entity_id
+
+            checksum = checksum_json(data)
+            # any change?
+            if original_checksum != checksum:
+                if new_record is True:
+                    # add activity regardless
+                    record_update(record, data, version=False)
+                    process_activity(record.id, Event.Create)
+                else:
+                    # Update existing record with optional activity-stream update based on time
+                    if _update_beyond_threshold(record) is True:
+                        record_update(record, data)
+                        process_activity(record.id, Event.Update)
+                    else:
+                        # Too soon after the last event/version.
+                        # No activity event, and do not create a new version either:
+                        record_update(record, data, version=False)
+
+                # update triplestore:
+                if update_graphstore is True:
+                    current_app.logger.debug(
+                        f"{entity_id} - STARTED GRAPHSTORE SYNC {time.perf_counter() - profile_time}"
+                    )
+                    current_app.config["SPARQL_UPDATE_ENDPOINT"]
+                    current_app.logger.debug(
+                        f"{entity_id} - FINISHED GRAPHSTORE SYNC {time.perf_counter() - profile_time}"
+                    )
+
+                db.session.commit()
+                current_app.logger.info(
+                    f"{entity_id} - FINISHED graph RESERIALIZATION and storage at {time.perf_counter() - profile_time}"
+                )
+
+                return (
+                    jsonify(
+                        {
+                            "entity_id": entity_id,
+                            "updated": new_len - orig_len,
+                            "total_triples": new_len,
+                        }
+                    ),
+                    201 if new_record else 200,
+                )
+            else:
+                # no-op...
+                return jsonify({"code": 304, "title": "Not Modified"}), 304
+
+        except:
+            db.session.rollback()
+            raise
+
+
+@records.route("/<path:entity_id>", methods=["GET", "POST", "OPTIONS"])
 def entity_record(entity_id):
     """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard
     search for items in the LOD Gateway"""

@@ -70,8 +70,8 @@ def record_create(input_rec, commit=False):
 
 
 # Do not return anything. Calling function has all the info
-def record_update(db_rec, input_rec, commit=False):
-    if current_app.config["KEEP_LAST_VERSION"] is True:
+def record_update(db_rec, input_rec, version=True, commit=False):
+    if current_app.config["KEEP_LAST_VERSION"] is True and version is True:
         # Versioning
         current_app.logger.info(
             f"Versioning enabled: archiving a copy of {db_rec.entity_id} and replacing current with new data."

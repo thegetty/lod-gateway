@@ -165,7 +165,8 @@ def graph_expand(data, proc=None):
                 f"No suitable quads or triples were parsed from the supplied JSON-LD. Is {json_ld_id} actually JSON-LD?"
             )
             return False
-        return g.serialize(format="nquads")
+        # export as ntriples
+        return g.serialize(format="nt11")
 
 
 def graph_replace(graph_name, serialized_nt, update_endpoint):

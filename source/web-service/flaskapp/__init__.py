@@ -183,7 +183,7 @@ def create_app():
     if environ.get("SUBADDRESSING", "False").lower() == "true":
         app.config["SUBADDRESSING"] = True
         app.config["SUBADDRESSING_MAX_PARTS"] = 4
-        app.config["SUBADDRESSING_MIN_PARTS"] = 4
+        app.config["SUBADDRESSING_MIN_PARTS"] = 1
 
         if environ.get("SUBADDRESSING_MAX_PARTS") is not None:
             try:

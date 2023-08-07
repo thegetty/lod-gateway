@@ -91,6 +91,7 @@ def handle_prefix_listing(entity_id, request, idPrefix):
     records = (
         Record.query.options(
             load_only(
+                Record.id,
                 Record.entity_id,
                 Record.entity_type,
                 Record.datetime_updated,
@@ -99,6 +100,7 @@ def handle_prefix_listing(entity_id, request, idPrefix):
         )
         .filter(Record.datetime_deleted == None)
         .filter(Record.entity_id.like(entity_id[:-1] + "%"))
+        .order_by(Record.id)
     )
     # Pagination - GET URL parameter 'page'
     page = 1

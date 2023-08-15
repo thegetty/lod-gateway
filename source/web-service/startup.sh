@@ -25,7 +25,7 @@ if [[ "$WORKER_CLASS" != "gevent" ]]; then
          --workers ${WORKERS} \
          --worker-class ${WORKER_CLASS} \
          --timeout ${TIMEOUT} \
-         --keepalive ${KEEPALIVE} \
+         --keep-alive ${KEEPALIVE} \
          --access-logfile '-' \
          --error-logfile '-' \
          wsgi:app
@@ -37,7 +37,7 @@ else
          --workers ${WORKERS} \
          --worker-class ${WORKER_CLASS} \
          --timeout ${TIMEOUT} \
-         --keepalive ${KEEPALIVE} \
+         --keep-alive ${KEEPALIVE} \
          --access-logfile '-' \
          --error-logfile '-' \
          wsgi:app

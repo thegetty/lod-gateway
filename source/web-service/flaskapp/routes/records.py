@@ -230,7 +230,7 @@ def entity_record(entity_id):
     search for items in the LOD Gateway"""
     # idPrefix will be used by either the API route returning the record, or the route listing matches
     hostPrefix = current_app.config["BASE_URL"]
-    idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
+    idPrefix = current_app.config["idPrefix"]
 
     current_app.logger.debug(f"{entity_id} - Profiling started 0.0000000")
     profile_time = time.perf_counter()
@@ -561,7 +561,7 @@ def entity_version(entity_id):
 
         # idPrefix will be used by either the API route returning the record, or the route listing matches
         hostPrefix = current_app.config["BASE_URL"]
-        idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
+        idPrefix = current_app.config["idPrefix"]
 
         version = Version.query.filter(Version.entity_id == entity_id).one_or_none()
 
@@ -731,7 +731,7 @@ def delete_entity_version(entity_id):
 
         # idPrefix will be used by either the API route returning the record, or the route listing matches
         hostPrefix = current_app.config["BASE_URL"]
-        idPrefix = hostPrefix + "/" + current_app.config["NAMESPACE"]
+        idPrefix = current_app.config["idPrefix"]
 
         version = Version.query.filter(Version.entity_id == entity_id).one_or_none()
 

@@ -69,7 +69,7 @@ def create_app():
     app.config["AUTH_TOKEN"] = environ["AUTHORIZATION_TOKEN"]
     app.config["VERSION_AUTH"] = environ.get("VERSIONING_AUTHENTICATION", "True")
     app.config["BASE_URL"] = environ["BASE_URL"]
-    app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"] or None
+    app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"] or ""
     app.config["idPrefix"] = (
         f"{app.config['BASE_URL']}/{app.config['NAMESPACE']}"
         if app.config["NAMESPACE"]
@@ -80,7 +80,7 @@ def create_app():
         app.config["idPrefix"][:-1]
 
     app.config["NAMESPACE_FOR_RDF"] = (
-        environ.get("RDF_NAMESPACE", app.config["NAMESPACE"]) or None
+        environ.get("RDF_NAMESPACE", app.config["NAMESPACE"]) or ""
     )
     app.config["RDFidPrefix"] = (
         f"{app.config['BASE_URL']}/{app.config['NAMESPACE_FOR_RDF']}"

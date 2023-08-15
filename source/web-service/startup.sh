@@ -13,6 +13,7 @@ WORKERS="${WEB_WORKERS:-8}"
 WORKER_CONNECTIONS="${WORKER_CONNECTIONS:-100}"
 
 TIMEOUT="${WEB_TIMEOUT:-600}"
+KEEPALIVE="${WEB_KEEPALIVE:-75}"
 
 FLASK_RUN_PORT="${FLASK_RUN_PORT:-5100}"
 
@@ -24,6 +25,7 @@ if [[ "$WORKER_CLASS" != "gevent" ]]; then
          --workers ${WORKERS} \
          --worker-class ${WORKER_CLASS} \
          --timeout ${TIMEOUT} \
+         --keepalive ${KEEPALIVE} \
          --access-logfile '-' \
          --error-logfile '-' \
          wsgi:app
@@ -35,6 +37,7 @@ else
          --workers ${WORKERS} \
          --worker-class ${WORKER_CLASS} \
          --timeout ${TIMEOUT} \
+         --keepalive ${KEEPALIVE} \
          --access-logfile '-' \
          --error-logfile '-' \
          wsgi:app

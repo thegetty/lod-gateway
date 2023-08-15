@@ -38,9 +38,7 @@ class RetryAfterError(Exception):
 
 
 def inflate_relative_uris(data, id_attr="id"):
-    idPrefix = (
-        current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE_FOR_RDF"]
-    )
+    idPrefix = current_app.config["RDFidPrefix"]
 
     return containerRecursiveCallback(
         data=data, attr=id_attr, callback=idPrefixer, prefix=idPrefix

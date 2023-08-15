@@ -104,9 +104,7 @@ class TestObtainRecord:
         )
 
         # Assemble the record 'id' attribute base URL prefix
-        idPrefix = (
-            current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"]
-        )
+        idPrefix = current_app.config["idPrefix"]
 
         # For this test case, we prefix any record "id" field that requires it
         # so here we perform the same prefixing call as the records endpoint
@@ -133,9 +131,7 @@ class TestObtainRecord:
         )
 
         # Assemble the record 'id' attribute base URL prefix
-        idPrefix = (
-            current_app.config["BASE_URL"] + "/" + current_app.config["NAMESPACE"]
-        )
+        idPrefix = current_app.config["idPrefix"]
 
         # For this test case, we only prefix the top-level record "id" field
         # so here we perform the same prefixing call as the records endpoint

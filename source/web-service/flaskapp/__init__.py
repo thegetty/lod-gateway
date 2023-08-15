@@ -69,10 +69,28 @@ def create_app():
     app.config["AUTH_TOKEN"] = environ["AUTHORIZATION_TOKEN"]
     app.config["VERSION_AUTH"] = environ.get("VERSIONING_AUTHENTICATION", "True")
     app.config["BASE_URL"] = environ["BASE_URL"]
-    app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"]
-    app.config["NAMESPACE_FOR_RDF"] = environ.get(
-        "RDF_NAMESPACE", app.config["NAMESPACE"]
+    app.config["NAMESPACE"] = environ["APPLICATION_NAMESPACE"] or None
+    app.config["idPrefix"] = (
+        f"{app.config['BASE_URL']}/{app.config['NAMESPACE']}"
+        if app.config["NAMESPACE"]
+        else app.config["BASE_URL"]
     )
+    if app.config["idPrefix"].endswith("/"):
+        # idPrefix should not end with a /
+        app.config["idPrefix"][:-1]
+
+    app.config["NAMESPACE_FOR_RDF"] = (
+        environ.get("RDF_NAMESPACE", app.config["NAMESPACE"]) or None
+    )
+    app.config["RDFidPrefix"] = (
+        f"{app.config['BASE_URL']}/{app.config['NAMESPACE_FOR_RDF']}"
+        if app.config["NAMESPACE_FOR_RDF"]
+        else app.config["BASE_URL"]
+    )
+    if app.config["RDFidPrefix"].endswith("/"):
+        # RDFidPrefix should not end with a /
+        app.config["RDFidPrefix"][:-1]
+
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_SORT_KEYS"] = False

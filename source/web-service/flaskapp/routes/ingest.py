@@ -175,7 +175,11 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                         )
 
                     # add pair of IDs to result dict
-                    result_dict[id] = f'{current_app.config["NAMESPACE"]}/{id}'
+                    result_dict[id] = (
+                        f'{current_app.config["NAMESPACE"]}/{id}'
+                        if current_app.config["NAMESPACE"]
+                        else f"{id}"
+                    )
 
                     # add the list index to the list of updates to process through the graph store
                     idx_to_process_further.append(idx)

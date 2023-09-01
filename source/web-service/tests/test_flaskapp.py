@@ -2,7 +2,7 @@ class TestFlaskApp:
     def test_home_page(self, client, namespace):
         response = client.get(f"/{namespace}/")
         assert response.status_code == 200
-        #assert b"LOD Gateway" in response.data
+        # assert b"LOD Gateway" in response.data
 
     def test_cors_response(self, client, namespace):
         response = client.options(f"/{namespace}/")

@@ -197,7 +197,7 @@ def get_most_recent_sparql(base_url, entity_id):
 
 # Helpers ----------------------------
 def num_rec_to_str(num_rec):
-    num_rec_str = "0"
+    num_rec_str = str(num_rec)
     if num_rec > 1_000:
         if num_rec > 1_000_000:
             divider = 1_000_000

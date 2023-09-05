@@ -107,9 +107,13 @@ def get_entity(entity_type, base_url, items_per_page):
 def get_distinct_entity_types():
     # this is much faster than 'distinct'
     result = []
-    ent_types = db.session.query(Record.entity_type).group_by(Record.entity_type).all()
+    ent_types = (
+        db.session.query(Record.entity_type, func.count(Record.entity_type))
+        .group_by(Record.entity_type)
+        .all()
+    )
     for ent in ent_types:
-        if ent:
+        if ent and ent[1] > 1:
             result.append(ent[0])
 
     return result

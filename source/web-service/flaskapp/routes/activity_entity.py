@@ -135,7 +135,8 @@ def get_distinct_entity_types():
     val = Record.query.distinct(Record.entity_type).all()
     result = []
     for v in val:
-        result.append(v.entity_type.lower())
+        if v.entity_type:
+            result.append(v.entity_type.lower())
     return result
 
 

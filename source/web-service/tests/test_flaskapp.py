@@ -7,12 +7,11 @@ class TestFlaskApp:
     def test_cors_response(self, client, namespace):
         response = client.options(f"/{namespace}/")
         assert response.headers.get("Access-Control-Allow-Origin") == "*"
+
+    def test_cors_on_get(self, sample_data, client, namespace):
+        response = client.get(f"/{namespace}/")
+        assert response.headers.get("Access-Control-Allow-Origin") == "*"
+
+    def test_custom_headers_on_get(self, sample_data, client, namespace):
+        response = client.get(f"/{namespace}/")
         assert "LOD Gateway" in response.headers.get("Server")
-
-    # def test_cors_on_get(self, client, namespace):
-    #     response = client.get(f"/{namespace}/")
-    #     assert response.headers.get("Access-Control-Allow-Origin") == "*"
-
-    # def test_custom_headers_on_get(self, client, namespace):
-    #     response = client.get(f"/{namespace}/")
-    #     assert "LOD Gateway" in response.headers.get("Server")

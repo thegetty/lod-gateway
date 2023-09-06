@@ -13,7 +13,7 @@
 a.disabled {
   pointer-events: none;
   cursor: default;
-  color: grey;
+  color: rgb(150, 150, 150);
   text-decoration: none;
 }
 

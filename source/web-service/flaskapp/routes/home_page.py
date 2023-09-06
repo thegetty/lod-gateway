@@ -3,8 +3,6 @@ from math import ceil
 from urllib import parse
 from datetime import datetime
 
-from time import time
-
 from flaskapp.routes.activity_entity import url_base
 from flaskapp.models.record import Record
 from flaskapp.models.activity import Activity

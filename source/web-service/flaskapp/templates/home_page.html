@@ -2,7 +2,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css')}}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 
   <body>
     <div id="div_wrapper">
@@ -10,7 +10,7 @@
 
       <div style="width: 100%; height: 250px; margin-bottom: 40px">
         <div style="width: 50%; float: left; padding: 20px">
-          <div id="div_desc" style="padding-right: 40px">
+          <div id="div_desc" style="padding-right: 45px">
             Serve linked data. The LOD Gateway is a RDF enabled, fast-cache for storing entity information as JSON
             documents. The LOD Gateway provides API endpoints primarily for obtaining JSON entity documents and an
             activity stream to track changes in entity state. Optionally serve raw JSON from source systems or fully
@@ -182,7 +182,7 @@
         <hr />
         <div style="margin-top: 10px">
           <label>Version {{ lod_version }}</label>
-        </div>
+        </div>        
       </div>
     </div>
   </body>

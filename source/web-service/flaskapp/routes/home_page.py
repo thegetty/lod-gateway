@@ -160,7 +160,7 @@ def get_most_recent_changed_record(entity_type):
         )
         .filter(Record.entity_type == entity_type)
         .filter(Record.datetime_deleted == None)
-        .order_by(Record.id.desc())
+        .order_by(Record.datetime_updated.desc())
         .first()
     )
     rec_id = res[0]
@@ -171,7 +171,14 @@ def get_most_recent_changed_record(entity_type):
 
 
 def get_num_changes_record_entity(rec_id):
-    return db.session.query(Record.datetime_updated).filter(Record.id == rec_id).count()
+    num_changes = (
+        db.session.query(Activity.datetime_created)
+        .join(Record)
+        .filter(Record.id == rec_id)
+        .count()
+    )
+
+    return num_changes
 
 
 def get_most_recent_sparql(base_url, entity_id):

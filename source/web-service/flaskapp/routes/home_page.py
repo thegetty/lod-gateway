@@ -10,7 +10,7 @@ from sqlalchemy import func
 from sqlalchemy.sql.functions import coalesce, max
 from flaskapp.models import db
 
-# Create langing page
+# Create home page
 home_page = Blueprint("home_page", __name__)
 
 

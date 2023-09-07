@@ -6,7 +6,7 @@ from datetime import datetime
 from flaskapp.routes.activity_entity import url_base
 from flaskapp.models.record import Record
 from flaskapp.models.activity import Activity
-from sqlalchemy import func
+from sqlalchemy import func, desc
 from sqlalchemy.sql.functions import coalesce, max
 from flaskapp.models import db
 
@@ -107,7 +107,9 @@ def get_distinct_entity_types():
     result = []
     ent_types = (
         db.session.query(Record.entity_type, func.count(Record.entity_type))
+        .filter(Record.datetime_deleted == None)
         .group_by(Record.entity_type)
+        .order_by(desc(func.count(Record.entity_type)))
         .all()
     )
     for ent in ent_types:

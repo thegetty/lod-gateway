@@ -11,10 +11,7 @@
 }
 
 a.disabled {
-  pointer-events: none;
-  cursor: default;
-  color: rgb(150, 150, 150);
-  text-decoration: none;
+  display: none;
 }
 
 /* Checkbox ------------------------------------- */

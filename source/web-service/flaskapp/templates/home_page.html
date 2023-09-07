@@ -1,0 +1,196 @@
+{# templates/home_page.html #}
+
+<!DOCTYPE html>
+<html lang="en">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+
+  <body>
+    <div id="div_wrapper">
+      <div id="div_header" style="font-size: xx-large; padding: 20px">LOD Gateway - {{ lod_name }}</div>
+
+      <div style="width: 100%; height: 250px; margin-bottom: 40px">
+        <div style="width: 50%; float: left; padding: 20px">
+          <div id="div_desc" style="padding-right: 45px">
+            Serve linked data. The LOD Gateway is a RDF enabled, fast-cache for storing entity information as JSON
+            documents. The LOD Gateway provides API endpoints primarily for obtaining JSON entity documents and an
+            activity stream to track changes in entity state. Optionally serve raw JSON from source systems or fully
+            enable JSON-LD including RDF expansion and a SPARQL endpoint for querying RDF graph data.
+          </div>
+          <br /><br />
+          <div id="div_aslinks">
+            <a href="{{ url_for('activity.activity_stream_collection') }}">View activity stream</a>&nbsp;
+            <a href="{{ url_for('activity.activity_stream_page', pagenum=1) }}"> (oldest&nbsp;|</a>
+            <a href="{{ url_for('activity.activity_stream_page', pagenum=as_last_page) }}"> newest)</a>
+          </div>
+        </div>
+
+        <div style="margin-left: 50%; padding: 20px; padding-left: 80px">
+          <label style="font-size: x-large; font-weight: 500">Stats</label>
+          <div style="font-size: x-large; font-weight: 500; margin-top: 15px; margin-bottom: 20px">
+            {{ num_records }} records &nbsp; &nbsp; {{ num_changes }} changes
+          </div>
+          <div style="margin-bottom: 25px">Last change made: {{ last_change }}</div>
+          <div style="margin-bottom: 20px; font-size: larger">
+            {% if chk_sparql == "checked" %}
+            <label>SPARQL</label>
+            <input type="checkbox" checked disabled="true" />
+            {% else %}
+            <label>SPARQL</label>
+            <input type="checkbox" disabled="true" />
+            {% endif %} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {% if chk_momento == "checked" %}
+            <label>Momento</label>
+            <input type="checkbox" checked disabled="true" />
+            {% else %}
+            <label>Momento</label>
+            <input type="checkbox" disabled="true" />
+            {% endif %}
+          </div>
+          <hr />
+          <div style="margin-top: 10px">
+            {% if chk_sparql == "checked" %}
+            <div style="margin-bottom: 10px">
+              <a href="{{ url_for('sparql.query_entrypoint') }}">SPARQL API link</a>
+            </div>
+            <div>
+              <a href="{{ url_for('yasgui.get_yasgui') }}">SPARQL GUI link</a>
+            </div>
+            {% else %}
+            <div style="margin-bottom: 10px">
+              <a href="{{ url_for('sparql.query_entrypoint') }}" class="disabled">SPARQL API link</a>
+            </div>
+            <div>
+              <a href="{{ url_for('yasgui.get_yasgui') }}" class="disabled">SPARQL GUI link</a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <label style="font-size: x-large">Entities ({{ num_entities }})</label>
+
+      {% for entity in entities %}
+      <div style="width: 100%; margin-top: 20px">
+        <div style="padding: 20px; width: 460px; height: 300px; float: left; background-color: white">
+          <div style="font-size: x-large; margin-bottom: 25px">
+            <label>{{ entity.entity_name }}</label>
+          </div>
+          <div style="font-size: large; margin-bottom: 10px">{{ entity.num_records }}&nbsp;records</div>
+          <div style="font-size: large; margin-bottom: 10px">{{ entity.num_changes}}&nbsp;changes</div>
+          <div style="font-size: medium; margin-bottom: 20px">Last updated: &nbsp; {{ entity.last_updated }}</div>
+          <div id="div_aslinks">
+            <a
+              href="{{ url_for('activity_entity.activity_stream_entity_collection', entity_type=entity.entity_name.lower()) }}"
+              >View activity stream</a
+            >&nbsp;
+            <a
+              href="{{ url_for('activity_entity.activity_stream_entity_page', entity_type=entity.entity_name.lower(), pagenum=1) }}"
+              >(oldest |</a
+            >
+            <a
+              href="{{ url_for('activity_entity.activity_stream_entity_page', entity_type=entity.entity_name.lower(), pagenum=entity.as_last_page) }}"
+              >newest)</a
+            >&nbsp;
+          </div>
+        </div>
+        <div style="padding: 20px; margin-left: 50%; height: 300px; background-color: rgb(238, 234, 244)">
+          <div style="font-size: large; margin-top: 50px">Most recently changed record</div>
+          <div style="margin-top: 20px; margin-bottom: 15px; word-wrap: break-word;">
+            <a href="{{ entity.most_recent_rec_url }}">{{ entity.most_recent_rec_url }}</a>
+          </div>
+          <div style="font-size: medium; margin-bottom: 10px">Last updated: &nbsp; {{ entity.most_recent_date }}</div>
+          <div style="font-size: medium; margin-bottom: 10px">{{ entity.most_recent_num_changes}}&nbsp;changes</div>
+          <div style="margin-top: 20px; margin-bottom: 8px">
+            {% if chk_momento == "checked" %}
+            <a href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}"
+              >View change log in momento</a
+            >
+            {% else %}
+            <a href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}" class="disabled"
+              >View change log in momento
+            </a>
+            {% endif %}
+          </div>
+          <div style="margin-bottom: 8px">
+            <a href="{{ entity.most_recent_as}}">View activity stream</a>
+          </div>
+          <div>
+            {% if chk_sparql == "checked" %}
+            <a href="{{ entity.most_recent_sparql }}">Link to SPARQL query</a>
+            {% else %}
+            <a href="{{ entity.most_recent_sparql }}" class="disabled">Link to SPARQL query</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <div style="width: 100%; height: 240px; margin-top: 40px; background-color: rgb(230, 226, 236" ;>
+        <div style="font-size: x-large; padding: 20px">
+          <label>Documentation & resources</label>
+        </div>
+
+        <div style="width: 100%; padding-left: 10px; margin-top: 10px; text-align: center; font-size: large">
+          <div style="width: 24%; height: 120px; float: left">
+            <label style="font-size: larger">label 1</label>
+            <div style="margin-top: 20px">
+              <a href="https://google.com">link 1</a>
+            </div>
+            <div style="margin-top: 10px">
+              <a href="https://google.com">link 2</a>
+            </div>
+            <div style="margin-top: 10px">
+              <a href="https://google.com">link 3</a>
+            </div>
+          </div>
+          <div style="width: 24%; height: 120px; float: left">
+            <label style="font-size: larger">label 2</label>
+            <div style="margin-top: 20px">
+              <a href="https://google.com">link 1</a>
+            </div>
+            <div style="margin-top: 10px">
+              <a href="https://google.com">link 2</a>
+            </div>
+            <div style="margin-top: 10px">
+              <a href="https://google.com">link 3</a>
+            </div>
+          </div>
+          <div style="width: 24%; height: 120px; float: left">
+            <label style="font-size: larger">label 3</label>
+            <div style="margin-top: 20px">
+              <a href="https://google.com">link 1</a>
+            </div>
+            <div style="margin-top: 10px">
+              <a href="https://google.com">link 2</a>
+            </div>
+            <div style="margin-top: 10px">
+              <a href="https://google.com">link 3</a>
+            </div>
+          </div>
+          <div style="width: 24%; height: 120px; float: left">
+            <label style="font-size: larger">label 4</label>
+            <div style="margin-top: 20px">
+              <a href="https://google.com">link 1</a>
+            </div>
+            <div style="margin-top: 10px">
+              <a href="https://google.com">link 2</a>
+            </div>
+            <div style="margin-top: 10px">
+              <a href="https://google.com">link 3</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 60px; margin-left: 100px">
+        <div style="margin-bottom: 10px">
+          <label>© 2023 The J. Paul Getty Trust. All rights reserved.</label>
+        </div>
+
+        <hr />
+        <div style="margin-top: 10px">
+          <label>Version {{ lod_version }}</label>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

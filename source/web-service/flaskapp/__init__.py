@@ -14,6 +14,7 @@ from flask_compress import Compress
 
 from flask.logging import default_handler
 
+from flaskapp.routes.home_page import home_page
 from flaskapp.routes.activity import activity
 from flaskapp.routes.activity_entity import activity_entity
 from flaskapp.routes.records import records
@@ -221,6 +222,7 @@ def create_app():
             or ""
         )
 
+        app.register_blueprint(home_page, url_prefix=f"/{ns}")
         app.register_blueprint(activity, url_prefix=f"/{ns}")
         app.register_blueprint(activity_entity, url_prefix=f"/{ns}")
         app.register_blueprint(records, url_prefix=f"/{ns}")

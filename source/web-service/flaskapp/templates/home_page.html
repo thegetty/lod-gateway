@@ -47,12 +47,21 @@
           </div>
           <hr />
           <div style="margin-top: 10px">
+            {% if chk_sparql == "checked" %}
             <div style="margin-bottom: 10px">
               <a href="{{ url_for('sparql.query_entrypoint') }}">SPARQL API link</a>
             </div>
             <div>
               <a href="{{ url_for('yasgui.get_yasgui') }}">SPARQL GUI link</a>
             </div>
+            {% else %}
+            <div style="margin-bottom: 10px">
+              <a href="{{ url_for('sparql.query_entrypoint') }}" class="disabled">SPARQL API link</a>
+            </div>
+            <div>
+              <a href="{{ url_for('yasgui.get_yasgui') }}" class="disabled">SPARQL GUI link</a>
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>

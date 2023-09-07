@@ -93,7 +93,7 @@ def get_entity(entity_type, base_url, items_per_page):
     total_pages = ceil(num_changes / items_per_page)
     ent_obj["as_last_page"] = str(total_pages)
     rec_id, last_rec, last_date = get_most_recent_changed_record(entity_type)
-    ent_obj["most_recent_rec_url"] = f'{base_url}/{last_rec}'
+    ent_obj["most_recent_rec_url"] = f"{base_url}/{last_rec}"
     ent_obj["most_recent_rec"] = last_rec
     ent_obj["most_recent_date"] = datetime.strftime(last_date, "%m/%d/%y")
     ent_obj["most_recent_num_changes"] = get_num_changes_record_entity(rec_id)

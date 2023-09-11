@@ -2,7 +2,56 @@
 
 <!DOCTYPE html>
 <html lang="en">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+
+  <style>
+    #div_wrapper {
+      border: 1px solid rgb(167, 193, 250);
+      width: 1000px;
+      margin: auto;
+      background-color: rgb(248, 240, 250);
+      font-family: Calibri;
+      padding-top: 20px;
+      padding-bottom: 20px;
+      padding-left: 80px;
+      padding-right: 80px;
+    }
+
+    a.disabled {
+      display: none;
+    }
+
+    /* Checkbox ------------------------------------- */
+    input[type="checkbox"] {
+      position: relative;
+      cursor: default;
+    }
+    input[type="checkbox"]:before {
+      content: "";
+      display: block;
+      position: absolute;
+      left: -2px;
+      top: -2px;
+      width: 1.5em;
+      height: 1.5em;
+      border: 1px solid rgb(203, 201, 221);
+      border-radius: 50%;
+      background-color: rgb(122, 99, 139);
+    }
+    input[type="checkbox"]:checked:after {
+      content: "";
+      display: block;
+      width: 5px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      -webkit-transform: rotate(45deg);
+      -ms-transform: rotate(45deg);
+      transform: rotate(45deg);
+      position: absolute;
+      top: 2px;
+      left: 6px;
+    }
+  </style>
 
   <body>
     <div id="div_wrapper">

@@ -2,7 +2,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
 
   <body>
     <div id="div_wrapper">
@@ -94,7 +94,7 @@
         </div>
         <div style="padding: 20px; margin-left: 50%; height: 300px; background-color: rgb(238, 234, 244)">
           <div style="font-size: large; margin-top: 50px">Most recently changed record</div>
-          <div style="margin-top: 20px; margin-bottom: 15px; word-wrap: break-word;">
+          <div style="margin-top: 20px; margin-bottom: 15px; word-wrap: break-word">
             <a href="{{ entity.most_recent_rec_url }}">{{ entity.most_recent_rec_url }}</a>
           </div>
           <div style="font-size: medium; margin-bottom: 10px">Last updated: &nbsp; {{ entity.most_recent_date }}</div>

@@ -15,6 +15,7 @@ home_page = Blueprint("home_page", __name__)
 
 
 @home_page.route("/", methods=["GET"])
+@home_page.route("/dashboard", methods=["GET"])
 def get_home_page():
 
     base_url = url_base()

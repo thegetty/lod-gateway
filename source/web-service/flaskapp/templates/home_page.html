@@ -2,7 +2,6 @@
 
 <!DOCTYPE html>
 <html lang="en">
-
   <style>
     #div_wrapper {
       border: 1px solid rgb(167, 193, 250);
@@ -119,7 +118,7 @@
 
       {% for entity in entities %}
       <div style="width: 100%; margin-top: 20px">
-        <div style="padding: 20px; width: 460px; height: 300px; float: left; background-color: white">
+        <div style="padding: 20px; width: 460px; height: 290px; float: left; background-color: white">
           <div style="font-size: x-large; margin-bottom: 25px">
             <label>{{ entity.entity_name }}</label>
           </div>
@@ -141,7 +140,7 @@
             >&nbsp;
           </div>
         </div>
-        <div style="padding: 20px; margin-left: 50%; height: 300px; background-color: rgb(238, 234, 244)">
+        <div style="padding: 20px; margin-left: 50%; height: 290px; background-color: rgb(238, 234, 244)">
           <div style="font-size: large; margin-top: 50px">Most recently changed record</div>
           <div style="margin-top: 20px; margin-bottom: 15px; word-wrap: break-word">
             <a href="{{ entity.most_recent_rec_url }}">{{ entity.most_recent_rec_url }}</a>

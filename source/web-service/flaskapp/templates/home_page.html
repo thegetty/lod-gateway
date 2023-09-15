@@ -7,18 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
     <link
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,600,0,200"
       rel="stylesheet"
     />
-    <link
-      href="https://unpkg.com/material-design-lite@1.3.0/material.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://unpkg.com/material-design-lite@1.3.0/material.min.css" rel="stylesheet" />
   </head>
   <style>
     *,
@@ -302,29 +296,18 @@
         <div class="hero_left-column">
           <div class="hero_description" style="padding-right: 45px">
             <p>
-              Serve linked data. The LOD Gateway is a RDF enabled, fast-cache
-              for storing entity information as JSON documents. The LOD Gateway
-              provides API endpoints primarily for obtaining JSON entity
-              documents and an activity stream to track changes in entity state.
-              Optionally serve raw JSON from source systems or fully enable
-              JSON-LD including RDF expansion and a SPARQL endpoint for querying
-              RDF graph data.
+              Serve linked data. The LOD Gateway is a RDF enabled, fast-cache for storing entity information as JSON
+              documents. The LOD Gateway provides API endpoints primarily for obtaining JSON entity documents and an
+              activity stream to track changes in entity state. Optionally serve raw JSON from source systems or fully
+              enable JSON-LD including RDF expansion and a SPARQL endpoint for querying RDF graph data.
             </p>
           </div>
           <div class="hero_aslinks">
-            <a href="{{ url_for('activity.activity_stream_collection') }}"
-              >View activity stream</a
-            >
+            <a href="{{ url_for('activity.activity_stream_collection') }}">View activity stream</a>
             <span>(</span>
-            <a href="{{ url_for('activity.activity_stream_page', pagenum=1) }}"
-              >oldest</a
-            >
+            <a href="{{ url_for('activity.activity_stream_page', pagenum=1) }}">oldest</a>
             <span> | </span>
-            <a
-              href="{{ url_for('activity.activity_stream_page', pagenum=as_last_page) }}"
-            >
-              newest</a
-            >
+            <a href="{{ url_for('activity.activity_stream_page', pagenum=as_last_page) }}"> newest</a>
             <span>)</span>
           </div>
         </div>
@@ -362,9 +345,7 @@
           <hr />
           <div class="hero_sparql-links">
             <div>
-              <a href="{{ url_for('sparql.query_entrypoint') }}"
-                >SPARQL API link
-              </a>
+              <a href="{{ url_for('sparql.query_entrypoint') }}">SPARQL API link </a>
               <span class="material-symbols-outlined"> arrow_outward </span>
             </div>
             <div>
@@ -390,9 +371,7 @@
               <span class="material-symbols-outlined"> update </span>
               <h3>{{ entity.num_changes}} changes</h3>
             </div>
-            <p class="entity_timestamp">
-              Last updated: {{ entity.last_updated }}
-            </p>
+            <p class="entity_timestamp">Last updated: {{ entity.last_updated }}</p>
             <div class="entity_aslinks">
               <a
                 href="{{ url_for('activity_entity.activity_stream_entity_collection', entity_type=entity.entity_name.lower()) }}"
@@ -415,18 +394,13 @@
             <h3>Most recently changed record</h3>
             <div class="entity_recent-change">
               <span class="material-symbols-outlined"> link </span>
-              <a href="{{ entity.most_recent_rec_url }}"
-                >{{ entity.most_recent_rec_url }}</a
-              >
+              <a href="{{ entity.most_recent_rec_url }}">{{ entity.most_recent_rec_url }}</a>
             </div>
-            <p class="entity_timestamp">
-              Last updated: {{ entity.most_recent_date }}
-            </p>
+            <p class="entity_timestamp">Last updated: {{ entity.most_recent_date }}</p>
             <p>{{ entity.most_recent_num_changes}} changes</p>
             <div class="entity_links">
               {% if chk_momento == "checked" %}
-              <a
-                href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}"
+              <a href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}"
                 >View change log in momento</a
               >
               {% endif %}
@@ -441,37 +415,24 @@
       </div>
     </div>
 
+    {% if link_bank %}
     <div class="documentation">
       <div class="documntation_container container">
         <h2>Documentation & resources</h2>
         <div class="documnetation_columns">
-          <div class="documnetation_column">
-            <h3>Label 1</h3>
-            <a href="https://google.com">Link 1</a>
-            <a href="https://google.com">Link 2</a>
-            <a href="https://google.com">Link 3</a>
+          {% for group in link_bank.groups %}
+          <div class="document_column">
+            <h3>{{ group.name }}</h3>
+            <br />
+            {% for link in group.links %}
+            <a href="{{ link.url }}">{{ link.name }}</a><br />
+            {% endfor %}
           </div>
-          <div class="documnetation_column">
-            <h3>Label 2</h3>
-            <a href="https://google.com">Link 1</a>
-            <a href="https://google.com">Link 2</a>
-            <a href="https://google.com">Link 3</a>
-          </div>
-          <div class="documnetation_column">
-            <h3>Label 3</h3>
-            <a href="https://google.com">Link 1</a>
-            <a href="https://google.com">Link 2</a>
-            <a href="https://google.com">Link 3</a>
-          </div>
-          <div class="documnetation_column">
-            <h3>Label 4</h3>
-            <a href="https://google.com">Link 1</a>
-            <a href="https://google.com">Link 2</a>
-            <a href="https://google.com">Link 3</a>
-          </div>
+          {% endfor %}
         </div>
       </div>
     </div>
+    {% endif %}
 
     <footer class="container">
       <p>© 2023 The J. Paul Getty Trust. All rights reserved.</p>

@@ -21,12 +21,18 @@ def get_home_page():
     base_url = url_base()
     items_per_page = (int)(current_app.config["ITEMS_PER_PAGE"])
 
+    # entities
     entities = []
     entity_types = get_distinct_entity_types()
 
     for entity_type in entity_types:
         ent_obj = get_entity(entity_type, base_url, items_per_page)
         entities.append(ent_obj)
+
+    # link bank
+    link_bank = None
+    if "LINK_BANK" in current_app.config:
+        link_bank = current_app.config["LINK_BANK"]
 
     # Create context
     context = {
@@ -40,6 +46,7 @@ def get_home_page():
         "last_change": get_last_modified_date(),
         "entities": entities,
         "num_entities": len(entities),
+        "link_bank": link_bank,
     }
 
     return render_template("home_page.html", **context)

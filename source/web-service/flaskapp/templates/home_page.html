@@ -2,243 +2,481 @@
 
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,600,0,200"
+      rel="stylesheet"
+    />
+    <link
+      href="https://unpkg.com/material-design-lite@1.3.0/material.min.css"
+      rel="stylesheet"
+    />
+  </head>
   <style>
-    #div_wrapper {
-      border: 1px solid rgb(167, 193, 250);
-      width: 1000px;
-      margin: auto;
+    *,
+    *::before,
+    *::after {
+      -webkit-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+
+    html {
       background-color: rgb(248, 240, 250);
-      font-family: Calibri;
-      padding-top: 20px;
-      padding-bottom: 20px;
-      padding-left: 80px;
-      padding-right: 80px;
     }
 
-    a.disabled {
-      display: none;
+    body,
+    p {
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 24px; /* 150% */
+      letter-spacing: 0.5px;
+      font-family: "Roboto", sans-serif;
     }
 
-    /* Checkbox ------------------------------------- */
-    input[type="checkbox"] {
-      position: relative;
-      cursor: default;
+    h1 {
+      font-size: 52px;
+      line-height: 64px;
+      margin: 0;
     }
-    input[type="checkbox"]:before {
-      content: "";
-      display: block;
-      position: absolute;
-      left: -2px;
-      top: -2px;
-      width: 1.5em;
-      height: 1.5em;
-      border: 1px solid rgb(203, 201, 221);
-      border-radius: 50%;
-      background-color: rgb(122, 99, 139);
+
+    h2 {
+      font-size: 32px;
+      line-height: 40px;
+      margin: 0;
     }
-    input[type="checkbox"]:checked:after {
-      content: "";
-      display: block;
-      width: 5px;
-      height: 10px;
-      border: solid white;
-      border-width: 0 2px 2px 0;
-      -webkit-transform: rotate(45deg);
-      -ms-transform: rotate(45deg);
-      transform: rotate(45deg);
-      position: absolute;
-      top: 2px;
-      left: 6px;
+
+    h3 {
+      font-size: 22px;
+      line-height: 28px;
+      margin: 0;
+    }
+
+    a {
+      color: #6750a4;
+      font-weight: 400;
+    }
+
+    .container {
+      margin-top: 96px;
+      margin-right: auto;
+      margin-left: auto;
+      padding-right: 15px;
+      padding-left: 15px;
+      width: 100%;
+      max-width: 1140px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 32px;
+    }
+
+    .hero_left-column {
+      width: 50%;
+    }
+
+    .hero_aslinks {
+      margin-top: 24px;
+    }
+
+    .hero_right-column {
+      border: 1px solid #cac4d0;
+      border-radius: 12px;
+      padding: 24px;
+      width: 42%;
+    }
+
+    .hero_stats {
+      display: flex;
+      column-gap: 32px;
+      margin-top: 32px;
+    }
+
+    .hero_timestamp {
+      color: #49454f;
+      margin-top: 12px;
+    }
+
+    .hero_badges {
+      display: flex;
+      margin-top: 12px;
+      column-gap: 23px;
+    }
+
+    .hero_badge {
+      display: flex;
+      column-gap: 5px;
+      align-items: flex-start;
+    }
+
+    .hero_badge-indicator {
+      background-color: #6750a4;
+      border-radius: 100%;
+      height: 24px;
+      width: 24px;
+    }
+
+    .hero_badge-indicator span {
+      color: #ffffff;
+    }
+
+    .hero_sparql-links {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      row-gap: 10px;
+    }
+
+    .hero_sparql-links div {
+      display: flex;
+      align-items: flex-start;
+      column-gap: 4px;
+      color: #6750a4;
+    }
+
+    .entities {
+      margin-top: 60px;
+    }
+
+    .entity_row {
+      display: flex;
+      margin-top: 32px;
+      background-color: #eeeaf4;
+      border-radius: 12px;
+    }
+
+    .entity_left-column,
+    .entity_right-column {
+      width: 50%;
+      padding: 24px;
+    }
+
+    .entity_left-column {
+      background-color: #ffffff;
+      border-radius: 12px;
+    }
+
+    .entity_records,
+    .entity_changes {
+      margin-top: 24px;
+      display: flex;
+      align-items: flex-start;
+      column-gap: 4px;
+    }
+
+    .entity_records span,
+    .entity_changes span {
+      color: #6750a4;
+    }
+
+    .entity_changes {
+      margin-top: 12px;
+    }
+
+    .entity_timestamp {
+      margin-top: 24px;
+    }
+
+    .entity_right-column {
+      margin-top: 50px;
+    }
+
+    .entity_recent-change {
+      display: flex;
+      column-gap: 4px;
+      align-items: flex-start;
+      color: #6750a4;
+      margin-top: 32px;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .entity_links {
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .documentation {
+      width: 100%;
+      margin-right: auto;
+      margin-left: auto;
+      padding-right: 15px;
+      padding-left: 15px;
+      background-color: #e7e0ec;
+    }
+
+    .documntation_container {
+      padding-top: 64px;
+      padding-bottom: 90px;
+    }
+
+    .documnetation_columns {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 64px;
+    }
+
+    .documnetation_column {
+      display: flex;
+      flex-direction: column;
+      row-gap: 16px;
+      width: 18%;
+      margin-top: 0;
+    }
+
+    .documnetation_column h3 {
+      border-bottom: 1px solid #cac4d0;
+      margin-bottom: 35px;
+      padding-bottom: 4px;
+    }
+
+    footer {
+      padding-bottom: 96px;
+    }
+
+    footer hr {
+      margin: 32px 0;
+    }
+
+    /* responsive styles */
+    @media (max-width: 576px) {
+      .container {
+        max-width: 540px;
+      }
+    }
+    @media (max-width: 768px) {
+      .container {
+        max-width: 720px;
+      }
+
+      .hero {
+        flex-wrap: wrap;
+      }
+
+      .hero_left-column,
+      .hero_right-column {
+        width: 100%;
+        margin-bottom: 32px;
+      }
+
+      .entity_row {
+        flex-wrap: wrap;
+      }
+
+      .entity_left-column,
+      .entity_right-column {
+        width: 100%;
+      }
+
+      .documnetation_columns {
+        flex-wrap: wrap;
+      }
+
+      .documnetation_column {
+        width: 50%;
+        margin-top: 60px;
+      }
+    }
+    @media (max-width: 992px) {
+      .container {
+        max-width: 960px;
+      }
     }
   </style>
 
   <body>
-    <div id="div_wrapper">
-      <div id="div_header" style="font-size: xx-large; padding: 20px">LOD Gateway - {{ lod_name }}</div>
-
-      <div style="width: 100%; height: 250px; margin-bottom: 40px">
-        <div style="width: 50%; float: left; padding: 20px">
-          <div id="div_desc" style="padding-right: 45px">
-            Serve linked data. The LOD Gateway is a RDF enabled, fast-cache for storing entity information as JSON
-            documents. The LOD Gateway provides API endpoints primarily for obtaining JSON entity documents and an
-            activity stream to track changes in entity state. Optionally serve raw JSON from source systems or fully
-            enable JSON-LD including RDF expansion and a SPARQL endpoint for querying RDF graph data.
+    <div class="container">
+      <h1 class="title">LOD Gateway - {{ lod_name }}</h1>
+      <div class="hero">
+        <div class="hero_left-column">
+          <div class="hero_description" style="padding-right: 45px">
+            <p>
+              Serve linked data. The LOD Gateway is a RDF enabled, fast-cache
+              for storing entity information as JSON documents. The LOD Gateway
+              provides API endpoints primarily for obtaining JSON entity
+              documents and an activity stream to track changes in entity state.
+              Optionally serve raw JSON from source systems or fully enable
+              JSON-LD including RDF expansion and a SPARQL endpoint for querying
+              RDF graph data.
+            </p>
           </div>
-          <br /><br />
-          <div id="div_aslinks">
-            <a href="{{ url_for('activity.activity_stream_collection') }}">View activity stream</a>&nbsp;
-            <a href="{{ url_for('activity.activity_stream_page', pagenum=1) }}"> (oldest&nbsp;|</a>
-            <a href="{{ url_for('activity.activity_stream_page', pagenum=as_last_page) }}"> newest)</a>
-          </div>
-        </div>
-
-        <div style="margin-left: 50%; padding: 20px; padding-left: 80px">
-          <label style="font-size: x-large; font-weight: 500">Stats</label>
-          <div style="font-size: x-large; font-weight: 500; margin-top: 15px; margin-bottom: 20px">
-            {{ num_records }} records &nbsp; &nbsp; {{ num_changes }} changes
-          </div>
-          <div style="margin-bottom: 25px">Last change made: {{ last_change }}</div>
-          <div style="margin-bottom: 20px; font-size: larger">
-            {% if chk_sparql == "checked" %}
-            <label>SPARQL</label>
-            <input type="checkbox" checked disabled="true" />
-            {% else %}
-            <label>SPARQL</label>
-            <input type="checkbox" disabled="true" />
-            {% endif %} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {% if chk_momento == "checked" %}
-            <label>Momento</label>
-            <input type="checkbox" checked disabled="true" />
-            {% else %}
-            <label>Momento</label>
-            <input type="checkbox" disabled="true" />
-            {% endif %}
-          </div>
-          <hr />
-          <div style="margin-top: 10px">
-            {% if chk_sparql == "checked" %}
-            <div style="margin-bottom: 10px">
-              <a href="{{ url_for('sparql.query_entrypoint') }}">SPARQL API link</a>
-            </div>
-            <div>
-              <a href="{{ url_for('yasgui.get_yasgui') }}">SPARQL GUI link</a>
-            </div>
-            {% else %}
-            <div style="margin-bottom: 10px">
-              <a href="{{ url_for('sparql.query_entrypoint') }}" class="disabled">SPARQL API link</a>
-            </div>
-            <div>
-              <a href="{{ url_for('yasgui.get_yasgui') }}" class="disabled">SPARQL GUI link</a>
-            </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <label style="font-size: x-large">Entities ({{ num_entities }})</label>
-
-      {% for entity in entities %}
-      <div style="width: 100%; margin-top: 20px">
-        <div style="padding: 20px; width: 460px; height: 290px; float: left; background-color: white">
-          <div style="font-size: x-large; margin-bottom: 25px">
-            <label>{{ entity.entity_name }}</label>
-          </div>
-          <div style="font-size: large; margin-bottom: 10px">{{ entity.num_records }}&nbsp;records</div>
-          <div style="font-size: large; margin-bottom: 10px">{{ entity.num_changes}}&nbsp;changes</div>
-          <div style="font-size: medium; margin-bottom: 20px">Last updated: &nbsp; {{ entity.last_updated }}</div>
-          <div id="div_aslinks">
-            <a
-              href="{{ url_for('activity_entity.activity_stream_entity_collection', entity_type=entity.entity_name.lower()) }}"
+          <div class="hero_aslinks">
+            <a href="{{ url_for('activity.activity_stream_collection') }}"
               >View activity stream</a
-            >&nbsp;
-            <a
-              href="{{ url_for('activity_entity.activity_stream_entity_page', entity_type=entity.entity_name.lower(), pagenum=1) }}"
-              >(oldest |</a
             >
-            <a
-              href="{{ url_for('activity_entity.activity_stream_entity_page', entity_type=entity.entity_name.lower(), pagenum=entity.as_last_page) }}"
-              >newest)</a
-            >&nbsp;
-          </div>
-        </div>
-        <div style="padding: 20px; margin-left: 50%; height: 290px; background-color: rgb(238, 234, 244)">
-          <div style="font-size: large; margin-top: 50px">Most recently changed record</div>
-          <div style="margin-top: 20px; margin-bottom: 15px; word-wrap: break-word">
-            <a href="{{ entity.most_recent_rec_url }}">{{ entity.most_recent_rec_url }}</a>
-          </div>
-          <div style="font-size: medium; margin-bottom: 10px">Last updated: &nbsp; {{ entity.most_recent_date }}</div>
-          <div style="font-size: medium; margin-bottom: 10px">{{ entity.most_recent_num_changes}}&nbsp;changes</div>
-          <div style="margin-top: 20px; margin-bottom: 8px">
-            {% if chk_momento == "checked" %}
-            <a href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}"
-              >View change log in momento</a
+            <span>(</span>
+            <a href="{{ url_for('activity.activity_stream_page', pagenum=1) }}"
+              >oldest</a
             >
-            {% else %}
-            <a href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}" class="disabled"
-              >View change log in momento
-            </a>
-            {% endif %}
+            <span> | </span>
+            <a
+              href="{{ url_for('activity.activity_stream_page', pagenum=as_last_page) }}"
+            >
+              newest</a
+            >
+            <span>)</span>
           </div>
-          <div style="margin-bottom: 8px">
-            <a href="{{ entity.most_recent_as}}">View activity stream</a>
-          </div>
-          <div>
-            {% if chk_sparql == "checked" %}
-            <a href="{{ entity.most_recent_sparql }}">Link to SPARQL query</a>
-            {% else %}
-            <a href="{{ entity.most_recent_sparql }}" class="disabled">Link to SPARQL query</a>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-
-      <div style="width: 100%; height: 240px; margin-top: 40px; background-color: rgb(230, 226, 236" ;>
-        <div style="font-size: x-large; padding: 20px">
-          <label>Documentation & resources</label>
         </div>
 
-        <div style="width: 100%; padding-left: 10px; margin-top: 10px; text-align: center; font-size: large">
-          <div style="width: 24%; height: 120px; float: left">
-            <label style="font-size: larger">label 1</label>
-            <div style="margin-top: 20px">
-              <a href="https://google.com">link 1</a>
+        <div class="hero_right-column">
+          <h3>Stats</h3>
+          <div class="hero_stats">
+            <h2>{{ num_records }} records</h2>
+            <h2>{{ num_changes }} changes</h2>
+          </div>
+          <div class="hero_timestamp">Last change made: {{ last_change }}</div>
+          <div class="hero_badges">
+            <div class="hero_badge">
+              <p>SPARQL</p>
+              <div class="hero_badge-indicator">
+                {% if chk_sparql == "checked" %}
+                <span class="material-symbols-outlined"> done </span>
+                {% else %}
+                <span class="material-symbols-outlined"> close </span>
+                {% endif %}
+              </div>
             </div>
-            <div style="margin-top: 10px">
-              <a href="https://google.com">link 2</a>
-            </div>
-            <div style="margin-top: 10px">
-              <a href="https://google.com">link 3</a>
+            <div class="hero_badge">
+              <p>Momento</p>
+              <div class="hero_badge-indicator">
+                {% if chk_sparql == "checked" %}
+                <span class="material-symbols-outlined"> done </span>
+                {% else %}
+                <span class="material-symbols-outlined"> close </span>
+                {% endif %}
+              </div>
             </div>
           </div>
-          <div style="width: 24%; height: 120px; float: left">
-            <label style="font-size: larger">label 2</label>
-            <div style="margin-top: 20px">
-              <a href="https://google.com">link 1</a>
+          {% if chk_sparql == "checked" %}
+          <hr />
+          <div class="hero_sparql-links">
+            <div>
+              <a href="{{ url_for('sparql.query_entrypoint') }}"
+                >SPARQL API link
+              </a>
+              <span class="material-symbols-outlined"> arrow_outward </span>
             </div>
-            <div style="margin-top: 10px">
-              <a href="https://google.com">link 2</a>
-            </div>
-            <div style="margin-top: 10px">
-              <a href="https://google.com">link 3</a>
-            </div>
-          </div>
-          <div style="width: 24%; height: 120px; float: left">
-            <label style="font-size: larger">label 3</label>
-            <div style="margin-top: 20px">
-              <a href="https://google.com">link 1</a>
-            </div>
-            <div style="margin-top: 10px">
-              <a href="https://google.com">link 2</a>
-            </div>
-            <div style="margin-top: 10px">
-              <a href="https://google.com">link 3</a>
+            <div>
+              <a href="{{ url_for('yasgui.get_yasgui') }}">SPARQL GUI link </a>
+              <span class="material-symbols-outlined"> arrow_outward </span>
             </div>
           </div>
-          <div style="width: 24%; height: 120px; float: left">
-            <label style="font-size: larger">label 4</label>
-            <div style="margin-top: 20px">
-              <a href="https://google.com">link 1</a>
-            </div>
-            <div style="margin-top: 10px">
-              <a href="https://google.com">link 2</a>
-            </div>
-            <div style="margin-top: 10px">
-              <a href="https://google.com">link 3</a>
-            </div>
-          </div>
+          {% endif %}
         </div>
       </div>
 
-      <div style="margin-top: 60px; margin-left: 100px">
-        <div style="margin-bottom: 10px">
-          <label>© 2023 The J. Paul Getty Trust. All rights reserved.</label>
+      <div class="entities">
+        <h2>Entities ({{ num_entities }})</h2>
+        {% for entity in entities %}
+        <div class="entity_row">
+          <div class="entity_left-column">
+            <h2>{{ entity.entity_name }}</h2>
+            <div class="entity_records">
+              <span class="material-symbols-outlined">article</span>
+              <h3>{{ entity.num_records }} records</h3>
+            </div>
+            <div class="entity_changes">
+              <span class="material-symbols-outlined"> update </span>
+              <h3>{{ entity.num_changes}} changes</h3>
+            </div>
+            <p class="entity_timestamp">
+              Last updated: {{ entity.last_updated }}
+            </p>
+            <div class="entity_aslinks">
+              <a
+                href="{{ url_for('activity_entity.activity_stream_entity_collection', entity_type=entity.entity_name.lower()) }}"
+                >View activity stream</a
+              >
+              <span>(</span>
+              <a
+                href="{{ url_for('activity_entity.activity_stream_entity_page', entity_type=entity.entity_name.lower(), pagenum=1) }}"
+                >oldest</a
+              >
+              <span>|</span>
+              <a
+                href="{{ url_for('activity_entity.activity_stream_entity_page', entity_type=entity.entity_name.lower(), pagenum=entity.as_last_page) }}"
+                >newest</a
+              >
+              <span>)</span>
+            </div>
+          </div>
+          <div class="entity_right-column">
+            <h3>Most recently changed record</h3>
+            <div class="entity_recent-change">
+              <span class="material-symbols-outlined"> link </span>
+              <a href="{{ entity.most_recent_rec_url }}"
+                >{{ entity.most_recent_rec_url }}</a
+              >
+            </div>
+            <p class="entity_timestamp">
+              Last updated: {{ entity.most_recent_date }}
+            </p>
+            <p>{{ entity.most_recent_num_changes}} changes</p>
+            <div class="entity_links">
+              {% if chk_momento == "checked" %}
+              <a
+                href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}"
+                >View change log in momento</a
+              >
+              {% endif %}
+              <a href="{{ entity.most_recent_as}}">View activity stream</a>
+              {% if chk_sparql == "checked" %}
+              <a href="{{ entity.most_recent_sparql }}">Link to SPARQL query</a>
+              {% endif %}
+            </div>
+          </div>
         </div>
+        {% endfor %}
+      </div>
+    </div>
 
-        <hr />
-        <div style="margin-top: 10px">
-          <label>Version {{ lod_version }}</label>
+    <div class="documentation">
+      <div class="documntation_container container">
+        <h2>Documentation & resources</h2>
+        <div class="documnetation_columns">
+          <div class="documnetation_column">
+            <h3>Label 1</h3>
+            <a href="https://google.com">Link 1</a>
+            <a href="https://google.com">Link 2</a>
+            <a href="https://google.com">Link 3</a>
+          </div>
+          <div class="documnetation_column">
+            <h3>Label 2</h3>
+            <a href="https://google.com">Link 1</a>
+            <a href="https://google.com">Link 2</a>
+            <a href="https://google.com">Link 3</a>
+          </div>
+          <div class="documnetation_column">
+            <h3>Label 3</h3>
+            <a href="https://google.com">Link 1</a>
+            <a href="https://google.com">Link 2</a>
+            <a href="https://google.com">Link 3</a>
+          </div>
+          <div class="documnetation_column">
+            <h3>Label 4</h3>
+            <a href="https://google.com">Link 1</a>
+            <a href="https://google.com">Link 2</a>
+            <a href="https://google.com">Link 3</a>
+          </div>
         </div>
       </div>
     </div>
+
+    <footer class="container">
+      <p>© 2023 The J. Paul Getty Trust. All rights reserved.</p>
+      <hr />
+      <p>Version {{ lod_version }}</p>
+    </footer>
   </body>
 </html>

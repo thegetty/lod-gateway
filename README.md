@@ -62,7 +62,7 @@ Configuration is managed through environment variables. In development, these ar
 LOD_AS_DESC                 # Textual description of the deployed LOD Gateway
 
 AUTHORIZATION_TOKEN=        # Token required for 'Ingest' functionality, i.e. loading
-                            # records into the LOD Gateway. The value should 
+                            # records into the LOD Gateway. The value should
                             # be formatted as "Bearer {AUTHORIZATION_TOKEN}" in
                             # the HTTP POST request Authorization header.
 
@@ -74,7 +74,7 @@ DATABASE=                   # This should be the full URL to the database
                             # If APPLICATION_NAMESPACE=local/thesaurus, then a local sqlite db
                             # is used. The entry should be DATABASE=sqlite:////app/app.db
 
-BASE_URL=                   # This should be the base URL of the application and 
+BASE_URL=                   # This should be the base URL of the application and
                             # for RDF URIs. For example, https://data.getty.edu
 
 APPLICATION_NAMESPACE=      # This should be the 'vanity' portion of the URL
@@ -93,13 +93,13 @@ RDF_NAMESPACE=              # This variable is optional and should only be set i
                             # the LOD Gateway defaults to APPLICATION_NAMESPACE for data loaded
                             # into the graph store.
 
-PROCESS_RDF=                # The value must be "True" to enable processing of JSON-LD into 
+PROCESS_RDF=                # The value must be "True" to enable processing of JSON-LD into
                             # RDF triples on ingest. If enabled, two other environment variables
                             # must be set to the SPARQL endpoints (query and update):
                             # SPARQL_QUERY_ENDPOINT and SPARQL_UPDATE_ENDPOINT. When PROCESS_RDF is
                             # set to "False", the LOD Gateway acts as a simple document store with no RDF
                             # component.
-                            
+
 RDF_BASE_GRAPH=             # Requires PROCESS_RDF to be set to true to have any effect. The value should be
                             # the entity id of a resource that will be used as the 'base graph' for the LOD Gateway.
                             # Any triples in the base graph will be added to the graph store, but these triples
@@ -126,7 +126,7 @@ PREFIX_RECORD_IDS=          # Configure the Prefixing of Record "id" Values:
 KEEP_LAST_VERSION=          # Set this to True to enable the retention of previous
                             # versions of a record when it is updated. See 'Versioning' for
                             # more details.
-                           
+
 KEEP_VERSIONS_AFTER_DELETION=
                             # Set this to True to retain all versions even after deletion.
                             # Trying to retrieve the resource will return a HTTP 404 error, and
@@ -139,19 +139,54 @@ LOCAL_THESAURUS_URL=        # This entry is required if APPLICATION_NAMESPACE=lo
 
 SUBADDRESSING=
                             # True or False (default). This enables the subaddressing check for identifiers
-                            # that may be within other resources. 
-                            
-                            SUBADDRESSING_MIN_PARTS - smallest number of (path) parts to consider when resolving a 
+                            # that may be within other resources.
+
+                            SUBADDRESSING_MIN_PARTS - smallest number of (path) parts to consider when resolving a
                                                       subaddressed path to a parent entity (default: 1)
-                            SUBADDRESSING_MAX_PARTS - largest number of (path) parts to consider when resolving a 
+                            SUBADDRESSING_MAX_PARTS - largest number of (path) parts to consider when resolving a
                                                       subaddressed path to a parent entity (default: 4)
+
+LINK_BANK=                  # This field contains JSON which drives the links in 'Documentation' section of the
+                            # dashboard. There can be any arbitrary number of groups and links in one group.
+                            # Sample JSON:
+                              {
+                                "groups": [
+                                  {
+                                    "name": "Some random Group",
+                                    "links": [
+                                      { "name": "random link 1", "url": "https://google.com" },
+                                      { "name": "test link 2", "url": "https://getty.edu" },
+                                      { "name": "another link 3", "url": "https://ucla.edu" },
+                                      { "name": "one more link 4", "url": "https://yahoo.com" }
+                                    ]
+                                  },
+                                  {
+                                    "name": "Another Test Group",
+                                    "links": [
+                                      { "name": "random link 1", "url": "https://google.com" },
+                                      { "name": "test link 2", "url": "https://getty.edu" },
+                                      { "name": "another link 3", "url": "https://ucla.edu" },
+                                      { "name": "one more link 4", "url": "https://yahoo.com" }
+                                    ]
+                                  },
+                                  {
+                                    "name": "Some random Group",
+                                    "links": [
+                                      { "name": "random link 1", "url": "https://google.com" },
+                                      { "name": "test link 2", "url": "https://getty.edu" },
+                                      { "name": "another link 3", "url": "https://ucla.edu" },
+                                      { "name": "one more link 4", "url": "https://yahoo.com" }
+                                    ]
+                                  }
+                                ]
+                              }
 ```
 
 Using VS Code, it is possible to develop inside the container with full debugging and intellisence capabilities. Port `5001` is opened for remote debugging of the Flask application. For details see: https://code.visualstudio.com/docs/remote/containers
 
 ## Python Client (current v 2.3.0)
 
-The LODGatewayClient in the `lodgatewayclient` package simplifies a lot of the API interaction with the LOD Gateway and can be pulled down from the Getty Nexus PyPi repository. 
+The LODGatewayClient in the `lodgatewayclient` package simplifies a lot of the API interaction with the LOD Gateway and can be pulled down from the Getty Nexus PyPi repository.
 
 Github: https://github.com/thegetty/lod-gateway-client
 
@@ -162,6 +197,7 @@ The LOD Gateway has a set of additional functionality that can be turned on (thr
 ```
 X-LODGATEWAY-CAPABILITIES: JSON-LD: 'True', Base Graph: 'http://localhost:5100/museum/collection/_basegraph', Subaddressing: 'True', Versioning: 'True'
 ```
+
 ## Logging and Access logs
 
 The logging configuration creates two `logging.StreamHandler` instances - one that will output all Python logger messages to `STDOUT`, and only `logging.CRITICAL` and `logging.ERROR` to `STDERR`. This is desired to make it easier to track fatal errors once deployed. This configuration is written to the root logger, and is inherited by any `logging` objects created subsequently. The log level is set using the `DEBUG_LEVEL` environment variable, and should be set to a standard Python log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`). The log levels are defined in order of severity, and run from left to right from least to most severe. What this means is that if the level is set to `DEBUG`, all messages marked `DEBUG` and more severe (all the way up to `CRITICAL` level) are logged. Set the level to `ERROR`, then only `ERROR` and more severe (only `CRITICAL` by default) messages are logged.
@@ -184,9 +220,9 @@ uWSGI hosts the Python application as a WSGI application. It pipes the `STDOUT` 
 
 Turning this on by setting the environment variable `SUBADDRESSING` will allow the LOD Gateway to check to see if a given requested entity is within a parent document and to return the section of the data that corresponds to it.
 
-  - Must be hierarchically named (prefixed by the id path of the parent object eg 'document/1')
-  - Not supported on old versions of documents (retrieved via Memento, see Versionin)
-  - HTTP Location response header will have the full URI to the parent resource which it was drawn from
+- Must be hierarchically named (prefixed by the id path of the parent object eg 'document/1')
+- Not supported on old versions of documents (retrieved via Memento, see Versionin)
+- HTTP Location response header will have the full URI to the parent resource which it was drawn from
 
 For example:
 
@@ -215,9 +251,7 @@ Upload:
 }
 ```
 
-
 Resolving `https://lodgateway/namespace/place/c0380b6c-931f-11ea-9d86-068d38c13b76/name` should result in something like the following:
-
 
 HTTP Response:
 
@@ -258,7 +292,7 @@ Search for 'a/b/c/d/e/f/g/h/i' in the following records if they exist:
     a/b/c
     a/b
     a
-    
+
 The search will stop as soon as it finds a valid record, and will return either the part of the document that matches, or HTTP 404
 ```
 
@@ -266,15 +300,15 @@ The search will stop as soon as it finds a valid record, and will return either 
 
 If RDF processing is enabled, the resources will be treated as valid JSON-LD documents. Alternate formats of the RDF data can be requested by either using an Accept header with an allowed mimetype, or using a 'format' GET url parameter to specify the format:
 
-| MIME type            | format   |
-| ---------------      |----------|
-| applicaton/ntriples  | nt       |
-| text/turtle          | turtle   |
-| application/rdf+xml  | xml      |
-| application/ld+json  | json-ld (default) |
-| text/n3              | n3  |
-| application/n-quads  | nquads  |
-| application/trig     | trig  |
+| MIME type           | format            |
+| ------------------- | ----------------- |
+| applicaton/ntriples | nt                |
+| text/turtle         | turtle            |
+| application/rdf+xml | xml               |
+| application/ld+json | json-ld (default) |
+| text/n3             | n3                |
+| application/n-quads | nquads            |
+| application/trig    | trig              |
 
 Browsers do not handle a number of these text-based formats, and will assume that the user wants to download them. To force the response Content-Type to be text/plain to enable the browser to show them, set the URL get parameter "force-plain-text" to be "true". NB These formats will be UTF-8 encoded.
 
@@ -290,6 +324,7 @@ GET http://lodgateway/collection/object/1&format=nt&force-plain-text=true    -->
 ```
 
 Or via Accept header:
+
 ```
 $ curl -i -H "Accept: application/rdf+xml" http://lodgateway/collection/object/1
 HTTP/1.1 200 OK
@@ -314,7 +349,7 @@ Access-Control-Allow-Origin: *
   <rdf:Description rdf:about="http://vocab.getty.edu/aat/300053588">
     <rdf:type rdf:resource="http://www.cidoc-crm.org/cidoc-crm/E55_Type"/>
     <rdfs:label>Object-Making Processes and Techniques</rdfs:label>
-    
+
     ...
 ```
 
@@ -334,14 +369,13 @@ It may be required to update a graph store with the JSON-LD stored in the LOD Ga
 
 ### RDF Base Graph
 
-If the env variable "RDF_BASE_GRAPH" is set to an entity id (eg '_basegraph'), this document will be used as the **base graph**. The base graph is a set of triples that will be removed from any named graph RDF added to the graph store by the LOD Gateway. The base graph triples will be added to the graph store, so they will be present in the union graph. However, they will not be present in any individual named graph, besides the named graph corresponding to the base graph.
-
+If the env variable "RDF_BASE_GRAPH" is set to an entity id (eg '\_basegraph'), this document will be used as the **base graph**. The base graph is a set of triples that will be removed from any named graph RDF added to the graph store by the LOD Gateway. The base graph triples will be added to the graph store, so they will be present in the union graph. However, they will not be present in any individual named graph, besides the named graph corresponding to the base graph.
 
     - The JSON-LD document will be unaffected
     - Union graph SPARQL queries should be unchanged
     - BUT queries against specific named graphs will be affected (but querying them specifically is not a use case)
 
-This functionality provides a toolset to deal with the issue of replicated triples between named graphs. Providing a human-readable "_label" to an AAT term may seem innocuous, but the same triple may be present in every named graph, and some of the L2 gateways can have millions of named graphs.
+This functionality provides a toolset to deal with the issue of replicated triples between named graphs. Providing a human-readable "\_label" to an AAT term may seem innocuous, but the same triple may be present in every named graph, and some of the L2 gateways can have millions of named graphs.
 
 Changing the base graph will **not** change the named graphs stored in the graph store retrospectively. The base graph will be updated in the graph store, and the application should be restarted to ensure that all web workers reload with the updated triple filter set (workers will be reloaded every 1000 or so requests, but to be safe, restarting manually is recommended). To update the graph store, it will be necessary to run a `_refresh` command against all the resources that should be updated in the graph store.
 
@@ -370,7 +404,7 @@ For example:
 }
 ```
 
-Here, the @graph container holds two unrelated triples which will be used for the filter, and a context can be used to make the document easier to read as normal: 
+Here, the @graph container holds two unrelated triples which will be used for the filter, and a context can be used to make the document easier to read as normal:
 
 ```
 <urn:test1> <rdfs:label> "nothanks" .
@@ -380,6 +414,7 @@ Here, the @graph container holds two unrelated triples which will be used for th
 ## Versioning
 
 If the `KEEP_LAST_VERSION` environment variable is present and set to `True`, the Versioning functionality is enabled and a subset of the [Memento specification](http://mementoweb.org/guide/rfc/#RFC6690) will be provided:
+
 - A version of a resource will be created whenever the resource is updated with new data.
 - The Memento-Datetime header will be included in all GET/HEAD requests for resources.
 - Memento Timemaps are available for all resources, and are linked to in the Link header for all resource requests as specified.
@@ -461,15 +496,16 @@ Versioned resources will include an ETag header with a sha256 checksum in GET/HE
 The `If-Match` header is not currently supported.
 
 The `If-None-Match` header IS supported for GET or HEAD requests. If a checksum is supplied, it will be checked against the requested resource if the resource exists. The checksum should be exact and not included any `:gzip/:deflate` suffix.
-- If they match, it will respond with an HTTP 304 and empty body. 
-- If they do not match (the resource is different compared to the local version), a normal HTTP 200 response is sent. 
+
+- If they match, it will respond with an HTTP 304 and empty body.
+- If they do not match (the resource is different compared to the local version), a normal HTTP 200 response is sent.
 
 The checksum type is sha256 and the algorithm is also part of the lodgatewayclient package [LODGatewayClient -> checksum_json()](https://github.com/thegetty/lod-gateway-client)
 
 The code to create one outside of using the LODGatewayClient is as follows:
 
     import hashlib, json
-    
+
     def checksum_json(json_obj):
         # Expects a JSON-serializable data structure to be passed to it.
         checksum = hashlib.sha256()
@@ -482,17 +518,17 @@ The code to create one outside of using the LODGatewayClient is as follows:
 Legend:  
 "base_url" - application url (e.g. https://data.getty.edu)  
 "ns" - application namespace (e.g. "museum/collection")  
-"entity_type" - Entity type of the record. Can be an alias of an RDF type (e.g. "object" for Human Made Object)  
+"entity_type" - Entity type of the record. Can be an alias of an RDF type (e.g. "object" for Human Made Object)
 
-#### base_url/ns/health  
+#### base_url/ns/health
 
 Returns OK if application is running and data base is accessible. Also checks the graph store health for instances that have ["PROCESS_RDF"] flag = "True". If one of the components is not running, Error 500 retuned.
 
 #### base_url/ns/ingest
 
-Method - POST. Authentication - 'bearer token'. Accepts a set of line-delimited records in JSON LD format. CRUD operations supported. When ingesting a record, the entity "id" should be relative, not a full URI. For example, when ingesting the record "Irises" into an LOD Gateway deployed at https://data.getty.edu/museum/collection, the entity "id" should be "object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb" producing the following URI in the deployed application: https://data.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb  
+Method - POST. Authentication - 'bearer token'. Accepts a set of line-delimited records in JSON LD format. CRUD operations supported. When ingesting a record, the entity "id" should be relative, not a full URI. For example, when ingesting the record "Irises" into an LOD Gateway deployed at https://data.getty.edu/museum/collection, the entity "id" should be "object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb" producing the following URI in the deployed application: https://data.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb
 
-In the case of a 'delete' operation, only the data part is deleted. A record remains in the database that indicates that the record existed and its lifecycle is recorded in the activity stream. A record delete operation is done by ingesting a JSON record with the relevant entity id and a single key/value pair, `"_delete": "true"`.  
+In the case of a 'delete' operation, only the data part is deleted. A record remains in the database that indicates that the record existed and its lifecycle is recorded in the activity stream. A record delete operation is done by ingesting a JSON record with the relevant entity id and a single key/value pair, `"_delete": "true"`.
 
 When records are ingested into the LOD Gateway, they are also expanded into RDF and added to the graph store if a valid context is given and the ["PROCESS_RDF"] flag = "True". Atomic processing is implemented, i.e. if one of the records fails or the RDF expansion operations are unsuccessful, the entire transaction is rolled back.
 
@@ -521,7 +557,6 @@ SPARQL endpoint for querying RDF triples representation of data stored in the LO
 #### base_url/ns/sparql-ui
 
 YASGUI implementation of a user interface for doing SPARQL queries on the data stored in an individual instance of an LOD Gateway.
-
 
 ## Technical Architecture
 

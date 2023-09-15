@@ -21,12 +21,16 @@ def get_home_page():
     base_url = url_base()
     items_per_page = (int)(current_app.config["ITEMS_PER_PAGE"])
 
+    # entities
     entities = []
     entity_types = get_distinct_entity_types()
 
     for entity_type in entity_types:
         ent_obj = get_entity(entity_type, base_url, items_per_page)
         entities.append(ent_obj)
+
+    # link bank
+
 
     # Create context
     context = {
@@ -207,6 +211,9 @@ def get_most_recent_sparql(base_url, entity_id):
 
     return f"{url}{query1}{graph}{query2}"
 
+# Link Bank --------------------------
+def get_link_bank():
+    link_bank_obj = {}
 
 # Helpers ----------------------------
 def num_rec_to_str(num_rec):

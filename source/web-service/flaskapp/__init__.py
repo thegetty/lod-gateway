@@ -222,6 +222,16 @@ def create_app():
             or ""
         )
 
+        # Link bank
+        link_bank_str = environ.get("LINK_BANK_JSON", None)
+        if link_bank_str:
+            try:
+                app.config["LINK_BANK_DICT"] = json.loads(link_bank_str)
+            except json.decoder.JSONDecodeError as e:
+                app.logger.error(
+                    f"The data in ENV: 'LINK_BANK_JSON' is not valid JSON! Will not load Link Bank values"
+                )
+
         app.register_blueprint(home_page, url_prefix=f"/{ns}")
         app.register_blueprint(activity, url_prefix=f"/{ns}")
         app.register_blueprint(activity_entity, url_prefix=f"/{ns}")

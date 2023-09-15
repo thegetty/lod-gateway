@@ -30,7 +30,9 @@ def get_home_page():
         entities.append(ent_obj)
 
     # link bank
-
+    link_bank = None
+    if "LINK_BANK" in current_app.config:
+        link_bank = current_app.config["LINK_BANK"]
 
     # Create context
     context = {
@@ -44,6 +46,7 @@ def get_home_page():
         "last_change": get_last_modified_date(),
         "entities": entities,
         "num_entities": len(entities),
+        "link_bank": link_bank,
     }
 
     return render_template("home_page.html", **context)
@@ -211,9 +214,6 @@ def get_most_recent_sparql(base_url, entity_id):
 
     return f"{url}{query1}{graph}{query2}"
 
-# Link Bank --------------------------
-def get_link_bank():
-    link_bank_obj = {}
 
 # Helpers ----------------------------
 def num_rec_to_str(num_rec):

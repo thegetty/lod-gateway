@@ -47,10 +47,10 @@ jobs:
       image: ubuntu-2004:202201-02
     steps:
       - setup
+      - write_version
       - build
       - test
       - store
-      - write_version
 
   pocBuild:
     machine:

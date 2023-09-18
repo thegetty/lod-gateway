@@ -147,6 +147,7 @@ commands:
           destination: reports
 
   write_version:
-    - run:
-      name: "write git version to file"
+    steps:
+      - run:
+        name: Write git version to file
         command: git describe --tags > version.txt

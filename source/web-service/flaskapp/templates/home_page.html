@@ -119,6 +119,10 @@
       width: 24px;
     }
 
+    .hero_badge-indicator--disabled {
+      opacity: .3;
+    }
+
     .hero_badge-indicator span {
       color: #ffffff;
     }
@@ -322,7 +326,7 @@
           <div class="hero_badges">
             <div class="hero_badge">
               <p>SPARQL</p>
-              <div class="hero_badge-indicator">
+              <div class="{{"hero_badge-indicator" if chk_sparql == "checked" else "hero_badge-indicator hero_badge-indicator--disabled"}}">
                 {% if chk_sparql == "checked" %}
                 <span class="material-symbols-outlined"> done </span>
                 {% else %}
@@ -332,7 +336,7 @@
             </div>
             <div class="hero_badge">
               <p>Momento</p>
-              <div class="hero_badge-indicator">
+              <div class="{{"hero_badge-indicator" if chk_momento == "checked" else "hero_badge-indicator hero_badge-indicator--disabled"}}">
                 {% if chk_momento == "checked" %}
                 <span class="material-symbols-outlined"> done </span>
                 {% else %}

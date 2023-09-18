@@ -167,7 +167,7 @@
     .entity_changes {
       margin-top: 24px;
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       column-gap: 4px;
     }
 
@@ -182,6 +182,7 @@
 
     .entity_timestamp {
       margin-top: 24px;
+      margin-bottom: 4px;
     }
 
     .entity_right-column {
@@ -405,7 +406,7 @@
             <div class="entity_links">
               {% if chk_momento == "checked" %}
               <a href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}"
-                >View change log in momento</a
+                >View change log in Momento</a
               >
               {% endif %}
               <a href="{{ entity.most_recent_as}}">View activity stream</a>

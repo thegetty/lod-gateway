@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, render_template, current_app
 from math import ceil
 from urllib import parse
@@ -84,13 +85,19 @@ def get_last_modified_date():
     return date
 
 
-def get_version():
-
+def get_version(): 
+    f_name = "version.txt"  
+    dir_path = os.path.join(os.pardir, f_name)
+   
     try:
-        with open("git_version.txt") as f:
+        with open(dir_path) as f:
             return f.read()
     except OSError:
-        return None
+        try:
+            with open(f_name) as f:
+                return f.read()
+        except OSError:
+            return None
 
 
 # Entities ----------------------------

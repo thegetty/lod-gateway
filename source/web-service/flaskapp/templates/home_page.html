@@ -402,7 +402,7 @@
               <a href="{{ entity.most_recent_rec_url }}">{{ entity.most_recent_rec_url }}</a>
             </div>
             <p class="entity_timestamp">Last updated: {{ entity.most_recent_date }}</p>
-            <p>{{ entity.most_recent_num_changes}} changes</p>
+            <p>{{ entity.most_recent_num_changes}} {{"changes" if entity.most_recent_num_changes > 1 else "change"}}</p>
             <div class="entity_links">
               {% if chk_momento == "checked" %}
               <a href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}"

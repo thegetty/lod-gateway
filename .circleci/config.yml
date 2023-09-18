@@ -50,6 +50,7 @@ jobs:
       - build
       - test
       - store
+      - write_version
 
   pocBuild:
     machine:
@@ -144,3 +145,8 @@ commands:
       - store_artifacts:
           path: /tmp/output/test-reports
           destination: reports
+
+  write_version:
+    - run:
+      name: "write git version to file"
+        command: git describe --tags > version.txt

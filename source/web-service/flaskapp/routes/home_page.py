@@ -85,10 +85,10 @@ def get_last_modified_date():
     return date
 
 
-def get_version(): 
-    f_name = "version.txt"  
+def get_version():
+    f_name = "version.txt"
     dir_path = os.path.join(os.pardir, f_name)
-   
+
     try:
         with open(dir_path) as f:
             return f.read()

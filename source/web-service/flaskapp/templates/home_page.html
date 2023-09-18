@@ -436,8 +436,10 @@
 
     <footer class="container">
       <p>© 2023 The J. Paul Getty Trust. All rights reserved.</p>
-      <hr />
-      <p>Version {{ lod_version }}</p>
+      {% if lod_version %}
+        <hr />
+        <p>Version {{ lod_version }}</p>
+      {% endif %}
     </footer>
   </body>
 </html>

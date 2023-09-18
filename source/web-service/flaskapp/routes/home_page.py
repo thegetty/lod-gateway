@@ -86,7 +86,11 @@ def get_last_modified_date():
 
 def get_version():
 
-    return "1.0.0"
+    try:
+        with open("git_version.txt") as f:
+            return f.read()
+    except OSError:
+        return None
 
 
 # Entities ----------------------------

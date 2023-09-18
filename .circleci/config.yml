@@ -149,5 +149,5 @@ commands:
   write_version:
     steps:
       - run:
-        name: Write git version to file
-        command: git describe --tags > version.txt
+          name: Write git version to file
+          command: git describe --tags > version.txt

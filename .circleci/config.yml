@@ -47,7 +47,6 @@ jobs:
       image: ubuntu-2004:202201-02
     steps:
       - setup
-      - write_version
       - build
       - test
       - store
@@ -145,9 +144,3 @@ commands:
       - store_artifacts:
           path: /tmp/output/test-reports
           destination: reports
-
-  write_version:
-    steps:
-      - run:
-          name: Write git version to file
-          command: git describe --tags > git_version.txt

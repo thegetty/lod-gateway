@@ -6,6 +6,9 @@ WORKDIR /app
 # Install ca-certificates so that SSL/TLS can function from within the container
 RUN apt-get update && apt-get -y install ca-certificates libpcre3 libpcre3-dev
 
+# Copy VERSION file for the current version to be displayed in the dashboard
+COPY VERSION.txt version.txt
+
 # Copy and install our dependencies from requirements.txt
 COPY requirements.txt requirements.txt
 

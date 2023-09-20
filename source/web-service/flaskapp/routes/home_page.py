@@ -88,7 +88,7 @@ def get_last_modified_date():
 def get_version():
 
     try:
-        with open("VERSION.txt") as f:
+        with open("version.txt") as f:
             return f.read()
     except OSError:
         return None

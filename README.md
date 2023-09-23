@@ -56,7 +56,7 @@ To shut the application down, enter the following command:
 
 Once running, the LOD Gateway instance will be available by default on your host computer at `http://localhost:5100` – and you can visit this URL in a web browser or a HTTP REST Client to start interacting with the LOD Gateway. If you wish to modify the port number from the default of `5100`, you can do so by modifying the relevant variable in the `.env` file, `FLASK_RUN_PORT`, and restarting the application. See the **Configuration** section below for more details.
 
-⚠️ **Please Note**: When creating an instance of the LOD Gateway application for the first time, the Gateway's required database schema must be manually created by running the provided database setup command as illustrated below. Assuming that the proper database connection settings have been defined in the `.env` file (if you are using the default setup without changes, it will be), the database schema can be created by running the following commands:
+⚠️ **Please Note**: When creating an instance of the LOD Gateway application for the first time, the Gateway's required database schema must be manually created by running the provided database setup command as illustrated below. Assuming that the proper database connection settings have been defined in the `.env` file (if you are using the default setup without changes, they will be), the database schema can be created by running the following commands:
 
 If the LOD Gateway isn't already running on your computer, run the startup command first:
 

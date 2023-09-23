@@ -770,10 +770,9 @@ RDF_CONTEXT_CACHE ............  A JSON-encoded value that holds an @context docu
                                 
                                 {\"https://linked.art/./linked-art.json\": {\"document\": ... }}
 
-                                You can add as many @context documents into the
-                                RDF_CONTEXT_CACHE as you wish to the JSON structure, ensuring
-                                that each @context document is keyed on its absolute URI, such
-                                as "https://linked.art/ns/v1/linked-art.json".
+                                You can add as many context documents to the RDF_CONTEXT_CACHE
+                                as you need, ensuring each context is keyed on its absolute
+                                URI, such as "https://linked.art/ns/v1/linked-art.json".
 
 RDF_CONTEXT_CACHE_EXPIRES ..... This variable controls how long a RDF context document is held
                                 in the RDF context cache. Defaults to 30 seconds.

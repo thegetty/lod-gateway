@@ -630,8 +630,8 @@ The configuration for the LOD Gateway is managed through environment variables. 
 The list of supported environment variables, a description of their purpose, accepted values, and where applicable, default values, are included below for reference. Please note that the example and default values may be quoted below for readability and clarity, but when specifying the values in an `.env` file or in a secrets store, the values should be entered without quotes, as `.env` files and secrets stores tend to retrieve stored values verbatim and will generally include the quotes in the returned value, which will prevent the values from being interpreted correctly by the Gateway.
 
 ```
-LOD_AS_DESC ................... This variable provides a short textual description of the
-                                deployed LOD Gateway and is used within the Activity
+LOD_AS_DESC ................... This variable provides a short textual description of
+                                the deployed LOD Gateway and is used within the Activity
                                 Stream (AS) response and the Gateway's web interface.
 
 AUTHORIZATION_TOKEN ........... This variable defines the authorization token required
@@ -713,9 +713,9 @@ USE_PYLD_REFORMAT ............. This variable controls whether PyLD or RDFLib is
                                 operations, otherwise RDFLib will be used instead.
                                 Defaults to "True".
 
-RDF_BASE_GRAPH ................ Requires PROCESS_RDF to be set to "True" to have any effect. The
-                                value should be the entity id of a resource that will be used as
-                                the 'base graph' for the LOD Gateway.
+RDF_BASE_GRAPH ................ Requires PROCESS_RDF to be set to "True" to have any effect.
+                                The value should be the entity id of a resource that will be
+                                used as the 'base graph' for the LOD Gateway.
 
                                 Any triples in the base graph will be added to the graph store,
                                 but these triples will be removed from any other ingested RDF
@@ -728,7 +728,7 @@ RDF_CONTEXT_CACHE ............  A JSON-encoded value that holds an @context docu
                                 document from the source server, which is usually externally
                                 hosted.
 
-                                If defined the value for RDF_CONTEXT_CACHE should be in the form:
+                                If defined, the RDF_CONTEXT_CACHE value should be in the form:
                                 {"url": [context object], ...} where each [context object] is
                                 structured as follows:
 
@@ -755,20 +755,20 @@ RDF_CONTEXT_CACHE ............  A JSON-encoded value that holds an @context docu
                                     }
                                 }
 
-                                This value MUST be serialized into a compact JSON string without
-                                unquoted line breaks and with any quotes or other special characters
-                                being escaped before the string value is assigned to the
-                                RDF_CONTEXT_CACHE environment variable.
+                                This value MUST be serialized into a compact JSON string
+                                without unquoted line breaks and with any quotes or other
+                                special characters being escaped before the string value
+                                is assigned to the RDF_CONTEXT_CACHE environment variable.
 
                                 It could be serialized to JSON using code similar to the
                                 following:
 
                                 print(json.dumps(contexts))
 
-                                The serialized value would then look something like the below
-                                (shortened for brevity):
-
-                                "{\"https://linked.art/ns/v1/linked-art.json\": {\"document\": ... }}"
+                                The serialized contexts value would then look something like
+                                the below (shortened for brevity):
+                                
+                                {\"https://linked.art/./linked-art.json\": {\"document\": ... }}
 
                                 You can add as many @context documents into the
                                 RDF_CONTEXT_CACHE as you wish to the JSON structure, ensuring
@@ -805,10 +805,11 @@ KEEP_VERSIONS_AFTER_DELETION .. Set this to "True" to retain all versions even a
                                 HTTP headers will still link to the Memento Timemap for the
                                 resource, where all previous versions will be available.
 
-LOCAL_THESAURUS_URL ........... This entry is required if APPLICATION_NAMESPACE=local/thesaurus.
-                                It is the URL to the CSV file containing Local Thesaurus data
-                                that will be loaded into the LOD Gateway on startup. The URL
-                                must be accessible to the LOD Gateway instance's server and the
+LOCAL_THESAURUS_URL ........... This entry is required if the APPLICATION_NAMESPACE variable
+                                has been set to "local/thesaurus". The variable is used to set
+                                the URL for the CSV file containing Local Thesaurus data that
+                                will be loaded into the LOD Gateway on startup. The URL must
+                                be accessible to the LOD Gateway instance's server and the
                                 LOD Gateway's DATABASE variable must be set to a temporary
                                 SQLite database by setting the DATABASE variable to
                                 "sqlite:////app/app.db".
@@ -833,38 +834,38 @@ LINK_BANK ..................... This field contains JSON which provides links fo
                                 {
                                   "groups": [
                                     {
-                                      "name": "Some random Group",
+                                      "name": "Group 1",
                                       "links": [
-                                        { "name": "random link 1", "url": "https://google.com" },
-                                        { "name": "test link 2", "url": "https://getty.edu" },
-                                        { "name": "another link 3", "url": "https://ucla.edu" },
-                                        { "name": "one more link 4", "url": "https://yahoo.com" }
+                                        { "name": "Link 1", "url": "https://google.com" },
+                                        { "name": "Link 2", "url": "https://getty.edu" },
+                                        { "name": "Link 3", "url": "https://ucla.edu" },
+                                        { "name": "Link 4", "url": "https://yahoo.com" }
                                       ]
                                     },
                                     {
-                                      "name": "Another Test Group",
+                                      "name": "Group 2",
                                       "links": [
-                                        { "name": "random link 1", "url": "https://google.com" },
-                                        { "name": "test link 2", "url": "https://getty.edu" },
-                                        { "name": "another link 3", "url": "https://ucla.edu" },
-                                        { "name": "one more link 4", "url": "https://yahoo.com" }
+                                        { "name": "Link 1", "url": "https://google.com" },
+                                        { "name": "Link 2", "url": "https://getty.edu" },
+                                        { "name": "Link 3", "url": "https://ucla.edu" },
+                                        { "name": "Link 4", "url": "https://yahoo.com" }
                                       ]
                                     },
                                     {
-                                      "name": "Some random Group",
+                                      "name": "Group 3",
                                       "links": [
-                                        { "name": "random link 1", "url": "https://google.com" },
-                                        { "name": "test link 2", "url": "https://getty.edu" },
-                                        { "name": "another link 3", "url": "https://ucla.edu" },
-                                        { "name": "one more link 4", "url": "https://yahoo.com" }
+                                        { "name": "Link 1", "url": "https://google.com" },
+                                        { "name": "Link 2", "url": "https://getty.edu" },
+                                        { "name": "Link 3", "url": "https://ucla.edu" },
+                                        { "name": "Link 4", "url": "https://yahoo.com" }
                                       ]
                                     }
                                   ]
                                 }
 
-BROWSE_PAGE_SIZE .............. This variable sets the limit on number of records returned for a
-                                glob browse request. Defaults to 200 items per page. If set, the
-                                value must be set as an integer value.
+BROWSE_PAGE_SIZE .............. This variable sets the limit on number of records returned
+                                for a glob browse request. Defaults to 200 items per page.
+                                If set, the value must be set as an integer value.
 
 LINK_HEADER_PREV_VERSION ...... This variable sets whether the `Link` response header will
                                 include a reference to the previous version of the current

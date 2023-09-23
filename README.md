@@ -56,7 +56,7 @@ To shut the application down, enter the following command:
 
 Once running, the LOD Gateway instance will be available by default on your host computer at `http://localhost:5100` – and you can visit this URL in a web browser or a HTTP REST Client to start interacting with the LOD Gateway. If you wish to modify the port number from the default of `5100`, you can do so by modifying the relevant variable in the `.env` file, `FLASK_RUN_PORT`, and restarting the application. See the **Configuration** section below for more details.
 
-**Please Note**: When creating an instance of the LOD Gateway application for the first time, the Gateway's required database schema must be manually created by running the provided database setup command as illustrated below. Assuming that the proper database connection settings have been defined in the `.env` file (if you are using the default setup without changes, it will be), the database schema can be created by running the following commands:
+⚠️ **Please Note**: When creating an instance of the LOD Gateway application for the first time, the Gateway's required database schema must be manually created by running the provided database setup command as illustrated below. Assuming that the proper database connection settings have been defined in the `.env` file (if you are using the default setup without changes, it will be), the database schema can be created by running the following commands:
 
 If the LOD Gateway isn't already running on your computer, run the startup command first:
 
@@ -398,7 +398,7 @@ If graph functionality, and therefore RDF processing is enabled, the ingested re
 
 ⚠️ **Please Note**: Browsers do not handle a number of these text-based formats, and will assume that the user wants to download the response. To force the response header `Content-Type` to have a value of `text/plain` to enable browser to display these formats, supply a `force-plain-text` GET query string parameter with a value of `true` as part of the request URL. If you are interacting with the LOD Gateway using a HTTP REST client or via code, the `force-plain-text` GET query string parameter will not be needed.
 
-Please note all of the response formats will be UTF-8 encoded.
+All of the response formats will be UTF-8 encoded.
 
 Assuming there was a resource `object/1` in the LOD Gateway `http://lodgateway/collection`, here are some example requests and response summaries, showing the `Content-Type` header values and the response body encodings:
 

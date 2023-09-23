@@ -271,15 +271,15 @@ The `/sparql-ui` endpoint provides a YASGUI implementation which offers a web-ba
 
 ## Web Interface
 
-The LOD Gateway provides a lightweight web interface offering a landing page and a dashboard for each instance, providing useful information about the contents of the LOD Gateway instance and links to various related resources. To access the dashboard for any LOD Gateway instance visit the following URL in a web browser from a computer that has network access to the LOD Gateway instance you wish to visit:
+The LOD Gateway provides a lightweight web interface offering a landing page and a Dashboard for each instance, providing useful information about the contents of the LOD Gateway instance and links to various related resources. To access the Dashboard for any LOD Gateway instance visit the following URL in a web browser from a computer that has network access to the LOD Gateway instance you wish to visit:
 
 #### HTTP GET {base-url}/{namespace}/dashboard
 
-Upon visiting the LOD Gateway's dashboard, you should see something similar to the following:
+Upon visiting the LOD Gateway's Dashboard, you should see something similar to the following:
 
 ![LOD Gateway's Dashboard](documentation/dashboard.png)
 
-The dashboard provides a summary of the entity counts of the documents stored in the system, as well as a total count of the stored records and the total count of record changes. Links to the Activity Stream, SPARQL API endpoint and SPARQL GUI are also provided. Custom links may be added to the dashboard page if desired by customizing the value of the `LINK_BANK` environment variable, such as links to documentation about the data sets stored in the LOD Gateway (see the **Configuration** section below for more information).
+The Dashboard provides a summary of the entity counts of the documents stored in the system, as well as a total count of the stored records and the total count of record changes. Links to the Activity Stream, SPARQL API endpoint and SPARQL GUI are also provided. Custom links may be added to the Dashboard page if desired by customizing the value of the `LINK_BANK` environment variable, such as links to documentation about the data sets stored in the LOD Gateway (see the **Configuration** section below for more information).
 
 
 ## Server Capabilities

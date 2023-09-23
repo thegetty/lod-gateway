@@ -630,97 +630,105 @@ The configuration for the LOD Gateway is managed through environment variables. 
 The list of supported environment variables, a description of their purpose, accepted values, and where applicable, default values, are included below for reference. Please note that the example and default values may be quoted below for readability and clarity, but when specifying the values in an `.env` file or in a secrets store, the values should be entered without quotes, as `.env` files and secrets stores tend to retrieve stored values verbatim and will generally include the quotes in the returned value, which will prevent the values from being interpreted correctly by the Gateway.
 
 ```
-LOD_AS_DESC ................... This variable provides a short textual description of the deployed
-                                LOD Gateway and is used within the Activity Stream (AS) response
-                                and the Gateway's web interface.
+LOD_AS_DESC ................... This variable provides a short textual description of the
+                                deployed LOD Gateway and is used within the Activity
+                                Stream (AS) response and the Gateway's web interface.
 
-AUTHORIZATION_TOKEN ........... This variable defines the authorization token required for accessing
-                                privileged functionality of the LOD Gateway, including ingesting
-                                records, accessing earlier versions of records (if authentication is
-                                required for accessing earlier versions), and other API calls
-                                requiring authentication. To access privileged API functionality,
-                                the HTTP request MUST include an `Authorization` header with a value
-                                formatted as "Bearer {token}" where {token} is the value set for the
-                                AUTHORIZATION_TOKEN environment variable. LOD Gateway functionality
-                                requiring authentication is marked with a key 🗝️ symbol above.
+AUTHORIZATION_TOKEN ........... This variable defines the authorization token required
+                                for accessing privileged functionality of the LOD Gateway,
+                                including ingesting records, accessing earlier versions of
+                                records (if authentication is required for accessing
+                                earlier versions), and other API calls requiring
+                                authentication. To access privileged API functionality,
+                                the HTTP request MUST include an `Authorization` header
+                                with a value formatted as "Bearer {token}" where {token}
+                                is the value set for the AUTHORIZATION_TOKEN environment
+                                variable. LOD Gateway functionality requiring authentication
+                                is marked with a key 🗝️ symbol above.
 
 VERSIONING_AUTHENTICATION ..... If set to "True", authentication will be required for accessing
                                 earlier versions of resources. Set to "False" to allow earlier
-                                versions to be retrieved without authentication. Defaults to "True".
+                                versions to be retrieved without authentication.
+                                Defaults to "True".
 
 DATABASE ...................... This should be the full URL to the database, for example:
                                 "postgresql://{username}:{password}@{server}/{database}"
 
-                                If you wish to use a temporary in-memory database for testing that
-                                will just hold the data while the Gateway instance is running, but
-                                will lose the data once the Gateway is shutdown, a local SQLite
-                                database may be used. To use a temporary in-memory SQLite database,
-                                the DATABASE variable should have a value of "sqlite:////app/app.db".
+                                If you wish to use a temporary in-memory database for testing
+                                that will just hold the data while the Gateway instance is
+                                running, but will lose the data once the Gateway is shutdown,
+                                a local SQLite database may be used. To use a temporary
+                                in-memory SQLite database, the DATABASE variable should have
+                                a value of "sqlite:////app/app.db".
 
-BASE_URL ...................... This should be the base URL of the application and for RDF URIs.
-                                For example, "https://data.getty.edu".
+BASE_URL ...................... This should be the base URL of the application and for RDF
+                                URIs. For example, "https://data.getty.edu".
 
 APPLICATION_NAMESPACE ......... This should be the 'vanity' portion of the URL for example,
                                 "museum/collection".
 
-RDF_NAMESPACE ................. This variable is optional and should only be set if the namespace
-                                in the RDF data should differ from the namespace value set in the
-                                APPLICATION_NAMESPACE variable and if there is a specific need to
-                                prefix the relative URLs in the JSON-LD documents differently than
-                                the triples in the graph store, such as for testing purposes or for
-                                specially staged loads. In such cases, these development or special
-                                staging instances of the LOD Gateway must share the same base URL as
-                                their corresponding production or staging instance, that is, they
+RDF_NAMESPACE ................. This variable is optional and should only be set if the
+                                namespace in the RDF data should differ from the namespace
+                                value set in the APPLICATION_NAMESPACE variable and if there
+                                is a specific need to prefix the relative URLs in the JSON-LD
+                                documents differently than the triples in the graph store,
+                                such as for testing purposes or for specially staged loads.
+                                In such cases, these development or special staging instances
+                                of the LOD Gateway must share the same base URL as their
+                                corresponding production or staging instance, that is, they
                                 should be hosted under the same domain name. If no RDF_NAMESPACE
                                 variable is provided, the LOD Gateway defaults to using the
                                 APPLICATION_NAMESPACE for data loaded into the graph store.
 
 PROCESS_RDF ................... The value must be "True" to enable processing of JSON-LD into
                                 RDF triples on ingest. If enabled, you MUST set two other
-                                variables, SPARQL_QUERY_ENDPOINT and SPARQL_UPDATE_ENDPOINT, to the
-                                SPARQL endpoints (query and update) of the associated graph store.
-
-                                When PROCESS_RDF is set to "False", the LOD Gateway will act as a
-                                simple JSON document store with no RDF or graph functionality.
-
-SPARQL_QUERY_ENDPOINT ......... When graph functionality has been enabled for an LOD Gateway instance
-                                via the PROCESS_RDF variable (see above), the SPARQL_QUERY_ENDPOINT
-                                variable MUST also be set to the query endpoint of the associated
+                                variables, SPARQL_QUERY_ENDPOINT and SPARQL_UPDATE_ENDPOINT,
+                                to the SPARQL endpoints (query and update) of the associated
                                 graph store.
 
-                                The graph store must be compliant with SPARQL Update 1.1 in order
-                                to be compatible with LOD Gateway. Examples of compatible graph
-                                stores are Fuseki, GraphDB, Amazon Neptune, and many others.
+                                When PROCESS_RDF is set to "False", the LOD Gateway will act as
+                                a simple JSON document store with no RDF or graph functionality.
 
-SPARQL_UPDATE_ENDPOINT ........ When graph functionality has been enabled for an LOD Gateway instance
-                                via the PROCESS_RDF variable (see above), the SPARQL_UPDATE_ENDPOINT
-                                variable MUST also be set to the update endpoint of the associated
-                                graph store.
+SPARQL_QUERY_ENDPOINT ......... When graph functionality has been enabled for an LOD Gateway
+                                instance via the PROCESS_RDF variable (see above), the
+                                SPARQL_QUERY_ENDPOINT variable MUST also be set to the query
+                                endpoint of the associated graph store.
 
-                                The graph store must be compliant with SPARQL Update 1.1 in order
-                                to be compatible with LOD Gateway. Examples of compatible graph
-                                stores are Fuseki, GraphDB, Amazon Neptune, and many others.
+                                The graph store must be compliant with SPARQL Update 1.1 in
+                                order to be compatible with LOD Gateway. Examples of compatible
+                                graph stores are Fuseki, GraphDB, Amazon Neptune, and others.
+
+SPARQL_UPDATE_ENDPOINT ........ When graph functionality has been enabled for an LOD Gateway
+                                instance via the PROCESS_RDF variable (see above), the
+                                SPARQL_UPDATE_ENDPOINT variable MUST also be set to the update
+                                endpoint of the associated graph store.
+
+                                The graph store must be compliant with SPARQL Update 1.1 in
+                                order to be compatible with LOD Gateway. Examples of compatible
+                                graph stores are Fuseki, GraphDB, Amazon Neptune, and others.
 
 USE_PYLD_REFORMAT ............. This variable controls whether PyLD or RDFLib is used to expand
-                                and reformat JSON-LD into triples. If set to "True" then PyLD will
-                                be used to perform graph expansion and reformatting operations,
-                                otherwise RDFLib will be used instead. Defaults to "True".
+                                and reformat JSON-LD into triples. If set to "True" then PyLD
+                                will be used to perform graph expansion and reformatting
+                                operations, otherwise RDFLib will be used instead.
+                                Defaults to "True".
 
 RDF_BASE_GRAPH ................ Requires PROCESS_RDF to be set to "True" to have any effect. The
                                 value should be the entity id of a resource that will be used as
                                 the 'base graph' for the LOD Gateway.
 
-                                Any triples in the base graph will be added to the graph store, but
-                                these triples will be removed from any other ingested RDF resources
-                                before they are added to the graph store.
+                                Any triples in the base graph will be added to the graph store,
+                                but these triples will be removed from any other ingested RDF
+                                resources before they are added to the graph store.
 
-RDF_CONTEXT_CACHE ............  A JSON-encoded value that holds an @context document to preload into the
-                                PyLD or RDFLib document loader. Preloading the @context document speeds
-                                up graph expansion and reformatting operations as the Gateway does not
-                                need to first retrieve the @context document from the source server,
-                                which is usually externally hosted.
+RDF_CONTEXT_CACHE ............  A JSON-encoded value that holds an @context document to preload
+                                into the PyLD or RDFLib document loader. Preloading the @context
+                                document speeds up graph expansion and reformatting operations
+                                as the Gateway does not need to first retrieve the @context
+                                document from the source server, which is usually externally
+                                hosted.
 
-                                If defined, the value for RDF_CONTEXT_CACHE should be in the form:
+                                If defined the value for RDF_CONTEXT_CACHE should be in the form:
                                 {"url": [context object], ...} where each [context object] is
                                 structured as follows:
 
@@ -731,8 +739,8 @@ RDF_CONTEXT_CACHE ............  A JSON-encoded value that holds an @context docu
                                     "documentUrl": None
                                 }
 
-                                The full value would then look something like the following before
-                                being serialized into JSON:
+                                The full value would then look something like the following
+                                before being serialized into JSON:
 
                                 contexts = {
                                     "https://linked.art/ns/v1/linked-art.json": {
@@ -747,76 +755,80 @@ RDF_CONTEXT_CACHE ............  A JSON-encoded value that holds an @context docu
                                     }
                                 }
 
-                                This value MUST be serialized into a compact JSON string without unquoted
-                                line breaks and with any quotes or other special characters being escaped
-                                before the string value is assigned to the RDF_CONTEXT_CACHE environment
-                                variable.
+                                This value MUST be serialized into a compact JSON string without
+                                unquoted line breaks and with any quotes or other special characters
+                                being escaped before the string value is assigned to the
+                                RDF_CONTEXT_CACHE environment variable.
 
-                                It could be serialized to JSON using code similar to the following:
+                                It could be serialized to JSON using code similar to the
+                                following:
 
                                 print(json.dumps(contexts))
 
-                                The serialized value would then look something like the below (shortened
-                                for brevity):
+                                The serialized value would then look something like the below
+                                (shortened for brevity):
 
                                 "{\"https://linked.art/ns/v1/linked-art.json\": {\"document\": ... }}"
 
-                                You can add as many @context documents into the RDF_CONTEXT_CACHE as you
-                                wish to the JSON structure, ensuring that each @context document is keyed
-                                on its absolute URI, such as "https://linked.art/ns/v1/linked-art.json".
+                                You can add as many @context documents into the
+                                RDF_CONTEXT_CACHE as you wish to the JSON structure, ensuring
+                                that each @context document is keyed on its absolute URI, such
+                                as "https://linked.art/ns/v1/linked-art.json".
 
-RDF_CONTEXT_CACHE_EXPIRES ..... This variable controls how long a RDF context document is held in
-                                the RDF context cache. Defaults to 30 seconds.
+RDF_CONTEXT_CACHE_EXPIRES ..... This variable controls how long a RDF context document is held
+                                in the RDF context cache. Defaults to 30 seconds.
 
 FLASK_GZIP_COMPRESSION ........ The variable must be set to "True" to enable gzip compression.
                                 Defaults to "False".
 
-PREFIX_RECORD_IDS ............. Configure the prefixing of record "id" values: the default behavior
-                                is for all "id" values in a record to be discovered recursively and
-                                be prefixed if necessary, if they are not to already a HTTP(S) URL
-                                ("http(s)://...").
+PREFIX_RECORD_IDS ............. Configure the prefixing of record "id" values: the default
+                                behavior is for all "id" values in a record to be discovered
+                                recursively and be prefixed if necessary, if they are not to
+                                already a HTTP(S) URL ("http(s)://...").
 
-                                The default behavior will take place if PREFIX_RECORD_IDS is absent
-                                from the application's environment, or if defined and configured
-                                explicitly as PREFIX_RECORD_IDS=RECURSIVE.
+                                The default behavior will take place if PREFIX_RECORD_IDS is
+                                absent from the application's environment, or if defined and
+                                configured explicitly as PREFIX_RECORD_IDS=RECURSIVE.
 
-                                The other available prefixing behaviors are to prefix only the
-                                top-level "id" of the record, which may be achieved by setting
-                                PREFIX_RECORD_IDS=TOP, or to disable all prefixing of record
-                                "id" values by setting PREFIX_RECORD_IDS=NONE.
+                                The other available prefixing behaviors are to prefix only
+                                the top-level "id" of the record, which may be achieved by
+                                setting PREFIX_RECORD_IDS=TOP, or to disable all prefixing
+                                of record "id" values by setting PREFIX_RECORD_IDS=NONE.
 
-KEEP_LAST_VERSION ............. Set this to "True" to enable the retention of previous versions
-                                of a record when it is updated. See 'Versioning' for more details.
+KEEP_LAST_VERSION ............. Set this to "True" to enable the retention of previous
+                                versions of a record when it is updated. See 'Versioning'
+                                for more details.
 
 KEEP_VERSIONS_AFTER_DELETION .. Set this to "True" to retain all versions even after deletion.
-                                Trying to retrieve the resource will return a HTTP 404 error, and
-                                the Activity Stream will show the item as deleted, but the HTTP
-                                headers will still link to the Memento Timemap for the resource,
-                                where all previous versions will be available.
+                                Trying to retrieve the resource will return a HTTP 404 error,
+                                and the Activity Stream will show the item as deleted, but the
+                                HTTP headers will still link to the Memento Timemap for the
+                                resource, where all previous versions will be available.
 
 LOCAL_THESAURUS_URL ........... This entry is required if APPLICATION_NAMESPACE=local/thesaurus.
-                                It is the URL to the CSV file containing Local Thesaurus data that
-                                will be loaded into the LOD Gateway on startup. The URL must be
-                                accessible to the LOD Gateway instance's server (firewall rules must
-                                allow the URL to be requested) and the LOD Gateway's DATABASE
-                                variable must be set to a temporary SQLite database by setting the
-                                DATABASE variable to "sqlite:////app/app.db".
+                                It is the URL to the CSV file containing Local Thesaurus data
+                                that will be loaded into the LOD Gateway on startup. The URL
+                                must be accessible to the LOD Gateway instance's server and the
+                                LOD Gateway's DATABASE variable must be set to a temporary
+                                SQLite database by setting the DATABASE variable to
+                                "sqlite:////app/app.db".
 
-SUBADDRESSING ................. To enable sub-addressing functionality, set this variable to "True",
-                                or set it to "False" (the default) otherwise.
+SUBADDRESSING ................. To enable sub-addressing functionality, set this variable
+                                to "True", or set it to "False" (the default) otherwise.
 
-SUBADDRESSING_MIN_PARTS ....... This variable defines the smallest number of path components to
-                                consider when attempting to resolve a sub-addressed path to a parent
-                                entity (defaults to 1).
+SUBADDRESSING_MIN_PARTS ....... This variable defines the smallest number of path components
+                                to consider when attempting to resolve a sub-addressed path
+                                to a parent entity (defaults to 1).
 
-SUBADDRESSING_MAX_PARTS ....... This variable defines the largest number of path components to
-                                consider when attempting to resolve a sub-addressed path to a parent
-                                entity (defaults to 4).
+SUBADDRESSING_MAX_PARTS ....... This variable defines the largest number of path components
+                                to consider when attempting to resolve a sub-addressed path
+                                to a parent entity (defaults to 4).
 
-LINK_BANK ..................... This field contains JSON which provides links for the 'Documentation'
-                                section of the Dashboard. There can be any arbitrary number of groups
-                                and links in a group. Below is an example JSON value holding a set of
-                                sample links for illustration of how to structure this value:
+LINK_BANK ..................... This field contains JSON which provides links for the
+                                'Documentation' section of the Dashboard. There can be any
+                                arbitrary number of groups and links in a group. Below is
+                                an example JSON value holding a set of sample links for
+                                illustration of how to structure this value:
 
                                 {
                                   "groups": [
@@ -854,10 +866,10 @@ BROWSE_PAGE_SIZE .............. This variable sets the limit on number of record
                                 glob browse request. Defaults to 200 items per page. If set, the
                                 value must be set as an integer value.
 
-LINK_HEADER_PREV_VERSION ...... This variable sets whether the `Link` response header will include a
-                                reference to the previous version of the current document or not (if
-                                a previous version is recorded in the Gateway). Set to "True" to
-                                enable, "False" otherwise.
+LINK_HEADER_PREV_VERSION ...... This variable sets whether the `Link` response header will
+                                include a reference to the previous version of the current
+                                document or not (if a previous version is recorded in the
+                                Gateway). Set to "True" to enable, "False" otherwise.
 ```
 
 

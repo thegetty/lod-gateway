@@ -94,7 +94,15 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["JSON_SORT_KEYS"] = False
+
+    # For Flask <2.3 and retained for app config inspection:
+    app.config["JSON_SORT_KEYS"] = True
+
+    if "false" in environ.get("JSON_SORT_KEYS", "false"):
+        # for Flask 2.3+
+        app.json.sort_keys = False
+        app.config["JSON_SORT_KEYS"] = False
+
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
 

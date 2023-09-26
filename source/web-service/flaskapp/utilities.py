@@ -221,3 +221,10 @@ def idPrefixer(attr, value, prefix=None, **kwargs):
         temp = prefix + "/" + temp
 
     return temp
+
+
+def requested_linkformat(request_obj, default_response_type):
+    # application/json or application/link-format preferred?
+    return request_obj.accept_mimetypes.best_match(
+        ["application/link-format", "application/json"], default=default_response_type
+    )

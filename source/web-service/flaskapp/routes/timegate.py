@@ -6,7 +6,7 @@ from sqlalchemy.orm import defer, load_only
 
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
-from flaskapp.utilities import format_datetime
+from flaskapp.utilities import format_datetime, requested_linkformat
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
@@ -26,6 +26,7 @@ def json_to_linkformat(d):
 def get_timemap(entity_id):
     # Get the timemap for the given entity_id, if one exists
     idPrefix = current_app.config["BASE_URL"]
+    mementoformat = current_app.config["MEMENTO_PREFERRED_FORMAT"]
     current_app.logger.info(f"Looking up timemap for entity {entity_id}")
     record = (
         Record.query.filter(Record.entity_id == entity_id)
@@ -45,9 +46,12 @@ def get_timemap(entity_id):
     # This URI-T
     uri_t = f"{idPrefix}{ url_for('timegate.get_timemap', entity_id=entity_id) }"
 
-    # Timemap
-    # If Accept: application/link-format -> application/link-format https://www.ietf.org/rfc/rfc5988.txt
-    # Otherwise: application/json
+    # Timemap formatting
+    # no browser understands link-format, and it's a pain of a format. A JSON-encoded version is
+    # offered for ease of use.
+
+    # If Accept: application/json or application/link-format (https://datatracker.ietf.org/doc/html/rfc6690#section-2)
+    # Default can be set using the "MEMENTO_PREFERRED_FORMAT" environment variable.
     # MUST URI-T as rel "timemap"
     # MUST URI-R as rel "original"
     # and MUST each URI-M (Version)
@@ -112,12 +116,16 @@ def get_timemap(entity_id):
                 )
             timemap.append(mm)
 
-    # Accept?
-    if "application/link-format" in request.headers.get("Accept", "application/json"):
-        lf = " , \n".join([json_to_linkformat(x) for x in timemap])
-        response = current_app.make_response(lf)
-        response.content_type = "applcation/link-format"
-        response.content_encoding = "utf-8"
-        return response
-    else:
+    # Response format? config['MEMENTO_PREFERRED_FORMAT'] for the default
+    if requested_linkformat(request, mementoformat) == "application/json":
         return jsonify(timemap), 200
+    else:
+        lf = ",\n".join([json_to_linkformat(x) for x in timemap])
+        response = current_app.make_response(lf)
+        response.content_type = "application/link-format;charset=utf-8"
+        response.mimetype = "application/link-format"
+        response.status_code = 200
+        response.content_encoding = "utf-8"
+        response.content_location = uri_t
+        response.location = uri_t
+        return response

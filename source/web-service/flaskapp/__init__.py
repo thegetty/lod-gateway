@@ -96,12 +96,14 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # For Flask <2.3 and retained for app config inspection:
-    app.config["JSON_SORT_KEYS"] = True
+    # Default for this application is to NOT sort:
+    app.config["JSON_SORT_KEYS"] = False
+    app.json.sort_keys = False
 
-    if "false" in environ.get("JSON_SORT_KEYS", "false"):
+    if "true" in environ.get("JSON_SORT_KEYS", "false").lower():
         # for Flask 2.3+
-        app.json.sort_keys = False
-        app.config["JSON_SORT_KEYS"] = False
+        app.config["JSON_SORT_KEYS"] = True
+        app.json.sort_keys = True
 
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]

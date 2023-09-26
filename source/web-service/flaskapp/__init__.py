@@ -172,6 +172,16 @@ def create_app():
     if environ.get("KEEP_VERSIONS_AFTER_DELETION", "False").lower() == "true":
         app.config["KEEP_VERSIONS_AFTER_DELETION"] = True
 
+    # Set the preferred output format for Memento responses.
+    # can only be application/json or application/link-format
+    app.config["MEMENTO_PREFERRED_FORMAT"] = "application/link-format"
+
+    if environ.get("MEMENTO_PREFERRED_FORMAT") in [
+        "application/json",
+        "application/link-format",
+    ]:
+        app.config["MEMENTO_PREFERRED_FORMAT"] = environ.get("MEMENTO_PREFERRED_FORMAT")
+
     app.config["LINK_HEADER_PREV_VERSION"] = False
     if environ.get("LINK_HEADER_PREV_VERSION", "False").lower() == "true":
         app.config["LINK_HEADER_PREV_VERSION"] = True

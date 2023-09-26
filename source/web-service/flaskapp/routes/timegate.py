@@ -117,7 +117,11 @@ def get_timemap(entity_id):
             timemap.append(mm)
 
     # Response format? config['MEMENTO_PREFERRED_FORMAT'] for the default
-    if requested_linkformat(request, mementoformat) == "application/json":
+    requested_fmt = requested_linkformat(request, mementoformat)
+    current_app.logger.info(
+        f"Accept: {request.headers.get('accept')}, pref: {mementoformat}, tm format decision: {requested_fmt}"
+    )
+    if requested_fmt == "application/json":
         return jsonify(timemap), 200
     else:
         lf = ",\n".join([json_to_linkformat(x) for x in timemap])

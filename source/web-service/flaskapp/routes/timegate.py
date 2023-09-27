@@ -124,7 +124,7 @@ def get_timemap(entity_id):
     if requested_fmt == "application/json":
         return jsonify(timemap), 200
     else:
-        lf = ",\n".join([json_to_linkformat(x) for x in timemap])
+        lf = " , \n".join([json_to_linkformat(x) for x in timemap])
         response = current_app.make_response(lf)
         response.content_type = "application/link-format;charset=utf-8"
         response.mimetype = "application/link-format"

@@ -1,5 +1,3 @@
-version: "3.7"
-
 services:
     postgres:
         build:
@@ -10,15 +8,15 @@ services:
         volumes:
             - data_postgres:/var/lib/postgresql/data
         ports:
-            - 5432:5432
+            - "${POSTGRES_EXT_PORT:-5432}:5432"
 
-    endpoint:
+    fuseki:
         build:
             context: ./
             dockerfile: ./Dockerfile.sparql-service
         command: --tdb2 --update --loc databases/DB2 --set tdb:unionDefaultGraph=true /ds
         ports:
-            - 3030:3030
+            - ${FUSEKI_EXT_PORT:-3030}:3030
 
     web:
         build:
@@ -33,7 +31,8 @@ services:
             - ./source/web-service/tests:/app/tests
             - ./source/web-service/migrations:/app/migrations
         ports:
-            - "${FLASK_RUN_PORT}:5100"
-            - "5001:5001"  # VS Code debugger
+            - "${FLASK_RUN_PORT:-5100}:${FLASK_RUN_PORT:-5100}"  # Flask HTTP port
+            - "${VSCODE_DEBUG_PORT:-5001}:5001"  # For VS Code debugger
+
 volumes:
     data_postgres:

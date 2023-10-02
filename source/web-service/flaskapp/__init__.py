@@ -94,7 +94,17 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    # For Flask <2.3 and retained for app config inspection:
+    # Default for this application is to NOT sort:
     app.config["JSON_SORT_KEYS"] = False
+    app.json.sort_keys = False
+
+    if "true" in environ.get("JSON_SORT_KEYS", "false").lower():
+        # for Flask 2.3+
+        app.config["JSON_SORT_KEYS"] = True
+        app.json.sort_keys = True
+
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
 
@@ -161,6 +171,16 @@ def create_app():
 
     if environ.get("KEEP_VERSIONS_AFTER_DELETION", "False").lower() == "true":
         app.config["KEEP_VERSIONS_AFTER_DELETION"] = True
+
+    # Set the preferred output format for Memento responses.
+    # can only be application/json or application/link-format
+    app.config["MEMENTO_PREFERRED_FORMAT"] = "application/link-format"
+
+    if environ.get("MEMENTO_PREFERRED_FORMAT") in [
+        "application/json",
+        "application/link-format",
+    ]:
+        app.config["MEMENTO_PREFERRED_FORMAT"] = environ.get("MEMENTO_PREFERRED_FORMAT")
 
     app.config["LINK_HEADER_PREV_VERSION"] = False
     if environ.get("LINK_HEADER_PREV_VERSION", "False").lower() == "true":

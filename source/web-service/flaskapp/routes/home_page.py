@@ -127,7 +127,7 @@ def get_distinct_entity_types():
         .all()
     )
     for ent in ent_types:
-        if ent and ent[1] > 1:
+        if ent and ent[1] > 0:
             result.append(ent[0])
 
     return result

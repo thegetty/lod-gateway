@@ -24,7 +24,15 @@ def get_home_page():
 
     # entities
     entities = []
-    entity_types = get_distinct_entity_types()
+    entity_types = []
+    try:
+        entity_types = get_distinct_entity_types()
+    except Exception as e:
+        # database is empty, return the greetings message
+        now = datetime.now().strftime("%H:%M:%S on %Y-%m-%d")
+        lod_name = current_app.config.get("AS_DESC")
+        body = f"Welcome to {lod_name} {now}"
+        return current_app.make_response(body)
 
     for entity_type in entity_types:
         ent_obj = get_entity(entity_type, base_url, items_per_page)

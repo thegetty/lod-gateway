@@ -26,7 +26,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
             tags:
               ignore: /.*/
       - getty-devops-release/deployTo:
@@ -50,7 +50,6 @@ jobs:
       - build
       - test
       - store
-      - write_version
 
   pocBuild:
     machine:
@@ -68,7 +67,7 @@ jobs:
       - when:
           condition:
             or:
-              - equal: [master, << pipeline.git.branch >>]
+              - equal: [main, << pipeline.git.branch >>]
           steps:
             - getty-devops-release/push-to-ecr:
                 image: jpgt-${CIRCLE_PROJECT_REPONAME}
@@ -145,9 +144,3 @@ commands:
       - store_artifacts:
           path: /tmp/output/test-reports
           destination: reports
-
-  write_version:
-    steps:
-      - run:
-          name: Write git version to file
-          command: git describe --tags > git_version.txt

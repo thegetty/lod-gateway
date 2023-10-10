@@ -188,7 +188,7 @@
     }
 
     .entity_right-column {
-      margin-top: 50px;
+      margin-top: 64px;
     }
 
     .entity_recent-change {
@@ -303,13 +303,14 @@
         <div class="hero_left-column">
           <div class="hero_description" style="padding-right: 45px">
             <p>
-              Serve linked data. The LOD Gateway is a RDF enabled, fast-cache for storing entity information as JSON
+              Serve linked data. The LOD Gateway is an RDF enabled, fast-cache for storing entity information as JSON
               documents. The LOD Gateway provides API endpoints primarily for obtaining JSON entity documents and an
-              activity stream to track changes in entity state. Optionally serve raw JSON from source systems or fully
+              Activity Stream to track changes in entity state. Optionally serve raw JSON from source systems or fully
               enable JSON-LD including RDF expansion and a SPARQL endpoint for querying RDF graph data.
             </p>
           </div>
-          <div class="hero_aslinks">
+          {% if num_records != "0" %}
+          <div class="hero_aslinks">           
             <a href="{{ url_for('activity.activity_stream_collection') }}">View activity stream</a>
             <span>(</span>
             <a href="{{ url_for('activity.activity_stream_page', pagenum=1) }}">oldest</a>
@@ -317,6 +318,7 @@
             <a href="{{ url_for('activity.activity_stream_page', pagenum=as_last_page) }}"> newest</a>
             <span>)</span>
           </div>
+          {% endif %}
         </div>
 
         <div class="hero_right-column">

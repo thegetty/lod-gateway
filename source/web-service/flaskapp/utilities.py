@@ -22,7 +22,7 @@ class Event(Enum):
 # Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
 # be specific to things like repeated triples and not general use. The regex could be  smarter
 QUADS = re.compile(
-    r"^(\<[^\>]*\>\s|_\:[A-z0-9]*\s){2}(_\:[A-z0-9]*|\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")(\^\^\<[^\>]*\>){0,1}\s(\<[^\>]*\>|_\:[A-z0-9]*)\s\.$"
+    r"^(\<[^\>]*\>\s|_\:[A-z0-9]*\s){2}(_\:[A-z0-9]*|\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\"(@[A-z]{1,4}|@[A-z]{1,4}-[A-z]{1,4}){0,1})(\^\^\<[^\>]*\>){0,1}\s(\<[^\>]*\>|_\:[A-z0-9]*)\s\.$"
 )
 NTRIPLES = re.compile(
     r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")(\^\^\<[^\>]*\>){0,1}\s\.$"
@@ -221,3 +221,13 @@ def idPrefixer(attr, value, prefix=None, **kwargs):
         temp = prefix + "/" + temp
 
     return temp
+
+
+def requested_linkformat(request_obj, default_response_type):
+    # application/json or application/link-format preferred?
+    # In cases where the client uses Accept: */*, the first item of the following
+    # accept list will be returned, hence the repeat of 'default_response_type' there.
+    return request_obj.accept_mimetypes.best_match(
+        [default_response_type, "application/link-format", "application/json"],
+        default=default_response_type,
+    )

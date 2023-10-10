@@ -7,7 +7,7 @@ from datetime import datetime
 from flaskapp.routes.activity_entity import url_base
 from flaskapp.models.record import Record
 from flaskapp.models.activity import Activity
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, exc
 from sqlalchemy.sql.functions import coalesce, max
 from flaskapp.models import db
 
@@ -19,28 +19,36 @@ home_page = Blueprint("home_page", __name__)
 @home_page.route("/dashboard", methods=["GET"])
 def get_home_page():
 
+    context = {}
     base_url = url_base()
-    items_per_page = (int)(current_app.config["ITEMS_PER_PAGE"])
+    items_per_page = (int)(current_app.config["ITEMS_PER_PAGE"])  
 
-    # entities
-    entities = []
-    entity_types = []
+    # this also covers the case when DB exists but tables not yet created
+    # 'total_num_records' is a string - can be 1.4K, 2.3M, etc.
     try:
-        entity_types = get_distinct_entity_types()
-    except Exception as e:        
-        # database is empty, create modified context
+        total_num_records = get_total_num_records()
+    except exc.SQLAlchemyError:
+        total_num_records = "0"
+
+    # database is empty, create simplified context
+    if total_num_records == "0":
         context = {
             "lod_name": current_app.config.get("AS_DESC"),
             "lod_version": get_version(),
-            "num_records": 0,
-            "num_changes": 0,
+            "num_records": "0",
+            "num_changes": "0",
             "as_last_page": 0,
             "chk_sparql": "checked" if current_app.config.get("PROCESS_RDF") else "",
-            "chk_momento": "checked" if current_app.config.get("KEEP_LAST_VERSION") else "",
+            "chk_momento": "checked"
+            if current_app.config.get("KEEP_LAST_VERSION")
+            else "",
             "num_entities": 0,
         }
         return render_template("home_page.html", **context)
-       
+
+    # entities
+    entities = []
+    entity_types = get_distinct_entity_types()
 
     for entity_type in entity_types:
         ent_obj = get_entity(entity_type, base_url, items_per_page)
@@ -56,7 +64,7 @@ def get_home_page():
         "lod_name": current_app.config.get("AS_DESC"),
         "lod_version": get_version(),
         "as_last_page": get_total_pages(items_per_page),
-        "num_records": get_total_num_records(),
+        "num_records": total_num_records,
         "num_changes": get_total_num_changes(),
         "chk_sparql": "checked" if current_app.config.get("PROCESS_RDF") else "",
         "chk_momento": "checked" if current_app.config.get("KEEP_LAST_VERSION") else "",

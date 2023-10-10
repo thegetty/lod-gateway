@@ -307,7 +307,7 @@
               enable JSON-LD including RDF expansion and a SPARQL endpoint for querying RDF graph data.
             </p>
           </div>
-          {% if num_records > 0 %}
+          {% if num_records != "0" %}
           <div class="hero_aslinks">           
             <a href="{{ url_for('activity.activity_stream_collection') }}">View activity stream</a>
             <span>(</span>

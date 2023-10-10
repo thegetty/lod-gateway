@@ -21,7 +21,7 @@ def get_home_page():
 
     context = {}
     base_url = url_base()
-    items_per_page = (int)(current_app.config["ITEMS_PER_PAGE"])  
+    items_per_page = (int)(current_app.config["ITEMS_PER_PAGE"])
 
     # this also covers the case when DB exists but tables not yet created
     # 'total_num_records' is a string - can be 1.4K, 2.3M, etc.

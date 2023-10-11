@@ -413,7 +413,11 @@
                 >View change log in Momento</a
               >
               {% endif %}
-              <a href="{{ entity.most_recent_as}}">View activity stream</a>
+              <div class="entity_aslinks">
+                <a href="{{ entity.most_recent_as }}">View activity stream</a><span> (</span>
+                <a href="{{ entity.most_recent_as }}/page/1"> oldest</a><span> | </span>
+                <a href="{{ entity.most_recent_as }}/page/{{ entity.num_pages_most_recent_as }}">newest</a><span> )</span>
+              </div>
               {% if chk_sparql == "checked" %}
               <a href="{{ entity.most_recent_sparql }}">Link to SPARQL query</a>
               {% endif %}

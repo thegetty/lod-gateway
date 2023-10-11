@@ -135,6 +135,9 @@ def get_entity(entity_type, base_url, items_per_page):
     ent_obj["most_recent_date"] = datetime.strftime(last_date, "%m/%d/%y")
     ent_obj["most_recent_num_changes"] = get_num_changes_record_entity(rec_id)
     ent_obj["most_recent_as"] = ent_obj["most_recent_rec"] + "/activity-stream"
+    ent_obj["num_pages_most_recent_as"] = ceil(
+        ent_obj["most_recent_num_changes"] / items_per_page
+    )
     ent_obj["most_recent_sparql"] = get_most_recent_sparql(base_url, last_rec)
 
     return ent_obj

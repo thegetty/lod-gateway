@@ -17,7 +17,7 @@ import traceback
 from pyld import jsonld
 from pyld.jsonld import JsonLdError
 
-from flask import Blueprint, current_app, request, abort, jsonify
+from flask import Blueprint, current_app, request, abort, jsonify, url_for
 from sqlalchemy import exc
 
 from flaskapp.models import db
@@ -76,6 +76,16 @@ ingest = Blueprint("ingest", __name__)
 def ingest_get():
     response = construct_error_response(status_GET_not_allowed)
     return abort(response)
+
+
+# 'DELETE' method. Create workload and call existing method ('POST' with '_delete': True)
+@ingest.route("/<id>", methods=["DELETE"])
+def ingest_delete(id):
+    url = url_for("ingest.ingest_post", _external=True)
+    data = {"id": id, "_delete": True}
+    headers = request.headers
+
+    return requests.post(url, json=data, headers=headers).content
 
 
 @ingest.route("/ingest", methods=["POST"])

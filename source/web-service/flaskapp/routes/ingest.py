@@ -79,7 +79,7 @@ def ingest_get():
 
 
 # 'DELETE' method. Create workload and call existing method ('POST' with '_delete': True)
-@ingest.route("/<id>", methods=["DELETE"])
+@ingest.route("/<path:id>", methods=["DELETE"])
 def ingest_delete(id):
     url = url_for("ingest.ingest_post", _external=True)
     data = {"id": id, "_delete": True}

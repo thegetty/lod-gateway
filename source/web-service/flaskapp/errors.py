@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 status_nt = namedtuple("name", "code title detail")
 
 status_ok = status_nt(200, "OK", "OK")
+status_not_modified = status_nt(
+    304, "Not Modified", "No change was made to the resource."
+)
 
 status_bad_auth_header = status_nt(
     400, "Bad Authorization Header", "Syntax of Authorization header is invalid"
@@ -29,6 +32,17 @@ status_pagenum_not_integer = status_nt(404, "Page Not Found", "Wrong page number
 
 status_GET_not_allowed = status_nt(
     405, "Forbidden Method", "For the requested URL only 'POST' method is allowed"
+)
+
+status_patch_method_not_allowed = status_nt(
+    405, "Method Not allowed", "This is not a valid target for a PATCH method"
+)
+
+status_patch_request_unparsable = status_nt(
+    400,
+    "Bad Request",
+    "This is not a valid request for the PATCH method. Requires a JSON body,"
+    " with add and/or delete keys, and a format key indicating the correct RDF serialization type",
 )
 
 status_wrong_syntax = status_nt(422, "Invalid JSON", "Could not parse JSON record")
@@ -52,7 +66,6 @@ status_db_save_error = status_nt(
 
 # Construct 'error response' object
 def construct_error_response(status, source=None):
-
     err = {}
     err["status"] = status.code
 

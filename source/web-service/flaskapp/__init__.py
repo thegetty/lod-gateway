@@ -4,7 +4,7 @@ from os import environ, getenv
 from flaskapp.logging_configuration import get_logging_config
 import json
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlite3
 
 from flask import Flask, Response
@@ -63,7 +63,7 @@ def create_app():
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
     app.config["FLASK_ENV"] = getenv("FLASK_ENV", "production")
 
-    app.logger.info(f"LOD Gateway logging INFO at level {app.config['DEBUG_LEVEL']}")
+    app.logger.info(f"LOD Gateway logging at level {app.config['DEBUG_LEVEL']}")
 
     CORS(app, send_wildcard=True)
     # Setup global configuration
@@ -116,6 +116,7 @@ def create_app():
     app.config["PROCESS_RDF"] = False
     if environ.get("PROCESS_RDF", "False").lower() == "true":
         app.config["PROCESS_RDF"] = True
+        app.logger.info(f"RDF Processing functionality is enabled.")
         app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
         app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
 
@@ -126,6 +127,12 @@ def create_app():
 
         app.config["USE_PYLD_REFORMAT"] = (
             environ.get("USE_PYLD_REFORMAT", "true").lower() == "true"
+        )
+
+        app.logger.info(
+            "Using PyLD for parsing/reserialization"
+            if app.config["USE_PYLD_REFORMAT"]
+            else "Using RDFLib for parsing/reserialization"
         )
 
         # set up a default RDF context cache?
@@ -149,12 +156,31 @@ def create_app():
                 app.logger.error(
                     f"The data in ENV: 'RDF_CONTEXT_CACHE' is not JSON! Will not load presets."
                 )
+    else:
+        app.logger.info(f"RDF Processing functionality is disabled.")
 
     # Setting the limit on number of records returned due to a glob browse request
     try:
         app.config["BROWSE_PAGE_SIZE"] = int(environ.get("BROWSE_PAGE_SIZE", 200))
     except (ValueError, TypeError) as e:
         app.config["BROWSE_PAGE_SIZE"] = 200
+
+    # PATCH_UPDATE_THRESHOLD
+    app.config["PATCH_UPDATE_THRESHOLD"] = None
+    if patch_threshold := environ.get("PATCH_UPDATE_THRESHOLD"):
+        try:
+            patch_threshold = int(patch_threshold)
+            app.config["PATCH_UPDATE_THRESHOLD"] = timedelta(minutes=patch_threshold)
+        except TypeError.ValueError as e:
+            app.logger.warning(
+                f"Value in the PATCH_UPDATE_THRESHOLD env var was not understood as a number"
+            )
+
+    app.logger.info(
+        f"RDF GRAPH PATCH enabled, edit threshold is set to a duration of {app.config['PATCH_UPDATE_THRESHOLD']}"
+        if app.config["PATCH_UPDATE_THRESHOLD"]
+        else "RDF GRAPH PATCH is disabled"
+    )
 
     app.config["JSON_AS_ASCII"] = False
     app.config["FLASK_GZIP_COMPRESSION"] = environ["FLASK_GZIP_COMPRESSION"]
@@ -186,18 +212,42 @@ def create_app():
     if environ.get("LINK_HEADER_PREV_VERSION", "False").lower() == "true":
         app.config["LINK_HEADER_PREV_VERSION"] = True
 
+    app.logger.info(
+        "Versioning enabled"
+        if app.config["KEEP_LAST_VERSION"]
+        else "Versioning is disabled"
+    )
+
     app.config["SUBADDRESSING"] = False
     if environ.get("SUBADDRESSING", "False").lower() == "true":
         app.config["SUBADDRESSING"] = True
-        if environ.get("SUBADDRESSING_DEPTH") is not None:
+        app.config["SUBADDRESSING_MAX_PARTS"] = 4
+        app.config["SUBADDRESSING_MIN_PARTS"] = 1
+
+        if environ.get("SUBADDRESSING_MAX_PARTS") is not None:
             try:
-                app.config["SUBADDRESSING_DEPTH"] = int(
-                    environ.get("SUBADDRESSING_DEPTH")
+                app.config["SUBADDRESSING_MAX_PARTS"] = int(
+                    environ.get("SUBADDRESSING_MAX_PARTS")
                 )
             except (ValueError, TypeError) as e:
                 app.logger.error(
-                    f"Value for SUBADDRESSING_DEPTH could not be interpreted as an integer. Ignoring."
+                    f"Value for SUBADDRESSING_MAX_PARTS could not be interpreted as an integer. Ignoring."
                 )
+        if environ.get("SUBADDRESSING_MIN_PARTS") is not None:
+            try:
+                app.config["SUBADDRESSING_MIN_PARTS"] = int(
+                    environ.get("SUBADDRESSING_MIN_PARTS")
+                )
+            except (ValueError, TypeError) as e:
+                app.logger.error(
+                    f"Value for SUBADDRESSING_MIN_PARTS could not be interpreted as an integer. Ignoring."
+                )
+
+    app.logger.info(
+        f"Subaddressing enabled - search depth up to (app.config['SUBADDRESSING_MAX_PARTS']"
+        if app.config["SUBADDRESSING"]
+        else "Subaddressing disabled"
+    )
 
     if app.config["FLASK_ENV"].lower() == "development":
         app.config["SQLALCHEMY_ECHO"] = True
@@ -235,6 +285,7 @@ def create_app():
                         ("FULL_BASE_GRAPH", "Base Graph"),
                         ("SUBADDRESSING", "Subaddressing"),
                         ("KEEP_LAST_VERSION", "Versioning"),
+                        ("PATCH_UPDATE_THRESHOLD", "RDF Graph PATCH"),
                     ]
                     if app.config.get(k)
                 ]

@@ -11,29 +11,38 @@ from datetime import datetime, timezone
 from flask import Blueprint, current_app, abort, request, jsonify, url_for, redirect
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import load_only, defer
-from sqlalchemy import func
+from sqlalchemy import func, exc
 
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
 from flaskapp.utilities import (
+    Event,
     format_datetime,
     containerRecursiveCallback,
     idPrefixer,
     is_ntriples,
     triples_to_quads,
 )
+from flaskapp.storage_utilities.record import (
+    get_record,
+    record_delete,
+    process_activity,
+)
 from flaskapp.errors import (
+    status_nt,
     construct_error_response,
     status_record_not_found,
     status_page_not_found,
+    status_db_save_error,
+    status_graphstore_error,
     status_ok,
 )
 from flaskapp.utilities import checksum_json
 
 # authentication function from ingest. This really should be changed at some point to a
 # better library like JWT
-from flaskapp.routes.ingest import authenticate_bearer
+from flaskapp.routes.ingest import authenticate_bearer, process_graphstore_record_set
 
 import time
 
@@ -538,6 +547,72 @@ def entity_record(entity_id):
         else:
             response = construct_error_response(status_record_not_found)
             return abort(response)
+
+
+# 'DELETE' method.
+@records.route("/<path:id>", methods=["DELETE"])
+def delete(id):
+
+    result_dict = {}
+
+    # Authentication
+    status = authenticate_bearer(request)
+    if status != status_ok:
+        response = construct_error_response(status)
+        return abort(response)
+
+    current_app.logger.debug("Authentication checked - DELETE request allowed.")
+
+    # Get record from DB
+    db_rec = get_record(id)
+
+    # No such record. Return {"id": None} (format identical to one in 'ingest/delete')
+    if db_rec is None:
+        result_dict[id] = "null"
+        return jsonify(result_dict), 200
+
+    # Process DELETE
+    with db.session.no_autoflush:
+        try:
+            process_activity(db_rec.id, Event.Delete)
+            record_delete(db_rec, None, True)
+
+        # Catch only OperationalError exception (e.g. DB is down)
+        except exc.OperationalError as e:
+            current_app.logger.error(e)
+            current_app.logger.critical(
+                "Critical failure writing the updated Record to DB"
+            )
+            db.session.rollback()
+            return abort(construct_error_response(status_db_save_error))
+
+        # Process RDF if applicable
+        if current_app.config["PROCESS_RDF"] is True:
+
+            # this is REST DELETE, so we don't have the full record, just the 'id'
+            rec = json.dumps({"id": id, "_delete": True})
+            graphstore_result = process_graphstore_record_set([rec])
+
+            # if RDF process fails, roll back and return graph store specific error
+            if graphstore_result is not True:
+                current_app.logger.error(
+                    f"Error occurred processing DELETE in graph store. Rolling back."
+                )
+                db.session.rollback()
+
+                return abort(construct_error_response(status_graphstore_error))
+
+    # Delete successful. Return result configured identically to 'ingest/delete'
+    db.session.commit()
+    result_dict = {
+        id: (
+            f'{current_app.config["NAMESPACE"]}/{id}'
+            if current_app.config["NAMESPACE"]
+            else f"{id}"
+        )
+    }
+
+    return jsonify(result_dict), 200
 
 
 # old version of a record

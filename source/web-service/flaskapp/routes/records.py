@@ -566,7 +566,7 @@ def delete(id):
     # Get record from DB
     db_rec = get_record(id)
 
-    # No such record. Return {"id": None} (format identical to one in 'ingest/delete')
+    # No such record. Return {"id": None} (format identical to 'ingest/delete')
     if db_rec is None:
         result_dict[id] = "null"
         return jsonify(result_dict), 200

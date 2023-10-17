@@ -29,6 +29,7 @@ from flaskapp.storage_utilities.record import (
     record_delete,
     process_activity,
 )
+from flaskapp.storage_utilities.graph import graph_delete
 from flaskapp.errors import (
     status_nt,
     construct_error_response,
@@ -42,7 +43,7 @@ from flaskapp.utilities import checksum_json
 
 # authentication function from ingest. This really should be changed at some point to a
 # better library like JWT
-from flaskapp.routes.ingest import authenticate_bearer, process_graphstore_record_set
+from flaskapp.routes.ingest import authenticate_bearer
 
 import time
 
@@ -553,8 +554,6 @@ def entity_record(entity_id):
 @records.route("/<path:id>", methods=["DELETE"])
 def delete(id):
 
-    result_dict = {}
-
     # Authentication
     status = authenticate_bearer(request)
     if status != status_ok:
@@ -566,53 +565,52 @@ def delete(id):
     # Get record from DB
     db_rec = get_record(id)
 
-    # No such record. Return {"id": None} (format identical to 'ingest/delete')
-    if db_rec is None:
-        result_dict[id] = "null"
-        return jsonify(result_dict), 200
+    # No such record or a stub record
+    if db_rec is None or (db_rec.data is None and db_rec.checksum is None):
+        response = construct_error_response(status_record_not_found)
+        return abort(response)
 
     # Process DELETE
     with db.session.no_autoflush:
         try:
+            current_app.logger.debug(f"Starting delete process on {id}")
+
             process_activity(db_rec.id, Event.Delete)
             record_delete(db_rec, None, True)
+
+            # Process RDF if applicable
+            if current_app.config["PROCESS_RDF"] is True:
+
+                full_uri = f"{current_app.config['RDFidPrefix']}/{id}"
+                current_app.logger.debug(
+                    f"Attempting to delete {full_uri} from graphstore"
+                )
+
+                graphstore_result = graph_delete(
+                    full_uri,
+                    current_app.config["SPARQL_QUERY_ENDPOINT"],
+                    current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                )
+
+                # if RDF process fails, roll back and return graph store specific error
+                if graphstore_result is not True:
+                    current_app.logger.error(
+                        f"Error occurred processing DELETE in graph store. Rolling back."
+                    )
+                    db.session.rollback()
+
+                    return abort(construct_error_response(status_graphstore_error))
+
+            db.session.commit()
 
         # Catch only OperationalError exception (e.g. DB is down)
         except exc.OperationalError as e:
             current_app.logger.error(e)
-            current_app.logger.critical(
-                "Critical failure writing the updated Record to DB"
-            )
+            current_app.logger.critical(f"DB Failure when attempting to delete {id}")
             db.session.rollback()
             return abort(construct_error_response(status_db_save_error))
 
-        # Process RDF if applicable
-        if current_app.config["PROCESS_RDF"] is True:
-
-            # this is REST DELETE, so we don't have the full record, just the 'id'
-            rec = json.dumps({"id": id, "_delete": True})
-            graphstore_result = process_graphstore_record_set([rec])
-
-            # if RDF process fails, roll back and return graph store specific error
-            if graphstore_result is not True:
-                current_app.logger.error(
-                    f"Error occurred processing DELETE in graph store. Rolling back."
-                )
-                db.session.rollback()
-
-                return abort(construct_error_response(status_graphstore_error))
-
-    # Delete successful. Return result configured identically to 'ingest/delete'
-    db.session.commit()
-    result_dict = {
-        id: (
-            f'{current_app.config["NAMESPACE"]}/{id}'
-            if current_app.config["NAMESPACE"]
-            else f"{id}"
-        )
-    }
-
-    return jsonify(result_dict), 200
+    return "", 204
 
 
 # old version of a record

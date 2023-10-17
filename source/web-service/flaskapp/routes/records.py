@@ -11,22 +11,32 @@ from datetime import datetime, timezone
 from flask import Blueprint, current_app, abort, request, jsonify, url_for, redirect
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import load_only, defer
-from sqlalchemy import func
+from sqlalchemy import func, exc
 
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
 from flaskapp.utilities import (
+    Event,
     format_datetime,
     containerRecursiveCallback,
     idPrefixer,
     is_ntriples,
     triples_to_quads,
 )
+from flaskapp.storage_utilities.record import (
+    get_record,
+    record_delete,
+    process_activity,
+)
+from flaskapp.storage_utilities.graph import graph_delete
 from flaskapp.errors import (
+    status_nt,
     construct_error_response,
     status_record_not_found,
     status_page_not_found,
+    status_db_save_error,
+    status_graphstore_error,
     status_ok,
 )
 from flaskapp.utilities import checksum_json
@@ -538,6 +548,69 @@ def entity_record(entity_id):
         else:
             response = construct_error_response(status_record_not_found)
             return abort(response)
+
+
+# 'DELETE' method.
+@records.route("/<path:id>", methods=["DELETE"])
+def delete(id):
+
+    # Authentication
+    status = authenticate_bearer(request)
+    if status != status_ok:
+        response = construct_error_response(status)
+        return abort(response)
+
+    current_app.logger.debug("Authentication checked - DELETE request allowed.")
+
+    # Get record from DB
+    db_rec = get_record(id)
+
+    # No such record or a stub record
+    if db_rec is None or (db_rec.data is None and db_rec.checksum is None):
+        response = construct_error_response(status_record_not_found)
+        return abort(response)
+
+    # Process DELETE
+    with db.session.no_autoflush:
+        try:
+            current_app.logger.debug(f"Starting delete process on {id}")
+
+            process_activity(db_rec.id, Event.Delete)
+            record_delete(db_rec, None)
+
+            # Process RDF if applicable
+            if current_app.config["PROCESS_RDF"] is True:
+
+                full_uri = f"{current_app.config['RDFidPrefix']}/{id}"
+                current_app.logger.debug(
+                    f"Attempting to delete {full_uri} from graphstore"
+                )
+
+                graphstore_result = graph_delete(
+                    full_uri,
+                    current_app.config["SPARQL_QUERY_ENDPOINT"],
+                    current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                )
+
+                # if RDF process fails, roll back and return graph store specific error
+                if graphstore_result is not True:
+                    current_app.logger.error(
+                        f"Error occurred processing DELETE in graph store. Rolling back."
+                    )
+                    db.session.rollback()
+
+                    return abort(construct_error_response(status_graphstore_error))
+
+            db.session.commit()
+
+        # Catch only OperationalError exception (e.g. DB is down)
+        except exc.OperationalError as e:
+            current_app.logger.error(e)
+            current_app.logger.critical(f"DB Failure when attempting to delete {id}")
+            db.session.rollback()
+            return abort(construct_error_response(status_db_save_error))
+
+    return "", 204
 
 
 # old version of a record

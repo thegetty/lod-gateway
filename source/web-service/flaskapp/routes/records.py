@@ -576,7 +576,7 @@ def delete(id):
             current_app.logger.debug(f"Starting delete process on {id}")
 
             process_activity(db_rec.id, Event.Delete)
-            record_delete(db_rec, None, True)
+            record_delete(db_rec, None)
 
             # Process RDF if applicable
             if current_app.config["PROCESS_RDF"] is True:

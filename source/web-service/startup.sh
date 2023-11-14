@@ -28,6 +28,7 @@ if [[ "$WORKER_CLASS" != "gevent" ]]; then
          --keep-alive ${KEEPALIVE} \
          --access-logfile '-' \
          --error-logfile '-' \
+         --worker-tmp-dir /dev/shm \
          wsgi:app
 	$@
 else
@@ -40,6 +41,7 @@ else
          --keep-alive ${KEEPALIVE} \
          --access-logfile '-' \
          --error-logfile '-' \
+         --worker-tmp-dir /dev/shm \
          wsgi:app
 	$@
 fi

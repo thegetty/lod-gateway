@@ -39,7 +39,7 @@ def get_home_page():
             "num_changes": "0",
             "as_last_page": 0,
             "chk_sparql": "checked" if current_app.config.get("PROCESS_RDF") else "",
-            "chk_momento": "checked"
+            "chk_memento": "checked"
             if current_app.config.get("KEEP_LAST_VERSION")
             else "",
             "num_entities": 0,
@@ -67,7 +67,7 @@ def get_home_page():
         "num_records": total_num_records,
         "num_changes": get_total_num_changes(),
         "chk_sparql": "checked" if current_app.config.get("PROCESS_RDF") else "",
-        "chk_momento": "checked" if current_app.config.get("KEEP_LAST_VERSION") else "",
+        "chk_memento": "checked" if current_app.config.get("KEEP_LAST_VERSION") else "",
         "last_change": get_last_modified_date(),
         "entities": entities,
         "num_entities": len(entities),

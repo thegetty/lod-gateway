@@ -45,6 +45,8 @@
       font-size: 32px;
       line-height: 40px;
       margin: 0;
+      word-wrap: break-word;
+      word-break: break-word;
     }
 
     h3 {
@@ -301,13 +303,14 @@
         <div class="hero_left-column">
           <div class="hero_description" style="padding-right: 45px">
             <p>
-              Serve linked data. The LOD Gateway is an RDF enabled, fast-cache for storing entity information as JSON
-              documents. The LOD Gateway provides API endpoints primarily for obtaining JSON entity documents and an
+              The LOD Gateway is an RDF enabled, fast-cache for storing entity information as JSON documents. 
+              The LOD Gateway provides API endpoints primarily for obtaining JSON entity documents and an
               Activity Stream to track changes in entity state. Optionally serve raw JSON from source systems or fully
               enable JSON-LD including RDF expansion and a SPARQL endpoint for querying RDF graph data.
             </p>
           </div>
-          <div class="hero_aslinks">
+          {% if num_records != "0" %}
+          <div class="hero_aslinks">           
             <a href="{{ url_for('activity.activity_stream_collection') }}">View activity stream</a>
             <span>(</span>
             <a href="{{ url_for('activity.activity_stream_page', pagenum=1) }}">oldest</a>
@@ -315,6 +318,7 @@
             <a href="{{ url_for('activity.activity_stream_page', pagenum=as_last_page) }}"> newest</a>
             <span>)</span>
           </div>
+          {% endif %}
         </div>
 
         <div class="hero_right-column">
@@ -336,9 +340,9 @@
               </div>
             </div>
             <div class="hero_badge">
-              <p>Momento</p>
-              <div class="{{"hero_badge-indicator" if chk_momento == "checked" else "hero_badge-indicator hero_badge-indicator--disabled"}}">
-                {% if chk_momento == "checked" %}
+              <p>Memento</p>
+              <div class="{{"hero_badge-indicator" if chk_memento == "checked" else "hero_badge-indicator hero_badge-indicator--disabled"}}">
+                {% if chk_memento == "checked" %}
                 <span class="material-symbols-outlined"> done </span>
                 {% else %}
                 <span class="material-symbols-outlined"> close </span>
@@ -404,12 +408,16 @@
             <p class="entity_timestamp">Last updated: {{ entity.most_recent_date }}</p>
             <p>{{ entity.most_recent_num_changes}} {{"changes" if entity.most_recent_num_changes > 1 else "change"}}</p>
             <div class="entity_links">
-              {% if chk_momento == "checked" %}
+              {% if chk_memento == "checked" %}
               <a href="{{ url_for('timegate.get_timemap', entity_id=entity.most_recent_rec) }}"
-                >View change log in Momento</a
+                >View change log in Memento</a
               >
               {% endif %}
-              <a href="{{ entity.most_recent_as}}">View activity stream</a>
+              <div class="entity_aslinks">
+                <a href="{{ entity.most_recent_as }}">View activity stream</a><span> (</span>
+                <a href="{{ entity.most_recent_as }}/page/1"> oldest</a><span> | </span>
+                <a href="{{ entity.most_recent_as }}/page/{{ entity.num_pages_most_recent_as }}">newest</a><span> )</span>
+              </div>
               {% if chk_sparql == "checked" %}
               <a href="{{ entity.most_recent_sparql }}">Link to SPARQL query</a>
               {% endif %}

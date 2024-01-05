@@ -51,7 +51,7 @@ class TestSparqlSuccess:
         assert "GET" in response.headers["Allow"]
         assert "POST" in response.headers["Allow"]
         assert "OPTIONS" in response.headers["Allow"]
-        assert "DELETE" not in response.headers["Allow"]
+        assert "DELETE" in response.headers["Allow"]
 
 
 class TestGraphStoreConnection:

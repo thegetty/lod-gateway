@@ -7,7 +7,7 @@ from datetime import datetime
 from flaskapp.routes.activity_entity import url_base
 from flaskapp.models.record import Record
 from flaskapp.models.activity import Activity
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, exc
 from sqlalchemy.sql.functions import coalesce, max
 from flaskapp.models import db
 
@@ -19,8 +19,32 @@ home_page = Blueprint("home_page", __name__)
 @home_page.route("/dashboard", methods=["GET"])
 def get_home_page():
 
+    context = {}
     base_url = url_base()
     items_per_page = (int)(current_app.config["ITEMS_PER_PAGE"])
+
+    # this also covers the case when DB exists but tables not yet created
+    # 'total_num_records' is a string - can be 1.4K, 2.3M, etc.
+    try:
+        total_num_records = get_total_num_records()
+    except exc.SQLAlchemyError:
+        total_num_records = "0"
+
+    # database is empty, create simplified context
+    if total_num_records == "0":
+        context = {
+            "lod_name": current_app.config.get("AS_DESC"),
+            "lod_version": get_version(),
+            "num_records": "0",
+            "num_changes": "0",
+            "as_last_page": 0,
+            "chk_sparql": "checked" if current_app.config.get("PROCESS_RDF") else "",
+            "chk_memento": "checked"
+            if current_app.config.get("KEEP_LAST_VERSION")
+            else "",
+            "num_entities": 0,
+        }
+        return render_template("home_page.html", **context)
 
     # entities
     entities = []
@@ -40,10 +64,10 @@ def get_home_page():
         "lod_name": current_app.config.get("AS_DESC"),
         "lod_version": get_version(),
         "as_last_page": get_total_pages(items_per_page),
-        "num_records": get_total_num_records(),
+        "num_records": total_num_records,
         "num_changes": get_total_num_changes(),
         "chk_sparql": "checked" if current_app.config.get("PROCESS_RDF") else "",
-        "chk_momento": "checked" if current_app.config.get("KEEP_LAST_VERSION") else "",
+        "chk_memento": "checked" if current_app.config.get("KEEP_LAST_VERSION") else "",
         "last_change": get_last_modified_date(),
         "entities": entities,
         "num_entities": len(entities),
@@ -111,6 +135,9 @@ def get_entity(entity_type, base_url, items_per_page):
     ent_obj["most_recent_date"] = datetime.strftime(last_date, "%m/%d/%y")
     ent_obj["most_recent_num_changes"] = get_num_changes_record_entity(rec_id)
     ent_obj["most_recent_as"] = ent_obj["most_recent_rec"] + "/activity-stream"
+    ent_obj["num_pages_most_recent_as"] = ceil(
+        ent_obj["most_recent_num_changes"] / items_per_page
+    )
     ent_obj["most_recent_sparql"] = get_most_recent_sparql(base_url, last_rec)
 
     return ent_obj
@@ -127,7 +154,7 @@ def get_distinct_entity_types():
         .all()
     )
     for ent in ent_types:
-        if ent and ent[1] > 1:
+        if ent and ent[1] > 0:
             result.append(ent[0])
 
     return result

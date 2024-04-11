@@ -1,21 +1,43 @@
 version: 2.1
 
 anchors:
-  - &imageTag ${CIRCLE_SHA1:0:7}
+  - imageTag: &imageTag ${CIRCLE_SHA1:0:7}
+  - imageName: &imageName jpgt-${CIRCLE_PROJECT_REPONAME}
 
 orbs:
   docker: circleci/docker@1.5.0
   getty-devops-release: thegetty/devops-orb@3
+
 
 workflows:
   build:
     jobs:
       - build:
           context: GETTY
-  poc:
-    jobs:
-      - pocBuild:
+      - publish-to-ecr:
+          name: "Publish to Getty ECR"
           context: GETTY
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - main
+                - /^hotfix-.+$/
+            tags:
+              ignore: /.*/
+      - publish-to-ecr:
+          name: "Publish to JPC ECR"
+          context: JPC
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - main
+                - /^hotfix-.+$/
+            tags:
+              ignore: /.*/
       - getty-devops-release/deployTo:
           name: "Deploy to Staging (JPC)"
           context: JPC
@@ -23,9 +45,9 @@ workflows:
           repo_url: "git@github.com:thegetty/jpc-kubernetes.git"
           tag: *imageTag
           service: lod-gateway-aspace-jpc-l1,lod-gateway-rcv-jpc-l2
-          environment: stage
           requires:
-            - pocBuild
+            - build
+            - "Publish to JPC ECR"
           filters:
             branches:
               only:
@@ -33,12 +55,29 @@ workflows:
             tags:
               ignore: /.*/
       - getty-devops-release/deployTo:
+          name: "Deploy to Prod (JPC)"
+          context: JPC
+          repo_name: jpc-kubernetes
+          repo_url: "git@github.com:thegetty/jpc-kubernetes.git"
+          tag: *imageTag
+          service: lod-gateway-aspace-jpc-l1,lod-gateway-rcv-jpc-l2
+          requires:
+            - build
+            - "Publish to JPC ECR"
+          environment: prd
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*$/
+      - getty-devops-release/deployTo:
+          name: "Deploy to Staging (Getty)"
           context: GETTY
           tag: *imageTag
           service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-provenance-l2,lod-gateway-annotations-l2,lod-gateway-tms-l1,lod-gateway-consonance-l1,lod-gateway-thesaurus-l2
-          environment: stage
           requires:
-            - pocBuild
+            - build
+            - "Publish to Getty ECR"
           filters:
             branches:
               only:
@@ -46,6 +85,7 @@ workflows:
             tags:
               ignore: /.*/
       - getty-devops-release/deployTo:
+          name: "Deploy to Prod (Getty)"
           context: GETTY
           tag: *imageTag
           service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-thesaurus-l2,lod-gateway-annotations-l2,lod-gateway-tms-l1,lod-gateway-consonance-l1
@@ -54,41 +94,42 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^v2.*$/
+              only: /^v.*$/
+
 
 jobs:
-  build:
-    machine:
-      docker_layer_caching: true
-      image: ubuntu-2004:202201-02
-    steps:
-      - setup
-      - build
-      - test
-      - store
-
-  pocBuild:
-    machine:
-      docker_layer_caching: true
-      image: ubuntu-2004:202201-02
+  publish-to-ecr:
+    executor: build_env
     steps:
       - setup
       - getty-devops-release/setup-aws
       - build: &imageDetails
-          image: ${ECR_ACCOUNT_URL}/jpgt-${CIRCLE_PROJECT_REPONAME}
+          image: *imageName
+          tag: *imageTag
+      - do_the_upload
+  build:
+    executor: build_env
+    steps:
+      - setup
+      - getty-devops-release/setup-aws
+      - build: &imageDetails
+          image: *imageName
           tag: *imageTag
       - test:
           <<: *imageDetails
       - store
-      - when:
-          condition:
-            or:
-              - equal: [main, << pipeline.git.branch >>]
-          steps:
-            - getty-devops-release/push-to-ecr:
-                image: jpgt-${CIRCLE_PROJECT_REPONAME}
-                tag: *imageTag
+
 commands:
+  do_the_upload:
+    steps:
+      - getty-devops-release/retag:
+          local-image: *imageName
+          local-tag: *imageTag
+          published-image: *imageName
+          tag: *imageTag
+      - getty-devops-release/push-to-ecr:
+          image: *imageName
+          tag: *imageTag
   setup:
     steps:
       - checkout
@@ -101,20 +142,22 @@ commands:
     parameters:
       image:
         type: string
-        default: ${CIRCLE_PROJECT_REPONAME}
+        default: jpgt-${CIRCLE_PROJECT_REPONAME}
       tag:
         type: string
         default: latest
     steps:
-      - docker/build:
-          dockerfile: Dockerfile.poc
-          image: << parameters.image >>
-          tag: << parameters.tag >>
+      - run:
+          name: "Building task_management docker image"
+          command: >
+            docker build -f Dockerfile.poc 
+            -t << parameters.image>>:<< parameters.tag >> 
+            .
   test:
     parameters:
       image:
         type: string
-        default: ${CIRCLE_PROJECT_REPONAME}
+        default: jpgt-${CIRCLE_PROJECT_REPONAME}
       tag:
         type: string
         default: latest
@@ -160,3 +203,10 @@ commands:
       - store_artifacts:
           path: /tmp/output/test-reports
           destination: reports
+
+executors:
+  build_env:
+    machine:
+      docker_layer_caching: true
+      resource_class: large
+      image: ubuntu-2004:current

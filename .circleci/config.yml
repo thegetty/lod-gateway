@@ -148,7 +148,7 @@ commands:
         default: latest
     steps:
       - run:
-          name: "Building task_management docker image"
+          name: "Building lod-gateway docker image"
           command: >
             docker build -f Dockerfile.poc 
             -t << parameters.image>>:<< parameters.tag >> 

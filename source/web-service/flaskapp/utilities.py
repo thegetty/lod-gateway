@@ -231,3 +231,19 @@ def requested_linkformat(request_obj, default_response_type):
         [default_response_type, "application/link-format", "application/json"],
         default=default_response_type,
     )
+
+
+def wants_html(request_obj, default_response_type="text/html"):
+    # application/json or application/link-format preferred?
+    # In cases where the client uses Accept: */*, the first item of the following
+    # accept list will be returned, hence the repeat of 'default_response_type' there.
+    return request_obj.accept_mimetypes.best_match(
+        [
+            default_response_type,
+            "text/html",
+            "application/xhtml+xml",
+            "application/xml",
+            "application/json",
+        ],
+        default=default_response_type,
+    ) in ["text/html", "application/xhtml+xml"]

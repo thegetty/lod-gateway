@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template, current_app
+from flask import Blueprint, render_template, current_app, request, jsonify
 from math import ceil
 from urllib import parse
 from datetime import datetime
@@ -11,6 +11,8 @@ from sqlalchemy import func, desc, exc
 from sqlalchemy.sql.functions import coalesce, max
 from flaskapp.models import db
 
+from flaskapp.utilities import wants_html
+
 # Create home page
 home_page = Blueprint("home_page", __name__)
 
@@ -18,7 +20,27 @@ home_page = Blueprint("home_page", __name__)
 @home_page.route("/", methods=["GET"])
 @home_page.route("/dashboard", methods=["GET"])
 def get_home_page():
-
+    if not wants_html(request):
+        return (
+            jsonify(
+                {
+                    "lod_name": current_app.config.get("AS_DESC"),
+                    "lod_version": get_version(),
+                    "lod_capabilities": current_app.config["SERVER_CAPABILITIES"],
+                    "chk_sparql": True
+                    if current_app.config.get("PROCESS_RDF")
+                    else False,
+                    "chk_memento": True
+                    if current_app.config.get("KEEP_LAST_VERSION")
+                    else False,
+                    "chk_subaddressing": True
+                    if current_app.config.get("SUBADDRESSING")
+                    else False,
+                }
+            ),
+            200,
+        )
+    # Else, provide the HTML version that requires of all the heavy DB queries
     context = {}
     base_url = url_base()
     items_per_page = (int)(current_app.config["ITEMS_PER_PAGE"])
@@ -43,6 +65,9 @@ def get_home_page():
             if current_app.config.get("KEEP_LAST_VERSION")
             else "",
             "num_entities": 0,
+            "chk_subaddressing": "checked"
+            if current_app.config.get("SUBADDRESSING")
+            else "",
         }
         return render_template("home_page.html", **context)
 
@@ -68,6 +93,9 @@ def get_home_page():
         "num_changes": get_total_num_changes(),
         "chk_sparql": "checked" if current_app.config.get("PROCESS_RDF") else "",
         "chk_memento": "checked" if current_app.config.get("KEEP_LAST_VERSION") else "",
+        "chk_subaddressing": "checked"
+        if current_app.config.get("SUBADDRESSING")
+        else "",
         "last_change": get_last_modified_date(),
         "entities": entities,
         "num_entities": len(entities),
@@ -110,7 +138,6 @@ def get_last_modified_date():
 
 
 def get_version():
-
     try:
         with open("version.txt") as f:
             return f.read()

@@ -149,13 +149,15 @@ commands:
           name: "Building lod-gateway docker image"
           command: >
             docker build -f Dockerfile.poc 
-            -t << parameters.image>>:<< parameters.tag >> 
+            -t << parameters.image>>:<< parameters.tag >>
+            .
       - run:
           name: Linting with Black
           command: >
             docker run
             << parameters.image>>:<< parameters.tag >>
-            black --check .
+            black --check
+            .
       - run:
           name: Testing PyLD using pytest
           command: >

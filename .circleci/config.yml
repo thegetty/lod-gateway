@@ -115,8 +115,6 @@ jobs:
       - build: &imageDetails
           image: *imageName
           tag: *imageTag
-      - test:
-          <<: *imageDetails
       - store
 
 commands:
@@ -145,29 +143,21 @@ commands:
         default: jpgt-${CIRCLE_PROJECT_REPONAME}
       tag:
         type: string
-        default: latest
+        default: ${CIRCLE_SHA1:0:7}
     steps:
       - run:
           name: "Building lod-gateway docker image"
           command: >
             docker build -f Dockerfile.poc 
-            -t << parameters.image>>:<< parameters.tag >> 
+            -t << parameters.image>>:<< parameters.tag >>
             .
-  test:
-    parameters:
-      image:
-        type: string
-        default: jpgt-${CIRCLE_PROJECT_REPONAME}
-      tag:
-        type: string
-        default: latest
-    steps:
       - run:
           name: Linting with Black
           command: >
             docker run
             << parameters.image>>:<< parameters.tag >>
-            black --check .
+            black --check
+            .
       - run:
           name: Testing PyLD using pytest
           command: >

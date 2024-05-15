@@ -6,7 +6,7 @@ Flask-Compress==1.11
 Flask-Cors==3.0.10
 Flask-Migrate==4.0.4
 Flask-SQLAlchemy==3.0.3
-black==22.*
+black==24.*
 pytest==7.0.1
 pytest-cov==3.0.0
 pytest-mock==3.7.0

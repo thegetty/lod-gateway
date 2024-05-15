@@ -250,7 +250,8 @@ def requests_mocker(requests_mock):
     from within CircleCI. The `requests_mocker()` method provides support for mocking successful
     HTTP requests to the graph store, and providing appropriate responses for the limited set of queries
     performed by the /ingest endpoint's `process_graphstore_record_set()` method, as well as support
-    for generating failed requests to mimic networking issues or connection time-outs."""
+    for generating failed requests to mimic networking issues or connection time-outs.
+    """
 
     def mocker_text_callback(request, context):
         print(request.url, request.path_url)

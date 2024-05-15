@@ -3,6 +3,7 @@ from sqlalchemy import ForeignKey, DateTime, Index
 from sqlalchemy.sql import func
 from sqlalchemy.orm import deferred
 
+
 # Keeping the old columns to allow for migration
 class Record(db.Model):
     __tablename__ = "records"

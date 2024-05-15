@@ -4,6 +4,7 @@ from flaskapp.errors import status_nt, construct_error_response
 # Create a new "yasgui" route blueprint
 yasgui = Blueprint("yasgui", __name__)
 
+
 # ### ROUTES ###
 @yasgui.route("/sparql-ui", methods=["GET"])
 def get_yasgui():

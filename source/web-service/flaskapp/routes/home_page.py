@@ -27,15 +27,15 @@ def get_home_page():
                     "lod_name": current_app.config.get("AS_DESC"),
                     "lod_version": get_version(),
                     "lod_capabilities": current_app.config["SERVER_CAPABILITIES"],
-                    "chk_sparql": True
-                    if current_app.config.get("PROCESS_RDF")
-                    else False,
-                    "chk_memento": True
-                    if current_app.config.get("KEEP_LAST_VERSION")
-                    else False,
-                    "chk_subaddressing": True
-                    if current_app.config.get("SUBADDRESSING")
-                    else False,
+                    "chk_sparql": (
+                        True if current_app.config.get("PROCESS_RDF") else False
+                    ),
+                    "chk_memento": (
+                        True if current_app.config.get("KEEP_LAST_VERSION") else False
+                    ),
+                    "chk_subaddressing": (
+                        True if current_app.config.get("SUBADDRESSING") else False
+                    ),
                 }
             ),
             200,
@@ -61,13 +61,13 @@ def get_home_page():
             "num_changes": "0",
             "as_last_page": 0,
             "chk_sparql": "checked" if current_app.config.get("PROCESS_RDF") else "",
-            "chk_memento": "checked"
-            if current_app.config.get("KEEP_LAST_VERSION")
-            else "",
+            "chk_memento": (
+                "checked" if current_app.config.get("KEEP_LAST_VERSION") else ""
+            ),
             "num_entities": 0,
-            "chk_subaddressing": "checked"
-            if current_app.config.get("SUBADDRESSING")
-            else "",
+            "chk_subaddressing": (
+                "checked" if current_app.config.get("SUBADDRESSING") else ""
+            ),
         }
         return render_template("home_page.html", **context)
 
@@ -93,9 +93,9 @@ def get_home_page():
         "num_changes": get_total_num_changes(),
         "chk_sparql": "checked" if current_app.config.get("PROCESS_RDF") else "",
         "chk_memento": "checked" if current_app.config.get("KEEP_LAST_VERSION") else "",
-        "chk_subaddressing": "checked"
-        if current_app.config.get("SUBADDRESSING")
-        else "",
+        "chk_subaddressing": (
+            "checked" if current_app.config.get("SUBADDRESSING") else ""
+        ),
         "last_change": get_last_modified_date(),
         "entities": entities,
         "num_entities": len(entities),
@@ -215,8 +215,8 @@ def get_last_modified_date_entity(entity_type):
         .filter(Record.entity_type == entity_type)
         .first()
     )[0]
-    date = datetime.strftime(res, "%m/%d/%y")
-    return date
+    if res is not None:
+        return datetime.strftime(res, "%m/%d/%y")
 
 
 def get_most_recent_changed_record(entity_type):

@@ -836,9 +836,9 @@ def delete_entity_version(entity_id):
 def entity_record_activity_stream(entity_id):
     count = get_record_activities_count(entity_id)
     limit = current_app.config["ITEMS_PER_PAGE"]
-    total_pages = str(math.ceil(count / limit))
+    total_pages = math.ceil(count / limit)
 
-    if count == 0 and total_pages == "0":
+    if count == 0 and total_pages == 0:
         response = construct_error_response(status_page_not_found)
         return abort(response)
     else:

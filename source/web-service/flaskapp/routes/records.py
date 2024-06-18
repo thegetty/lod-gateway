@@ -839,7 +839,10 @@ def entity_record_activity_stream(entity_id):
     total_pages = math.ceil(count / limit)
 
     if count == 0 and total_pages == 0:
-        response = construct_error_response(status_page_not_found)
+        response = construct_error_response(
+            status_page_not_found,
+            detail="An Activity Stream is only available for records that currently exist or previously existed",
+        )
         return abort(response)
     else:
         data = {

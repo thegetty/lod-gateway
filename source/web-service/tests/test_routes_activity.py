@@ -344,6 +344,13 @@ class TestPageRoute:
         dt = datetime(2019, 11, 22, 13, 2, 53)
         assert format_datetime(dt) == "2019-11-22T13:02:53"
 
+    def test_doesnotexist_record_activity_stream(
+        self, client, sample_record_with_ids, test_db, namespace
+    ):
+        url = f"/{namespace}/doesnotexist/activity-stream"
+        response = client.get(url)
+        assert response.status_code == 404
+
 
 class TestItemRoute:
     def test_typical_functionality(self, client, sample_data, namespace):
@@ -405,11 +412,6 @@ class TestActivityRecord:
             records.url_activity("someactivityid")
             == f"{base_url}/activity-stream/someactivityid"
         )
-
-    def test_doesnotexist_record_activity_stream(self, client, namespace):
-        url = f"/{namespace}/doesnotexist/activity-stream"
-        response = client.get(url)
-        assert response.status_code == 404
 
 
 class TestTruncateActivityStream:

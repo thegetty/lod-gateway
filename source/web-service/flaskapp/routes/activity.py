@@ -1,9 +1,12 @@
 import math
 
-from flask import Blueprint, current_app, abort
-from sqlalchemy.orm import joinedload, load_only, defer
+from flask import Blueprint, current_app, abort, request, redirect, jsonify, url_for
+from sqlalchemy.orm import joinedload, defer
 from sqlalchemy.sql.functions import coalesce, max
-from sqlalchemy import desc, func
+from sqlalchemy import func
+
+# date parsing
+import dateparser
 
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
@@ -19,6 +22,69 @@ from flaskapp.errors import (
 
 # Create a new "activity" route blueprint
 activity = Blueprint("activity", __name__)
+
+
+@activity.route("/activity-stream/skip-to-datetime")
+@activity.route("/activity-stream/skip-to-datetime/<string:target_datetime>")
+def redirect_to_page_using_datetime(target_datetime=None):
+    if "datetime" in request.args:
+        target_datetime = request.args["datetime"]
+
+    if not target_datetime:
+        # response - bad request
+        return (
+            jsonify({"errors": [{"error": "Datetime was not specified."}]}),
+            400,
+        )
+
+    try:
+        datetime_obj = dateparser.parse(
+            target_datetime,
+            settings={"RETURN_AS_TIMEZONE_AWARE": True},
+        )
+        if datetime_obj is None:
+            # response - bad request, unparsable date
+            return (
+                jsonify({"errors": [{"error": "Datetime was not understood"}]}),
+                400,
+            )
+    except (ValueError, TypeError) as e:
+        current_app.logger.debug(
+            f"There was an error decoding the date provided: '{target_datetime}' - {e}"
+        )
+        return (
+            jsonify({"errors": [{"error": "Datetime was not understood"}]}),
+            400,
+        )
+
+    # Try to find the closest Activity id to suggested date
+    # The datetime is not indexed at the moment but could be eventually. This
+    # initial query will be slow until then!
+    if closest_log := (
+        Activity.query.filter(Activity.datetime_created >= datetime_obj)
+        .order_by(Activity.id)
+        .first()
+    ):
+        limit = current_app.config["ITEMS_PER_PAGE"]
+        page = (closest_log.id // limit) + 1
+        current_app.logger.debug(
+            f"Redirecting to page {page} for Activity.id {closest_log.id} due to "
+            f"datetime {target_datetime} - parsed as {datetime_obj}"
+        )
+        return redirect(url_for("activity.activity_stream_page", pagenum=page))
+    else:
+        return (
+            jsonify(
+                {
+                    "errors": [
+                        {
+                            "error": f"No Activity entries found newer than specified date: '{target_datetime}'."
+                        }
+                    ]
+                }
+            ),
+            404,
+        )
 
 
 @activity.route("/activity-stream")

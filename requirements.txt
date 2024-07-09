@@ -14,7 +14,7 @@ pytest-watch==4.2.0
 #PyLD==2.0.2
 git+https://github.com/thegetty/pyld.git@threadlocking#egg=pyld
 rdflib==6.3.2
-requests==2.31.0
+requests==2.32.0
 requests-mock==1.9.3
 dateparser==1.1.8
 regex==2022.3.2

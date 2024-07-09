@@ -51,7 +51,7 @@ status_db_save_error = status_nt(
 
 
 # Construct 'error response' object
-def construct_error_response(status, source=None):
+def construct_error_response(status, source: int = None, detail: str = None):
 
     err = {}
     err["status"] = status.code
@@ -62,6 +62,9 @@ def construct_error_response(status, source=None):
 
     err["title"] = status.title
     err["detail"] = status.detail
+    err["detail"] = (
+        detail or status.detail
+    )  # added support here for the optional `detail` kwarg
     err = [err]
     result = {"errors": err}
 

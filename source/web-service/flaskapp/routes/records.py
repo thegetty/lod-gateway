@@ -836,21 +836,31 @@ def delete_entity_version(entity_id):
 def entity_record_activity_stream(entity_id):
     count = get_record_activities_count(entity_id)
     limit = current_app.config["ITEMS_PER_PAGE"]
-    total_pages = str(math.ceil(count / limit))
+    total_pages = math.ceil(count / limit)
 
-    data = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "summary": current_app.config["AS_DESC"],
-        "type": "OrderedCollection",
-        "id": url_record(entity_id),
-        "totalItems": count,
-    }
+    if count == 0 and total_pages == 0:
+        response = construct_error_response(
+            status_page_not_found,
+            detail="An Activity Stream is only available for records that currently exist or previously existed",
+        )
+        return abort(response)
+    else:
+        data = {
+            "@context": "https://www.w3.org/ns/activitystreams",
+            "summary": current_app.config["AS_DESC"],
+            "type": "OrderedCollection",
+            "id": url_record(entity_id),
+            "totalItems": count,
+        }
 
-    data["first"] = {"id": url_record(entity_id, 1), "type": "OrderedCollectionPage"}
-    data["last"] = {
-        "id": url_record(entity_id, total_pages),
-        "type": "OrderedCollectionPage",
-    }
+        data["first"] = {
+            "id": url_record(entity_id, 1),
+            "type": "OrderedCollectionPage",
+        }
+        data["last"] = {
+            "id": url_record(entity_id, total_pages),
+            "type": "OrderedCollectionPage",
+        }
 
     return current_app.make_response(data)
 

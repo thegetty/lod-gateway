@@ -88,6 +88,7 @@ def redirect_to_page_using_datetime(target_datetime=None):
 
 
 @activity.route("/activity-stream")
+@activity.route("/activity-stream/")
 def activity_stream_collection():
     """Generate the root OrderedCollection for the stream
 

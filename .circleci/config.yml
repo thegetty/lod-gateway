@@ -44,7 +44,7 @@ workflows:
           repo_name: jpc-kubernetes
           repo_url: "git@github.com:thegetty/jpc-kubernetes.git"
           tag: *imageTag
-          service: lod-gateway-aspace-jpc-l1,lod-gateway-rcv-jpc-l2
+          service: lod-gateway-aspace-jpc-l1,lod-gateway-rcv-jpc-l2,lod-gateway-media-jpc-l2
           requires:
             - build
             - "Publish to JPC ECR"
@@ -60,7 +60,7 @@ workflows:
           repo_name: jpc-kubernetes
           repo_url: "git@github.com:thegetty/jpc-kubernetes.git"
           tag: *imageTag
-          service: lod-gateway-aspace-jpc-l1,lod-gateway-rcv-jpc-l2
+          service: lod-gateway-aspace-jpc-l1,lod-gateway-rcv-jpc-l2,lod-gateway-media-jpc-l2
           requires:
             - build
             - "Publish to JPC ECR"

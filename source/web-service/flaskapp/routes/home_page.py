@@ -127,14 +127,16 @@ def get_total_num_changes():
 
 def get_last_modified_date():
     # much faster than taking directly max('datetime_created')
-    res = (
-        db.session.query(Activity.datetime_created)
-        .filter(Activity.id == db.session.query(func.max(Activity.id)).first()[0])
-        .first()[0]
-    )
-    date = datetime.strftime(res, "%m/%d/%y")
+    if last_id := Activity.id == db.session.query(func.max(Activity.id)).first():
+        if res := (
+            db.session.query(Activity.datetime_created)
+            .filter(Activity.id == last_id[0])
+            .first()
+        ):
+            return datetime.strftime(res[0], "%m/%d/%y")
 
-    return date
+    # Empty Activity stream
+    return "No activities"
 
 
 def get_version():
@@ -231,11 +233,14 @@ def get_most_recent_changed_record(entity_type):
         .order_by(Record.datetime_updated.desc())
         .first()
     )
-    rec_id = res[0]
-    entity_id = res[1]
-    last_dt = res[2]
+    if res is not None:
+        rec_id = res[0]
+        entity_id = res[1]
+        last_dt = res[2]
 
-    return (rec_id, entity_id, last_dt)
+        return (rec_id, entity_id, last_dt)
+    else:
+        return ("None", "None", "N/A")
 
 
 def get_num_changes_record_entity(rec_id):

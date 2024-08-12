@@ -28,6 +28,9 @@ NTRIPLES = re.compile(
     r"^(\<[^\>]*\>\s){2}(\<[^\>]*\>|\"(?:[^\"\\]|\\.)*\")(\^\^\<[^\>]*\>){0,1}\s\.$"
 )
 
+# idPrefixer URI schemes it will not prefix with the LOD external URI on display
+ALLOWED_SCHEMES = set(["https", "http", "ftp", "urn", "ftp", "file", "s3"])
+
 
 def is_quads(line):
     if line:
@@ -215,14 +218,11 @@ def containerRecursiveCallback(
 def idPrefixer(attr, value, prefix=None, **kwargs):
     """Helper callback method to prefix non-prefixed JSON-LD document 'id' attributes"""
 
-    temp = value
+    # prefix any relative uri with the prefix
+    if value.split(":")[0] not in ALLOWED_SCHEMES and prefix:
+        return prefix + "/" + value
 
-    # : is a reserved character for a URI and we shouldn't use them in
-    # relative entity names either. Not prefixing if one is found
-    if ":" not in temp and prefix:
-        temp = prefix + "/" + temp
-
-    return temp
+    return value
 
 
 def requested_linkformat(request_obj, default_response_type):

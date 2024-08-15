@@ -224,12 +224,11 @@ def subaddressing_search(entity_id):
             .one_or_none()
         )
         if record is not None and record.data:
+            subpart = _findobj(record.data, "id", entity_id)
+            if subpart is not None:
+                return (record, subpart)
+            # break out of the loop, failed to find sub part
             break
-
-    if record is not None:
-        subpart = _findobj(record.data, "id", entity_id)
-        if subpart is not None:
-            return (record, subpart)
 
     return (None, None)
 

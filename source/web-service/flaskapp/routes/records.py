@@ -223,7 +223,7 @@ def subaddressing_search(entity_id):
             .filter(Record.data != None)
             .one_or_none()
         )
-        if record is not None:
+        if record is not None and record.data:
             break
 
     if record is not None:
@@ -553,7 +553,6 @@ def entity_record(entity_id):
 # 'DELETE' method.
 @records.route("/<path:id>", methods=["DELETE"])
 def delete(id):
-
     # Authentication
     status = authenticate_bearer(request)
     if status != status_ok:
@@ -580,7 +579,6 @@ def delete(id):
 
             # Process RDF if applicable
             if current_app.config["PROCESS_RDF"] is True:
-
                 full_uri = f"{current_app.config['RDFidPrefix']}/{id}"
                 current_app.logger.debug(
                     f"Attempting to delete {full_uri} from graphstore"

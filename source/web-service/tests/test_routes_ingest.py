@@ -1,6 +1,8 @@
 import json
 import re
 
+from flaskapp.models import db
+from flaskapp.models.record import Record
 from flask import current_app
 from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
 from flaskapp.errors import status_nt
@@ -141,6 +143,17 @@ class TestIngestErrors:
         )
 
 
+def _assert_data_in_db(record_id, **kwargs):
+    if obj := Record.query.filter_by(entity_id=record_id).one_or_none():
+        for k, v in kwargs.items():
+            if obj.data[k] != v:
+                return False
+        return True
+    else:
+        # Couldn't find record
+        return False
+
+
 class TestIngestSuccess:
     def test_ingest_single(self, client_no_rdf, namespace, auth_token, test_db_no_rdf):
         response = client_no_rdf.post(
@@ -152,6 +165,8 @@ class TestIngestSuccess:
         )
         assert response.status_code == 200
         assert b"object/12345" in response.data
+
+        assert _assert_data_in_db("object/12345", name="John", age="31")
 
     def test_ingest_multiple(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf

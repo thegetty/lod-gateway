@@ -223,6 +223,47 @@ class TestIngestSuccess:
         data_resp = response.get_json()
         assert data_resp["person/12345"] == "null"
 
+    def test_ingest_updates(self, client_no_rdf, namespace, auth_token, test_db_no_rdf):
+        data = {"id": "person/54321", "name": "John", "age": 31, "city": "New York"}
+
+        # load one record:
+        _ = client_no_rdf.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert _assert_data_in_db("person/54321", city="New York", age=31)
+
+        # new data for same id
+        data = {"id": "person/54321", "name": "John", "age": 35, "city": "NJ"}
+
+        # load one record:
+        _ = client_no_rdf.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert _assert_data_in_db("person/54321", city="NJ", age=35)
+
+        # new data for same id
+        data = {
+            "id": "person/54321",
+            "name": "John",
+            "age": 45,
+            "city": "Portland, Oregon",
+        }
+
+        # load one record:
+        _ = client_no_rdf.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert _assert_data_in_db("person/54321", city="Portland, Oregon", age=45)
+
     def test_ingest_new_versions(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):

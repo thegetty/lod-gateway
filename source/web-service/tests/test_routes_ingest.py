@@ -169,28 +169,39 @@ class TestIngestSuccess:
         assert response.status_code == 200
         assert b"object/12345" in response.data
 
-        assert _assert_data_in_db("object/12345", name="John", age="31")
+        assert _assert_data_in_db("object/12345", name="John", age=31)
 
     def test_ingest_multiple(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):
         response = client_no_rdf.post(
             f"/{namespace}/ingest",
-            data='{"id": "person/12345", "name": "John", "age": 31, "city": "New York"}'
+            data='{"id": "person/12345", "name": "John", "trombone": true, "city": "Chicago"}'
             + "\n"
             + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
             + "\n"
-            + '{"id": "group/12345", "name": "John", "age": 31, "city": "New York"}'
+            + '{"id": "group/12345", "name": "The group of Johns", "age": 31, "city": "Los Angeles"}'
             + "\n",
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
         assert b"group/12345" in response.data
 
+        assert _assert_data_in_db("object/12345", city="New York")
+        assert _assert_data_in_db("person/12345", city="Chicago", trombone=True)
+        assert _assert_data_in_db(
+            "group/12345", name="The group of Johns", city="Los Angeles"
+        )
+
     def test_ingest_same_data_twice(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):
-        data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
+        data = {
+            "id": "person/12345",
+            "name": "Tom",
+            "age": 56,
+            "city": "Mobile, Alabama",
+        }
         # load one record:
         response = client_no_rdf.post(
             f"/{namespace}/ingest",
@@ -199,6 +210,8 @@ class TestIngestSuccess:
         )
         assert response.status_code == 200
         assert b"person/12345" in response.data
+
+        assert _assert_data_in_db("person/12345", city="Mobile, Alabama", age=56)
 
         # Do it again - should get a 200, but nothing in response.
         response = client_no_rdf.post(

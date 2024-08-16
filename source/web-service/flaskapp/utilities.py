@@ -7,7 +7,7 @@ import re
 
 from enum import Enum
 
-from flask.errors import status_wrong_auth_token, status_bad_auth_header, status_ok
+from flaskapp.errors import status_wrong_auth_token, status_bad_auth_header, status_ok
 
 
 # Enum with possible database events

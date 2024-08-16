@@ -7,7 +7,6 @@ import dateparser
 import pytz
 from email.utils import formatdate
 
-from datetime import datetime, timezone
 from flask import Blueprint, current_app, abort, request, jsonify, url_for, redirect
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import load_only, defer
@@ -21,7 +20,6 @@ from flaskapp.utilities import (
     format_datetime,
     containerRecursiveCallback,
     idPrefixer,
-    is_ntriples,
     triples_to_quads,
 )
 from flaskapp.storage_utilities.record import (
@@ -39,11 +37,7 @@ from flaskapp.errors import (
     status_graphstore_error,
     status_ok,
 )
-from flaskapp.utilities import checksum_json
-
-# authentication function from ingest. This really should be changed at some point to a
-# better library like JWT
-from flaskapp.routes.ingest import authenticate_bearer
+from flaskapp.utilities import checksum_json, authenticate_bearer
 
 import time
 
@@ -553,7 +547,7 @@ def entity_record(entity_id):
 @records.route("/<path:id>", methods=["DELETE"])
 def delete(id):
     # Authentication
-    status = authenticate_bearer(request)
+    status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
         return abort(response)
@@ -614,10 +608,9 @@ def delete(id):
 @records.route("/-VERSION-/<path:entity_id>", methods=["GET", "HEAD"])
 def entity_version(entity_id):
     # check if versioning authentication required
+    status = status_ok
     if current_app.config["VERSION_AUTH"].lower() == "true":
-        status = authenticate_bearer(request)
-    else:
-        status = status_ok
+        status = authenticate_bearer(request, current_app)
 
     if status != status_ok:
         response = construct_error_response(status)
@@ -791,7 +784,7 @@ def entity_version(entity_id):
 @records.route("/-VERSION-/<path:entity_id>", methods=["DELETE"])
 def delete_entity_version(entity_id):
     # Authentication. If fails, abort with 401
-    status = authenticate_bearer(request)
+    status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
         return abort(response)
@@ -865,7 +858,7 @@ def entity_record_activity_stream(entity_id):
 @records.route("/<path:entity_id>/activity-stream", methods=["POST"])
 def truncate_activity_stream_of_entity_id(entity_id):
     # Authentication. If fails, abort with 401
-    status = authenticate_bearer(request)
+    status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
         return abort(response)

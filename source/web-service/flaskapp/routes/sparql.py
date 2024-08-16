@@ -1,4 +1,3 @@
-import json
 import requests
 
 # timing
@@ -9,7 +8,6 @@ from flask import (
     current_app,
     request,
     abort,
-    jsonify,
     Response,
     make_response,
 )
@@ -18,9 +16,7 @@ from flaskapp.errors import (
     status_nt,
     status_graphstore_error,
     construct_error_response,
-    status_ok,
 )
-from flaskapp.routes.ingest import authenticate_bearer
 
 # Create a new "sparql" route blueprint
 sparql = Blueprint("sparql", __name__)

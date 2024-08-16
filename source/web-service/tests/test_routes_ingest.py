@@ -145,12 +145,15 @@ class TestIngestErrors:
 
 def _assert_data_in_db(record_id, **kwargs):
     if obj := Record.query.filter_by(entity_id=record_id).one_or_none():
+        print("Found record, now testing keyword arguments")
         for k, v in kwargs.items():
             if obj.data[k] != v:
+                print(f"In key '{k}' - should be {v}, found {obj.data[k]} instead")
                 return False
         return True
     else:
         # Couldn't find record
+        print("Could not find record 'record_id'")
         return False
 
 

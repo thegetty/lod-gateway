@@ -1,6 +1,8 @@
 import json
 import re
 
+from flaskapp.models import db
+from flaskapp.models.record import Record
 from flask import current_app
 from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
 from flaskapp.errors import status_nt
@@ -141,6 +143,20 @@ class TestIngestErrors:
         )
 
 
+def _assert_data_in_db(record_id, **kwargs):
+    if obj := Record.query.filter_by(entity_id=record_id).one_or_none():
+        print("Found record, now testing keyword arguments")
+        for k, v in kwargs.items():
+            if obj.data[k] != v:
+                print(f"In key '{k}' - should be {v}, found {obj.data[k]} instead")
+                return False
+        return True
+    else:
+        # Couldn't find record
+        print("Could not find record 'record_id'")
+        return False
+
+
 class TestIngestSuccess:
     def test_ingest_single(self, client_no_rdf, namespace, auth_token, test_db_no_rdf):
         response = client_no_rdf.post(
@@ -153,26 +169,39 @@ class TestIngestSuccess:
         assert response.status_code == 200
         assert b"object/12345" in response.data
 
+        assert _assert_data_in_db("object/12345", name="John", age=31)
+
     def test_ingest_multiple(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):
         response = client_no_rdf.post(
             f"/{namespace}/ingest",
-            data='{"id": "person/12345", "name": "John", "age": 31, "city": "New York"}'
+            data='{"id": "person/12345", "name": "John", "trombone": true, "city": "Chicago"}'
             + "\n"
             + '{"id": "object/12345", "name": "John", "age": 31, "city": "New York"}'
             + "\n"
-            + '{"id": "group/12345", "name": "John", "age": 31, "city": "New York"}'
+            + '{"id": "group/12345", "name": "The group of Johns", "age": 31, "city": "Los Angeles"}'
             + "\n",
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
         assert b"group/12345" in response.data
 
+        assert _assert_data_in_db("object/12345", city="New York")
+        assert _assert_data_in_db("person/12345", city="Chicago", trombone=True)
+        assert _assert_data_in_db(
+            "group/12345", name="The group of Johns", city="Los Angeles"
+        )
+
     def test_ingest_same_data_twice(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):
-        data = {"id": "person/12345", "name": "John", "age": 31, "city": "New York"}
+        data = {
+            "id": "person/12345",
+            "name": "Tom",
+            "age": 56,
+            "city": "Mobile, Alabama",
+        }
         # load one record:
         response = client_no_rdf.post(
             f"/{namespace}/ingest",
@@ -181,6 +210,8 @@ class TestIngestSuccess:
         )
         assert response.status_code == 200
         assert b"person/12345" in response.data
+
+        assert _assert_data_in_db("person/12345", city="Mobile, Alabama", age=56)
 
         # Do it again - should get a 200, but nothing in response.
         response = client_no_rdf.post(
@@ -191,6 +222,47 @@ class TestIngestSuccess:
         assert response.status_code == 200
         data_resp = response.get_json()
         assert data_resp["person/12345"] == "null"
+
+    def test_ingest_updates(self, client_no_rdf, namespace, auth_token, test_db_no_rdf):
+        data = {"id": "person/54321", "name": "John", "age": 31, "city": "New York"}
+
+        # load one record:
+        _ = client_no_rdf.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert _assert_data_in_db("person/54321", city="New York", age=31)
+
+        # new data for same id
+        data = {"id": "person/54321", "name": "John", "age": 35, "city": "NJ"}
+
+        # load one record:
+        _ = client_no_rdf.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert _assert_data_in_db("person/54321", city="NJ", age=35)
+
+        # new data for same id
+        data = {
+            "id": "person/54321",
+            "name": "John",
+            "age": 45,
+            "city": "Portland, Oregon",
+        }
+
+        # load one record:
+        _ = client_no_rdf.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(data),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+
+        assert _assert_data_in_db("person/54321", city="Portland, Oregon", age=45)
 
     def test_ingest_new_versions(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf

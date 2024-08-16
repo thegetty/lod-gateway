@@ -1,6 +1,4 @@
 import json
-import uuid
-import re
 
 # Timing requests
 import time
@@ -8,21 +6,12 @@ import time
 # For retry jitter
 from random import random
 
-from contextlib import suppress
-from datetime import datetime
-
-import rdflib
 import requests
-import traceback
-from pyld import jsonld
-from pyld.jsonld import JsonLdError
 
 from flask import Blueprint, current_app, request, abort, jsonify
 from sqlalchemy import exc
 
 from flaskapp.models import db
-from flaskapp.models.record import Record, Version
-from flaskapp.models.activity import Activity
 
 # Storage methods for DB and graph store
 from flaskapp.storage_utilities.record import (
@@ -45,23 +34,16 @@ from flaskapp.storage_utilities.graph import (
 from flaskapp.errors import (
     status_nt,
     status_data_missing,
-    status_db_error,
     status_graphstore_error,
     status_db_save_error,
     status_GET_not_allowed,
-    status_id_missing,
     status_ok,
-    status_bad_auth_header,
-    status_wrong_auth_token,
-    status_wrong_syntax,
     construct_error_response,
 )
 from flaskapp.utilities import (
     Event,
     checksum_json,
-    is_quads,
-    quads_to_triples,
-    graph_filter,
+    authenticate_bearer,
 )
 from flaskapp.base_graph_utils import base_graph_filter
 
@@ -81,7 +63,7 @@ def ingest_get():
 @ingest.route("/ingest", methods=["POST"])
 def ingest_post():
     # Authentication. If fails, abort with 401
-    status = authenticate_bearer(request)
+    status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
         return abort(response)
@@ -535,33 +517,3 @@ def process_graphstore_record_set(
                 )
             return graph_ids_processed
     return True
-
-
-# ### AUTHENTICATION FUNCTIONS ###
-def authenticate_bearer(request):
-    # For now return the same error for all failing scenarios
-    error = status_wrong_auth_token
-
-    # Get Authorization header token
-    auth_header = request.headers.get("Authorization")
-
-    # Return error if auth header is not present
-    if not auth_header:
-        return error
-
-    else:
-        # get method (Bearer) and token
-        try:
-            method, token = auth_header.split(maxsplit=1)
-        except ValueError:
-            return status_bad_auth_header
-
-        # check the method is correct
-        if method != "Bearer":
-            return error
-
-        # verify token
-        elif token != current_app.config["AUTH_TOKEN"]:
-            return error
-
-    return status_ok

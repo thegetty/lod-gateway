@@ -5,8 +5,9 @@ import traceback
 import sys
 import re
 
-from datetime import datetime
 from enum import Enum
+
+from flaskapp.errors import status_wrong_auth_token, status_bad_auth_header, status_ok
 
 
 # Enum with possible database events
@@ -249,3 +250,33 @@ def wants_html(request_obj, default_response_type="text/html"):
         ],
         default=default_response_type,
     ) in ["text/html", "application/xhtml+xml"]
+
+
+# ### AUTHENTICATION FUNCTIONS ###
+def authenticate_bearer(request, current_app):
+    # For now return the same error for all failing scenarios
+    error = status_wrong_auth_token
+
+    # Get Authorization header token
+    auth_header = request.headers.get("Authorization")
+
+    # Return error if auth header is not present
+    if not auth_header:
+        return error
+
+    else:
+        # get method (Bearer) and token
+        try:
+            method, token = auth_header.split(maxsplit=1)
+        except ValueError:
+            return status_bad_auth_header
+
+        # check the method is correct
+        if method != "Bearer":
+            return error
+
+        # verify token
+        elif token != current_app.config["AUTH_TOKEN"]:
+            return error
+
+    return status_ok

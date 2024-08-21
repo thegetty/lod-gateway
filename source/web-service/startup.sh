@@ -1,6 +1,11 @@
 #!/bin/bash
 
-flask db upgrade 
+echo "$(date -Iseconds) Beginning application script"
+
+if [ "$DB_UPGRADE_ON_START" == "true" ]; then
+    echo "Attempting DB upgrade -"
+    flask db upgrade 
+fi
 
 # Worker type
 WORKER_CLASS="${WORKER_CLASS:-sync}"

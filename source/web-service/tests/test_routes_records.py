@@ -153,9 +153,7 @@ class TestObtainRecord:
     ):
         current_app.config["PREFIX_RECORD_IDS"] = "RECURSIVE"
 
-        response = client.get(
-            f"/{namespace}/{sample_rdfrecord_with_context['record'].entity_id}"
-        )
+        response = client.get(f"/{namespace}/{sample_rdfrecord_with_context.entity_id}")
 
         assert response.status_code == 200
 

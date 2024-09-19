@@ -92,6 +92,18 @@ def create_app():
         # RDFidPrefix should not end with a /
         app.config["RDFidPrefix"][:-1]
 
+    # How long should the idprefixer keep cached lists of RDF prefixes from resolving
+    # contexts (default 12 hours)
+    app.config["CONTEXTPREFIX_TTL"] = 60 * 60 * 12
+    try:
+        app.config["CONTEXTPREFIX_TTL"] = int(
+            environ.get("CONTEXTPREFIX_TTL", app.config["CONTEXTPREFIX_TTL"])
+        )
+    except ValueError:
+        app.logger.error(
+            "The value in the 'CONTEXTPREFIX_TTL' environment key was not an integer duration of seconds. Setting to {app.config['CONTEXTPREFIX_TTL']}"
+        )
+
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 

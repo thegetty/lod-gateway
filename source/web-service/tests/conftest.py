@@ -181,6 +181,11 @@ def sample_record_with_ids(test_db):
 
 
 @pytest.fixture
+def sample_idprefixdata(sample_rdfrecord_with_context):
+    return sample_rdfrecord_with_context()
+
+
+@pytest.fixture
 def sample_rdfrecord_with_context(test_db):
     def _sample_record():
         record = Record(

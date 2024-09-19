@@ -102,6 +102,8 @@ When ingesting records into the LOD Gateway, any top-level `"id"` properties in 
 
 For example, when ingesting the record for Vincent van Gogh's _Irises_ (1889) into an LOD Gateway instance deployed at `https://data.getty.edu/museum/collection`, the `"id"` property MUST have an `"id"` value with a relative URI of `"object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb"` resulting in the Gateway serving the record via the absolute URI of `https://data.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb`. The Gateway will also insert the URL prefix into the `"id"` values before returning the response, converting any relative URIs in the document to absolute URIs that can be resolved by downstream systems.
 
+If there is a JSON-LD context present, the id prefixing will not affect any valid RDF-prefixed `"id"` values. The system will process the context to find the configured list (eg `rdf`, `rdfs`, `crm`, etc), and will not affect any `id` values that use those. 
+
 The following code sample illustrates ingesting a record into an LOD Gateway instance, including how to supply the `Authorization` header, how to prepare the line-delimited `POST` body containing one or more serialized JSON/JSON-LD strings, and how if desired to submit multiple records as part of a single request:
 
 ```

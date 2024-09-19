@@ -131,3 +131,19 @@ def base_graph_filter(basegraphobj, fqdn_id):
             "Failed to access record table - has the initial flask db upgrade been run?"
         )
         return set()
+
+
+def get_url_prefixes_from_context(context_json):
+    # Get the list of mapped prefixes (eg 'rdfs') from the context
+    # TODO - investigate caching this function as a later feature PR
+    # (only a handful of contexts are in use and the response will be the same.)
+    proc = jsonld.JsonLdProcessor()
+    options = {
+        "isFrame": False,
+        "keepFreeFloatingNodes": False,
+        "documentLoader": current_app.config["RDF_DOCLOADER"],
+        "extractAllScripts": False,
+        "processingMode": "json-ld-1.1",
+    }
+    mappings = proc.process_context({"mappings": {}}, context_json, options)["mappings"]
+    return {x for x in mappings if mappings[x]["_prefix"] == True}

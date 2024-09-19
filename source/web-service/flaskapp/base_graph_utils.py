@@ -159,6 +159,7 @@ def cache_context_prefixes(f):
     return wrapper
 
 
+@cache_context_prefixes
 def get_url_prefixes_from_context(context_json):
     # Get the list of mapped prefixes (eg 'rdfs') from the context
     proc = jsonld.JsonLdProcessor()

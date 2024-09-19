@@ -198,6 +198,7 @@ def sample_rdfrecord_with_context(test_db):
                     "dc": "http://purl.org/dc/elements/1.1/",
                     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
                     "_label": {"@id": "http://www.w3.org/2000/01/rdf-schema#label"},
+                    "_prefixedlabel": {"@id": "rdfs:label"},
                 },
                 "@id": "rdfsample1",
                 "rdfs:seeAlso": [

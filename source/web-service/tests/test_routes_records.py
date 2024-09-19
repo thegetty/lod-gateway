@@ -158,13 +158,13 @@ class TestObtainRecord:
         assert response.status_code == 200
 
         data = response.get_json()
-        print(data)
 
         # make sure the main relative id has been prefixed
         assert not data["@id"].startswith("rdfsample1")
 
         # make sure that the RDF prefixed IDs have been left alone.
         assert data["rdfs:seeAlso"][0]["@id"] == "dc:description"
+        assert data["@context"]["_prefixedlabel"]["@id"] == "rdfs:label"
 
     def test_prefix_record_ids_none(
         self, sample_data_with_ids, client, namespace, current_app

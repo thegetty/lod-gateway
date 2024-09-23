@@ -181,6 +181,42 @@ def sample_record_with_ids(test_db):
 
 
 @pytest.fixture
+def sample_idprefixdata(sample_rdfrecord_with_context):
+    return sample_rdfrecord_with_context()
+
+
+@pytest.fixture
+def sample_rdfrecord_with_context(test_db):
+    def _sample_record():
+        record = Record(
+            entity_id=str(uuid4()),
+            entity_type="Object",
+            datetime_created=datetime(2020, 11, 22, 13, 2, 53),
+            datetime_updated=datetime(2020, 12, 18, 11, 22, 7),
+            data={
+                "@context": {
+                    "dc": "http://purl.org/dc/elements/1.1/",
+                    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+                    "_label": {"@id": "http://www.w3.org/2000/01/rdf-schema#label"},
+                    "_prefixedlabel": {"@id": "rdfs:label"},
+                },
+                "@id": "rdfsample1",
+                "rdfs:seeAlso": [
+                    {
+                        "_label": "This is a meaningless bit of data to test if the idprefixer leaves the id alone",
+                        "@id": "dc:description",
+                    },
+                ],
+            },
+        )
+        test_db.session.add(record)
+        test_db.session.commit()
+        return record
+
+    return _sample_record
+
+
+@pytest.fixture
 def linguisticobject():
     def _generator(name, id):
         return {

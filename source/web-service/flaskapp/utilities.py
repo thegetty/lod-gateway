@@ -123,6 +123,7 @@ def containerRecursiveCallback(
     find=None,
     replace=None,
     prefix=None,
+    urlprefixes=None,
     suffix=None,
     callback=None,
     recursive=True,
@@ -172,6 +173,7 @@ def containerRecursiveCallback(
                     prefix=prefix,
                     suffix=suffix,
                     callback=callback,
+                    urlprefixes=urlprefixes,
                 )
             else:
                 if (attr == None or attr == key) and isinstance(val, str):
@@ -182,6 +184,7 @@ def containerRecursiveCallback(
                         replace=replace,
                         prefix=prefix,
                         suffix=suffix,
+                        urlprefixes=urlprefixes,
                     )
 
             data[key] = val
@@ -199,6 +202,7 @@ def containerRecursiveCallback(
                     prefix=prefix,
                     suffix=suffix,
                     callback=callback,
+                    urlprefixes=urlprefixes,
                 )
             else:
                 if (attr == None or attr == key) and isinstance(val, str):
@@ -209,6 +213,7 @@ def containerRecursiveCallback(
                         replace=replace,
                         prefix=prefix,
                         suffix=suffix,
+                        urlprefixes=urlprefixes,
                     )
 
             data[key] = val
@@ -216,11 +221,12 @@ def containerRecursiveCallback(
     return data
 
 
-def idPrefixer(attr, value, prefix=None, **kwargs):
+def idPrefixer(attr, value, prefix=None, urlprefixes=None, **kwargs):
     """Helper callback method to prefix non-prefixed JSON-LD document 'id' attributes"""
-
+    if urlprefixes is None:
+        urlprefixes = set()
     # prefix any relative uri with the prefix
-    if value.split(":")[0] not in ALLOWED_SCHEMES and prefix:
+    if value.split(":")[0] not in (ALLOWED_SCHEMES.union(urlprefixes)) and prefix:
         return prefix + "/" + value
 
     return value

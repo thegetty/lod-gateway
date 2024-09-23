@@ -38,6 +38,7 @@ from flaskapp.errors import (
     status_ok,
 )
 from flaskapp.utilities import checksum_json, authenticate_bearer
+from flaskapp.base_graph_utils import get_url_prefixes_from_context
 
 import time
 
@@ -434,6 +435,9 @@ def entity_record(entity_id):
 
                 # Assume that id/@id choice used in the data is the same as the top level
                 attr = "@id" if "@id" in data else "id"
+                urlprefixes = None
+                if "@context" in data:
+                    urlprefixes = get_url_prefixes_from_context(data["@context"])
 
                 data = containerRecursiveCallback(
                     data=data,
@@ -441,6 +445,7 @@ def entity_record(entity_id):
                     callback=idPrefixer,
                     prefix=idPrefix,
                     recursive=recursive,
+                    urlprefixes=urlprefixes,
                 )
 
                 current_app.logger.debug(

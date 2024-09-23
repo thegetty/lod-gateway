@@ -1,11 +1,10 @@
-from flaskapp.models import db
-from flaskapp.models.record import Record
+from datetime import datetime
+from functools import wraps
 
 from flask import current_app
 
 # To parse out the base graph
 from pyld import jsonld
-from pyld.jsonld import set_document_loader
 
 # docloader caching
 import requests
@@ -13,7 +12,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.exc import ProgrammingError
 
-from flaskapp.utilities import is_quads, quads_to_triples
+from flaskapp.utilities import quads_to_triples, checksum_json
 from flaskapp.storage_utilities.record import get_record, record_create
 
 """
@@ -131,3 +130,45 @@ def base_graph_filter(basegraphobj, fqdn_id):
             "Failed to access record table - has the initial flask db upgrade been run?"
         )
         return set()
+
+
+# Not limiting the context cache, as there are typically only a few in play
+# in most services. Even a hundred would be fine.
+_PREFIX_CACHE = {}
+
+
+def cache_context_prefixes(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if data := args[0]:
+            strhash = checksum_json(data)
+            dnow = datetime.timestamp(datetime.now())
+            gap = dnow - current_app.config["CONTEXTPREFIX_TTL"]
+            # If this context has not been resolved yet, or
+            # if it has but the results are too old (older than the gap),
+            # regenerate the result
+            if (
+                strhash not in _PREFIX_CACHE
+                or _PREFIX_CACHE.get(strhash, [None, 0])[1] < gap
+            ):
+                _PREFIX_CACHE[strhash] = (f(*args, **kwargs), dnow)
+
+            return _PREFIX_CACHE[strhash][0]
+        return {}
+
+    return wrapper
+
+
+@cache_context_prefixes
+def get_url_prefixes_from_context(context_json):
+    # Get the list of mapped prefixes (eg 'rdfs') from the context
+    proc = jsonld.JsonLdProcessor()
+    options = {
+        "isFrame": False,
+        "keepFreeFloatingNodes": False,
+        "documentLoader": current_app.config["RDF_DOCLOADER"],
+        "extractAllScripts": False,
+        "processingMode": "json-ld-1.1",
+    }
+    mappings = proc.process_context({"mappings": {}}, context_json, options)["mappings"]
+    return {x for x in mappings if mappings[x]["_prefix"] == True}

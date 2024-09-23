@@ -148,6 +148,24 @@ class TestObtainRecord:
         assert "LOD Gateway" in response.headers["Server"]
         assert json.loads(response.data) == data
 
+    def test_prefix_record_w_rdf_prefixes(
+        self, sample_idprefixdata, client, namespace, current_app
+    ):
+        current_app.config["PREFIX_RECORD_IDS"] = "RECURSIVE"
+
+        response = client.get(f"/{namespace}/{sample_idprefixdata.entity_id}")
+
+        assert response.status_code == 200
+
+        data = response.get_json()
+
+        # make sure the main relative id has been prefixed
+        assert not data["@id"].startswith("rdfsample1")
+
+        # make sure that the RDF prefixed IDs have been left alone.
+        assert data["rdfs:seeAlso"][0]["@id"] == "dc:description"
+        assert data["@context"]["_prefixedlabel"]["@id"] == "rdfs:label"
+
     def test_prefix_record_ids_none(
         self, sample_data_with_ids, client, namespace, current_app
     ):

@@ -1,27 +1,24 @@
 import requests
 import json
 import time
-import re
 
-from flask import current_app, request, abort, jsonify
+from flask import current_app
 
 from flaskapp.storage_utilities.record import get_record
 from flaskapp.utilities import (
-    Event,
     containerRecursiveCallback,
     idPrefixer,
     full_stack_trace,
-    is_quads,
     quads_to_triples,
     graph_filter,
 )
 
-import rdflib
+import traceback
 
 from pyld import jsonld
 from pyld.jsonld import JsonLdError
 
-from flaskapp.base_graph_utils import base_graph_filter
+from flaskapp.base_graph_utils import base_graph_filter, get_url_prefixes_from_context
 from flaskapp.graph_prefix_bindings import get_bound_graph
 
 
@@ -39,9 +36,18 @@ class RetryAfterError(Exception):
 
 def inflate_relative_uris(data, id_attr="id"):
     idPrefix = current_app.config["RDFidPrefix"]
+    urlprefixes = []
+
+    if "@context" in data:
+        # Get any context-added url prefixes:
+        urlprefixes = get_url_prefixes_from_context(data["@context"])
 
     return containerRecursiveCallback(
-        data=data, attr=id_attr, callback=idPrefixer, prefix=idPrefix
+        data=data,
+        attr=id_attr,
+        callback=idPrefixer,
+        prefix=idPrefix,
+        urlprefixes=urlprefixes,
     )
 
 
@@ -85,6 +91,8 @@ def graph_expand(data, proc=None):
     tictoc = time.perf_counter()
 
     # PyLD expansion? or RDFLIB?
+
+    current_app.logger.debug(f"Starting data to expand: '{data}'")
     if current_app.config["USE_PYLD_REFORMAT"] is True:
         current_app.logger.info(f"{json_ld_id} - expanding using PyLD")
         try:
@@ -180,6 +188,11 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         if current_app.config["RDF_FILTER_SET"] is not None:
             current_app.logger.debug(
                 f"Filtering base triples ({len(current_app.config['RDF_FILTER_SET'])}) from graph n-triples"
+            )
+            current_app.logger.debug(
+                f"Incoming triples to filter: ("
+                + str(serialized_nt.split("\n"))
+                + ") from graph n-triples"
             )
             serialized_nt = graph_filter(
                 serialized_nt, current_app.config["RDF_FILTER_SET"]

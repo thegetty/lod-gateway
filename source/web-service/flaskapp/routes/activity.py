@@ -167,16 +167,18 @@ def activity_stream_page(pagenum):
             "type": "OrderedCollectionPage",
         }
 
-    activities = (
+    if activities := (
         Activity.query.options(
             joinedload(Activity.record, innerjoin=True), defer(Record.data)
         )
         .filter(Activity.id > offset, Activity.id <= offset + limit)
         .order_by("id")
-    )
+    ):
 
-    items = [generate_item(a) for a in activities]
-    data["orderedItems"] = items
+        items = [generate_item(a) for a in activities]
+        data["orderedItems"] = items
+    else:
+        data["orderedItems"] = []
 
     return current_app.make_response(data)
 

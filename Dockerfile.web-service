@@ -34,4 +34,4 @@ EXPOSE 5100
 USER root
 
 # Run our application startup script...
-CMD [ "./startup.sh" ];
+CMD [ "./startup.sh" ]

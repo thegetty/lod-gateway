@@ -1,6 +1,20 @@
 LOD Gateway - Changelog
 =======================
 
+v2.7.0 SQLAlchemy 2.0/Flask 3.* Update
+
+## What's Changed
+* Updating from old deprecated werkzeug - general version update https://github.com/thegetty/lod-gateway/pull/474
+    * Update code from deprecated/legacy SQLAlchemy 1.4 calls
+    * pyflakes-directed linting of code to remove unnecessary parts, like unused f-strings
+* Adding a changelog generated from the release notes https://github.com/thegetty/lod-gateway/pull/473 This created a CHANGELOG.md file based on the Github Release note information.
+
+## Notes
+The main reason for the update was to fix a semicolon in a dockerfile, but this lead to discovering that a number of the libraries are deprecated, and needed to be updated. Due to the legacy code based on older SQLAlchemy patterns 
+
+**Full Changelog**: https://github.com/thegetty/lod-gateway/compare/v2.6.0b...v2.7.0
+=======================================
+
 v2.6.0b RDF Prefix fix
 v2.6.0b - Created: 2024-09-23T17:25:48Z
 

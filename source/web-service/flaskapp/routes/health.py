@@ -60,7 +60,7 @@ def authd_healthcheck_get():
 
 def health_db():
     try:
-        db.session.execute("select id from records limit 1")
+        db.session.execute("select id from records limit 1;")
         return True
     except Exception as e:
         print(f"Error - {e}")

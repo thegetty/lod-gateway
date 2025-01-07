@@ -169,7 +169,7 @@ def activity_stream_page(pagenum):
 
     if activities := (
         Activity.query.options(
-            joinedload(Activity.record, innerjoin=True), defer(Record.data)
+            joinedload(Activity.record, innerjoin="unnested"), defer(Record.data)
         )
         .filter(Activity.id > offset, Activity.id <= offset + limit)
         .order_by("id")

@@ -141,7 +141,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                         process_activity(prim_key, crud_event)
                     elif current_app.config["TESTMODE_BASEGRAPH"] is True:
                         current_app.logger.warning(
-                            f"Base graph changed. TESTMODE_BASEGRAPH is on, so reloading base graph filter. Test instance MUST BE single worker!"
+                            "Base graph changed. TESTMODE_BASEGRAPH is on, so reloading base graph filter. Test instance MUST BE single worker!"
                         )
                         # refresh the base graph for this instance
                         current_app.config["RDF_FILTER_SET"] = base_graph_filter(
@@ -153,7 +153,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                         )
                     else:
                         current_app.logger.warning(
-                            f"Base graph changed. Note this event will not be added to the activitystream."
+                            "Base graph changed. Note this event will not be added to the activitystream."
                         )
 
                     # add pair of IDs to result dict
@@ -189,7 +189,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
         graphstore_result = True
         if current_app.config["PROCESS_RDF"] is True:
             current_app.logger.debug(
-                f"PROCESS_RDF is true - process records as valid JSON-LD"
+                "PROCESS_RDF is true - process records as valid JSON-LD"
             )
             if idx_to_process_further:
                 graphstore_result = process_graphstore_record_set(
@@ -201,7 +201,7 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                 # if RDF process fails, roll back and return graph store specific error
                 if graphstore_result is not True:
                     current_app.logger.error(
-                        f"Error occurred processing JSON-LD. Rolling back."
+                        "Error occurred processing JSON-LD. Rolling back."
                     )
                     db.session.rollback()
 
@@ -328,10 +328,10 @@ def retry_request_function(func, args, kwargs=None, retry_limit=3):
                 f"Triplestore service temporarily unavailable - pausing for {retry_time:0.2f} before retrying. Attempt {retries}"
             )
             time.sleep(retry_time)
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.ConnectionError:
             retry_time = retries * random()
             current_app.logger.warning(
-                f"ConnectionError hit when attempting {graph_uri} upload. Pausing for {retry_time:0.2f}. Attempt {retries}."
+                f"ConnectionError hit. Pausing for {retry_time:0.2f}. Attempt {retries}."
             )
             time.sleep(retry_time)
         retries += 1
@@ -463,7 +463,7 @@ def process_graphstore_record_set(
                     )
 
     # Catch request connection errors
-    except requests.exceptions.ConnectionError as e:
+    except requests.exceptions.ConnectionError:
         return status_graphstore_error
 
     graph_ids_processed = []

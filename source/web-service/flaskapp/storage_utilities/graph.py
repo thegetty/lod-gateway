@@ -193,7 +193,7 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
                 f"Filtering base triples ({len(current_app.config['RDF_FILTER_SET'])}) from graph n-triples"
             )
             current_app.logger.debug(
-                f"Incoming triples to filter: ("
+                "Incoming triples to filter: ("
                 + str(serialized_nt.split("\n"))
                 + ") from graph n-triples"
             )
@@ -230,7 +230,7 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         )
         if update_filterset is True:
             current_app.logger.info(
-                f"Base graph has been updated - updating the base graph filter set to match."
+                "Base graph has been updated - updating the base graph filter set to match."
             )
             current_app.config["RDF_FILTER_SET"] = base_graph_filter(
                 current_app.config["RDF_BASE_GRAPH"],
@@ -247,7 +247,7 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         if "Retry-After" in res.headers:
             try:
                 delay_time = int(res.headers["Retry-After"])
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 pass
         raise RetryAfterError(delay_time)
     elif res.status_code in [411, 412, 413]:
@@ -289,7 +289,7 @@ def graph_delete(graph_name, query_endpoint, update_endpoint):
             if "Retry-After" in res.headers:
                 try:
                     delay_time = int(res.headers["Retry-After"])
-                except (ValueError, TypeError) as e:
+                except (ValueError, TypeError):
                     pass
             raise RetryAfterError(delay_time)
         else:
@@ -298,7 +298,7 @@ def graph_delete(graph_name, query_endpoint, update_endpoint):
             return False
     else:
         current_app.logger.error(
-            f"graph_delete was passed graph_name=None - not doing anything"
+            "graph_delete was passed graph_name=None - not doing anything"
         )
         return False
 
@@ -330,9 +330,9 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                     f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
                 )
                 results[relative_id] = "deleted"
-            except (requests.exceptions.ConnectionError, RetryAfterError) as e:
+            except (requests.exceptions.ConnectionError, RetryAfterError):
                 current_app.logger.error(
-                    f"REVERT: Rollback failure - couldn't revert {relative_id} to a deleted state in the triplestore"
+                    "REVERT: Rollback failure - couldn't revert {relative_id} to a deleted state in the triplestore. Connection Error."
                 )
                 results[relative_id] = "connection_error"
         else:
@@ -357,7 +357,7 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                         f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data[id_attr]})"
                     )
                     results[relative_id] = "refreshed"
-            except (requests.exceptions.ConnectionError, RetryAfterError) as e:
+            except (requests.exceptions.ConnectionError, RetryAfterError):
                 current_app.logger.error(
                     f"REVERT: Rollback failure - couldn't revert {relative_id} to match the DB"
                 )

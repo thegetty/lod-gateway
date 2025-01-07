@@ -36,6 +36,7 @@ from flaskapp.errors import (
     status_db_save_error,
     status_graphstore_error,
     status_ok,
+    status_db_error,
 )
 from flaskapp.utilities import checksum_json, authenticate_bearer
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
@@ -60,7 +61,7 @@ def create_checksums(extent):
     extent = extent.lower()
     if extent not in ["null"]:
         print(
-            f"Option must be 'null' to checksum just those Record rows without a checksum."
+            "Option must be 'null' to checksum just those Record rows without a checksum."
         )
         return
     print("Migration will now checksum records - may take some time")
@@ -112,16 +113,16 @@ def handle_prefix_listing(entity_id, request, idPrefix):
     if "page" in request.args:
         try:
             page = int(request.args["page"])
-        except (ValueError, TypeError) as e:
-            current_app.logger.error(f"Bad value supplied for 'page' parameter.")
+        except (ValueError, TypeError):
+            current_app.logger.error("Bad value supplied for 'page' parameter.")
 
     # BROWSE_PAGE_SIZE - optional app config value
     page_size = 200
     try:
         page_size = int(current_app.config["BROWSE_PAGE_SIZE"])
-    except (ValueError, TypeError, KeyError) as e:
+    except (ValueError, TypeError, KeyError):
         current_app.logger.warning(
-            f"Bad value supplied for BROWSE_PAGE_SIZE environment var."
+            "Bad value supplied for BROWSE_PAGE_SIZE environment var."
         )
 
     # Use SQLAlchemy's inbuilt pagination routine
@@ -199,9 +200,9 @@ def subaddressing_search(entity_id):
                 f"to more than SUBADDRESSING_MAX_PARTS {sub_max_parts}. Limiting it to the max."
             )
             sub_min_parts = sub_max_parts
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError):
         raise Exception(
-            f"ENV Misconfiguration: SUBADDRESSING_MIN_PARTS and SUBADDRESSING_MAX_PARTS must be integers."
+            "ENV Misconfiguration: SUBADDRESSING_MIN_PARTS and SUBADDRESSING_MAX_PARTS must be integers."
         )
 
     if len(parts) < sub_max_parts:
@@ -801,10 +802,6 @@ def delete_entity_version(entity_id):
     if current_app.config["KEEP_LAST_VERSION"] is True:
         """GET the version that exactly matches the id supplied"""
 
-        # idPrefix will be used by either the API route returning the record, or the route listing matches
-        hostPrefix = current_app.config["BASE_URL"]
-        idPrefix = current_app.config["idPrefix"]
-
         version = Version.query.filter(Version.entity_id == entity_id).one_or_none()
 
         if version is None:
@@ -882,8 +879,8 @@ def truncate_activity_stream_of_entity_id(entity_id):
     keep_latest_events = request.values.get("keep")
     try:
         keep_latest_events = int(keep_latest_events)
-    except (ValueError, TypeError) as e:
-        current_app.logger.error(f"'keep' parameter was not an integer.")
+    except (ValueError, TypeError):
+        current_app.logger.error("'keep' parameter was not an integer.")
         keep_latest_events = None
 
     if keep_latest_events is None or keep_latest_events < 1:

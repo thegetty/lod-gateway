@@ -84,7 +84,7 @@ def create_checksums(extent):
 
 
 def _quick_count(query):
-    count_q = query.statement.with_only_columns([func.count()]).order_by(None)
+    count_q = query.statement.with_only_columns(*[func.count()]).order_by(None)
     count = query.session.execute(count_q).scalar()
     return count
 

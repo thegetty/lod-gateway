@@ -54,6 +54,9 @@ def inflate_relative_uris(data, id_attr="id"):
 def graph_check_endpoint(query_endpoint):
     res = requests.get(query_endpoint.replace("sparql", "status"))
     try:
+        current_app.logger.info(
+            f"Graph Check response: HTTP {res.status_code} - '{res.content}'"
+        )
         res.raise_for_status()
         res_json = json.loads(res.content)
         if res_json["status"] == "healthy":

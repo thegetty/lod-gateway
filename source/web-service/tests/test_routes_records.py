@@ -21,7 +21,7 @@ class TestObtainRecord:
         assert response.status_code == 404
 
     def test_empty_data_field(self, sample_data, client, namespace):
-        test_record = Record.query.get(1)
+        test_record = db.session.get(Record, 1)
         test_record.data = None
         test_record.datetime_deleted = datetime.now()
         db.session.add(test_record)

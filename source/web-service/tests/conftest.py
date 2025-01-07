@@ -128,7 +128,7 @@ def sample_record(test_db):
 def sample_activity(test_db, sample_record):
     def _sample_activity(record_id):
 
-        if not Record.query.get(record_id):
+        if not db.session.get(Record, record_id):
             record = sample_record()
             record_id = record.id
 
@@ -256,7 +256,7 @@ def sample_jsonldrecord_with_id(test_db, linguisticobject):
 def sample_activity_with_ids(test_db, sample_record_with_ids):
     def _sample_activity(record_id):
 
-        if not Record.query.get(record_id):
+        if not db.session.get(Record, record_id):
             record = sample_record_with_ids()
             record_id = record.id
 

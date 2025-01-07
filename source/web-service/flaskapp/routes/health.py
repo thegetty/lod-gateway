@@ -23,11 +23,13 @@ def healthcheck_get():
             if health_graphstore(query_endpoint):
                 return "OK"
             else:
+                print("debug - failed Graph check")
                 response = construct_error_response(status_graphstore_error)
                 return abort(response)
         else:
             return "OK"
     else:
+        print("debug - Failed db check")
         response = construct_error_response(status_db_error)
         return abort(response)
 

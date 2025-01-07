@@ -300,7 +300,11 @@ def entity_record(entity_id):
         if current_app.config["LINK_HEADER_PREV_VERSION"] and record is not None:
             prev = (
                 db.session.query(Version)
-                .options(load_only("record_id", "entity_id", "datetime_updated"))
+                .options(
+                    load_only(
+                        Version.record_id, Version.entity_id, Version.datetime_updated
+                    )
+                )
                 .filter(Version.record_id == record.id)
                 .order_by(Version.datetime_updated.desc())
                 .limit(1)

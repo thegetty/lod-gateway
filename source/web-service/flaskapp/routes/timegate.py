@@ -30,7 +30,7 @@ def get_timemap(entity_id):
     current_app.logger.info(f"Looking up timemap for entity {entity_id}")
     record = (
         Record.query.filter(Record.entity_id == entity_id)
-        .options(load_only("entity_id", "id", "datetime_updated"))
+        .options(load_only(Record.entity_id, Record.id, Record.datetime_updated))
         .limit(1)
         .first()
     )
@@ -71,7 +71,9 @@ def get_timemap(entity_id):
 
     versions = (
         db.session.query(Version)
-        .options(load_only("record_id", "entity_id", "datetime_updated"))
+        .options(
+            load_only(Version.record_id, Version.entity_id, Version.datetime_updated)
+        )
         .filter(Version.record_id == record.id)
         .order_by(Version.datetime_updated.desc())
         .all()

@@ -1,4 +1,3 @@
-import os
 from flask import Blueprint, render_template, current_app, request, jsonify
 from math import ceil
 from urllib import parse

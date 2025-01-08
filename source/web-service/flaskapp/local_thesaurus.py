@@ -1,8 +1,6 @@
-from datetime import datetime
 from flask import current_app
 from flaskapp.models import db
 from flaskapp.routes import ingest
-from flaskapp.models.record import Record
 import requests
 import csv
 import json

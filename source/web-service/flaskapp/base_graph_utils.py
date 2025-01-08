@@ -1,4 +1,3 @@
-from datetime import datetime
 from functools import wraps
 
 from flask import current_app
@@ -124,7 +123,7 @@ def base_graph_filter(basegraphobj, fqdn_id):
 
         return set((x.strip() for x in serialized_nt.split("\n") if x))
 
-    except ProgrammingError as e:
+    except ProgrammingError:
         # Most likely the initial DB upgrade migration has not been run
         current_app.logger.critical(
             "Failed to access record table - has the initial flask db upgrade been run?"

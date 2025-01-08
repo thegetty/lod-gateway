@@ -1,7 +1,7 @@
 import math
 
 from flask import Blueprint, current_app, abort, request, redirect, jsonify, url_for
-from sqlalchemy.orm import joinedload, defer
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.functions import coalesce, max
 from sqlalchemy import func
 
@@ -167,16 +167,18 @@ def activity_stream_page(pagenum):
             "type": "OrderedCollectionPage",
         }
 
-    activities = (
+    if activities := (
         Activity.query.options(
-            joinedload(Activity.record, innerjoin=True), defer("record.data")
+            joinedload(Activity.record, innerjoin=True).defer(Record.data)
         )
         .filter(Activity.id > offset, Activity.id <= offset + limit)
         .order_by("id")
-    )
+    ):
 
-    items = [generate_item(a) for a in activities]
-    data["orderedItems"] = items
+        items = [generate_item(a) for a in activities]
+        data["orderedItems"] = items
+    else:
+        data["orderedItems"] = []
 
     return current_app.make_response(data)
 

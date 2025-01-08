@@ -1,9 +1,7 @@
 import math
 
 from flask import Blueprint, current_app, abort
-from sqlalchemy.orm import joinedload, load_only, defer
-from sqlalchemy.sql.functions import coalesce, max
-from sqlalchemy import desc, func
+from sqlalchemy import func
 
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
@@ -12,7 +10,6 @@ from flaskapp.utilities import format_datetime
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
-    status_pagenum_not_integer,
     status_page_not_found,
 )
 

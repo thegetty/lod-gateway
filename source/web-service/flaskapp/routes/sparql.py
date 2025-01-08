@@ -114,7 +114,7 @@ def execute_query(query, accept_header, query_endpoint):
     except requests.exceptions.HTTPError as e:
         response = status_nt(res.status_code, type(e).__name__, str(res.content))
         return response
-    except requests.exceptions.ConnectionError as e:
+    except requests.exceptions.ConnectionError:
         return status_graphstore_error
 
 
@@ -133,5 +133,5 @@ def execute_query_post(data, accept_header, query_endpoint):
     except requests.exceptions.HTTPError as e:
         response = status_nt(res.status_code, type(e).__name__, str(res.content))
         return response
-    except requests.exceptions.ConnectionError as e:
+    except requests.exceptions.ConnectionError:
         return status_graphstore_error

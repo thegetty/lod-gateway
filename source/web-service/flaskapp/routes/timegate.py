@@ -1,12 +1,11 @@
 from email.utils import formatdate
 
 from flask import Blueprint, current_app, abort, request, jsonify, url_for
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import defer, load_only
+from sqlalchemy.orm import load_only
 
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
-from flaskapp.utilities import format_datetime, requested_linkformat
+from flaskapp.utilities import requested_linkformat
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
@@ -29,8 +28,9 @@ def get_timemap(entity_id):
     mementoformat = current_app.config["MEMENTO_PREFERRED_FORMAT"]
     current_app.logger.info(f"Looking up timemap for entity {entity_id}")
     record = (
-        Record.query.filter(Record.entity_id == entity_id)
-        .options(load_only("entity_id", "id", "datetime_updated"))
+        db.session.query(Record)
+        .filter(Record.entity_id == entity_id)
+        .options(load_only(Record.entity_id, Record.id, Record.datetime_updated))
         .limit(1)
         .first()
     )
@@ -71,7 +71,9 @@ def get_timemap(entity_id):
 
     versions = (
         db.session.query(Version)
-        .options(load_only("record_id", "entity_id", "datetime_updated"))
+        .options(
+            load_only(Version.record_id, Version.entity_id, Version.datetime_updated)
+        )
         .filter(Version.record_id == record.id)
         .order_by(Version.datetime_updated.desc())
         .all()

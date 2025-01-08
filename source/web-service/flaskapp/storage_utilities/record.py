@@ -1,14 +1,12 @@
 import json
 import uuid
 
-from flask import current_app, request, abort, jsonify
-from sqlalchemy import exc
+from flask import current_app
 
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
 
-from contextlib import suppress
 from datetime import datetime
 
 from flaskapp.errors import (
@@ -22,7 +20,7 @@ from flaskapp.utilities import (
 
 
 def get_record(rec_id):
-    result = Record.query.filter(Record.entity_id == rec_id).one_or_none()
+    result = db.session.query(Record).filter(Record.entity_id == rec_id).one_or_none()
     return result
 
 

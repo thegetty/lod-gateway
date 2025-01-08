@@ -9,6 +9,8 @@ from flaskapp.errors import (
     status_ok,
 )
 
+from sqlalchemy import text
+
 from flaskapp.utilities import authenticate_bearer
 
 # Create a new "health_check" route blueprint
@@ -60,9 +62,10 @@ def authd_healthcheck_get():
 
 def health_db():
     try:
-        db.session.execute("select id from records limit 1")
+        db.session.execute(text("select id from records limit 1;"))
         return True
-    except:
+    except Exception as e:
+        current_app.logger.error(f"Error - {e}")
         return False
 
 

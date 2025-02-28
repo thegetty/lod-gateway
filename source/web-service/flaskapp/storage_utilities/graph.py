@@ -36,9 +36,9 @@ class RetryAfterError(Exception):
 
 def inflate_relative_uris(data, id_attr="id"):
     idPrefix = current_app.config["RDFidPrefix"]
-    urlprefixes = []
+    urlprefixes = None
 
-    if "@context" in data:
+    if current_app.config["PROCESS_RDF"] is True and "@context" in data:
         # Get any context-added url prefixes:
         urlprefixes = get_url_prefixes_from_context(data["@context"])
 

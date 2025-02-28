@@ -285,7 +285,10 @@ def entity_record(entity_id):
                     "records.entity_record", entity_id=record.entity_id
                 )
                 current_app.logger.debug(f"{record.data['@context']}")
-                if "@context" in record.data:
+                if (
+                    current_app.config["PROCESS_RDF"] is True
+                    and "@context" in record.data
+                ):
                     subdata["@context"] = record.data["@context"]
 
         if record is None:
@@ -441,7 +444,7 @@ def entity_record(entity_id):
                 # Assume that id/@id choice used in the data is the same as the top level
                 attr = "@id" if "@id" in data else "id"
                 urlprefixes = None
-                if "@context" in data:
+                if current_app.config["PROCESS_RDF"] is True and "@context" in data:
                     urlprefixes = get_url_prefixes_from_context(data["@context"])
 
                 data = containerRecursiveCallback(

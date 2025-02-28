@@ -18,7 +18,7 @@ def _assert_data_in_db(record_id, **kwargs):
         return False
 
 
-class TestIngestSuccess:
+class TestIngestRDFinL1Success:
     def test_ingest_wcontext_and_retrieve(
         self, client_no_rdf, namespace, auth_token, test_db_no_rdf
     ):
@@ -27,7 +27,7 @@ class TestIngestSuccess:
             data=json.dumps(
                 {
                     "@context": "https://fakecontext.org/should/not/be/loaded",
-                    "id": "object/12345",
+                    "id": "object/12345_context",
                     "name": "John",
                     "age": 31,
                     "city": "New York",
@@ -38,4 +38,11 @@ class TestIngestSuccess:
         assert response.status_code == 200
         assert b"object/12345" in response.data
 
-        assert _assert_data_in_db("object/12345", name="John", age=31)
+        assert _assert_data_in_db("object/12345_context", name="John", age=31)
+
+        response = client_no_rdf.get(f"/{namespace}/object/12345_context")
+        assert response.status_code == 200
+        assert "LOD Gateway" in response.headers["Server"]
+
+        data = json.loads(response.data)
+        assert "@context" in data

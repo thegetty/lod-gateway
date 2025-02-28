@@ -285,7 +285,10 @@ def entity_record(entity_id):
                     "records.entity_record", entity_id=record.entity_id
                 )
                 current_app.logger.debug(f"{record.data['@context']}")
-                if "@context" in record.data:
+                if (
+                    current_app.config["PROCESS_RDF"] is True
+                    and "@context" in record.data
+                ):
                     subdata["@context"] = record.data["@context"]
 
         if record is None:

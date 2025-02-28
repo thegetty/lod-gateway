@@ -441,7 +441,7 @@ def entity_record(entity_id):
                 # Assume that id/@id choice used in the data is the same as the top level
                 attr = "@id" if "@id" in data else "id"
                 urlprefixes = None
-                if "@context" in data:
+                if current_app.config["PROCESS_RDF"] is True and "@context" in data:
                     urlprefixes = get_url_prefixes_from_context(data["@context"])
 
                 data = containerRecursiveCallback(

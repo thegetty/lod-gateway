@@ -675,18 +675,32 @@ def entity_version(entity_id):
 
             # Recursively prefix each 'id' attribute that currently lacks a http(s):// prefix
             data = version.data
+            allow_format_rewriting = True
 
             if data is not None:
                 prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
                 if (
-                    prefixRecordIDs != "NONE"
+                    request.values.get("relativeid", "").lower() in trueset
+                    or prefixRecordIDs == "NONE"
                 ):  # when "NONE", record "id" field prefixing is not enabled
-                    # otherwise, record "id" field prefixing is enabled, as configured
+                    # Use the subaddressing data if it has been set (and subaddressing is enabled)
+                    # Use record data otherwise
+
+                    # Don't allow format rewriting:
+                    allow_format_rewriting = False
+                else:  # otherwise, record "id" field prefixing is enabled, as configured
+                    current_app.logger.debug(
+                        f"{entity_id} - PREFIXING IDs to absolute URIs STARTED at timecode {time.perf_counter() - profile_time}"
+                    )
                     recursive = (
                         False if prefixRecordIDs == "TOP" else True
                     )  # recursive by default
 
+                    # Assume that id/@id choice used in the data is the same as the top level
                     attr = "@id" if "@id" in data else "id"
+                    urlprefixes = None
+                    if current_app.config["PROCESS_RDF"] is True and "@context" in data:
+                        urlprefixes = get_url_prefixes_from_context(data["@context"])
 
                     data = containerRecursiveCallback(
                         data=data,
@@ -694,11 +708,20 @@ def entity_version(entity_id):
                         callback=idPrefixer,
                         prefix=idPrefix,
                         recursive=recursive,
+                        urlprefixes=urlprefixes,
                     )
+
+                current_app.logger.debug(
+                    f"{entity_id} - PREFIXING IDs to absolute URIs ENDED at timecode {time.perf_counter() - profile_time}"
+                )
 
             content_type = "application/json;charset=UTF-8"
 
-            if current_app.config["PROCESS_RDF"] is True and data:
+            if (
+                current_app.config["PROCESS_RDF"] is True
+                and allow_format_rewriting
+                and data
+            ):
                 # rdfformat:
                 desired = desired_rdf_format(
                     request.headers.get("accept"), request.values.get("format")

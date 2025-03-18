@@ -159,7 +159,11 @@ commands:
             black --check
             .
       - run:
-          name: Testing PyLD using pytest
+          name: Start PostgreSQL 17
+          command: |
+            docker run --name postgres -e POSTGRES_USER=postgres  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -p 5432:5432 -d postgres:17.4
+      - run:
+          name: Testing PyLD using pytest - SQLite
           command: >
             docker run
             --env-file .env.example
@@ -172,7 +176,7 @@ commands:
             --cov=flaskapp
             --cov-report html:/output/test-reports/pytest
       - run:
-          name: Testing RDFLib using pytest
+          name: Testing RDFLib using pytest - SQLite
           command: >
             docker run
             --env-file .env.example
@@ -185,7 +189,33 @@ commands:
             --junitxml=/output/test-results/pytest/junit.xml
             --cov=flaskapp
             --cov-report html:/output/test-reports/pytest
-
+      - run:
+          name: Testing PyLD using pytest - Postgres 17.4
+          command: >
+            docker run
+            --env-file .env.example
+            --env DATABASE=postgresql://postgres:postgres@postgres/postgres
+            --env APPLICATION_NAMESPACE="ns"
+            --volume /tmp/output:/output
+            << parameters.image>>:<< parameters.tag >>
+            pytest
+            --junitxml=/output/test-results/pytest/junit.xml
+            --cov=flaskapp
+            --cov-report html:/output/test-reports/pytest
+      - run:
+          name: Testing RDFLib using pytest - Postgres 17.4
+          command: >
+            docker run
+            --env-file .env.example
+            --env DATABASE=postgresql://postgres:postgres@postgres/postgres
+            --env APPLICATION_NAMESPACE="ns"
+            --env USE_PYLD_REFORMAT=false
+            --volume /tmp/output:/output
+            << parameters.image>>:<< parameters.tag >>
+            pytest
+            --junitxml=/output/test-results/pytest/junit.xml
+            --cov=flaskapp
+            --cov-report html:/output/test-reports/pytest
   store:
     steps:
       - store_test_results:

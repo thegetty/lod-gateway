@@ -8,7 +8,6 @@ orbs:
   docker: circleci/docker@1.5.0
   getty-devops-release: thegetty/devops-orb@3
 
-
 workflows:
   build:
     jobs:
@@ -161,7 +160,7 @@ commands:
       - run:
           name: Start PostgreSQL 17
           command: |
-            docker run --name postgres -e POSTGRES_USER=postgres  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -p 5432:5432 -d postgres:17.4
+            docker run --name postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=mydatabase -p 5432:5432 -d postgres:17.4
       - run:
           name: Testing PyLD using pytest - SQLite
           command: >
@@ -194,7 +193,7 @@ commands:
           command: >
             docker run
             --env-file .env.example
-            --env DATABASE=postgresql://postgres:postgres@localhost:5432/postgres
+            --env DATABASE=postgresql://postgres:password@localhost:5432/mydatabase
             --env APPLICATION_NAMESPACE="ns"
             --volume /tmp/output:/output
             << parameters.image>>:<< parameters.tag >>
@@ -207,7 +206,7 @@ commands:
           command: >
             docker run
             --env-file .env.example
-            --env DATABASE=postgresql://postgres:postgres@localhost:5432/postgres
+            --env DATABASE=postgresql://postgres:password@localhost:5432/mydatabase
             --env APPLICATION_NAMESPACE="ns"
             --env USE_PYLD_REFORMAT=false
             --volume /tmp/output:/output

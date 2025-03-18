@@ -158,10 +158,6 @@ commands:
             black --check
             .
       - run:
-          name: Start PostgreSQL 17
-          command: |
-            docker run --name postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=mydatabase -p 5432:5432 -d postgres:17.4
-      - run:
           name: Testing PyLD using pytest - SQLite
           command: >
             docker run
@@ -190,31 +186,20 @@ commands:
             --cov-report html:/output/test-reports/pytest
       - run:
           name: Testing PyLD using pytest - Postgres 17.4
-          command: >
-            docker run
-            --env-file .env.example
-            --env DATABASE=postgresql://postgres:password@localhost:5432/mydatabase
-            --env APPLICATION_NAMESPACE="ns"
-            --volume /tmp/output:/output
-            << parameters.image>>:<< parameters.tag >>
-            pytest
-            --junitxml=/output/test-results/pytest/junit.xml
-            --cov=flaskapp
-            --cov-report html:/output/test-reports/pytest
+          command: |
+            docker network create testnetwork || true
+            docker run -d --network=testnetwork --name=postgresdb -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=circle_test cimg/postgres:17.4
+            sleep 5
+            docker run --network=testnetwork --env-file .env.example --env DATABASE=postgresql://postgres:postgres@postgresdb:5432/circle_test --env APPLICATION_NAMESPACE="ns" --volume /tmp/output:/output << parameters.image>>:<< parameters.tag >> pytest --junitxml=/output/test-results/pytest/junit.xml --cov=flaskapp --cov-report html:/output/test-reports/pytest
+            docker network remove testnetwork || true
       - run:
           name: Testing RDFLib using pytest - Postgres 17.4
-          command: >
-            docker run
-            --env-file .env.example
-            --env DATABASE=postgresql://postgres:password@localhost:5432/mydatabase
-            --env APPLICATION_NAMESPACE="ns"
-            --env USE_PYLD_REFORMAT=false
-            --volume /tmp/output:/output
-            << parameters.image>>:<< parameters.tag >>
-            pytest
-            --junitxml=/output/test-results/pytest/junit.xml
-            --cov=flaskapp
-            --cov-report html:/output/test-reports/pytest
+          command:  |
+            docker network create testnetwork || true
+            docker run -d --network=testnetwork --name=postgresdb -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=circle_test cimg/postgres:17.4
+            sleep 5
+            docker run --network=testnetwork --env-file .env.example --env USE_PYLD_REFORMAT=false --env DATABASE=postgresql://postgres:postgres@postgresdb:5432/circle_test --env APPLICATION_NAMESPACE="ns" --volume /tmp/output:/output << parameters.image>>:<< parameters.tag >> pytest --junitxml=/output/test-results/pytest/junit.xml --cov=flaskapp --cov-report html:/output/test-reports/pytest
+            docker network remove testnetwork || true
   store:
     steps:
       - store_test_results:

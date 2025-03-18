@@ -194,7 +194,7 @@ commands:
           command: >
             docker run
             --env-file .env.example
-            --env DATABASE=postgresql://postgres:postgres@postgres/postgres
+            --env DATABASE=postgresql://postgres:postgres@localhost:5432/postgres
             --env APPLICATION_NAMESPACE="ns"
             --volume /tmp/output:/output
             << parameters.image>>:<< parameters.tag >>
@@ -207,7 +207,7 @@ commands:
           command: >
             docker run
             --env-file .env.example
-            --env DATABASE=postgresql://postgres:postgres@postgres/postgres
+            --env DATABASE=postgresql://postgres:postgres@localhost:5432/postgres
             --env APPLICATION_NAMESPACE="ns"
             --env USE_PYLD_REFORMAT=false
             --volume /tmp/output:/output

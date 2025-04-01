@@ -102,7 +102,7 @@ When ingesting records into the LOD Gateway, any top-level `"id"` properties in 
 
 For example, when ingesting the record for Vincent van Gogh's _Irises_ (1889) into an LOD Gateway instance deployed at `https://data.getty.edu/museum/collection`, the `"id"` property MUST have an `"id"` value with a relative URI of `"object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb"` resulting in the Gateway serving the record via the absolute URI of `https://data.getty.edu/museum/collection/object/c88b3df0-de91-4f5b-a9ef-7b2b9a6d8abb`. The Gateway will also insert the URL prefix into the `"id"` values before returning the response, converting any relative URIs in the document to absolute URIs that can be resolved by downstream systems.
 
-If there is a JSON-LD context present, the id prefixing will not affect any valid RDF-prefixed `"id"` values. The system will process the context to find the configured list (eg `rdf`, `rdfs`, `crm`, etc), and will not affect any `id` values that use those. 
+If there is a JSON-LD context present, the id prefixing will not affect any valid RDF-prefixed `"id"` values. The system will process the context to find the configured list (eg `rdf`, `rdfs`, `crm`, etc), and will not affect any `id` values that use those.
 
 The following code sample illustrates ingesting a record into an LOD Gateway instance, including how to supply the `Authorization` header, how to prepare the line-delimited `POST` body containing one or more serialized JSON/JSON-LD strings, and how if desired to submit multiple records as part of a single request:
 
@@ -243,7 +243,7 @@ An example HTTP response body will look similar to the following:
 
 #### Ingest Functionality: Atomic Operations
 
-Calls the `/ingest` endpoint are always atomic in nature, and if one or more of the provided records cannot be stored, the operation will be rolled back. When an LOD Gateway has graph functionality enabled, the provided JSON-LD records are expanded into RDF if a valid `@context` is referenced within the JSON-LD, and are then saved to the graph store. If storing any of the records fails or if any of the RDF expansion or storage steps are unsuccessful, the entire transaction will be rolled back. This is useful when you want to ensure that a related set of records have either all been successfully stored/updated in the Gateway, or that none of them did, rather than potentially encountering a situation where there are inconsistencies in the data because only part of the ingest request was successful.
+Calls the `/ingest` endpoint are always atomic in nature, and if one or more of the provided records cannot be stored, the operation will be rolled back. When an LOD Gateway has graph functionality enabled, the provided JSON-LD records are expanded into RDF if a valid `@context` is referenced within the JSON-LD, and are then saved to the graph store. If storing any of the records fails or if any of the RDF expansion or storage steps are unsuccessful, the entire transaction will be rolled back. This is useful when you want to ensure that a related set of records have either all been successfully stored/updated in the Gateway, or that none of them have been, rather than potentially encountering a situation where there are inconsistencies in the data because only part of the ingest request was successful.
 
 #### HTTP GET {base-url}/{namespace}/{entity-type}/{entity-id}
 
@@ -456,7 +456,7 @@ To enable graph functionality, the following environment variables must all be s
  * `SPARQL_QUERY_ENDPOINT` must be set to the SPARQL query endpoint URL of the graph store
  * `SPARQL_UPDATE_ENDPOINT` must be set to the SPARQL update endpoint URL of the graph store
  * `RDF_NAMESPACE` may be set set if a different RDF namespace is required (see the paragraph below)
- 
+
 The `RDF_NAMESPACE` variable is used to determine the named graph URIs for the resources. These URIs are generated from concatenating the environment variable `BASE_URL` with `RDF_NAMESPACE` and adding the resource's `@id`/`id` to the end to form the absolute URI.
 
 For example, if a JSON-LD document has an `@id` of `foo`, and is uploaded to an LOD Gateway with a `BASE_URL` of `https://localhost:8000` and an `RDF_NAMESPACE` of `test`, the named graph URI would be `<https://localhost:8000/test/foo>`.
@@ -470,7 +470,7 @@ If the JSON-LD is a `@graph`, the named graph part of its RDF will be overwritte
 
 If the environment variable `RDF_BASE_GRAPH` is set to an entity `"id"` (eg `_basegraph`), this document will be used as the **base graph**. The base graph is a set of triples that will be removed from any named graph RDF added to the graph store by the LOD Gateway. The base graph triples will be added to the graph store, so they will be present in the union graph. However, they will not be present in any individual named graph, besides the named graph corresponding to the base graph.
 
-This functionality provides a toolset to deal with the issue of replicated triples between named graphs. For example, providing a human-readable `_label` to an AAT term may seem innocuous, but the same triple may be present in every named graph, and some of the LOD Gateways can have millions of named graphs. When potentially millions of replicated triples are present in the graph store, performance can be impacted significantly. By deduplicating the triples expanded from each ingested JSON-LD document, the base graph functionality helps reduce the number of triples in the graph store and thus can help restore performance. 
+This functionality provides a toolset to deal with the issue of replicated triples between named graphs. For example, providing a human-readable `_label` to an AAT term may seem innocuous, but the same triple may be present in every named graph, and some of the LOD Gateways can have millions of named graphs. When potentially millions of replicated triples are present in the graph store, performance can be impacted significantly. By deduplicating the triples expanded from each ingested JSON-LD document, the base graph functionality helps reduce the number of triples in the graph store and thus can help restore performance.
 
 Changing the base graph however will **not** change the named graphs stored in the graph store retrospectively. The base graph itself will be updated in the graph store, but the application should be restarted to ensure that all web workers reload the updated triple filter set (workers will be reloaded every 1000 or so requests, but to be safe, restarting manually is recommended). After updating the base graph, to update the graph store, it will be necessary to run a `_refresh` command against all the resources that should be updated in the graph store.
 
@@ -643,8 +643,8 @@ AUTHORIZATION_TOKEN ........... This variable defines the authorization token re
                                 the HTTP request MUST include an `Authorization` header
                                 with a value formatted as "Bearer {token}" where {token}
                                 is the value set for the AUTHORIZATION_TOKEN environment
-                                variable. LOD Gateway functionality requiring authentication
-                                is marked with a key 🗝️ symbol above.
+                                variable. LOD Gateway functionality requiring
+                                authentication is marked with a key 🗝️ symbol above.
 
 VERSIONING_AUTHENTICATION ..... If set to "True", authentication will be required for accessing
                                 earlier versions of resources. Set to "False" to allow earlier
@@ -767,7 +767,7 @@ RDF_CONTEXT_CACHE ............  A JSON-encoded value that holds an @context docu
 
                                 The serialized contexts value would then look something like
                                 the below (shortened for brevity):
-                                
+
                                 {\"https://linked.art/./linked-art.json\": {\"document\": ... }}
 
                                 You can add as many context documents to the RDF_CONTEXT_CACHE
@@ -917,6 +917,6 @@ Using Microsoft's VS Code editor, it is possible to develop inside the container
 
 ## License & Copyright Information
 
-Copyright © The J. Paul Getty Trust 2019 – 2023.
+Copyright © The J. Paul Getty Trust 2019 – 2025.
 
 The Getty name, logos, and trademarks are owned by the J. Paul Getty Trust, and are subject to [the J. Paul Getty Trust Trademark Policy for Open Source Projects](https://www.getty.edu/legal/trademarks/opensource.html).

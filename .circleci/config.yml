@@ -8,7 +8,6 @@ orbs:
   docker: circleci/docker@1.5.0
   getty-devops-release: thegetty/devops-orb@3
 
-
 workflows:
   build:
     jobs:
@@ -159,7 +158,7 @@ commands:
             black --check
             .
       - run:
-          name: Testing PyLD using pytest
+          name: Testing PyLD using pytest - SQLite
           command: >
             docker run
             --env-file .env.example
@@ -172,7 +171,7 @@ commands:
             --cov=flaskapp
             --cov-report html:/output/test-reports/pytest
       - run:
-          name: Testing RDFLib using pytest
+          name: Testing RDFLib using pytest - SQLite
           command: >
             docker run
             --env-file .env.example
@@ -185,7 +184,24 @@ commands:
             --junitxml=/output/test-results/pytest/junit.xml
             --cov=flaskapp
             --cov-report html:/output/test-reports/pytest
-
+      - run:
+          name: Start Postgres 17.4 instance on testnetwork
+          command: |
+            docker network create testnetwork || true
+            docker run -d --network=testnetwork --name=postgresdb -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=circle_test cimg/postgres:17.4
+            sleep 5
+      - run:
+          name: Testing PyLD using pytest - Postgres 17.4
+          command: |
+            docker run --network=testnetwork --env-file .env.example --env DATABASE=postgresql://postgres:postgres@postgresdb:5432/circle_test --env APPLICATION_NAMESPACE="ns" --volume /tmp/output:/output << parameters.image>>:<< parameters.tag >> pytest --junitxml=/output/test-results/pytest/junit.xml --cov=flaskapp --cov-report html:/output/test-reports/pytest
+      - run:
+          name: Testing RDFLib using pytest - Postgres 17.4
+          command:  |
+            docker run --network=testnetwork --env-file .env.example --env USE_PYLD_REFORMAT=false --env DATABASE=postgresql://postgres:postgres@postgresdb:5432/circle_test --env APPLICATION_NAMESPACE="ns" --volume /tmp/output:/output << parameters.image>>:<< parameters.tag >> pytest --junitxml=/output/test-results/pytest/junit.xml --cov=flaskapp --cov-report html:/output/test-reports/pytest
+      - run:
+          name: Remove testnetwork if possible
+          command: |
+            docker network remove testnetwork || true
   store:
     steps:
       - store_test_results:

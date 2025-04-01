@@ -41,14 +41,16 @@ def query_entrypoint():
         )
         return abort(response)
 
-    query = None
+    query: str = None
+
     if "query" in request.args:
         query = request.args["query"]
-    else:
-        query = request.form.get("query")
+    elif "query" in request.form:
+        query = request.form["query"]
 
     current_app.logger.debug(str(request.form))
     current_app.logger.debug(str(request.data))
+    current_app.logger.debug(f"query: {query}")
 
     if (
         query is None
@@ -62,7 +64,8 @@ def query_entrypoint():
         )
         return abort(response)
 
-    accept_header = None
+    accept_header: str = None
+
     if "Accept" in request.args:
         accept_header = request.args["Accept"]
     else:
@@ -72,8 +75,12 @@ def query_entrypoint():
         accept_header = request.headers.get("Accept")
 
     query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
+
     if request.method == "POST":
-        res = execute_query_post(request.form, accept_header, query_endpoint)
+        res = execute_query_post(
+            dict(request.form, query=query), accept_header, query_endpoint,
+        )
+
         if isinstance(res, status_nt):
             response = construct_error_response(res)
             return abort(response)
@@ -84,6 +91,7 @@ def query_entrypoint():
                 "transfer-encoding",
                 "connection",
             ]
+
             headers = [
                 (name, value)
                 for (name, value) in res.headers.items()
@@ -93,6 +101,7 @@ def query_entrypoint():
             return make_response(res.content, res.status_code, headers)
     else:
         res = execute_query(query, accept_header, query_endpoint)
+
     if isinstance(res, status_nt):
         response = construct_error_response(res)
         return abort(response)
@@ -100,16 +109,20 @@ def query_entrypoint():
         return Response(res, direct_passthrough=True, content_type=accept_header)
 
 
-def execute_query(query, accept_header, query_endpoint):
+def execute_query(query: str, accept_header: str, query_endpoint: str):
     try:
         st = time.perf_counter()
+
         res = requests.post(
             query_endpoint, data={"query": query}, headers={"Accept": accept_header}
         )
+
         current_app.logger.info(
             f"Remote SPARQL query executed in {time.perf_counter() - st:.2f}s"
         )
+
         res.raise_for_status()
+
         return res.content
     except requests.exceptions.HTTPError as e:
         response = status_nt(res.status_code, type(e).__name__, str(res.content))
@@ -118,9 +131,10 @@ def execute_query(query, accept_header, query_endpoint):
         return status_graphstore_error
 
 
-def execute_query_post(data, accept_header, query_endpoint):
+def execute_query_post(data: dict, accept_header: str, query_endpoint: str):
     try:
         st = time.perf_counter()
+
         res = requests.post(
             query_endpoint, data=data, headers={"Accept": accept_header}
         )
@@ -128,7 +142,9 @@ def execute_query_post(data, accept_header, query_endpoint):
         current_app.logger.info(
             f"Remote SPARQL query executed in {time.perf_counter() - st:.2f}s"
         )
+
         res.raise_for_status()
+
         return res
     except requests.exceptions.HTTPError as e:
         response = status_nt(res.status_code, type(e).__name__, str(res.content))

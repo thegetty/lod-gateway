@@ -78,6 +78,9 @@ def query_entrypoint():
 
     if request.method == "POST":
         res = execute_query_post(
+            # The request.form key-value pairs are combined with the query key-value
+            # pair to ensure the query string is always sent to execute_query_post()
+            # whether provided via request.args, request.form, or request.data:
             dict(request.form, query=query),
             accept_header,
             query_endpoint,

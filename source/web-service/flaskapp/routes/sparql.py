@@ -78,7 +78,9 @@ def query_entrypoint():
 
     if request.method == "POST":
         res = execute_query_post(
-            dict(request.form, query=query), accept_header, query_endpoint,
+            dict(request.form, query=query),
+            accept_header,
+            query_endpoint,
         )
 
         if isinstance(res, status_nt):

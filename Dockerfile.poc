@@ -28,12 +28,14 @@ FROM base AS runtime
 
 COPY --from=buildenv ${WHEELS} ${WHEELS}
 
+RUN pip install -f ${WHEELS} --no-index -r ${WHEELS}/requirements.txt \
+ && rm -rf ${WHEELS} \
+ && rm -rf /root/.cache/pip/*
+
 WORKDIR /app
 
 # Copy VERSION file for the current version to be displayed in the dashboard
 COPY VERSION.txt version.txt
-
-# Copy and install our dependencies from requirements.txt
 COPY requirements.txt requirements.txt
 
 RUN groupadd -r flask && useradd -r -g flask flask

@@ -1,4 +1,4 @@
-FROM python:3.13 as base
+FROM python:3.13 AS base
 
 LABEL description "Getty LOD Gateway Service"
 
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get -y install ca-certificates libpcre3 libpcre3-dev
 
 RUN pip install --upgrade pip
 
-FROM base as buildenv
+FROM base AS buildenv
 
 WORKDIR ${WHEELS}
 
@@ -24,7 +24,7 @@ ARG PIP_INDEX_URL=https://${NEXUS_USER}:${NEXUS_PASSWORD}@artifacts.getty.edu/re
 COPY requirements.txt requirements.txt
 RUN pip wheel --wheel-dir=${WHEELS} -r ${WHEELS}/requirements.txt
 
-FROM base as runtime
+FROM base AS runtime
 
 COPY --from=buildenv ${WHEELS} ${WHEELS}
 

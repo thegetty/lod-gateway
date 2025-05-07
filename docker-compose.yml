@@ -22,6 +22,9 @@ services:
         build:
             context: ./
             dockerfile: ./Dockerfile.web-service
+            args:
+              NEXUS_USER: ${NEXUS_USER}
+              NEXUS_PASSWORD: ${NEXUS_PASSWORD}
         #command: flask db upgrade
         #command: flask run --host=0.0.0.0
         command: ./startup.sh

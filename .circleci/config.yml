@@ -148,6 +148,8 @@ commands:
           name: "Building lod-gateway docker image"
           command: >
             docker build -f Dockerfile.poc 
+            --build-arg NEXUS_USER=${NEXUS_USER}
+            --build-arg NEXUS_PASSWORD=${NEXUS_PASSWORD}
             -t << parameters.image>>:<< parameters.tag >>
             .
       - run:

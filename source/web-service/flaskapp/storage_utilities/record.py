@@ -7,7 +7,7 @@ from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flaskapp.errors import (
     status_nt,
@@ -52,7 +52,7 @@ def record_create(input_rec, commit=False):
     elif "@type" in input_rec.keys():
         r.entity_type = input_rec["@type"]
 
-    r.datetime_created = datetime.utcnow()
+    r.datetime_created = datetime.now(timezone.utc)
     r.datetime_updated = r.datetime_created
     r.datetime_deleted = None
     r.data = input_rec
@@ -91,7 +91,7 @@ def record_update(db_rec, input_rec, commit=False):
         db.session.add(prev)
 
     # With the update to the model, this should be automatic
-    # db_rec.datetime_updated = datetime.utcnow()
+    # db_rec.datetime_updated = datetime.now(timezone.utc)
     db_rec.data = input_rec
     db_rec.datetime_deleted = None
     db_rec.checksum = checksum_json(input_rec)
@@ -135,7 +135,7 @@ def record_delete(db_rec, input_rec, commit=False):
     current_app.logger.debug(f"Deleting {db_rec.entity_id}")
     db_rec.data = None
     db_rec.checksum = None
-    db_rec.datetime_deleted = datetime.utcnow()
+    db_rec.datetime_deleted = datetime.now(timezone.utc)
 
     if commit is True:
         db.session.commit()
@@ -144,7 +144,7 @@ def record_delete(db_rec, input_rec, commit=False):
 def process_activity(prim_key, crud_event, commit=False):
     a = Activity()
     a.uuid = str(uuid.uuid4())
-    a.datetime_created = datetime.utcnow()
+    a.datetime_created = datetime.now(timezone.utc)
     a.record_id = prim_key
     a.event = crud_event.name
     db.session.add(a)

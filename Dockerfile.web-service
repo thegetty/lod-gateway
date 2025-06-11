@@ -19,10 +19,10 @@ WORKDIR ${WHEELS}
 
 ARG NEXUS_USER
 ARG NEXUS_PASSWORD
-ARG PIP_INDEX_URL=https://${NEXUS_USER}:${NEXUS_PASSWORD}@artifacts.getty.edu/repository/jpgt-pypi-virtual/simple
+ARG NEXUS_INDEX_URL=https://${NEXUS_USER}:${NEXUS_PASSWORD}@artifacts.getty.edu/repository/jpgt-pypi-virtual/simple
 
 COPY requirements.txt requirements.txt
-RUN pip wheel --wheel-dir=${WHEELS} -r ${WHEELS}/requirements.txt
+RUN pip wheel --wheel-dir=${WHEELS} -r ${WHEELS}/requirements.txt --no-input --extra-index-url  ${NEXUS_INDEX_URL}
 
 FROM base AS runtime
 

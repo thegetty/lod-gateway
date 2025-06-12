@@ -17,10 +17,6 @@ FROM base AS buildenv
 
 WORKDIR ${WHEELS}
 
-ARG NEXUS_USER
-ARG NEXUS_PASSWORD
-ARG PIP_INDEX_URL=https://${NEXUS_USER}:${NEXUS_PASSWORD}@artifacts.getty.edu/repository/jpgt-pypi-virtual/simple
-
 COPY requirements.txt requirements.txt
 RUN pip wheel --wheel-dir=${WHEELS} -r ${WHEELS}/requirements.txt
 

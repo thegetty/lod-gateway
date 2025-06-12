@@ -8,6 +8,7 @@ Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.1.1
 gevent==25.4.1 
 git+https://github.com/thegetty/pyld.git@threadlocking#egg=pyld
+gettysparqlpatterns @ https://github.com/thegetty/getty-jsonld-sparql-patterns/archive/refs/tags/v1.2.3.zip
 gunicorn==23.0.0
 ldap3==2.9
 psycopg2-binary>=2.9.10
@@ -22,3 +23,5 @@ regex==2022.3.2
 requests-mock==1.9.3
 requests>=2.32
 SQLAlchemy==2.0.40
+wheel
+setuptools

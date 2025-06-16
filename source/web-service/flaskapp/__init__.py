@@ -29,6 +29,8 @@ from flaskapp.models.record import Record
 from flaskapp import local_thesaurus
 from flaskapp.base_graph_utils import base_graph_filter, document_loader
 
+from gettysparqlpatterns import PatternSet, NoPatternsFoundError
+
 
 # For JSON access logs:
 from pythonjsonlogger.jsonlogger import JsonFormatter, merge_record_extra
@@ -99,6 +101,9 @@ def create_app():
         app.config["CONTEXTPREFIX_TTL"] = int(
             environ.get("CONTEXTPREFIX_TTL", app.config["CONTEXTPREFIX_TTL"])
         )
+        app.logger.info(
+            f"Caching RDF prefice from contexts for: {app.config['CONTEXTPREFIX_TTL']}s"
+        )
     except ValueError:
         app.logger.error(
             "The value in the 'CONTEXTPREFIX_TTL' environment key was not an integer duration of seconds. Setting to {app.config['CONTEXTPREFIX_TTL']}"
@@ -124,12 +129,43 @@ def create_app():
     app.config["RDF_BASE_GRAPH"] = None
     app.config["FULL_BASE_GRAPH"] = None
     app.config["RDF_FILTER_SET"] = None
+    app.config["CONTENT_PROFILE_DATA_URL"] = None
+    app.config["CONTENT_PROFILE_PATTERNS"] = None
+    app.config["CONTENT_PROFILE_PATTERNSET"] = None
+
     app.config["USE_PYLD_REFORMAT"] = True
     app.config["PROCESS_RDF"] = False
     if environ.get("PROCESS_RDF", "False").lower() == "true":
         app.config["PROCESS_RDF"] = True
+        app.logger.info("RDF processing is enabled")
         app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
         app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
+
+        # Content Profiles
+        app.config["CONTENT_PROFILE_DATA_URL"] = environ.get("CONTENT_PROFILE_DATA_URL")
+        if app.config["CONTENT_PROFILE_DATA_URL"]:
+            app.logger.info(
+                f"Attempting to load content profiles from: {app.config['CONTENT_PROFILE_DATA_URL']}"
+            )
+            p = PatternSet(name="Content Profiles")
+            try:
+                p.import_patterns_from_url(app.config["CONTENT_PROFILE_DATA_URL"])
+                # app.config["CONTENT_PROFILE_PATTERNS"] is a dict, with a key for each LOD object type that has at least
+                # one content profile. This allows for quick lookup per object of which additional content profiles to suggest
+                app.config["CONTENT_PROFILE_PATTERNS"] = {}
+                for x in p:
+                    if x.profile_uri and x.applies_to:
+                        app.logger.info(
+                            f"Found {x.profile_uri} support for {x.applies_to} objects"
+                        )
+                        for obj in x.applies_to:
+                            if obj not in app.config["CONTENT_PROFILE_PATTERNS"]:
+                                app.config["CONTENT_PROFILE_PATTERNS"][obj] = []
+                            app.config["CONTENT_PROFILE_PATTERNS"][obj].append(x)
+            except NoPatternsFoundError:
+                app.logger.error(
+                    "Could not parse a PatternSet from the provided Content Profile URL"
+                )
 
         # Testing mode for basegraph?
         app.config["TESTMODE_BASEGRAPH"] = (
@@ -180,9 +216,11 @@ def create_app():
     app.config["KEEP_LAST_VERSION"] = False
     if environ.get("KEEP_LAST_VERSION", "False").lower() == "true":
         app.config["KEEP_LAST_VERSION"] = True
+        app.logger.info("Versioning support is enabled")
 
     if environ.get("KEEP_VERSIONS_AFTER_DELETION", "False").lower() == "true":
         app.config["KEEP_VERSIONS_AFTER_DELETION"] = True
+        app.logger.info("+ Versions of resources will be kept after deletion")
 
     # Set the preferred output format for Memento responses.
     # can only be application/json or application/link-format
@@ -200,6 +238,7 @@ def create_app():
 
     app.config["SUBADDRESSING"] = False
     if environ.get("SUBADDRESSING", "False").lower() == "true":
+        app.logger.info("Subaddressing support is enabled")
         app.config["SUBADDRESSING"] = True
         if environ.get("SUBADDRESSING_DEPTH") is not None:
             try:
@@ -247,6 +286,7 @@ def create_app():
                         ("FULL_BASE_GRAPH", "Base Graph"),
                         ("SUBADDRESSING", "Subaddressing"),
                         ("KEEP_LAST_VERSION", "Versioning"),
+                        ("CONTENT_PROFILE_PATTERNS", "Content Profiles"),
                     ]
                     if app.config.get(k)
                 ]
@@ -273,6 +313,8 @@ def create_app():
         app.register_blueprint(yasgui, url_prefix=f"/{ns}")
         app.register_blueprint(timegate, url_prefix=f"/{ns}")
         app.register_blueprint(health, url_prefix=f"/{ns}")
+
+        app.logger.info(f"LOD Gateway configured and ready for use")
 
         # Index Route
         @app.route(f"/{ns}/")

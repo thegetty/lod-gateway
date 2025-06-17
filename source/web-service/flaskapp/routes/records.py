@@ -159,25 +159,36 @@ def handle_prefix_listing(entity_id, request, idPrefix):
     return r_json
 
 
-def _findobj(obj, key, val=None):
-    # Recursively hunt through a JSON object, looking for a key:value match
-    # within a dict, and returning the first match if true, or None
+def _findobj(obj, key, val=None, keypath=None):
+    # Recursively hunt through a JSON object, looking for the first key:value matches
+    # in a dict hierarchy, and returning the match with the path through the keys to get to it
     if isinstance(obj, str):
         return None
-
+    if keypath is None:
+        keypath = []
     if key in obj:
-        if val is not None and obj[key] == val:
-            return obj
+        if val is None or obj[key] == val:
+            yield obj, keypath + [key]
+    # propagate
     for k, v in obj.items():
-        if isinstance(v, dict):
-            item = _findobj(v, key, val)
-            if item is not None:
-                return item
-        elif isinstance(v, list):
-            for bit in v:
-                item = _findobj(bit, key, val)
-                if item is not None:
-                    return item
+        if k != key:
+            if isinstance(v, dict):
+                yield from _findobj(v, key, val, keypath + [k])
+            elif isinstance(v, list):
+                for bit in v:
+                    yield from _findobj(bit, key, val, keypath + [k])
+
+
+def get_closest_subaddressing_match(obj, key, val=None):
+    best = None
+    for x in _findobj(obj, key, val):
+        if best is None:
+            best = [x[0], len(x[1])]
+        elif len(x[1]) < best[1]:
+            best = [x[0], len(x[1])]
+
+    if best is not None:
+        return best[0]
 
 
 def subaddressing_search(entity_id):
@@ -220,8 +231,7 @@ def subaddressing_search(entity_id):
             .one_or_none()
         )
         if record is not None and record.data:
-            subpart = _findobj(record.data, "id", entity_id)
-            if subpart is not None:
+            if subpart := get_closest_subaddressing_match(record.data, "id", entity_id):
                 return (record, subpart)
             # break out of the loop, failed to find sub part
             break

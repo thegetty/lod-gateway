@@ -130,8 +130,7 @@ def create_app():
     app.config["FULL_BASE_GRAPH"] = None
     app.config["RDF_FILTER_SET"] = None
     app.config["CONTENT_PROFILE_DATA_URL"] = None
-    app.config["CONTENT_PROFILE_PATTERNS"] = None
-    app.config["CONTENT_PROFILE_PATTERNSET"] = None
+    app.config["CONTENT_PROFILE_PATTERNS"] = {}
 
     app.config["USE_PYLD_REFORMAT"] = True
     app.config["PROCESS_RDF"] = False

@@ -60,33 +60,34 @@ def desired_rdf_format(accept, accept_param):
                 return (k, v)
 
 
-def desired_rdf_mimetype_from_format(format_param: str) -> str:
+def desired_rdf_mimetype_from_format(format_param: str, q: float = 1.0) -> str:
     if format_param:
         if format_param == "nt":
             format_param = "nt11"
         for k, v in FORMATS.items():
-            if v == format_param.strip():
-                return k
+            if v == format_param.strip() or k.startswith(format_param.split(";")[0]):
+                return (k, q, v)
     # Not a shorthand value like 'nt', 'turtle', etc? Just return what's given:
-    return format_param
+    return (format_param, q, "")
 
 
 def determine_requested_format_and_profile(request: Request) -> dict:
     # RDF format importance: _mediatype >= format > Accept header
     # set the default response mimetype:
-    accepted_mimetypes = [("application/ld+json;charset=UTF-8", 1.0)]
+    accepted_mimetypes = [("application/ld+json;charset=UTF-8", 1.0, "json-ld")]
 
     mediatype = None
     # either the content of _mediatype, or whatever is left in mediatype based on 'format'
     if mediatype := request.args.get("_mediatype") or request.args.get("format"):
-        accepted_mimetypes = [(desired_rdf_mimetype_from_format(mediatype), 1.0)]
+        accepted_mimetypes = [desired_rdf_mimetype_from_format(mediatype)]
     else:
         # Use the Accept header and generate a sorted list of acceptables.
         # This path will likely be from a browser request.
         accept_header = request.headers.get("Accept", "*/*")
         # The werkzeug parse function is quite hardened, so it's not going to throw exceptions on bad data
         accepted_mimetypes = [
-            (mimetype, q) for mimetype, q in parse_accept_header(accept_header)
+            desired_rdf_mimetype_from_format(mimetype, q)
+            for mimetype, q in parse_accept_header(accept_header)
         ]
 
     # After working out what sort of RDF response is necessary, is there a profile?

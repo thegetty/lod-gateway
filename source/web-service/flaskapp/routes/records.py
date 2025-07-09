@@ -500,7 +500,7 @@ def entity_record(entity_id):
                         current_app.logger.debug(
                             f"{entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
                         )
-                        content_type = desired[0]
+                        content_type, q, shortformat = desired["accepted_mimetypes"][0]
                         if (
                             "force-plain-text" in request.values
                             or "plaintext" in request.values
@@ -539,7 +539,7 @@ def entity_record(entity_id):
                             serialized_rdf = triples_to_quads(serialized_rdf, ident)
 
                             g.parse(data=serialized_rdf, format="nquads")
-                            data = g.serialize(format=desired[1])
+                            data = g.serialize(format=shortformat)
                         else:
                             current_app.logger.debug(
                                 f"{entity_id} - using RDFLIB to parse JSON-LD"
@@ -550,7 +550,7 @@ def entity_record(entity_id):
                             g = get_bound_graph(identifier=ident)
 
                             g.parse(data=json.dumps(data), format="json-ld")
-                            data = g.serialize(format=desired[1])
+                            data = g.serialize(format=shortformat)
 
                         current_app.logger.debug(
                             f"{entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"

@@ -1,5 +1,9 @@
+import re
 from rdflib import ConjunctiveGraph, Namespace
+from werkzeug.http import parse_accept_header
 
+# type hint imports
+from flask import Request
 
 BINDING = {
     "crm": Namespace("http://www.cidoc-crm.org/cidoc-crm/"),
@@ -30,6 +34,11 @@ FORMATS = {
     # "application/trix;charset=UTF-8": "trix",        the TriX output is not great tbh
 }
 
+ACCEPT_PROFILE_REGEX = re.compile(
+    r"""(?P<profilemimetype>[^;]*)\;\s*profile="(?P<profile>[^"]+)"|(?P<mimetype>^[-\\
+w.]+\/[-\w\+]+$)"""
+)
+
 
 def get_bound_graph(identifier):
     g = ConjunctiveGraph(identifier=identifier)
@@ -49,3 +58,53 @@ def desired_rdf_format(accept, accept_param):
         for k, v in FORMATS.items():
             if k in accept:
                 return (k, v)
+
+
+def desired_rdf_mimetype_from_format(format_param: str) -> str:
+    if format_param:
+        if format_param == "nt":
+            format_param = "nt11"
+        for k, v in FORMATS.items():
+            if v == format_param.strip():
+                return k
+    # Not a shorthand value like 'nt', 'turtle', etc? Just return what's given:
+    return format_param
+
+
+def determine_requested_format_and_profile(request: Request) -> dict:
+    # RDF format importance: _mediatype >= format > Accept header
+    # set the default response mimetype:
+    accepted_mimetypes = [("application/ld+json;charset=UTF-8", 1.0)]
+
+    mediatype = None
+    # either the content of _mediatype, or whatever is left in mediatype based on 'format'
+    if mediatype := request.args.get("_mediatype") or request.args.get("format"):
+        accepted_mimetypes = [(desired_rdf_mimetype_from_format(mediatype), 1.0)]
+    else:
+        # Use the Accept header and generate a sorted list of acceptables.
+        # This path will likely be from a browser request.
+        accept_header = request.headers.get("Accept", "*/*")
+        # The werkzeug parse function is quite hardened, so it's not going to throw exceptions on bad data
+        accepted_mimetypes = [
+            (mimetype, q) for mimetype, q in parse_accept_header(accept_header)
+        ]
+
+    # After working out what sort of RDF response is necessary, is there a profile?
+    # Priority: _profile > Accept-Profile > Profile
+    if profile := request.args.get("_profile"):
+        profiles = [profile]
+    else:
+        accept_profile_header = request.headers.get("Accept-Profile")
+        profile_header = request.headers.get("Profile")
+        if accept_profile_header:
+            profiles = [p.strip() for p in accept_profile_header.split(",")]
+        elif profile_header:
+            profiles = [profile_header.strip()]
+        else:
+            profiles = []
+
+    return {
+        "preferred_mimetype": accepted_mimetypes[0][0] if accepted_mimetypes else None,
+        "accepted_mimetypes": [m[0] for m in accepted_mimetypes],
+        "requested_profiles": profiles,
+    }

@@ -106,6 +106,6 @@ def determine_requested_format_and_profile(request: Request) -> dict:
 
     return {
         "preferred_mimetype": accepted_mimetypes[0][0] if accepted_mimetypes else None,
-        "accepted_mimetypes": [m[0] for m in accepted_mimetypes],
+        "accepted_mimetypes": accepted_mimetypes,
         "requested_profiles": profiles,
     }

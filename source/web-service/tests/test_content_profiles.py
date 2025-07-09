@@ -1,5 +1,5 @@
 import pytest
-from flask import Flask, Request
+from flask import Flask, request
 from flaskapp.graph_prefix_bindings import determine_requested_format_and_profile
 
 app = Flask(__name__)
@@ -78,5 +78,5 @@ app = Flask(__name__)
 )
 def test_determine_requested_format_and_profile(query_string, headers, expected):
     with app.test_request_context(query_string=query_string, headers=headers):
-        result = determine_requested_format_and_profile(Request)
+        result = determine_requested_format_and_profile(request)
         assert result == expected

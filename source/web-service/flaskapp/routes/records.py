@@ -491,9 +491,9 @@ def entity_record(entity_id):
                 content_type = "application/ld+json;charset=UTF-8"
 
                 if desired:
-                    # Request wants a particular format and/or profile that is not plain JSON-LD and no profile
+                    # Request wants a particular format and/or profile that is not plain JSON-LD and no profile?
                     if not (
-                        desired["preferred_mimetype"].startswith("application/jd+json")
+                        desired["preferred_mimetype"].startswith("application/ld+json")
                         and desired["requested_profiles"] == []
                     ):
                         # Set the mimetype:
@@ -501,6 +501,7 @@ def entity_record(entity_id):
                             f"{entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
                         )
                         content_type, q, shortformat = desired["accepted_mimetypes"][0]
+                        print(f"CONTENT NEG: {(content_type, q, shortformat)}")
                         if (
                             "force-plain-text" in request.values
                             or "plaintext" in request.values

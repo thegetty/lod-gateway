@@ -44,7 +44,11 @@ from flaskapp.base_graph_utils import get_url_prefixes_from_context
 import time
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import get_bound_graph, desired_rdf_format
+from flaskapp.graph_prefix_bindings import (
+    get_bound_graph,
+    desired_rdf_format,
+    determine_requested_format_and_profile,
+)
 from pyld import jsonld
 
 # Create a new "records" route blueprint
@@ -311,6 +315,8 @@ def entity_record(entity_id):
             + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate" '
         )
 
+        # The Content Profile Link headers should be added if this is a L2, it is confirmed that there is data, and what object it is.
+
         if current_app.config["LINK_HEADER_PREV_VERSION"] and record is not None:
             prev = (
                 db.session.query(Version)
@@ -415,14 +421,19 @@ def entity_record(entity_id):
                     headers["Location"] = subaddressed
                 return ("", 304, headers)
 
+            ################################################################################
+            # TODO: APPEND LINK HEADERS FOR OBJECT CONTENT PROFILES if the record has data!
+            ################################################################################
+
             # If the etag(s) did not match, then the record is not cached or known to the client
             # and should be sent:
 
-            desired = desired_rdf_format(
-                request.headers.get("accept"), request.values.get("format")
-            )
+            desired = determine_requested_format_and_profile(request)
+            # Response -> dict {"preferred_mimetype": ..., "accepted_mimetypes": [...,], "requested_profiles": [...,]}
 
-            current_app.logger.debug(f"Desired RDF format? {desired}")
+            current_app.logger.debug(
+                f"Desired RDF format and profile information? {desired}"
+            )
             current_app.logger.debug(
                 f"REQUESTS - relativeid? '{request.values.get('relativeid', '')}'"
             )
@@ -436,8 +447,9 @@ def entity_record(entity_id):
                 # Use the subaddressing data if it has been set (and subaddressing is enabled)
                 # Use record data otherwise
 
-                # Don't allow format rewriting:
-                desired = None
+                # Don't allow format rewriting as most of the routes require valid URIs, which this
+                # request will not generate.
+                desired = {}
                 data = (
                     subdata or record.data
                 )  # so pass back the record data as-is to the client
@@ -477,16 +489,24 @@ def entity_record(entity_id):
 
             if current_app.config["PROCESS_RDF"] is True:
                 content_type = "application/ld+json;charset=UTF-8"
-                if desired is not None:
-                    # wants a particular format
-                    if desired[1] != "json-ld":
+
+                if desired:
+                    # Request wants a particular format and/or profile that is not plain JSON-LD and no profile
+                    if not (
+                        desired["preferred_mimetype"].startswith("application/jd+json")
+                        and desired["requested_profiles"] == []
+                    ):
                         # Set the mimetype:
                         current_app.logger.debug(
                             f"{entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
                         )
                         content_type = desired[0]
-                        if "force-plain-text" in request.values:
-                            # Browsers typically don't handle ntriples/turtle
+                        if (
+                            "force-plain-text" in request.values
+                            or "plaintext" in request.values
+                        ):
+                            # Let browsers pretend the response is plain text to let them display it and not
+                            # try to download it.
                             content_type = "text/plain;charset=UTF-8"
 
                         if (

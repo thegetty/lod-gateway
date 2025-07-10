@@ -15,7 +15,7 @@ graph TD
     A[Record exists] --> B{Check eTag for If-None-Match?}
     B -- Yes --> M[Return empty HTTP 304] --> K
     B -- No --> C
-    C[Parse headers and parameters<br>Determine content negotiation and/or profile info<br>Mimetype priority: _mediatype|format > Accept header<br>Profile priority: _profile > Accept-Profile > Profile] --> D{Relative ID requested}
+    C[Parse headers and parameters<br>Determine content negotiation and/or profile info<br>Mimetype priority: _mediatype or format > Accept header<br>Profile priority: _profile > Accept-Profile > Profile] --> D{Relative ID requested}
     D -- Yes --> N[Return raw JSON-LD, unprefixed w/ eTag] --> K
     D -- No --> F[Prefix all relative IDs in JSON/JSON-LD]
     F --> G{Mimetype is JSON-LD<br>and no profile?}

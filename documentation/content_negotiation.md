@@ -24,7 +24,7 @@ graph TD
     I -- Yes --> J[Satisfy first supported profile with SPARQL pattern] --> Q
     Q[Reformat data into desired format, NO eTag!] --> K
     I -- No --> Q
-    K[Return Response with appropriate mimetype (unless `plaintext` is requested)]
+    K[Return Response with appropriate mimetype unless plaintext is requested]
 ```
 
 ## RDF Format Support

@@ -24,10 +24,12 @@ BINDING = {
 FORMATS = {
     # RDF triple formats
     "application/ntriples; charset=UTF-8": "nt11",
+    "application/n-triples; charset=UTF-8": "nt11",
     "text/turtle; charset=UTF-8": "turtle",
     "application/rdf+xml; charset=UTF-8": "xml",
     "text/n3; charset=UTF-8": "n3",
     # RDF Quad/Triple formats:
+    "application/nquads; charset=UTF-8": "nquads",
     "application/n-quads; charset=UTF-8": "nquads",
     "application/ld+json; charset=UTF-8": "json-ld",
     "application/trig; charset=UTF-8": "trig",

@@ -1,3 +1,5 @@
+import time
+
 from flask import (
     Blueprint,
     current_app,
@@ -73,6 +75,7 @@ def query_entrypoint():
     query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
 
     if request.method == "POST":
+        st = time.perf_counter()
         res = execute_sparql_query_post(
             # The request.form key-value pairs are combined with the query key-value
             # pair to ensure the query string is always sent to execute_sparql_query_post()
@@ -80,6 +83,9 @@ def query_entrypoint():
             dict(request.form, query=query),
             accept_header,
             query_endpoint,
+        )
+        current_app.logger.info(
+            f"Remote SPARQL POST query executed in {time.perf_counter() - st:.2f}s"
         )
 
         if isinstance(res, status_nt):
@@ -101,8 +107,12 @@ def query_entrypoint():
 
             return make_response(res.content, res.status_code, headers)
     else:
+        st = time.perf_counter()
         res = execute_sparql_query(query, accept_header, query_endpoint)
 
+        current_app.logger.debug(
+            f"Remote SPARQL GET query executed in {time.perf_counter() - st:.2f}s"
+        )
     if isinstance(res, status_nt):
         response = construct_error_response(res)
         return abort(response)

@@ -1,6 +1,6 @@
 import pytest
 from flask import Flask, request
-from flaskapp.graph_prefix_bindings import determine_requested_format_and_profile
+from flaskapp.conneg import determine_requested_format_and_profile
 
 app = Flask(__name__)
 

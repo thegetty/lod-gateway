@@ -44,11 +44,12 @@ from flaskapp.base_graph_utils import get_url_prefixes_from_context
 import time
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import (
-    get_bound_graph,
+from flaskapp.graph_prefix_bindings import get_bound_graph
+from flaskapp.conneg import (
     desired_rdf_format,
     determine_requested_format_and_profile,
 )
+
 from pyld import jsonld
 
 # Create a new "records" route blueprint

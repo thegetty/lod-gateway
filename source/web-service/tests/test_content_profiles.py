@@ -32,9 +32,9 @@ app = Flask(__name__)
             {},
             {"Accept": "text/turtle;q=0.9, application/ld+json;charset=UTF-16;q=1.0"},
             {
-                "preferred_mimetype": "application/ld+json; charset=UTF-16",
+                "preferred_mimetype": "application/ld+json;charset=UTF-16",
                 "accepted_mimetypes": [
-                    ("application/ld+json; charset=UTF-16", 1.0, "json-ld"),
+                    ("application/ld+json;charset=UTF-16", 1.0, "json-ld"),
                     ("text/turtle", 0.9, "turtle"),
                 ],
                 "requested_profiles": [],
@@ -46,7 +46,7 @@ app = Flask(__name__)
             {
                 "preferred_mimetype": "application/ld+json; charset=UTF-8",
                 "accepted_mimetypes": [
-                    ("application/ld+json;charset=UTF-8", 1.0, "json-ld")
+                    ("application/ld+json; charset=UTF-8", 1.0, "json-ld")
                 ],
                 "requested_profiles": [("<http://example.org/profile>", 1)],
             },
@@ -57,7 +57,7 @@ app = Flask(__name__)
             {
                 "preferred_mimetype": "application/ld+json; charset=UTF-8",
                 "accepted_mimetypes": [
-                    ("application/ld+json;charset=UTF-8", 1.0, "json-ld")
+                    ("application/ld+json; charset=UTF-8", 1.0, "json-ld")
                 ],
                 "requested_profiles": [
                     ("<http://example.org/p1>", 1),
@@ -73,7 +73,7 @@ app = Flask(__name__)
             {
                 "preferred_mimetype": "application/ld+json; charset=UTF-8",
                 "accepted_mimetypes": [
-                    ("application/ld+json;charset=UTF-8", 1.0, "json-ld")
+                    ("application/ld+json; charset=UTF-8", 1.0, "json-ld")
                 ],
                 "requested_profiles": [
                     ("<http://example.org/p1>", 1.0),

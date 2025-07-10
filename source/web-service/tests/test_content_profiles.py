@@ -83,7 +83,7 @@ app = Flask(__name__)
         ),
         (
             {},
-            {"Profile": "<http://example.org/only>"},
+            {"Accept-Profile": "<http://example.org/only>"},
             {
                 "preferred_mimetype": "application/ld+json; charset=UTF-8",
                 "accepted_mimetypes": [

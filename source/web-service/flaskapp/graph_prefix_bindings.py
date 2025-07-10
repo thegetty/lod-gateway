@@ -106,14 +106,10 @@ def determine_requested_format_and_profile(request: Request) -> dict:
         profiles = [(profile, 1)]
     else:
         accept_profile_header = request.headers.get("Accept-Profile")
-        profile_header = request.headers.get("Profile")
         if accept_profile_header:
             # Same rough format as the Accept header. Parse and sort by q value
             profiles = parse_accept_header(accept_profile_header)
             profiles = sorted(profiles, key=lambda item: item[1], reverse=True)
-        elif profile_header:
-            # Not convinced this one should be supported...
-            profiles = [profile_header.strip()]
         else:
             profiles = []
 

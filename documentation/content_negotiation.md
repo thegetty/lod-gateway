@@ -31,7 +31,7 @@ graph TD
 
 The following mimetypes are supported for the `_mediatype`, `format` or Accept header. The QSA parameter and the `format` parameter also supports a number of shorthand values for certain types, and these are the short strings shown after the mimetype below:
 
-- `application/ntriples`, "nt11"
+- `application/n-triples` (`application/ntriples` also accepted), "nt11"|"nt"
 - `text/turtle`, "turtle"
 - `application/rdf+xml`, "xml"
 - `text/n3`, "n3"

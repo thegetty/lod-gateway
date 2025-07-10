@@ -23,14 +23,14 @@ BINDING = {
 
 FORMATS = {
     # RDF triple formats
-    "application/ntriples;charset=UTF-8": "nt11",
-    "text/turtle;charset=UTF-8": "turtle",
-    "application/rdf+xml;charset=UTF-8": "xml",
-    "text/n3;charset=UTF-8": "n3",
+    "application/ntriples; charset=UTF-8": "nt11",
+    "text/turtle; charset=UTF-8": "turtle",
+    "application/rdf+xml; charset=UTF-8": "xml",
+    "text/n3; charset=UTF-8": "n3",
     # RDF Quad/Triple formats:
-    "application/n-quads;charset=UTF-8": "nquads",
-    "application/ld+json;charset=UTF-8": "json-ld",
-    "application/trig;charset=UTF-8": "trig",
+    "application/n-quads; charset=UTF-8": "nquads",
+    "application/ld+json; charset=UTF-8": "json-ld",
+    "application/trig; charset=UTF-8": "trig",
     # "application/trix;charset=UTF-8": "trix",        the TriX output is not great tbh
 }
 
@@ -65,8 +65,10 @@ def desired_rdf_mimetype_from_format(format_param: str, q: float = 1.0) -> str:
         if format_param == "nt":
             format_param = "nt11"
         for k, v in FORMATS.items():
-            if v == format_param.strip() or k.startswith(format_param.split(";")[0]):
+            if v == format_param.strip():
                 return (k, q, v)
+            elif k.split(";")[0] == format_param.split(";")[0]:
+                return (format_param, q, v)
     # Not a shorthand value like 'nt', 'turtle', etc? Just return what's given:
     return (format_param, q, "")
 
@@ -79,7 +81,7 @@ def determine_requested_format_and_profile(request: Request) -> dict:
     mediatype = None
     # either the content of _mediatype, or whatever is left in mediatype based on 'format'
     if mediatype := request.args.get("_mediatype") or request.args.get("format"):
-        accepted_mimetypes = [desired_rdf_mimetype_from_format(mediatype)]
+        accepted_mimetypes = [desired_rdf_mimetype_from_format(mediatype, 1.0)]
     else:
         # Use the Accept header and generate a sorted list of acceptables.
         # This path will likely be from a browser request.
@@ -90,6 +92,10 @@ def determine_requested_format_and_profile(request: Request) -> dict:
             for mimetype, q in parse_accept_header(accept_header)
         ]
 
+    accepted_mimetypes = sorted(
+        accepted_mimetypes, key=lambda item: item[1], reverse=True
+    )
+
     # After working out what sort of RDF response is necessary, is there a profile?
     # Priority: _profile > Accept-Profile > Profile
     if profile := request.args.get("_profile"):
@@ -98,8 +104,11 @@ def determine_requested_format_and_profile(request: Request) -> dict:
         accept_profile_header = request.headers.get("Accept-Profile")
         profile_header = request.headers.get("Profile")
         if accept_profile_header:
-            profiles = [p.strip() for p in accept_profile_header.split(",")]
+            # Same rough format as the Accept header. Parse and sort by q value
+            profiles = parse_accept_header(accept_profile_header)
+            profiles = sorted(profiles, key=lambda item: item[1], reverse=True)
         elif profile_header:
+            # Not convinced this one should be supported...
             profiles = [profile_header.strip()]
         else:
             profiles = []

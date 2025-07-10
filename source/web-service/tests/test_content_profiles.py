@@ -12,8 +12,10 @@ app = Flask(__name__)
             {"_mediatype": "application/n-triples"},
             {},
             {
-                "preferred_mimetype": "application/n-triples",
-                "accepted_mimetypes": [("application/n-triples", 1.0, "nt11")],
+                "preferred_mimetype": "application/n-triples; charset=UTF-8",
+                "accepted_mimetypes": [
+                    ("application/n-triples; charset=UTF-8", 1.0, "nt11")
+                ],
                 "requested_profiles": [],
             },
         ),
@@ -21,57 +23,75 @@ app = Flask(__name__)
             {"format": "nt"},
             {},
             {
-                "preferred_mimetype": "application/n-triples",
-                "accepted_mimetypes": [("application/n-triples", 1.0, "nt11")],
-                "requested_profiles": [],
-            },
-        ),
-        (
-            {},
-            {"Accept": "text/turtle;q=0.9, application/ld+json;q=1.0"},
-            {
-                "preferred_mimetype": "application/ld+json",
+                "preferred_mimetype": "application/n-triples; charset=UTF-8",
                 "accepted_mimetypes": [
-                    ("text/turtle", 0.9, "turtle"),
-                    ("application/ld+json", 1.0, "json-ld"),
+                    ("application/n-triples; charset=UTF-8", 1.0, "nt11")
                 ],
                 "requested_profiles": [],
             },
         ),
         (
-            {"_profile": "http://example.org/profile"},
+            {},
+            {"Accept": "text/turtle;q=0.9, application/ld+json;charset=UTF-16;q=1.0"},
+            {
+                "preferred_mimetype": "application/ld+json; charset=UTF-16",
+                "accepted_mimetypes": [
+                    ("application/ld+json; charset=UTF-16", 1.0, "json-ld"),
+                    ("text/turtle", 0.9, "turtle"),
+                ],
+                "requested_profiles": [],
+            },
+        ),
+        (
+            {"_profile": "<http://example.org/profile>"},
             {},
             {
-                "preferred_mimetype": "application/ld+json;charset=UTF-8",
+                "preferred_mimetype": "application/ld+json; charset=UTF-8",
                 "accepted_mimetypes": [
                     ("application/ld+json;charset=UTF-8", 1.0, "json-ld")
                 ],
-                "requested_profiles": ["http://example.org/profile"],
+                "requested_profiles": [("<http://example.org/profile>", 1)],
             },
         ),
         (
             {},
-            {"Accept-Profile": "http://example.org/p1, http://example.org/p2"},
+            {"Accept-Profile": "<http://example.org/p1>, <http://example.org/p2>"},
             {
-                "preferred_mimetype": "application/ld+json;charset=UTF-8",
+                "preferred_mimetype": "application/ld+json; charset=UTF-8",
                 "accepted_mimetypes": [
                     ("application/ld+json;charset=UTF-8", 1.0, "json-ld")
                 ],
                 "requested_profiles": [
-                    "http://example.org/p1",
-                    "http://example.org/p2",
+                    ("<http://example.org/p1>", 1),
+                    ("<http://example.org/p2>", 1),
                 ],
             },
         ),
         (
             {},
-            {"Profile": "http://example.org/only"},
             {
-                "preferred_mimetype": "application/ld+json;charset=UTF-8",
+                "Accept-Profile": "<http://example.org/p1>;q=1.0, <http://example.org/p2>;q=0.7"
+            },
+            {
+                "preferred_mimetype": "application/ld+json; charset=UTF-8",
                 "accepted_mimetypes": [
                     ("application/ld+json;charset=UTF-8", 1.0, "json-ld")
                 ],
-                "requested_profiles": ["http://example.org/only"],
+                "requested_profiles": [
+                    ("<http://example.org/p1>", 1.0),
+                    ("<http://example.org/p2>", 0.7),
+                ],
+            },
+        ),
+        (
+            {},
+            {"Profile": "<http://example.org/only>"},
+            {
+                "preferred_mimetype": "application/ld+json; charset=UTF-8",
+                "accepted_mimetypes": [
+                    ("application/ld+json; charset=UTF-8", 1.0, "json-ld")
+                ],
+                "requested_profiles": [("<http://example.org/only>", 1)],
             },
         ),
     ],

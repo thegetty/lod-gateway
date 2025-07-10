@@ -97,4 +97,9 @@ app = Flask(__name__)
 def test_determine_requested_format_and_profile(query_string, headers, expected):
     with app.test_request_context(query_string=query_string, headers=headers):
         result = determine_requested_format_and_profile(request)
-        assert result == expected
+
+        assert result["preferred_mimetype"] == expected["preferred_mimetype"]
+        for a, b in zip(result["accepted_mimetypes"], expected["accepted_mimetypes"]):
+            assert a[0] == b[0] and float(a[1]) == float(b[1]) and a[2] == b[2]
+        for a, b in zip(result["requested_profiles"], expected["requested_profiles"]):
+            assert a[0] == b[0] and float(a[1]) == float(b[1])

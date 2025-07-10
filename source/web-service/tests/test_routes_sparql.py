@@ -1,7 +1,5 @@
-import json
-
 from flask import current_app
-from flaskapp.utilites import execute_sparql_query
+from flaskapp.utilities import execute_sparql_query
 
 
 class TestSparqlErrors:

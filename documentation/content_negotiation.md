@@ -2,9 +2,22 @@
 
 ## Overview
 
-The LOD Gateway when configured to support RDF Processing provides support for both standard HTTP Content Negotiation of mimetype as well as data-specific support for [Content Negotiation by Profile from the W3C](https://www.w3.org/TR/dx-prof-onneg/).
+The LOD Gateway when configured to support RDF Processing provides support for both standard HTTP Content Negotiation of mimetype as well as data-specific support for [Content Negotiation by Profile from the W3C](https://www.w3.org/TR/dx-prof-onneg/) (aka CNBP).
 
 The content negotiation supports requests using the HTTP Headers `Accept`, and `Accept-Profile`, as well as URL Query String Arguments (QSA) `_profile`, `_mediatype` (or `format`). The `Accept` header is handled as standard. The `Accept-Profile` header are handled as specified in [this section](https://www.w3.org/TR/dx-prof-conneg/#getresourcebyprofile) and use of the QSA [is outlined here](https://www.w3.org/TR/dx-prof-conneg/#qsa).
+
+## What CNBP aspects are supported
+
+- HEAD/GET requests on resources return Link headers that specify the alternate profiles that the resource can be retrieved as.
+- QSA pattern support for resource retrieval under a given profile (eg `http://example.org/a&_profile=...`)
+- Accept-Profile header support for resource retrieval under a given profile (eg `Accept-Profile: <http://my.profile.spec/1>`)
+- Accept header and QSA `_mediatype` and `format` parameters can be used to render the resource in alternate RDF formats (eg `http://example.org/a&format=nt` or `Accept: application/n-triples`).
+- The list of both the acceptable profiles and RDF formats can be specified in the same request, and the best combination will be used to form the response.
+
+## What CNBP aspects LOD Gateway does NOT Support
+The LOD Gateway does NOT have a full implementation of every suggested access pattern CNBP W3C specification, and supports only the QSA patterns, and the Accept-Profile header for accessing a resource rendered under a selected profile.
+- Getting a profiled resource by using a profile key:value statement within an Accept header. For example `Accept: application/ld+json;charset=UTF-8;profile=<http....>`. This has been omitted from the first release of this functionality for simplicity but may be added in at a later date. This would be treated as lower priority than Accept-Profile, and the profile would inherit the q-values for the Accept mimetype it applies to.
+- Getting a profiled resource by using Link headers in the request. The Link header format is tricky to parse, and to form correctly, and the QSA pattern or the use of Accept-Profile are a much more robust path, and much easy to test and use especially by editing URLs in a browser. If compatibility with this request pattern is required, it will be added at a later date.
 
 ## Response flow
 

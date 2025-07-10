@@ -23,14 +23,14 @@ BINDING = {
 
 FORMATS = {
     # RDF triple formats
-    "application/ntriples; charset=UTF-8": "nt11",
     "application/n-triples; charset=UTF-8": "nt11",
+    "application/ntriples; charset=UTF-8": "nt11",
     "text/turtle; charset=UTF-8": "turtle",
     "application/rdf+xml; charset=UTF-8": "xml",
     "text/n3; charset=UTF-8": "n3",
     # RDF Quad/Triple formats:
-    "application/nquads; charset=UTF-8": "nquads",
     "application/n-quads; charset=UTF-8": "nquads",
+    "application/nquads; charset=UTF-8": "nquads",
     "application/ld+json; charset=UTF-8": "json-ld",
     "application/trig; charset=UTF-8": "trig",
     # "application/trix;charset=UTF-8": "trix",        the TriX output is not great tbh
@@ -64,6 +64,8 @@ def desired_rdf_format(accept, accept_param):
 
 def desired_rdf_mimetype_from_format(format_param: str, q: float = 1.0) -> str:
     if format_param:
+        if format_param in ["*", "*/*"]:
+            format_param = "json-ld"
         if format_param == "nt":
             format_param = "nt11"
         for k, v in FORMATS.items():

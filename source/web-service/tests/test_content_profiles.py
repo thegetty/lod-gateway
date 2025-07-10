@@ -12,10 +12,8 @@ app = Flask(__name__)
             {"_mediatype": "application/n-triples"},
             {},
             {
-                "preferred_mimetype": "application/n-triples; charset=UTF-8",
-                "accepted_mimetypes": [
-                    ("application/n-triples; charset=UTF-8", 1.0, "nt11")
-                ],
+                "preferred_mimetype": "application/n-triples",
+                "accepted_mimetypes": [("application/n-triples", 1.0, "nt11")],
                 "requested_profiles": [],
             },
         ),

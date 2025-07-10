@@ -1,7 +1,7 @@
 import json
 
 from flask import current_app
-from flaskapp.routes.sparql import execute_query
+from flaskapp.utilites import execute_sparql_query
 
 
 class TestSparqlErrors:
@@ -59,7 +59,7 @@ class TestGraphStoreConnection:
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         query = "SELECT * {?s ?p ?o} LIMIT 1"
         accept_header = "*/*"
-        response = execute_query(
+        response = execute_sparql_query(
             query, accept_header, query_endpoint.replace("http://", "mock-pass://")
         )
         assert b"results" in response
@@ -68,7 +68,7 @@ class TestGraphStoreConnection:
         query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
         query = "SELECT * {?s ?p ?o} LIMIT 1"
         accept_header = "*/*"
-        asserted = execute_query(
+        asserted = execute_sparql_query(
             query, accept_header, query_endpoint.replace("http://", "mock-fail://")
         )
         assert asserted and asserted.code == 500

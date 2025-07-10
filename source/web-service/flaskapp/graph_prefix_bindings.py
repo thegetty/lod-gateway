@@ -92,7 +92,7 @@ def determine_requested_format_and_profile(request: Request) -> dict:
         accept_header = request.headers.get("Accept", "*/*")
         # The werkzeug parse function is quite hardened, so it's not going to throw exceptions on bad data
         accepted_mimetypes = [
-            desired_rdf_mimetype_from_format(mimetype, q)
+            desired_rdf_mimetype_from_format(mimetype, float(q))
             for mimetype, q in parse_accept_header(accept_header)
         ]
 
@@ -103,7 +103,7 @@ def determine_requested_format_and_profile(request: Request) -> dict:
     # After working out what sort of RDF response is necessary, is there a profile?
     # Priority: _profile > Accept-Profile > Profile
     if profile := request.args.get("_profile"):
-        profiles = [profile]
+        profiles = [(profile, 1)]
     else:
         accept_profile_header = request.headers.get("Accept-Profile")
         profile_header = request.headers.get("Profile")

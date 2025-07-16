@@ -96,9 +96,9 @@ def return_pattern_for_profile(uritype: str, profiles: str, patterns: dict):
     # No possible patterns for this uritype
     if uritype not in patterns:
         return None
-
+    p_list = [x[0] for x in profiles]
     for pattern in patterns[uritype]:
-        if pattern.profile_uri in profiles:
+        if pattern.profile_uri in p_list:
             return pattern
 
 
@@ -115,14 +115,15 @@ def get_data_using_profile_query(
     # Raises error if one is hit
     if pattern := return_pattern_for_profile(uritype, profiles, patterns):
         sparql_query = pattern.get_query(URI=uri)
-
+        print(f"QUERY - {sparql_query}")
+        print(f"ACCEPT - {accept_header}")
         try:
             res = requests.post(
                 query_endpoint,
                 data={"query": sparql_query},
                 headers={"Accept": accept_header},
             )
-
+            print(res.content, res.headers.get("Content-Type"))
             res.raise_for_status()
 
             return res.content, res.headers.get("Content-Type")

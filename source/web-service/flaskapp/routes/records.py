@@ -5,6 +5,8 @@ import json
 # RFC1128 dates, yuck
 import dateparser
 import pytz
+import time
+
 from email.utils import formatdate
 
 from flask import Blueprint, current_app, abort, request, jsonify, url_for, redirect
@@ -41,9 +43,6 @@ from flaskapp.errors import (
 from flaskapp.utilities import checksum_json, authenticate_bearer
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
 
-import time
-
-from collections import namedtuple
 
 # RDF format translations
 from flaskapp.graph_prefix_bindings import get_bound_graph
@@ -438,7 +437,7 @@ def entity_record(entity_id):
             # Response -> dict {"preferred_mimetype": ..., "accepted_mimetypes": [...,], "requested_profiles": [...,]}
 
             # id/@id?
-            attr = "@id" if "@id" in data else "id"
+            attr = "@id" if "@id" in record.data else "id"
 
             current_app.logger.debug(
                 f"Desired RDF format and profile information? {desired}"
@@ -494,7 +493,8 @@ def entity_record(entity_id):
             # If this instance is RDF-enabled, do they want an alternate format?
             # either accept header or 'format' URL parameter
             content_type = "application/json;charset=UTF-8"
-
+            # etag can be overwritten if it is transformed - for now, the etag won't be included if the data is reformatted
+            etag = f'"{record.checksum}"'
             if current_app.config["PROCESS_RDF"] is True:
                 content_type = "application/ld+json;charset=UTF-8"
 
@@ -507,7 +507,10 @@ def entity_record(entity_id):
                         if desired["requested_profiles"]:
                             ## Get a profiled version based on the data ##
                             try:
-                                profiled_data = get_data_using_profile_query(
+                                current_app.logger.info(
+                                    f"Attempting to load profiled version of {data[attr]}"
+                                )
+                                if profiled_data := get_data_using_profile_query(
                                     uri=data[attr],
                                     uritype=data.get("type") or record.entity_type,
                                     profiles=desired["requested_profiles"],
@@ -523,15 +526,25 @@ def entity_record(entity_id):
                                             for x in desired["accepted_mimetypes"]
                                         ]
                                     ),
-                                )
-                                if isinstance(data, namedtuple):
-                                    # An error of some kind happened when trying to get the SPARQL response
-                                    current_app.logger.error(
-                                        f"Error getting Profile for {data[attr]} - {desired['requested_profiles']} - {data.title} {data.detail}"
+                                ):
+                                    current_app.logger.debug(
+                                        f"Got response for profile lookup {profiled_data}"
                                     )
-                                    return abort(data)
+                                    if hasattr(profiled_data, "code"):
+                                        # An error of some kind happened when trying to get the SPARQL response
+                                        current_app.logger.error(
+                                            f"Error getting Profile for {data[attr]} - {desired['requested_profiles']} - {profiled_data.title} {profiled_data.detail}"
+                                        )
+                                        return abort(profiled_data)
+                                    else:
+                                        current_app.logger.info(
+                                            f"Found data for {data[attr]} that conforms to profile {desired['requested_profiles']}"
+                                        )
+                                        # blank out the etag for now
+                                        etag = None
+                                        data, content_type = profiled_data
                                 else:
-                                    data, content_type = profiled_data
+                                    current_app.logger.debug("Got no response??!?!")
                             except RequiredParametersMissingError:
                                 # Pattern seems to need more parameters than just URI? Badly written
                                 response = construct_error_response(
@@ -558,14 +571,6 @@ def entity_record(entity_id):
                             content_type, q, shortformat = desired[
                                 "accepted_mimetypes"
                             ][0]
-                            print(f"CONTENT NEG: {(content_type, q, shortformat)}")
-                            if (
-                                "force-plain-text" in request.values
-                                or "plaintext" in request.values
-                            ):
-                                # Let browsers pretend the response is plain text to let them display it and not
-                                # try to download it.
-                                content_type = "text/plain;charset=UTF-8"
 
                             if (
                                 current_app.config["USE_PYLD_REFORMAT"] is True
@@ -598,6 +603,8 @@ def entity_record(entity_id):
 
                                 g.parse(data=serialized_rdf, format="nquads")
                                 data = g.serialize(format=shortformat)
+                                # blank out the etag for now
+                                etag = None
                             else:
                                 current_app.logger.debug(
                                     f"{entity_id} - using RDFLIB to parse JSON-LD"
@@ -609,15 +616,23 @@ def entity_record(entity_id):
 
                                 g.parse(data=json.dumps(data), format="json-ld")
                                 data = g.serialize(format=shortformat)
+                                # blank out the etag for now
+                                etag = None
 
                             current_app.logger.debug(
                                 f"{entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"
                             )
 
+            # Force plaintext?
+            if "force-plain-text" in request.values or "plaintext" in request.values:
+                # Let browsers pretend the response is plain text to let them display it and not
+                # try to download it.
+                content_type = "text/plain;charset=UTF-8"
             response = current_app.make_response(data)
             response.headers["Content-Type"] = content_type
             response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
-            response.headers["ETag"] = f'"{record.checksum}"'
+            if etag:
+                response.headers["ETag"] = etag
             if current_app.config["KEEP_LAST_VERSION"] is True:
                 # Timemap
                 response.headers["Link"] = link_headers

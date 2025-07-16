@@ -1,9 +1,12 @@
 import re
+import requests
 
 from werkzeug.http import parse_accept_header
 
 # type hint imports
 from flask import Request
+
+from flaskapp.errors import status_graphstore_error, status_nt
 
 from .graph_prefix_bindings import FORMATS
 
@@ -62,9 +65,12 @@ def determine_requested_format_and_profile(request: Request) -> dict:
             for mimetype, q in parse_accept_header(accept_header)
         ]
 
-    accepted_mimetypes = sorted(
-        accepted_mimetypes, key=lambda item: item[1], reverse=True
-    )
+    # Only accept mimetypes that can be mapped to a RDF transformable format
+    accepted_mimetypes = [
+        x
+        for x in sorted(accepted_mimetypes, key=lambda item: item[1], reverse=True)
+        if x[2] != ""
+    ]
 
     # After working out what sort of RDF response is necessary, is there a profile?
     # Priority: _profile > Accept-Profile > Profile
@@ -84,3 +90,43 @@ def determine_requested_format_and_profile(request: Request) -> dict:
         "accepted_mimetypes": accepted_mimetypes,
         "requested_profiles": profiles,
     }
+
+
+def return_pattern_for_profile(uritype: str, profiles: str, patterns: dict):
+    # No possible patterns for this uritype
+    if uritype not in patterns:
+        return None
+
+    for pattern in patterns[uritype]:
+        if pattern.profile_uri in profiles:
+            return pattern
+
+
+def get_data_using_profile_query(
+    uri: str,
+    uritype: str,
+    profiles: str,
+    patterns: dict,
+    query_endpoint: str,
+    accept_header: str = "application/ld+json, text/turtle",
+):
+    # Returns the content and returned mimetype from the SPARQL construct query verbatim
+    # Returns None if no pattern can be use
+    # Raises error if one is hit
+    if pattern := return_pattern_for_profile(uritype, profiles, patterns):
+        sparql_query = pattern.get_query(URI=uri)
+
+        try:
+            res = requests.post(
+                query_endpoint,
+                data={"query": sparql_query},
+                headers={"Accept": accept_header},
+            )
+
+            res.raise_for_status()
+
+            return res.content, res.headers.get("Content-Type")
+        except requests.exceptions.HTTPError as e:
+            return status_nt(res.status_code, type(e).__name__, str(res.content))
+        except requests.exceptions.ConnectionError:
+            return status_graphstore_error

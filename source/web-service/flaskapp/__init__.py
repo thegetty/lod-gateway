@@ -140,31 +140,48 @@ def create_app():
         app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
         app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
 
-        # Content Profiles
+        # Content Profiles - by URL resource
         app.config["CONTENT_PROFILE_DATA_URL"] = environ.get("CONTENT_PROFILE_DATA_URL")
-        if app.config["CONTENT_PROFILE_DATA_URL"]:
+        # or by JSON-encoded env variable:
+        app.config["CONTENT_PROFILE_DATA"] = environ.get("CONTENT_PROFILE_DATA")
+
+        p = PatternSet(name="Content Profiles")
+        if app.config["CONTENT_PROFILE_DATA"]:
+            app.logger.info(
+                "Attempting to load content profiles from JSON-encoded configuration"
+            )
+
+            try:
+                patternset_export = json.loads(app.config["CONTENT_PROFILE_DATA"])
+                p.import_patterns(patternset_export)
+            except json.decoder.JSONDecodeError:
+                app.logger.error(
+                    "ERROR LOADING PROFILE PATTERN SET from CONTENT_PROFILE_DATA - not JSON-encoded"
+                )
+        elif app.config["CONTENT_PROFILE_DATA_URL"]:
             app.logger.info(
                 f"Attempting to load content profiles from: {app.config['CONTENT_PROFILE_DATA_URL']}"
             )
-            p = PatternSet(name="Content Profiles")
             try:
                 p.import_patterns_from_url(app.config["CONTENT_PROFILE_DATA_URL"])
-                # app.config["CONTENT_PROFILE_PATTERNS"] is a dict, with a key for each LOD object type that has at least
-                # one content profile. This allows for quick lookup per object of which additional content profiles to suggest
-                app.config["CONTENT_PROFILE_PATTERNS"] = {}
-                for x in p:
-                    if x.profile_uri and x.applies_to:
-                        app.logger.info(
-                            f"Found {x.profile_uri} support for {x.applies_to} objects"
-                        )
-                        for obj in x.applies_to:
-                            if obj not in app.config["CONTENT_PROFILE_PATTERNS"]:
-                                app.config["CONTENT_PROFILE_PATTERNS"][obj] = []
-                            app.config["CONTENT_PROFILE_PATTERNS"][obj].append(x)
             except NoPatternsFoundError:
                 app.logger.error(
                     "Could not parse a PatternSet from the provided Content Profile URL"
                 )
+        if len(p) > 0:
+            ## Prepare the Pattern dictionary for fast lookup later on ##
+            # app.config["CONTENT_PROFILE_PATTERNS"] is a dict, with a key for each LOD object type that has at least
+            # one content profile. This allows for quick lookup per object of which additional content profiles to suggest
+            app.config["CONTENT_PROFILE_PATTERNS"] = {}
+            for x in p:
+                if x.profile_uri and x.applies_to:
+                    app.logger.info(
+                        f"Found {x.profile_uri} support for {x.applies_to} objects"
+                    )
+                    for obj in x.applies_to:
+                        if obj not in app.config["CONTENT_PROFILE_PATTERNS"]:
+                            app.config["CONTENT_PROFILE_PATTERNS"][obj] = []
+                        app.config["CONTENT_PROFILE_PATTERNS"][obj].append(x)
 
         # Testing mode for basegraph?
         app.config["TESTMODE_BASEGRAPH"] = (

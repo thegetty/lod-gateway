@@ -45,7 +45,7 @@ from flaskapp.base_graph_utils import get_url_prefixes_from_context
 
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import get_bound_graph
+from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
 from flaskapp.conneg import (
     desired_rdf_format,
     determine_requested_format_and_profile,
@@ -426,10 +426,6 @@ def entity_record(entity_id):
                     headers["Location"] = subaddressed
                 return ("", 304, headers)
 
-            ################################################################################
-            # TODO: APPEND LINK HEADERS FOR OBJECT CONTENT PROFILES if the record has data!
-            ################################################################################
-
             # If the etag(s) did not match, then the record is not cached or known to the client
             # and should be sent:
 
@@ -498,10 +494,32 @@ def entity_record(entity_id):
             if current_app.config["PROCESS_RDF"] is True:
                 content_type = "application/ld+json;charset=UTF-8"
 
+                # Link headers, setting json-ld as the canonical
+                link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="application/ld+json") }>;rel="canonical";type="application/ld+json"'
+                # Add possible profiles:
+                if record.entity_type in current_app.config["CONTENT_PROFILE_PATTERNS"]:
+                    for profile in current_app.config["CONTENT_PROFILE_PATTERNS"][
+                        record.entity_type
+                    ]:
+                        link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="text/turtle", _profile=profile.profile_uri) }>;rel="alternate";type="text/turtle";format="{profile.profile_uri}"'
+
+                # Check for bad format requests
+                if not desired["accepted_mimetypes"]:
+                    response = construct_error_response(
+                        status_nt(
+                            400,
+                            "Requested mimetype is invalid",
+                            f"Accepted mimetypes are {[x for x in FORMATS]}",
+                        )
+                    )
+                    return abort(response)
+
                 if desired:
                     # Request wants a particular format and/or profile that is not plain JSON-LD and no profile?
                     if not (
-                        desired["preferred_mimetype"].startswith("application/ld+json")
+                        desired.get("preferred_mimetype", "").startswith(
+                            "application/ld+json"
+                        )
                         and desired["requested_profiles"] == []
                     ):
                         if desired["requested_profiles"]:
@@ -542,7 +560,9 @@ def entity_record(entity_id):
                                         )
                                         # blank out the etag for now
                                         etag = None
-                                        data, content_type = profiled_data
+                                        data, content_type, profile = profiled_data
+                                        # add yet another link header to say that this resource conforms to the given profile:
+                                        link_headers += f', <{profile}>;rel="profile"'
                                 else:
                                     current_app.logger.debug("Got no response??!?!")
                             except RequiredParametersMissingError:

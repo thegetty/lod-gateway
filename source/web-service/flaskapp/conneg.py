@@ -55,7 +55,9 @@ def determine_requested_format_and_profile(request: Request) -> dict:
     # either the content of _mediatype, or whatever is left in mediatype based on 'format'
     if mediatype := request.args.get("_mediatype") or request.args.get("format"):
         accepted_mimetypes = [desired_rdf_mimetype_from_format(mediatype, 1.0)]
-    else:
+
+    # if the proposed mediatype/format did NOT result in any acceptable mimetypes, check the accept header
+    if not accepted_mimetypes:
         # Use the Accept header and generate a sorted list of acceptables.
         # This path will likely be from a browser request.
         accept_header = request.headers.get("Accept", "*/*")
@@ -114,19 +116,17 @@ def get_data_using_profile_query(
     # Returns None if no pattern can be use
     # Raises error if one is hit
     if pattern := return_pattern_for_profile(uritype, profiles, patterns):
+        profile = pattern.profile_uri
         sparql_query = pattern.get_query(URI=uri)
-        print(f"QUERY - {sparql_query}")
-        print(f"ACCEPT - {accept_header}")
         try:
             res = requests.post(
                 query_endpoint,
                 data={"query": sparql_query},
                 headers={"Accept": accept_header},
             )
-            print(res.content, res.headers.get("Content-Type"))
             res.raise_for_status()
 
-            return res.content, res.headers.get("Content-Type")
+            return res.content, res.headers.get("Content-Type"), profile
         except requests.exceptions.HTTPError as e:
             return status_nt(res.status_code, type(e).__name__, str(res.content))
         except requests.exceptions.ConnectionError:

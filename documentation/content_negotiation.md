@@ -55,3 +55,86 @@ The following mimetypes are supported for the `_mediatype`, `format` or Accept h
 ## Force plain text mimetype in the response
 
 The URL parameter `plaintext` or `force-plain-text` can be used to override the stated HTTP response mimetype. This is most useful when trying to view a given RDF format in a web browser when it does not support the RDF mimetype (even though it is a plain-text based format). For example, a browser will attempt to download a response in the N-Triples mimetype, rather than attempt to display it. Adding `&plaintext=true` to the parameters will give the response a mimetype of `text/plain` allowing the browser to display it.
+
+## Link Header responses
+
+In the Link Header response from a resource request, there will be a number of additional 'links' corresponding to the canonical version of the resource, as well as any applicable versions that conform to profiles. This enables the client to determine what the profile options are for a given resource.
+
+The base URL for a resource will be `rel="canonical"`, and the profiled versions will have `rel="alternate"` with a format statement indicating which profile they conform to.
+
+## Writing SPARQL Patterns for Profile Generation
+
+This requires:
+- A SPARQL CONSTRUCT query that contains a single `$URI` parameter that represents the resource's URI.
+- a profile URI (`profile_uri`)
+- a list of applicable types (`applies_to`)
+
+The `profile_uri` and the `applies_to` parameters are not used within the 
+
+```
+Python 3.13.3 (v3.13.3:6280bb54784, Apr  8 2025, 10:47:54) [Clang 15.0.0 (clang-1500.3.9.4)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+(InteractiveConsole)
+>>>
+>>> from gettysparqlpatterns import PatternSet
+>>> from lodgatewayclient import LODGatewayClient
+>>> p = PatternSet(name="Content Profiles")
+>>>
+>>> p.add_pattern(name="dc:title",
+...               sparql_pattern="""
+... PREFIX dc: <http://purl.org/dc/elements/1.1/>
+... PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+... CONSTRUCT {
+...   <$URI> dc:title ?title .
+... } WHERE {
+...  SELECT ?title WHERE {
+...     <$URI> rdfs:label ?title .
+...   }
+... }""",
+...               stype="construct",
+...               profile_uri="urn:getty:dctitle",
+...               applies_to=["InformationObject", "Person", "HumanMadeObject"]
+... )
+
+>>> # Make the PatternSet run queries against the LODGatewayClient SPARQL endpoint by default
+>>> p.use_lodgateway_for_queries(LODGatewayClient("https://data.getty.edu/research/collections/"))
+
+>>> for triple in p.run_pattern("dc:title", URI="https://data.getty.edu/research/collections/component/ccc3cb32-8c53-5a93-8f13-4bff30fef52a"):
+...   print(triple['subject'], triple['predicate'], triple['object'])
+...
+https://data.getty.edu/research/collections/component/ccc3cb32-8c53-5a93-8f13-4bff30fef52a http://purl.org/dc/elements/1.1/title collection
+https://data.getty.edu/research/collections/component/ccc3cb32-8c53-5a93-8f13-4bff30fef52a http://purl.org/dc/elements/1.1/title Allan Sekula papers
+```
+
+Once the profiles are ready, they can be exported so that they can be loaded, or added to the existing set of profiles in an LOD Gateway. If there is an existing profile PatternSet, append the new patterns from the `patterns` list onto the existing PatternSet list. The pattern `name` for each one should be unique within that list as well.
+
+```
+>>> # p.export_patterns() creates the JSON-encodable representation
+>>> import json
+>>> print(json.dumps(p.export_patterns(), indent=2))
+{
+  "name": "Content Profiles",
+  "description": "No description given.",
+  "url": null,
+  "patterns": [
+    {
+      "name": "dc:title",
+      "description": "No description given",
+      "sparql_pattern": "\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nCONSTRUCT {\n  <$URI> dc:title ?title .\n} WHERE {\n SELECT ?title WHERE {\n    <$URI> rdfs:label ?title .\n  }\n}",
+      "stype": "construct",
+      "keyword_parameters": [
+        "URI"
+      ],
+      "default_values": {},
+      "applies_to": [
+        "InformationObject",
+        "Person",
+        "HumanMadeObject"
+      ],
+      "ask_filter": null,
+      "framing": null,
+      "profile_uri": "urn:getty:dctitle"
+    }
+  ]
+}
+```

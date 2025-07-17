@@ -1,6 +1,19 @@
 LOD Gateway - Changelog
 =======================
 
+v2.8.0 Content Negotiation by Profile
+
+## What's Changed
+* Upgrading to python 3.13 by @benosteen in https://github.com/thegetty/lod-gateway/pull/482
+* Switching to use the now public gettysparqlpatterns by @benosteen in https://github.com/thegetty/lod-gateway/pull/484
+
+## FEATURE ADDITION
+The LOD Gateway when configured to support RDF Processing provides support for both standard HTTP Content Negotiation of mimetype as well as data-specific support for [Content Negotiation by Profile from the W3C](https://www.w3.org/TR/dx-prof-onneg/) (aka CNBP).
+
+The content negotiation supports requests using the HTTP Headers `Accept`, and `Accept-Profile`, as well as URL Query String Arguments (QSA) `_profile`, `_mediatype` (or `format`). The `Accept` header is handled as standard. The `Accept-Profile` header are handled as specified in [this section](https://www.w3.org/TR/dx-prof-conneg/#getresourcebyprofile) and use of the QSA [is outlined here](https://www.w3.org/TR/dx-prof-conneg/#qsa).
+
+More information can be found in the [docs](docs/content_negotiation.md).
+
 v2.7.0 SQLAlchemy 2.0/Flask 3.* Update
 
 ## What's Changed

@@ -444,6 +444,7 @@ def entity_record(entity_id):
 
             # Recursively prefix each 'id' attribute that currently lacks a http(s):// prefix
             prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
+            unprefixed = False
             if (
                 request.values.get("relativeid", "").lower() in trueset
                 or prefixRecordIDs == "NONE"
@@ -454,6 +455,7 @@ def entity_record(entity_id):
                 # Don't allow format rewriting as most of the routes require valid URIs, which this
                 # request will not generate.
                 desired = {}
+                unprefixed = True
                 data = (
                     subdata or record.data
                 )  # so pass back the record data as-is to the client
@@ -503,8 +505,8 @@ def entity_record(entity_id):
                     ]:
                         link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="text/turtle", _profile=profile.profile_uri) }>;rel="alternate";type="text/turtle";format="{profile.profile_uri}"'
 
-                # Check for bad format requests
-                if not desired.get("accepted_mimetypes"):
+                # Check for bad format requests, only if prefixed
+                if unprefixed is False and not desired.get("accepted_mimetypes"):
                     response = construct_error_response(
                         status_nt(
                             400,

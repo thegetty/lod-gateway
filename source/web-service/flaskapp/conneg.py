@@ -48,8 +48,7 @@ def desired_rdf_mimetype_from_format(format_param: str, q: float = 1.0) -> str:
 
 def determine_requested_format_and_profile(request: Request) -> dict:
     # RDF format importance: _mediatype >= format > Accept header
-    # set the default response mimetype:
-    accepted_mimetypes = [("application/ld+json; charset=UTF-8", 1.0, "json-ld")]
+    accepted_mimetypes = None
 
     mediatype = None
     # either the content of _mediatype, or whatever is left in mediatype based on 'format'
@@ -66,6 +65,11 @@ def determine_requested_format_and_profile(request: Request) -> dict:
             desired_rdf_mimetype_from_format(mimetype, float(q))
             for mimetype, q in parse_accept_header(accept_header)
         ]
+        # Still couldn't find anything?
+        if not accepted_mimetypes:
+            accepted_mimetypes = [
+                ("application/ld+json; charset=UTF-8", 1.0, "json-ld")
+            ]
 
     # Only accept mimetypes that can be mapped to a RDF transformable format
     accepted_mimetypes = [

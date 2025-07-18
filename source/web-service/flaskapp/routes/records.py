@@ -504,7 +504,7 @@ def entity_record(entity_id):
                         link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="text/turtle", _profile=profile.profile_uri) }>;rel="alternate";type="text/turtle";format="{profile.profile_uri}"'
 
                 # Check for bad format requests
-                if not desired["accepted_mimetypes"]:
+                if not desired.get("accepted_mimetypes"):
                     response = construct_error_response(
                         status_nt(
                             400,

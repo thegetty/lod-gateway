@@ -87,7 +87,6 @@ def test_profiled_resource_link_headers(
     response = client.get(
         f"/{namespace}/document/2?_mediatype=text/turtle&_profile=urn:getty:dublincore"
     )
-    print(response.status_code, response.content)
 
     assert "Link" in response.headers
 

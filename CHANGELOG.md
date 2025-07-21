@@ -12,7 +12,7 @@ The LOD Gateway when configured to support RDF Processing provides support for b
 
 The content negotiation supports requests using the HTTP Headers `Accept`, and `Accept-Profile`, as well as URL Query String Arguments (QSA) `_profile`, `_mediatype` (or `format`). The `Accept` header is handled as standard. The `Accept-Profile` header are handled as specified in [this section](https://www.w3.org/TR/dx-prof-conneg/#getresourcebyprofile) and use of the QSA [is outlined here](https://www.w3.org/TR/dx-prof-conneg/#qsa).
 
-More information can be found in the [docs](docs/content_negotiation.md).
+More information can be found in the [docs](documentation/content_negotiation.md).
 
 v2.7.0 SQLAlchemy 2.0/Flask 3.* Update
 

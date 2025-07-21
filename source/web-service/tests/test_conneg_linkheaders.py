@@ -45,7 +45,7 @@ def test_link_header_contains_expected_formatlinks(
     assert response.status_code == 200
     assert b"document/1" in response.data
 
-    response = client.get("/document/1")
+    response = client.get(f"/{namespace}/document/1")
     assert "Link" in response.headers
 
     parsed_links = parse_link_header(response.headers["Link"])
@@ -82,7 +82,7 @@ def test_profiled_resource_link_headers(
     assert b"document/2" in response.data
 
     response = client.get(
-        "/document/2?_mediatype=text/turtle&_profile=urn:getty:dublincore"
+        f"/{namespace}/document/2?_mediatype=text/turtle&_profile=urn:getty:dublincore"
     )
     assert "Link" in response.headers
 

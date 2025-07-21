@@ -132,8 +132,11 @@ def create_app():
     app.config["CONTENT_PROFILE_DATA_URL"] = None
     app.config["CONTENT_PROFILE_PATTERNS"] = {}
 
+    # Set up RDF/Content Profile defaults:
     app.config["USE_PYLD_REFORMAT"] = True
     app.config["PROCESS_RDF"] = False
+    app.config["CONTENT_PROFILE_PATTERNS_AVAILABLE"] = False
+
     if environ.get("PROCESS_RDF", "False").lower() == "true":
         app.config["PROCESS_RDF"] = True
         app.logger.info("RDF processing is enabled")

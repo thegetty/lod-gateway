@@ -127,6 +127,7 @@ def get_data_using_profile_query(
     if pattern := return_pattern_for_profile(uritype, profiles, patterns):
         profile = pattern.profile_uri
         sparql_query = pattern.get_query(URI=uri)
+        print(sparql_query)
         try:
             res = requests.post(
                 query_endpoint,

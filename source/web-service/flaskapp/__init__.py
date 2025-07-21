@@ -152,11 +152,12 @@ def create_app():
             )
 
             try:
+                print(app.config["CONTENT_PROFILE_DATA"])
                 patternset_export = json.loads(app.config["CONTENT_PROFILE_DATA"])
                 p.import_patterns(patternset_export)
-            except (json.decoder.JSONDecodeError, NoPatternsFoundError):
+            except (json.decoder.JSONDecodeError, NoPatternsFoundError) as e:
                 app.logger.error(
-                    "ERROR LOADING PROFILE PATTERN SET from CONTENT_PROFILE_DATA - not JSON-encoded"
+                    f"ERROR LOADING PROFILE PATTERN SET from CONTENT_PROFILE_DATA - {str(e)}"
                 )
         elif app.config["CONTENT_PROFILE_DATA_URL"]:
             app.logger.info(

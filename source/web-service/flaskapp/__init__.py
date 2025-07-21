@@ -152,8 +152,11 @@ def create_app():
             )
 
             try:
-                print(app.config["CONTENT_PROFILE_DATA"])
-                patternset_export = json.loads(app.config["CONTENT_PROFILE_DATA"])
+                patterntext = app.config["CONTENT_PROFILE_DATA"]
+                if patterntext.startswith("'") and patterntext.endswith("'"):
+                    # workaround single quote/shell issue with docker --env-file vs docker vs shell
+                    patterntext = patterntext[1:-1]
+                patternset_export = json.loads(patterntext)
                 p.import_patterns(patternset_export)
             except (json.decoder.JSONDecodeError, NoPatternsFoundError) as e:
                 app.logger.error(

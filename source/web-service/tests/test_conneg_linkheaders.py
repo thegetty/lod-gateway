@@ -1,5 +1,22 @@
 import json
 
+import re
+import requests
+from unittest.mock import patch, Mock
+
+
+# Mock the SPARQL response to link queries:
+mock_response = Mock()
+mock_response.status_code = 200
+mock_response.content = b'@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix crm:   <http://www.cidoc-crm.org/cidoc-crm/> .\n@prefix dc:    <http://purl.org/dc/elements/1.1/> .\n\n<http://localhost:5100/document/1>\n        dc:description  "test1" ;\n        dc:title        "test1" ;\n        dc:type         "Subject Heading - Topical" ;\n        dc:type         <https://data.getty.edu/local/thesaurus/aspace-subject-topical> .\n'
+mock_response.headers = {"Content-Type": "text/turtle; charset=utf-8"}
+
+
+def mock_requests(method, url, *args, **kwargs):
+    if url == "http://localhost:3030/ds/sparql":
+        return mock_response
+    raise ValueError(f"Unexpected URL: {url}")
+
 
 def parse_link_header(header_value):
     """
@@ -39,34 +56,35 @@ def test_link_header_contains_expected_formatlinks(
     # guarantee that there is the test dublincore profile:
     response = client.post(
         f"/{namespace}/ingest",
-        data=json.dumps(linguisticobject("test document", "")),
+        data=json.dumps(linguisticobject("test document", "document/1")),
         headers={"Authorization": "Bearer " + auth_token},
     )
     assert response.status_code == 200
     assert b"document/1" in response.data
 
-    response = client.get("/resource")
-    assert "Link" in response.headers
+    with patch("requests.get", return_value=mock_requests):
+        response = client.get("/document/1")
+        assert "Link" in response.headers
 
-    parsed_links = parse_link_header(response.headers["Link"])
+        parsed_links = parse_link_header(response.headers["Link"])
 
-    expected_links = [
-        {
-            "url": "http://localhost:5100/document/1?_mediatype=application/ld%2Bjson",
-            "rel": "canonical",
-        },
-        {
-            "url": "http://localhost:5100/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore",
-            "rel": "alternate",
-        },
-    ]
+        expected_links = [
+            {
+                "url": "http://localhost:5100/museum/collection/document/1?_mediatype=application/ld%2Bjson",
+                "rel": "canonical",
+            },
+            {
+                "url": "http://localhost:5100/museum/collection/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore",
+                "rel": "alternate",
+            },
+        ]
 
-    for expected in expected_links:
-        match_found = any(
-            link["url"] == expected["url"] and link.get("rel") == expected["rel"]
-            for link in parsed_links
-        )
-        assert match_found, f"Expected link not found: {expected}"
+        for expected in expected_links:
+            match_found = any(
+                link["url"] == expected["url"] and link.get("rel") == expected["rel"]
+                for link in parsed_links
+            )
+            assert match_found, f"Expected link not found: {expected}"
 
 
 def test_profiled_resource_link_headers(
@@ -75,30 +93,31 @@ def test_profiled_resource_link_headers(
     # guarantee that there is the test dublincore profile:
     response = client.post(
         f"/{namespace}/ingest",
-        data=json.dumps(linguisticobject("test document", "")),
+        data=json.dumps(linguisticobject("test document 2", "document/2")),
         headers={"Authorization": "Bearer " + auth_token},
     )
     assert response.status_code == 200
     assert b"document/1" in response.data
 
-    response = client.get(
-        "/resource?_mediatype=text/turtle&_profile=urn:getty:dublincore"
-    )
-    assert "Link" in response.headers
-
-    parsed_links = parse_link_header(response.headers["Link"])
-
-    expected_links = [
-        {
-            "url": "http://localhost:5100/document/1?_mediatype=application/ld%2Bjson",
-            "rel": "canonical",
-        },
-        {"url": "urn:getty:dublincore", "rel": "profile"},
-    ]
-
-    for expected in expected_links:
-        match_found = any(
-            link["url"] == expected["url"] and link.get("rel") == expected["rel"]
-            for link in parsed_links
+    with patch("requests.get", return_value=mock_requests):
+        response = client.get(
+            "/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore"
         )
-        assert match_found, f"Expected link not found: {expected}"
+        assert "Link" in response.headers
+
+        parsed_links = parse_link_header(response.headers["Link"])
+
+        expected_links = [
+            {
+                "url": "http://localhost:5100/museum/collection/document/2?_mediatype=application/ld%2Bjson",
+                "rel": "canonical",
+            },
+            {"url": "urn:getty:dublincore", "rel": "profile"},
+        ]
+
+        for expected in expected_links:
+            match_found = any(
+                link["url"] == expected["url"] and link.get("rel") == expected["rel"]
+                for link in parsed_links
+            )
+            assert match_found, f"Expected link not found: {expected}"

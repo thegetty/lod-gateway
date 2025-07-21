@@ -127,13 +127,13 @@ def get_data_using_profile_query(
     if pattern := return_pattern_for_profile(uritype, profiles, patterns):
         profile = pattern.profile_uri
         sparql_query = pattern.get_query(URI=uri)
-        print(sparql_query, pattern.name)
         try:
             res = requests.post(
                 query_endpoint,
                 data={"query": sparql_query},
                 headers={"Accept": accept_header},
             )
+            print(res.status_code, res.content)
             res.raise_for_status()
 
             if res.content:

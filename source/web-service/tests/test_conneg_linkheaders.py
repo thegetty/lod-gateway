@@ -55,11 +55,11 @@ def test_link_header_contains_expected_formatlinks(
 
     expected_links = [
         {
-            "url": "http://localhost:5100/museum/collection/document/1?_mediatype=application/ld%2Bjson",
+            "url": f"http://localhost:5100/{namespace}/document/1?_mediatype=application/ld%2Bjson",
             "rel": "canonical",
         },
         {
-            "url": "http://localhost:5100/museum/collection/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore",
+            "url": f"http://localhost:5100/{namespace}/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore",
             "rel": "alternate",
         },
     ]
@@ -96,7 +96,7 @@ def test_profiled_resource_link_headers(
 
     expected_links = [
         {
-            "url": "http://localhost:5100/museum/collection/document/2?_mediatype=application/ld%2Bjson",
+            "url": f"http://localhost:5100/{namespace}/document/2?_mediatype=application/ld%2Bjson",
             "rel": "canonical",
         },
         {"url": "urn:getty:dublincore", "rel": "profile"},

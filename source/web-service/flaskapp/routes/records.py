@@ -566,7 +566,19 @@ def entity_record(entity_id):
                                         # add yet another link header to say that this resource conforms to the given profile:
                                         link_headers += f', <{profile}>;rel="profile"'
                                 else:
-                                    current_app.logger.debug("Got no response??!?!")
+                                    current_app.logger.debug(
+                                        "Requested profile is not supported."
+                                    )
+                                    # The decision on how to handle this is between ignoring the profile request and returning the JSON-LD
+                                    # or to report a HTTP 4XX error. A HTTP 400 Bad Request response is the best fit (IMO):
+                                    response = construct_error_response(
+                                        status_nt(
+                                            400,
+                                            "Profile is not supported",
+                                            f'Profile "{desired["requested_profiles"]}" is not supported for this resource.',
+                                        )
+                                    )
+                                    return abort(response)
                             except RequiredParametersMissingError:
                                 # Pattern seems to need more parameters than just URI? Badly written
                                 response = construct_error_response(

@@ -5,6 +5,7 @@ from werkzeug.http import parse_accept_header
 
 # type hint imports
 from flask import Request
+from gettysparqlpatterns import PatternSet
 
 from flaskapp.errors import status_graphstore_error, status_nt
 
@@ -18,7 +19,7 @@ w.]+\/[-\w\+]+$)"""
 )
 
 
-def desired_rdf_format(accept, accept_param):
+def desired_rdf_format(accept: str, accept_param: str) -> tuple[str, str] | None:
     if accept_param:
         if accept_param == "nt":
             accept_param = "nt11"
@@ -31,7 +32,9 @@ def desired_rdf_format(accept, accept_param):
                 return (k, v)
 
 
-def desired_rdf_mimetype_from_format(format_param: str, q: float = 1.0) -> str:
+def desired_rdf_mimetype_from_format(
+    format_param: str, q: float = 1.0
+) -> tuple[str, str | float, str]:
     if format_param:
         if format_param in ["*", "*/*"]:
             format_param = "json-ld"
@@ -98,7 +101,9 @@ def determine_requested_format_and_profile(request: Request) -> dict:
     }
 
 
-def return_pattern_for_profile(uritype: str, profiles: str, patterns: dict):
+def return_pattern_for_profile(
+    uritype: str, profiles: str, patterns: dict
+) -> PatternSet | None:
     # No possible patterns for this uritype
     if uritype not in patterns:
         return None
@@ -115,9 +120,9 @@ def get_data_using_profile_query(
     patterns: dict,
     query_endpoint: str,
     accept_header: str = "application/ld+json, text/turtle",
-):
+) -> tuple[str, str, str] | None:
     # Returns the content and returned mimetype from the SPARQL construct query verbatim
-    # Returns None if no pattern can be use
+    # Returns None if no matching pattern can be used or found
     # Raises error if one is hit
     if pattern := return_pattern_for_profile(uritype, profiles, patterns):
         profile = pattern.profile_uri

@@ -102,7 +102,7 @@ def create_app():
             environ.get("CONTEXTPREFIX_TTL", app.config["CONTEXTPREFIX_TTL"])
         )
         app.logger.info(
-            f"Caching RDF prefice from contexts for: {app.config['CONTEXTPREFIX_TTL']}s"
+            f"Caching RDF prefixes from contexts for: {app.config['CONTEXTPREFIX_TTL']}s"
         )
     except ValueError:
         app.logger.error(
@@ -154,7 +154,7 @@ def create_app():
             try:
                 patternset_export = json.loads(app.config["CONTENT_PROFILE_DATA"])
                 p.import_patterns(patternset_export)
-            except json.decoder.JSONDecodeError:
+            except (json.decoder.JSONDecodeError, NoPatternsFoundError):
                 app.logger.error(
                     "ERROR LOADING PROFILE PATTERN SET from CONTENT_PROFILE_DATA - not JSON-encoded"
                 )
@@ -168,6 +168,7 @@ def create_app():
                 app.logger.error(
                     "Could not parse a PatternSet from the provided Content Profile URL"
                 )
+        # Are there viable patterns among those loaded suitable for profile generation?
         if len(p) > 0:
             ## Prepare the Pattern dictionary for fast lookup later on ##
             # app.config["CONTENT_PROFILE_PATTERNS"] is a dict, with a key for each LOD object type that has at least

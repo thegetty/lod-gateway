@@ -222,6 +222,8 @@ def linguisticobject():
         return {
             "@context": "https://linked.art/ns/v1/linked-art.json",
             "id": id,
+            "type": "LinguisticObject",
+            "rdfs:label": name,
             "content": name,
             "classified_as": [
                 {

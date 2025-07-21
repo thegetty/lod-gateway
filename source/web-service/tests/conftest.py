@@ -292,7 +292,7 @@ def requests_mocker(requests_mock):
     """
 
     def mocker_text_callback(request, context):
-        print(request.url, request.path_url)
+        print(f"MOCKED REQUEST, begin handling -: {request.url}")
 
         if request.path_url.endswith("/status"):
             context.status_code = 200
@@ -305,7 +305,7 @@ def requests_mocker(requests_mock):
             "/update"
         ):  # TODO: this is not portable
             sparql = None
-
+            print("MOCKED REQUEST -: Treating as SPARQL query")
             if request.body.startswith("query=") or request.body.startswith("update="):
                 params = urllib.parse.parse_qsl(request.body)
                 if params:
@@ -315,6 +315,7 @@ def requests_mocker(requests_mock):
                             break
 
             if sparql:
+                print(f"MOCKED REQUEST -: SPARQL detected: {sparql}")
                 if sparql.startswith("SELECT"):
                     context.status_code = 200
                     return json.dumps(

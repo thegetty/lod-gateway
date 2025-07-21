@@ -50,6 +50,9 @@ def test_link_header_contains_expected_formatlinks(
 
     parsed_links = parse_link_header(response.headers["Link"])
 
+    # test output
+    print(parsed_links)
+
     expected_links = [
         {
             "url": "http://localhost:5100/museum/collection/document/1?_mediatype=application/ld%2Bjson",
@@ -87,6 +90,9 @@ def test_profiled_resource_link_headers(
     assert "Link" in response.headers
 
     parsed_links = parse_link_header(response.headers["Link"])
+
+    # test output
+    print(parsed_links)
 
     expected_links = [
         {

@@ -351,7 +351,12 @@ def requests_mocker(requests_mock):
                     else:
                         context.status_code = 200
                     return None
-                elif sparql.startswith("# MOCKED DCMI RESPONSE"):
+                elif (
+                    sparql.startswith(
+                        "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>"
+                    )
+                    and "document/2" in sparql
+                ):
                     print("HIT MOCKED document 2 response")
                     context.status_code = 200
                     context.headers = {"Content-Type": "text/turtle"}

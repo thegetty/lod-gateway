@@ -96,10 +96,10 @@ def test_profiled_resource_link_headers(
         headers={"Authorization": "Bearer " + auth_token},
     )
     assert response.status_code == 200
-    assert b"document/1" in response.data
+    assert b"document/2" in response.data
 
     response = client.get(
-        "/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore"
+        "/document/2?_mediatype=text/turtle&_profile=urn:getty:dublincore"
     )
     assert "Link" in response.headers
 

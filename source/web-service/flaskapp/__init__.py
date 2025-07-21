@@ -177,6 +177,9 @@ def create_app():
             ## Prepare the Pattern dictionary for fast lookup later on ##
             # app.config["CONTENT_PROFILE_PATTERNS"] is a dict, with a key for each LOD object type that has at least
             # one content profile. This allows for quick lookup per object of which additional content profiles to suggest
+
+            # add flag to say there are application profiles:
+            app.config["CONTENT_PROFILE_PATTERNS_AVAILABLE"] = True
             app.config["CONTENT_PROFILE_PATTERNS"] = {}
             for x in p:
                 if x.profile_uri and x.applies_to:
@@ -307,7 +310,7 @@ def create_app():
                         ("FULL_BASE_GRAPH", "Base Graph"),
                         ("SUBADDRESSING", "Subaddressing"),
                         ("KEEP_LAST_VERSION", "Versioning"),
-                        ("CONTENT_PROFILE_PATTERNS", "Content Profiles"),
+                        ("CONTENT_PROFILE_PATTERNS_AVAILABLE", "Content Profiles"),
                     ]
                     if app.config.get(k)
                 ]

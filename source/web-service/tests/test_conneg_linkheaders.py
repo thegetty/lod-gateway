@@ -62,29 +62,28 @@ def test_link_header_contains_expected_formatlinks(
     assert response.status_code == 200
     assert b"document/1" in response.data
 
-    with patch("requests.get", return_value=mock_requests):
-        response = client.get("/document/1")
-        assert "Link" in response.headers
+    response = client.get("/document/1")
+    assert "Link" in response.headers
 
-        parsed_links = parse_link_header(response.headers["Link"])
+    parsed_links = parse_link_header(response.headers["Link"])
 
-        expected_links = [
-            {
-                "url": "http://localhost:5100/museum/collection/document/1?_mediatype=application/ld%2Bjson",
-                "rel": "canonical",
-            },
-            {
-                "url": "http://localhost:5100/museum/collection/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore",
-                "rel": "alternate",
-            },
-        ]
+    expected_links = [
+        {
+            "url": "http://localhost:5100/museum/collection/document/1?_mediatype=application/ld%2Bjson",
+            "rel": "canonical",
+        },
+        {
+            "url": "http://localhost:5100/museum/collection/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore",
+            "rel": "alternate",
+        },
+    ]
 
-        for expected in expected_links:
-            match_found = any(
-                link["url"] == expected["url"] and link.get("rel") == expected["rel"]
-                for link in parsed_links
-            )
-            assert match_found, f"Expected link not found: {expected}"
+    for expected in expected_links:
+        match_found = any(
+            link["url"] == expected["url"] and link.get("rel") == expected["rel"]
+            for link in parsed_links
+        )
+        assert match_found, f"Expected link not found: {expected}"
 
 
 def test_profiled_resource_link_headers(
@@ -99,25 +98,24 @@ def test_profiled_resource_link_headers(
     assert response.status_code == 200
     assert b"document/1" in response.data
 
-    with patch("requests.get", return_value=mock_requests):
-        response = client.get(
-            "/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore"
+    response = client.get(
+        "/document/1?_mediatype=text/turtle&_profile=urn:getty:dublincore"
+    )
+    assert "Link" in response.headers
+
+    parsed_links = parse_link_header(response.headers["Link"])
+
+    expected_links = [
+        {
+            "url": "http://localhost:5100/museum/collection/document/2?_mediatype=application/ld%2Bjson",
+            "rel": "canonical",
+        },
+        {"url": "urn:getty:dublincore", "rel": "profile"},
+    ]
+
+    for expected in expected_links:
+        match_found = any(
+            link["url"] == expected["url"] and link.get("rel") == expected["rel"]
+            for link in parsed_links
         )
-        assert "Link" in response.headers
-
-        parsed_links = parse_link_header(response.headers["Link"])
-
-        expected_links = [
-            {
-                "url": "http://localhost:5100/museum/collection/document/2?_mediatype=application/ld%2Bjson",
-                "rel": "canonical",
-            },
-            {"url": "urn:getty:dublincore", "rel": "profile"},
-        ]
-
-        for expected in expected_links:
-            match_found = any(
-                link["url"] == expected["url"] and link.get("rel") == expected["rel"]
-                for link in parsed_links
-            )
-            assert match_found, f"Expected link not found: {expected}"
+        assert match_found, f"Expected link not found: {expected}"

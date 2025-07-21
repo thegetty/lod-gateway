@@ -133,7 +133,6 @@ def get_data_using_profile_query(
                 data={"query": sparql_query},
                 headers={"Accept": accept_header},
             )
-            print(res.status_code, res.content)
             res.raise_for_status()
 
             if res.content:

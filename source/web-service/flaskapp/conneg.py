@@ -127,7 +127,7 @@ def get_data_using_profile_query(
     if pattern := return_pattern_for_profile(uritype, profiles, patterns):
         profile = pattern.profile_uri
         sparql_query = pattern.get_query(URI=uri)
-        print(sparql_query)
+        print(sparql_query, pattern.name)
         try:
             res = requests.post(
                 query_endpoint,
@@ -136,7 +136,14 @@ def get_data_using_profile_query(
             )
             res.raise_for_status()
 
-            return res.content, res.headers.get("Content-Type"), profile
+            if res.content:
+                return res.content, res.headers.get("Content-Type"), profile
+            else:
+                return status_nt(
+                    500,
+                    "Empty response from Profile Generation",
+                    f"Used query: '{sparql_query}', got blank response back.",
+                )
         except requests.exceptions.HTTPError as e:
             return status_nt(res.status_code, type(e).__name__, str(res.content))
         except requests.exceptions.ConnectionError:

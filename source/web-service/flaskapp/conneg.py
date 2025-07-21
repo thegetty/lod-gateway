@@ -147,3 +147,6 @@ def get_data_using_profile_query(
             return status_nt(res.status_code, type(e).__name__, str(res.content))
         except requests.exceptions.ConnectionError:
             return status_graphstore_error
+        except Exception as e:
+            print(f"Hit unexpected Exception {str(e)}")
+            raise e

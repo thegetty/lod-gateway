@@ -350,12 +350,12 @@ def requests_mocker(requests_mock):
                     else:
                         context.status_code = 200
                     return None
-                elif "<http://localhost:5100/ns/document/2> dc:title ?title" in sparql:
+                elif sparql.startswith("# MOCKED DCMI RESPONSE"):
+                    print("HIT MOCKED document 2 response")
                     context.status_code = 200
                     context.headers = {"Content-Type": "text/turtle"}
-                    return json.dumps(
-                        b'@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix crm:   <http://www.cidoc-crm.org/cidoc-crm/> .\n@prefix dc:    <http://purl.org/dc/elements/1.1/> .\n\n<http://localhost:5100/document/2>\n        dc:description  "test document 2" ;\n        dc:title        "test document 2" ;\n        dc:type         "Subject Heading - Topical" ;\n        dc:type         <https://data.getty.edu/local/thesaurus/aspace-subject-topical> .\n'
-                    )
+                    return b'@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix crm:   <http://www.cidoc-crm.org/cidoc-crm/> .\n@prefix dc:    <http://purl.org/dc/elements/1.1/> .\n\n<http://localhost:5100/document/2>\n        dc:description  "test document 2" ;\n        dc:title        "test document 2" ;\n        dc:type         "Subject Heading - Topical" ;\n        dc:type         <https://data.getty.edu/local/thesaurus/aspace-subject-topical> .\n'
+
         else:
             print(f"*** unhandled mock request: {request.path_url}")
 

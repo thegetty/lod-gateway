@@ -36,7 +36,7 @@ graph TD
     G -- No --> I{Requested profiles exist?}
     I -- Yes --> J[Satisfy first supported profile with SPARQL pattern] --> Q
     Q[Reformat data into desired format, NO eTag!] --> K
-    I -- No --> Q
+    I -- No --> Z[Fail with HTTP 400 Bad Request]
     K[Return Response with appropriate mimetype unless plaintext is requested]
 ```
 

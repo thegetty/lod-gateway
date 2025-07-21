@@ -1,22 +1,5 @@
 import json
 
-import re
-import requests
-from unittest.mock import patch, Mock
-
-
-# Mock the SPARQL response to link queries:
-mock_response = Mock()
-mock_response.status_code = 200
-mock_response.content = b'@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix crm:   <http://www.cidoc-crm.org/cidoc-crm/> .\n@prefix dc:    <http://purl.org/dc/elements/1.1/> .\n\n<http://localhost:5100/document/1>\n        dc:description  "test1" ;\n        dc:title        "test1" ;\n        dc:type         "Subject Heading - Topical" ;\n        dc:type         <https://data.getty.edu/local/thesaurus/aspace-subject-topical> .\n'
-mock_response.headers = {"Content-Type": "text/turtle; charset=utf-8"}
-
-
-def mock_requests(method, url, *args, **kwargs):
-    if url == "http://localhost:3030/ds/sparql":
-        return mock_response
-    raise ValueError(f"Unexpected URL: {url}")
-
 
 def parse_link_header(header_value):
     """

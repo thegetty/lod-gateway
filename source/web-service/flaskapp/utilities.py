@@ -4,10 +4,17 @@ import hashlib
 import traceback
 import sys
 import re
+import requests
 
 from enum import Enum
 
-from flaskapp.errors import status_wrong_auth_token, status_bad_auth_header, status_ok
+from flaskapp.errors import (
+    status_wrong_auth_token,
+    status_bad_auth_header,
+    status_ok,
+    status_nt,
+    status_graphstore_error,
+)
 
 
 # Enum with possible database events
@@ -286,3 +293,34 @@ def authenticate_bearer(request, current_app):
             return error
 
     return status_ok
+
+
+def execute_sparql_query(query: str, accept_header: str, query_endpoint: str):
+    try:
+        res = requests.post(
+            query_endpoint, data={"query": query}, headers={"Accept": accept_header}
+        )
+
+        res.raise_for_status()
+
+        return res.content
+    except requests.exceptions.HTTPError as e:
+        response = status_nt(res.status_code, type(e).__name__, str(res.content))
+        return response
+    except requests.exceptions.ConnectionError:
+        return status_graphstore_error
+
+
+def execute_sparql_query_post(data: dict, accept_header: str, query_endpoint: str):
+    try:
+        res = requests.post(
+            query_endpoint, data=data, headers={"Accept": accept_header}
+        )
+        res.raise_for_status()
+
+        return res
+    except requests.exceptions.HTTPError as e:
+        response = status_nt(res.status_code, type(e).__name__, str(res.content))
+        return response
+    except requests.exceptions.ConnectionError:
+        return status_graphstore_error

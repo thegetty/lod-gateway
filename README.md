@@ -8,6 +8,7 @@ The LOD Gateway offers the following key functionality:
  * optionally stores previous versions of records, and makes these available via a [Momento](https://www.rfc-editor.org/rfc/rfc7089.txt) compliant API;
  * provides an [Activity Streams](https://www.w3.org/TR/activitystreams-core/) compliant change history so that changes to documents are discoverable by external systems;
  * offers optional integration with a graph store such as [Fuseki](https://jena.apache.org/documentation/fuseki2/), [GraphDB](https://graphdb.ontotext.com) or [Neptune](https://aws.amazon.com/neptune/), which extends the functionality of the Gateway making it possible to perform graph queries against the stored JSON-LD documents using the [SPARQL](https://www.w3.org/TR/sparql11-query/) query language.
+ * Supports [standard HTTP RDF Content Negotiation as well as Content Negotiation by Profile](documentation/content_negotiation.md) using Accept/Accept-Profile headers and `format`, `_profile` and `_mediatype` URL parameters
 
 The LOD Gateway can be used in a number of different ways out-of-the-box depending on how its settings are configured:
 
@@ -518,7 +519,7 @@ If the `KEEP_LAST_VERSION` environment variable is present and set to `True`, th
 - The `Memento-Datetime` header will be included in all `GET` and `HEAD` requests for resources.
 - Memento Timemaps are available for all resources, and are linked to in the `Link` header for all resource requests as specified.
   - The Timemap URIs are predictable from the resource URI. For example, `http://host/namespace/{entity-uri}` provides a timemap at `http://host/namespace/-tm-/{entity-uri}`.
-- Past versions of resources are linked from the timemap, which is available in either `application/json` or `application/linked-format`. The `Accept` header of the request will be used for this content negotiation.
+- Past versions of resources are linked from the timemap, which is available in either `application/json` or `application/linked-format`. The `Accept` header of the request will be used for this [content negotiation](documentation/content_negotiation.md).
 - The past versions are only available to authenticated clients. They include HTTP `Link` headers to the current version of the resource ('original'), and the timemap.
 - The `KEEP_VERSIONS_AFTER_DELETION` affects deletion behavior. If unset, or set to `"False"`, all old versions will be deleted when the current resource is deleted. If this is set to `"True"`, all versions will be retained even if the resource is deleted, and the history will be maintained if data for the resource is uploaded again.
 - While not required in the Momento specifications, the ordering of the resource and version links in the timemap will be in reverse chronological order, from newest to oldest. The first link will be the timemap, then the link to the original, and then the versions. This ordering is present in both the JSON and the `application/link-format` versions of the timemap.

@@ -239,7 +239,9 @@ class TestVersioning:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
-        assert response.headers["Content-Type"] == "application/ntriples;charset=UTF-8"
+        assert (
+            response.headers["Content-Type"] == "application/n-triples; charset=UTF-8"
+        )
         assert response.text.startswith("<")
 
     def test_deleting_a_version(

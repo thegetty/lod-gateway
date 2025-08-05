@@ -26,6 +26,7 @@ from flaskapp.routes.timegate import timegate
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
+from flaskapp.models.container import LDPContainer, LDPContainerContents
 from flaskapp import local_thesaurus
 from flaskapp.base_graph_utils import base_graph_filter, document_loader
 

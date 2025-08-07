@@ -368,7 +368,7 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                             f"REVERT: Rollback failure - couldn't revert {relative_id} to match the DB"
                         )
                         results[relative_id] = "connection_error"
-                case {"container": container_obj}:
+                case {"container": _}:
                     current_app.logger.debug(
                         "Object to rollback is a container. Ignoring for now"
                     )

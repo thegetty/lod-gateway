@@ -325,3 +325,14 @@ def execute_sparql_query_post(data: dict, accept_header: str, query_endpoint: st
         return response
     except requests.exceptions.ConnectionError:
         return status_graphstore_error
+
+
+# entity_id -> container chain then entity
+def segment_entity_id(entity_id):
+    segments = []
+    for segment in entity_id.split("/"):
+        if segments:
+            segments.append(f"{segments[-1]}/{segment}")
+        else:
+            segments.append(segment)
+    return segments

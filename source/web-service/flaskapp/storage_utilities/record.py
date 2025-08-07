@@ -6,7 +6,9 @@ from flask import current_app
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
-from flaskapp.models.container import LDPContainer
+from flaskapp.models.container import LDPContainer, NoLDPContainerFoundError
+
+from .container import handle_container_requirements
 
 from datetime import datetime, timezone
 
@@ -57,14 +59,28 @@ def validate_record_set(record_list):
 def record_create(input_rec, commit=False):
     r = Record()
     id_attr = "@id" if "@id" in input_rec else "id"
-    r.entity_id = input_rec[id_attr]
+    entity_id = input_rec[id_attr]
 
     # 'entity_type' is not required, so check if exists
     if "type" in input_rec.keys():
-        r.entity_type = input_rec["type"]
+        entity_type = input_rec["type"]
     elif "@type" in input_rec.keys():
-        r.entity_type = input_rec["@type"]
+        entity_type = input_rec["@type"]
 
+    parent_container = None
+    # If LDP backend is enabled, ensure there is a container to add this to:
+    if current_app.config["LDP_BACKEND"]:
+        # This either checks to see that the necessary parent container exists and returns it
+        # or, if LDP_AUTOCREATE_CONTAINERS flag is true, this will optimistically create the
+        # necessary container 'chain' as part of this transaction, with the connections as needed
+        # and return the final container object
+        try:
+            parent_container = handle_container_requirements(entity_id, entity_type)
+        except NoLDPContainerFoundError as e:
+            current_app.logger.error(f"Required LDP Container not found: {str(e)}")
+            raise
+
+    r = Record(entity_id=entity_id, entity_type=entity_type)
     r.datetime_created = datetime.now(timezone.utc)
     r.datetime_updated = r.datetime_created
     r.datetime_deleted = None
@@ -73,6 +89,12 @@ def record_create(input_rec, commit=False):
 
     db.session.add(r)
     db.session.flush()
+
+    if parent_container:
+        parent_container.add_to_container(
+            r, db_dialect=current_app.config["DB_DIALECT"]
+        )
+
     if commit is True:
         db.session.commit()
 

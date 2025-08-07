@@ -5,6 +5,15 @@ from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 
+class LDPContainerError(IOError):
+    """General purpose class for Container-related exceptions"""
+
+
+class NoLDPContainerFoundError(LDPContainerError):
+    """A Record is being added and the LDPContainer does not exist, or the requested
+    LDP Container does not exist"""
+
+
 class LDPContainer(db.Model):
     __tablename__ = "containers"
     id = db.Column(db.Integer, primary_key=True)
@@ -52,7 +61,7 @@ class LDPContainer(db.Model):
     def add_child_container(self, child_container: "LDPContainer", db_dialect="base"):
         child_container.parent = self
         db.session.add(child_container)
-        self.add_to_container(child_container, is_container=True)
+        self.add_to_container(child_container, is_container=True, db_dialect=db_dialect)
 
     # Add a child Record, but do not flush or commit
     def add_to_container(self, item, is_container: bool = False, db_dialect="base"):

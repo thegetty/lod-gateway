@@ -336,15 +336,17 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                     "REVERT: Rollback failure - couldn't revert {relative_id} to a deleted state in the triplestore. Connection Error."
                 )
                 results[relative_id] = "connection_error"
-        else:
+        elif record is not None and "record" in record:
             # expand, skip if zero triples or fail, and reassert
             try:
                 current_app.logger.warning(
                     f"REVERT: Attempting to expand and reinsert {relative_id} into the triplestore."
                 )
                 # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
-                id_attr = "@id" if "@id" in record.data else "id"
-                data = inflate_relative_uris(data=record.data, id_attr=id_attr)
+                id_attr = "@id" if "@id" in record["record"].data else "id"
+                data = inflate_relative_uris(
+                    data=record["record"].data, id_attr=id_attr
+                )
 
                 nt = graph_expand(data, proc=proc)
                 if nt is False:

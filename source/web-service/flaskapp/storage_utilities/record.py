@@ -34,7 +34,7 @@ def get_record(rec_id, also_containers=True):
             .one_or_none()
         ):
             return {"container": result}
-    return False
+    return None
 
 
 # ### VALIDATION FUNCTIONS ###

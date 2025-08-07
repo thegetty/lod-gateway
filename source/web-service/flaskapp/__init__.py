@@ -340,7 +340,7 @@ def create_app():
             )
 
         # Are we able to use postgresql optimizations?
-        engine = db.get_engine()
+        engine = db.engine
         if engine.dialect.name == "postgresql":
             app.config["DB_DIALECT"] = "postgresql"
         else:
@@ -370,9 +370,9 @@ def create_app():
         if link_bank_str:
             try:
                 app.config["LINK_BANK"] = json.loads(link_bank_str)
-            except json.decoder.JSONDecodeError as e:
+            except json.decoder.JSONDecodeError:
                 app.logger.error(
-                    f"The data in ENV: 'LINK_BANK' is not valid JSON! Will not load Link Bank values"
+                    "The data in ENV: 'LINK_BANK' is not valid JSON! Will not load Link Bank values"
                 )
 
         app.register_blueprint(home_page, url_prefix=f"/{ns}")

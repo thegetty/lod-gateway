@@ -287,6 +287,15 @@ def process_record(input_rec):
 
     # Record exists
     else:
+        # Is ingest attempting to overwrite an existing container?
+        if "container" in db_rec:
+            # Container exists in position that record wants to be ingested to
+            # --> Bad entity ID
+            return (None, id, Event.ContainerConflict)
+
+        # extract the record reference:
+        db_rec = db_rec["record"]
+
         chksum = checksum_json(data)
         if chksum == db_rec.checksum:
             current_app.logger.info(

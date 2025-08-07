@@ -25,6 +25,7 @@ class Event(Enum):
     Delete = 3
     Move = 4
     Refresh = 5
+    ContainerConflict = 6
 
 
 # Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
@@ -42,14 +43,14 @@ ALLOWED_SCHEMES = set(["https", "http", "ftp", "urn", "ftp", "file", "s3"])
 
 def is_quads(line):
     if line:
-        if match := QUADS.match(line):
+        if _ := QUADS.match(line):
             return True
     return False
 
 
 def is_ntriples(line):
     if line:
-        if match := NTRIPLES.match(line):
+        if _ := NTRIPLES.match(line):
             return True
     return False
 

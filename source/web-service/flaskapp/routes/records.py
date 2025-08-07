@@ -311,8 +311,10 @@ def entity_record(entity_id):
                     subdata["@context"] = record.data["@context"]
 
         if record is None:
+            # Other tests have failed - maybe it is an LDP Container?
+            #
             response = construct_error_response(status_record_not_found)
-            return abort(response)
+            abort(response)
 
         link_headers = basic_link_headers = (
             f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/link-format" , '
@@ -383,7 +385,7 @@ def entity_record(entity_id):
                     response.headers["Link"] = link_headers
                     response.headers["Vary"] = "accept-datetime"
 
-                    return abort(response)
+                    abort(response)
 
                 current_app.logger.debug(
                     f"{entity_id} - Desired version generated at timecode {time.perf_counter() - profile_time}"
@@ -514,7 +516,7 @@ def entity_record(entity_id):
                             f"Accepted mimetypes are {[x for x in FORMATS]}",
                         )
                     )
-                    return abort(response)
+                    return response
 
                 if desired:
                     # Request wants a particular format and/or profile that is not plain JSON-LD and no profile?
@@ -555,7 +557,7 @@ def entity_record(entity_id):
                                         current_app.logger.error(
                                             f"Error getting Profile for {data[attr]} - {desired['requested_profiles']} - {profiled_data.title} {profiled_data.detail}"
                                         )
-                                        return abort(profiled_data)
+                                        abort(profiled_data)
                                     else:
                                         current_app.logger.info(
                                             f"Found data for {data[attr]} that conforms to profile {desired['requested_profiles']}"
@@ -578,7 +580,7 @@ def entity_record(entity_id):
                                             f'Profile "{desired["requested_profiles"]}" is not supported for this resource.',
                                         )
                                     )
-                                    return abort(response)
+                                    return response
                             except RequiredParametersMissingError:
                                 # Pattern seems to need more parameters than just URI? Badly written
                                 response = construct_error_response(
@@ -588,13 +590,16 @@ def entity_record(entity_id):
                                         "Profile pattern selected does not fit expected - it should only require the URI parameter.",
                                     )
                                 )
-                                return abort(response)
+                                return response
                             except Exception as e:
+                                current_app.logger.debug(
+                                    f"Some sort of exception encountered: {str(e)}."
+                                )
                                 # ConnectionError and related should have been caught and handled before this
                                 response = construct_error_response(
                                     status_nt(500, "Exception Encountered", str(e))
                                 )
-                                return abort(response)
+                                return response
 
                         else:
                             ## Reformat the JSON-LD ##
@@ -677,7 +682,7 @@ def entity_record(entity_id):
             current_app.logger.debug(
                 f"{entity_id} - REQUEST COMPLETE at timecode {time.perf_counter() - profile_time}"
             )
-            return response
+            abort(response)
         elif record and record.data is None:
             # Record existed but has been deleted.
             response = construct_error_response(status_record_not_found)
@@ -687,10 +692,10 @@ def entity_record(entity_id):
 
                 if subaddressed is not None:
                     response.headers["Location"] = subaddressed
-            return abort(response)
+            abort(response)
         else:
             response = construct_error_response(status_record_not_found)
-            return abort(response)
+            abort(response)
 
 
 # 'DELETE' method.
@@ -700,7 +705,7 @@ def delete(id):
     status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
-        return abort(response)
+        abort(response)
 
     current_app.logger.debug("Authentication checked - DELETE request allowed.")
 
@@ -710,7 +715,7 @@ def delete(id):
     # No such record or a stub record
     if db_rec is None or (db_rec.data is None and db_rec.checksum is None):
         response = construct_error_response(status_record_not_found)
-        return abort(response)
+        abort(response)
 
     # Process DELETE
     with db.session.no_autoflush:
@@ -736,11 +741,11 @@ def delete(id):
                 # if RDF process fails, roll back and return graph store specific error
                 if graphstore_result is not True:
                     current_app.logger.error(
-                        f"Error occurred processing DELETE in graph store. Rolling back."
+                        "Error occurred processing DELETE in graph store. Rolling back."
                     )
                     db.session.rollback()
 
-                    return abort(construct_error_response(status_graphstore_error))
+                    abort(construct_error_response(status_graphstore_error))
 
             db.session.commit()
 
@@ -749,7 +754,7 @@ def delete(id):
             current_app.logger.error(e)
             current_app.logger.critical(f"DB Failure when attempting to delete {id}")
             db.session.rollback()
-            return abort(construct_error_response(status_db_save_error))
+            abort(construct_error_response(status_db_save_error))
 
     return "", 204
 
@@ -764,7 +769,7 @@ def entity_version(entity_id):
 
     if status != status_ok:
         response = construct_error_response(status)
-        return abort(response)
+        abort(response)
 
     current_app.logger.debug(f"{entity_id} - Profiling started 0.0000000")
     profile_time = time.perf_counter()
@@ -943,7 +948,7 @@ def entity_version(entity_id):
             return response
         else:
             response = construct_error_response(status_record_not_found)
-            return abort(response)
+            abort(response)
     else:
         response = construct_error_response(
             status_nt(405, "Method not Allowed", "Versioning has been disabled.")
@@ -958,7 +963,7 @@ def delete_entity_version(entity_id):
     status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
-        return abort(response)
+        abort(response)
 
     if current_app.config["KEEP_LAST_VERSION"] is True:
         """GET the version that exactly matches the id supplied"""
@@ -967,7 +972,7 @@ def delete_entity_version(entity_id):
 
         if version is None:
             response = construct_error_response(status_record_not_found)
-            return abort(response)
+            abort(response)
 
         try:
             current_app.logger.warning(
@@ -983,7 +988,7 @@ def delete_entity_version(entity_id):
             )
             current_app.logger.error(e)
             response = construct_error_response(status_db_error)
-            return abort(response)
+            abort(response)
 
 
 ### Activity Stream of the record ###
@@ -1000,7 +1005,7 @@ def entity_record_activity_stream(entity_id):
             status_page_not_found,
             detail="An Activity Stream is only available for records that currently exist or previously existed",
         )
-        return abort(response)
+        abort(response)
     else:
         data = {
             "@context": "https://www.w3.org/ns/activitystreams",
@@ -1028,13 +1033,13 @@ def truncate_activity_stream_of_entity_id(entity_id):
     status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
-        return abort(response)
+        abort(response)
 
     count = get_record_activities_count(entity_id)
     # Are there events for this ID?
     if count == 0:
         response = construct_error_response(status_record_not_found)
-        return abort(response)
+        abort(response)
 
     # How many events to keep
     keep_latest_events = request.values.get("keep")
@@ -1115,7 +1120,7 @@ def record_activity_stream_page(entity_id, pagenum):
 
     if pagenum == 0 or pagenum > total_pages:
         response = construct_error_response(status_page_not_found)
-        return abort(response)
+        abort(response)
 
     data = {
         "@context": "https://www.w3.org/ns/activitystreams",

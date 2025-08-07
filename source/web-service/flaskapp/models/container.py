@@ -49,13 +49,13 @@ class LDPContainer(db.Model):
         return f"<LDPContainer id={self.id} path={self.container_identifier} name={self.dctitle}>"
 
     # Add a child container
-    def add_child_container(self, child_container: "LDPContainer"):
+    def add_child_container(self, child_container: "LDPContainer", db_dialect="base"):
         child_container.parent = self
         db.session.add(child_container)
         self.add_to_container(child_container, is_container=True)
 
     # Add a child Record, but do not flush or commit
-    def add_to_container(self, item, is_container: bool = False):
+    def add_to_container(self, item, is_container: bool = False, db_dialect="base"):
         # Get the right details from the item
         if is_container:
             entity_id = item.container_identifier
@@ -65,9 +65,7 @@ class LDPContainer(db.Model):
             entity_type = item.entity_type
 
         # Probably shift this test to a flag created once when setting up app.config section eventually
-        engine = db.get_engine()
-        dialect_name = engine.dialect.name
-        if dialect_name == "postgresql":
+        if db_dialect == "postgresql":
             # The index_elements check might be fine with just entity_id actually. Might be slightly quicker.
             stmt = (
                 pg_insert(LDPContainerContents)

@@ -322,7 +322,8 @@ def revert_triplestore_if_possible(list_of_relative_ids):
             f"Attempting to revert '{relative_id}' in triplestore to DB version"
         )
         record = get_record(relative_id)
-        if record is None or record.data is None:
+        # FIXME also handle container rollbacks?
+        if record is None or ("record" in record and record["record"].data is None):
             # this record did not exist before the bulk request
             try:
                 graph_delete(relative_id, query_endpoint, update_endpoint)

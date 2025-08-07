@@ -6,6 +6,7 @@ from flask import current_app
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
+from flaskapp.models.container import LDPContainer
 
 from datetime import datetime, timezone
 
@@ -19,9 +20,21 @@ from flaskapp.utilities import (
 )
 
 
-def get_record(rec_id):
-    result = db.session.query(Record).filter(Record.entity_id == rec_id).one_or_none()
-    return result
+def get_record(rec_id, also_containers=True):
+    if (
+        result := db.session.query(Record)
+        .filter(Record.entity_id == rec_id)
+        .one_or_none()
+    ):
+        return {"record": result}
+    elif current_app.config["LDP_BACKEND"] and also_containers:
+        if (
+            result := db.session.query(LDPContainer)
+            .filter(LDPContainer.container_identifier == rec_id)
+            .one_or_none()
+        ):
+            return {"container": result}
+    return False
 
 
 # ### VALIDATION FUNCTIONS ###

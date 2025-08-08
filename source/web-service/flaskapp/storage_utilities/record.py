@@ -60,7 +60,7 @@ def record_create(input_rec, commit=False):
     r = Record()
     id_attr = "@id" if "@id" in input_rec else "id"
     entity_id = input_rec[id_attr]
-
+    entity_type = None
     # 'entity_type' is not required, so check if exists
     if "type" in input_rec.keys():
         entity_type = input_rec["type"]

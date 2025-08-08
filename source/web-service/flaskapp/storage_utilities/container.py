@@ -7,20 +7,18 @@ from flaskapp.models.container import LDPContainer, NoLDPContainerFoundError
 from flaskapp.utilities import segment_entity_id
 
 
-def ensure_root_container_exists(dctitle="LOD Gateway", dcdescription=""):
-    if root := get_container("/", optimistic=True):
-        current_app.logger.info(f"Root LDP Container found - '{root.dctitle}'")
-    else:
-        # There may be a time when we have multiple root containers, hence is_root
-        current_app.logger.info(f"NO ROOT LDP Container found, creating: '{dctitle}'")
-        root = LDPContainer(
-            container_identifier="/",
-            is_root=True,
-            dctitle=dctitle,
-            dcdescription=dcdescription,
-        )
-        db.session.add(root)
-        db.session.commit()
+def create_root_container(dctitle="LOD Gateway", dcdescription=""):
+    current_app.logger.info(f"NO ROOT LDP Container found, creating: '{dctitle}'")
+    root = LDPContainer(
+        container_identifier="/",
+        is_root=True,
+        dctitle=dctitle,
+        dcdescription=dcdescription,
+    )
+    db.session.add(root)
+    db.session.commit()
+
+    return root
 
 
 def get_container(container_identifier, optimistic=False):
@@ -31,6 +29,13 @@ def get_container(container_identifier, optimistic=False):
             .one_or_none()
         ):
             return result
+        elif container_identifier == "/":
+            # A root should always exist if the LDP Backend is on
+            return create_root_container(
+                dctitle=current_app.config["AS_DESC"],
+                dcdescription="This is the root container for this LOD Service. All containers and "
+                "resources hosted by this service will be contained in this root container.",
+            )
         else:
             if not optimistic:
                 raise NoLDPContainerFoundError(container_identifier)

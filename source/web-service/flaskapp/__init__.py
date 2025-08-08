@@ -29,7 +29,6 @@ from flaskapp.models.record import Record
 from flaskapp.models.container import LDPContainer, LDPContainerContents
 from flaskapp import local_thesaurus
 from flaskapp.base_graph_utils import base_graph_filter, document_loader
-from flaskapp.storage_utilities.container import ensure_root_container_exists
 
 from gettysparqlpatterns import PatternSet, NoPatternsFoundError
 
@@ -346,14 +345,6 @@ def create_app():
             app.config["DB_DIALECT"] = "postgresql"
         else:
             app.config["DB_DIALECT"] = "base"
-
-        if app.config["PROCESS_RDF"] and app.config["LDP_BACKEND"]:
-            # ensure that the root container '/' exists
-            ensure_root_container_exists(
-                dctitle=app.config["AS_DESC"],
-                dcdescription="This is the root container for this LOD Service. All containers and "
-                "resources hosted by this service will be contained in this root container.",
-            )
 
         app.config["SERVER_CAPABILITIES"] = (
             ", ".join(

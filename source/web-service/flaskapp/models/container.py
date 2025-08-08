@@ -1,5 +1,6 @@
 from flaskapp.models import db
 from sqlalchemy.sql import func
+from sqlalchemy.schema import UniqueConstraint
 
 # POSTGRESQL - for the upsert mode
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -142,6 +143,15 @@ class LDPContainerContents(db.Model):
         db.Integer, db.ForeignKey("containers.id"), nullable=False, index=True
     )
     container = db.relationship("LDPContainer", back_populates="contents")
+
+    # Set up link uniqueness constraint here
+    __table_args__ = (
+        UniqueConstraint(
+            "container_id",
+            "entity_id",
+            name="_container_uniqueness_constraint",
+        ),
+    )
 
     def __repr__(self):
         return f"<LDPContainerContents id={self.id} entity_id={self.entity_id} type={self.entity_type}>"

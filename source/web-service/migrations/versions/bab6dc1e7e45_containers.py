@@ -38,6 +38,7 @@ def upgrade():
             ["containers.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("container_identifier"),
     )
     with op.batch_alter_table("containers", schema=None) as batch_op:
         batch_op.create_index(

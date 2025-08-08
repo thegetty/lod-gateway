@@ -7,7 +7,23 @@ from flaskapp.models.container import LDPContainer, NoLDPContainerFoundError
 from flaskapp.utilities import segment_entity_id
 
 
-def get_container(container_identifier):
+def ensure_root_container_exists(dctitle="LOD Gateway", dcdescription=""):
+    if root := get_container("/", optimistic=True):
+        current_app.logger.info(f"Root LDP Container found - '{root.dctitle}'")
+    else:
+        # There may be a time when we have multiple root containers, hence is_root
+        current_app.logger.info(f"NO ROOT LDP Container found, creating: '{dctitle}'")
+        root = LDPContainer(
+            container_identifier="/",
+            is_root=True,
+            dctitle=dctitle,
+            dcdescription=dcdescription,
+        )
+        db.session.add(root)
+        db.session.commit()
+
+
+def get_container(container_identifier, optimistic=False):
     if current_app.config["LDP_BACKEND"]:
         if (
             result := db.session.query(LDPContainer)
@@ -16,9 +32,10 @@ def get_container(container_identifier):
         ):
             return result
         else:
-            raise NoLDPContainerFoundError(container_identifier)
-    else:
-        return None
+            if not optimistic:
+                raise NoLDPContainerFoundError(container_identifier)
+
+    return None
 
 
 def handle_container_requirements(entity_id, entity_type):
@@ -37,7 +54,7 @@ def handle_container_requirements(entity_id, entity_type):
             else:
                 parent = get_container("/")
                 for container in containers:
-                    if c := get_container(container):
+                    if c := get_container(container, optimistic=True):
                         parent = c
                     else:
                         # Create inferred container in current transaction

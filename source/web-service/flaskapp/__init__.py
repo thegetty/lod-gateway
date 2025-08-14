@@ -135,6 +135,7 @@ def create_app():
     app.config["LDP_BACKEND"] = False
     app.config["LDP_API"] = False
     app.config["LDP_AUTOCREATE_CONTAINERS"] = False
+    app.config["LDP_VALIDATE_SLUGS"] = False
 
     # Set up RDF/Content Profile defaults:
     app.config["USE_PYLD_REFORMAT"] = True
@@ -168,6 +169,11 @@ def create_app():
             # the behavior of the LDP API if you attempt to add a resource to a container that does not exist
             app.config["LDP_AUTOCREATE_CONTAINERS"] = (
                 environ.get("LDP_AUTOCREATE_CONTAINERS", "False").lower() == "true"
+            )
+
+            # Perform an extra step to validate that the generated slug for a resource doesn't exist in the container yet?
+            app.config["LDP_VALIDATE_SLUGS"] = (
+                environ.get("LDP_VALIDATE_SLUGS", "False").lower() == "true"
             )
 
             app.logger.info(

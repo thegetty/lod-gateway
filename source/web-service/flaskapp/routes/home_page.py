@@ -35,6 +35,17 @@ def get_home_page():
                     "chk_subaddressing": (
                         True if current_app.config.get("SUBADDRESSING") else False
                     ),
+                    "chk_content_profiles": (
+                        True
+                        if current_app.config.get("CONTENT_PROFILE_PATTERNS_AVAILABLE")
+                        else False
+                    ),
+                    "chk_ldp_backend": (
+                        True if current_app.config.get("LDP_BACKEND") else False
+                    ),
+                    "chk_ldp_api": (
+                        True if current_app.config.get("LDP_API") else False
+                    ),
                 }
             ),
             200,

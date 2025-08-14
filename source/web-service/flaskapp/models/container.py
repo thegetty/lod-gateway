@@ -15,6 +15,10 @@ class NoLDPContainerFoundError(LDPContainerError):
     LDP Container does not exist"""
 
 
+class BadContainerSlugError(LDPContainerError):
+    """A container cannot be given an slug that containers '/' in its name"""
+
+
 class LDPContainer(db.Model):
     __tablename__ = "containers"
     id = db.Column(db.Integer, primary_key=True)
@@ -55,11 +59,39 @@ class LDPContainer(db.Model):
             .all()
         )
 
+    @classmethod
+    def get_root(cls):
+        return (
+            cls.query.filter_by(container_identifier="/")
+            .order_by(LDPContainer.datetime_created)
+            .one_or_none()
+        )
+
     def __repr__(self):
         return f"<LDPContainer id={self.id} path={self.container_identifier} name={self.dctitle}>"
 
     # Add a child container
     def add_child_container(self, child_container: "LDPContainer", db_dialect="base"):
+        child_container.parent = self
+        db.session.add(child_container)
+        self.add_to_container(child_container, is_container=True, db_dialect=db_dialect)
+
+    # Create a child container
+    def new_child_container(
+        self, child_slug, dctitle="", dcdescription="", db_dialect="base"
+    ):
+        if "/" in child_slug:
+            raise BadContainerSlugError("The child slug identifier cannot contain '/'")
+
+        container_identifier = f"{self.container_identifier}/{child_slug}"
+        if not dctitle:
+            dctitle = container_identifier
+        child_container = LDPContainer(
+            container_identifier=container_identifier,
+            dctitle=dctitle,
+            dcdescription=dcdescription,
+            is_root=False,
+        )
         child_container.parent = self
         db.session.add(child_container)
         self.add_to_container(child_container, is_container=True, db_dialect=db_dialect)
@@ -101,6 +133,30 @@ class LDPContainer(db.Model):
                     is_container=is_container,
                 )
                 db.session.add(new_entity)
+                return True
+            else:
+                # Already part of the container - No-Op -> None
+                return
+
+    # Remove a child Record, but do not flush or commit
+    def remove_from_container(
+        self, item, is_container: bool = False, db_dialect="base"
+    ):
+        # Get the right details from the item
+        if is_container:
+            entity_id = item.container_identifier
+        else:
+            entity_id = item.entity_id
+
+        if existing := LDPContainerContents.query.filter_by(
+            container_id=self.id, entity_id=entity_id
+        ).first():
+            db.session.delete(existing)
+            return True
+        else:
+            # Going for the optimistic return rather than a raise Error if it
+            # cannot be found in this container
+            return False
 
     def paginate_through_content(self, page=1, page_size=100):
         # Paginate through the rows, listing the containers first and then the records,

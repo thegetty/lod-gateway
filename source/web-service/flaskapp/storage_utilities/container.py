@@ -1,8 +1,12 @@
 # Container convenience classes, mostly used when creating, searching for, or autogenerating containers
-
+from uuid import uuid4
 from flask import current_app
 from flaskapp.models import db
-from flaskapp.models.container import LDPContainer, NoLDPContainerFoundError
+from flaskapp.models.container import (
+    LDPContainer,
+    LDPContainerContents,
+    NoLDPContainerFoundError,
+)
 
 from flaskapp.utilities import segment_entity_id
 
@@ -78,3 +82,35 @@ def handle_container_requirements(entity_id, entity_type):
 
                 # parent should now contain the bottommost container, the parent of the resource
                 return parent
+
+
+def find_parent_container(entity_id, entity_type):
+    if (
+        c := db.session.query(LDPContainerContents)
+        .filter(LDPContainerContents.entity_id == entity_id)
+        .filter(LDPContainerContents.entity_type == entity_type)
+        .one_or_none()
+    ):
+        return c.container
+
+
+def generate_slug_for_container(container_identifier):
+    # When RDF resources are POSTed to a container without specifying a Slug
+    # It is up to the LDP service to determine a suitable one.
+
+    # TODO Add a feature to get a short id from an ID Manager if enabled
+    child_slug = str(uuid4())
+    if not current_app.config["LDP_VALIDATE_SLUGS"]:
+        return child_slug
+    else:
+        # As an extra step, make sure that the slug is not already a part of the container
+        try:
+            if c := get_container(container_identifier):
+                entity_id = f"{c.container_identifier}/{child_slug}"
+                if c.contents.filter_by(entity_id=entity_id).count() == 0:
+                    return child_slug
+
+            # return a failure in all other cases
+            return False
+        except NoLDPContainerFoundError:
+            return False

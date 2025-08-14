@@ -9,7 +9,7 @@ ENV LC_ALL=C.UTF-8
 ENV PYTHONUNBUFFERED=1
 
 # Install ca-certificates so that SSL/TLS can function from within the container
-RUN apt-get update && apt-get -y install ca-certificates libpcre3 libpcre3-dev
+RUN apt-get update && apt-get -y install ca-certificates
 
 RUN pip install --upgrade pip
 

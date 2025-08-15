@@ -23,6 +23,15 @@ def app(mocker):
 
 
 @pytest.fixture
+def app_ldpapi(mocker):
+    flask_app = create_app()
+    flask_app.config["TESTING"] = True
+    flask_app.config["LDP_BACKEND"] = True
+    flask_app.config["LDP_API"] = True
+    yield flask_app
+
+
+@pytest.fixture
 def app_no_rdf(mocker):
     flask_app = create_app()
     flask_app.config["TESTING"] = True
@@ -65,10 +74,19 @@ def base_url(current_app, namespace):
 
 @pytest.fixture
 def client(app):
-
     testing_client = app.test_client()
 
     ctx = app.app_context()
+    ctx.push()
+    yield testing_client  # this is where the testing happens!
+    ctx.pop()
+
+
+@pytest.fixture
+def client_ldpapi(app_ldpapi):
+    testing_client = app_ldpapi.test_client()
+
+    ctx = app_ldpapi.app_context()
     ctx.push()
     yield testing_client  # this is where the testing happens!
     ctx.pop()

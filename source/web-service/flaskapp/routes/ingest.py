@@ -31,6 +31,8 @@ from flaskapp.storage_utilities.graph import (
     inflate_relative_uris,
     RetryAfterError,
 )
+from flaskapp.storage_utilities.container import assert_containers
+
 from flaskapp.errors import (
     status_nt,
     status_data_missing,
@@ -226,6 +228,12 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
 
             # Only handle refresh requests if the PROCESS_RDF is enabled
             if ids_to_refresh:
+                # Reassert container chains if LDP Backend is running?
+                if current_app.config["LDP_BACKEND"] == True:
+                    new_containers_created = assert_containers(ids_to_refresh)
+                    current_app.logger.info(
+                        f"REFRESH: Created containers: {new_containers_created}."
+                    )
                 results = revert_triplestore_if_possible(ids_to_refresh)
                 result_dict.update(results)
 

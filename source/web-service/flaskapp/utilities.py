@@ -261,6 +261,11 @@ def wants_html(request_obj, default_response_type="text/html"):
             "application/xhtml+xml",
             "application/xml",
             "application/json",
+            "application/ld+json",
+            "application/rdf+xml",
+            "text/turtle",
+            "text/n-triples",
+            "text/n-quads",
         ],
         default=default_response_type,
     ) in ["text/html", "application/xhtml+xml"]
@@ -329,10 +334,21 @@ def execute_sparql_query_post(data: dict, accept_header: str, query_endpoint: st
 
 # entity_id -> container chain then entity
 def segment_entity_id(entity_id):
-    segments = ["/"]
-    for segment in entity_id.split("/"):
+    segments = []
+    # clean up
+    seq = [x for x in entity_id.split("/") if x]
+    clean_entity_id = "/" + "/".join(seq)
+    if not entity_id.endswith("/"):
+        seq = seq[:-1]
+    else:
+        clean_entity_id += "/"
+    seq = [x for x in seq if x]
+    for segment in seq:
         if segments:
-            segments.append(f"/{segments[-1]}/{segment}")
+            segments.append(f"{segments[-1]}{segment}/")
         else:
-            segments.append(f"/{segment}")
+            segments.append(f"/{segment}/")
+    segments = ["/"] + segments
+    if segments[-1] != clean_entity_id:
+        segments.append(clean_entity_id)
     return segments

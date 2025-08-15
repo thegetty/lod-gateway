@@ -2,6 +2,8 @@ from flaskapp.models import db
 from sqlalchemy.sql import func
 from sqlalchemy.schema import UniqueConstraint
 
+from flaskapp.utilities import format_datetime
+
 # POSTGRESQL - for the upsert mode
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -158,7 +160,7 @@ class LDPContainer(db.Model):
             # cannot be found in this container
             return False
 
-    def paginate_through_content(self, page=1, page_size=100):
+    def paginate_through_content(self, base, page=1, page_size=100):
         # Paginate through the rows, listing the containers first and then the records,
         # ordered by the
         query = self.contents.order_by(
@@ -166,19 +168,49 @@ class LDPContainer(db.Model):
             LDPContainerContents.id.asc(),
         )
 
+        # Get total (maybe alter the query for speed later if needed? no ordering, just get '1' for each row?)
+        # The total will likely part of a hash for the ETag for the container
         total = query.count()
+
+        # Now get the items for the slice we want
         items = query.offset((page - 1) * page_size).limit(page_size).all()
         pages = (total + page_size - 1) // page_size
 
-        # flatten this to simple classes (str, etc).
-        # TODO should the date_added be turned into a string or left for the API to format
+        container = self.as_jsonld(base)
+
+        # Add the memberlist to the container representation
+        container["ldp:contains"] = [x.to_ldp() for x in items]
+
         return {
-            "items": [x.to_dict() for x in items],
             "total": total,
             "pages": pages,
             "current_page": page,
             "has_next": page < pages,
+            "jsonld": container,
         }
+
+    def as_jsonld(self, base: str):
+        # base should be the FQDN for the root container, and should end in '/''
+        ci = self.container_identifier
+        if not ci.endswith("/"):
+            ci = f"{ci}/"
+        base_jsonld = {
+            "@context": [
+                {
+                    "ldp": "http://www.w3.org/ns/ldp#",
+                    "contains": {"@reverse": "ldp:member"},
+                    "dc": "http://purl.org/dc/terms/",
+                    "@base": base,
+                },
+            ],
+            "@id": ci,
+            "dc:title": self.dctitle,
+            "@type": ["ldp:BasicContainer", "ldp:Container"],
+        }
+        if self.dcdescription:
+            base_jsonld["dc:description"] = self.dcdescription
+
+        return base_jsonld
 
 
 class LDPContainerContents(db.Model):
@@ -218,4 +250,11 @@ class LDPContainerContents(db.Model):
             "entity_type": self.entity_type,
             "is_container": self.is_container,
             "date_added": self.date_added,
+        }
+
+    def to_ldp(self):
+        return {
+            "@id": self.entity_id,
+            "@type": self.entity_type,
+            "dc:available": format_datetime(self.date_added),
         }

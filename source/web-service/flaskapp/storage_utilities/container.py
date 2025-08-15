@@ -2,6 +2,7 @@
 from uuid import uuid4
 from flask import current_app
 from flaskapp.models import db
+from flaskapp.models.record import Record
 from flaskapp.models.container import (
     LDPContainer,
     LDPContainerContents,
@@ -9,6 +10,14 @@ from flaskapp.models.container import (
 )
 
 from flaskapp.utilities import segment_entity_id
+
+
+def get_container_headers(container_identifier):
+    return {
+        "Allow": "GET, HEAD, OPTIONS, POST, PATCH",
+        "Accept-Post": "application/ld+json",
+        "Accept-Patch": "application/ld+json, text/turtle, application/n-quads, application/n-triples",
+    }
 
 
 def create_root_container(dctitle="LOD Gateway", dcdescription=""):
@@ -45,6 +54,59 @@ def get_container(container_identifier, optimistic=False):
                 raise NoLDPContainerFoundError(container_identifier)
 
     return None
+
+
+def assert_containers(entity_ids):
+    # This should only be used to refresh records but not restricted to them
+    new_containers = []
+    for entity_id in entity_ids:
+        current_app.logger.info(f"Refreshing LDP container chain for  '{entity_id}'")
+        segments = segment_entity_id(entity_id)
+        # Get everything but the root and the last part:
+        containers = segments[1:-1]
+
+        # just in case this is a container id instead:
+        if segments[-1].endswith("/"):
+            containers.append(segments[-1])
+
+        parent = get_container("/")
+        for container in containers:
+            if c := get_container(container, optimistic=True):
+                parent = c
+            else:
+                # Create inferred container in current transaction
+                current_app.logger.info(f"Autogenerating LDP container '{container}'")
+                c = LDPContainer(
+                    dctitle=container,
+                    dcdescription="Auto-generated container",
+                    container_identifier=container,
+                )
+                parent.add_child_container(
+                    c, db_dialect=current_app.config["DB_DIALECT"]
+                )
+                parent = c
+                new_containers.append(container)
+        try:
+            # If it is an existing record, add it to the final container too
+            if (
+                r := db.session.query(Record)
+                .filter(Record.entity_id == entity_id)
+                .one_or_none()
+            ):
+                if r and r.data is not None:
+                    parent.add_to_container(
+                        r,
+                        is_container=False,
+                        db_dialect=current_app.config["DB_DIALECT"],
+                    )
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(
+                f"Could not commit new containers for {entity_id} - {str(e)}"
+            )
+            raise
+
+    return new_containers
 
 
 def handle_container_requirements(entity_id, entity_type):
@@ -114,3 +176,37 @@ def generate_slug_for_container(container_identifier):
             return False
         except NoLDPContainerFoundError:
             return False
+
+
+# Add the current_app base URL for the response base
+def get_page_for_container(container_identifier, page=1, page_size=100):
+    container = get_container(container_identifier)
+    base = f'{current_app.config["idPrefix"]}/'
+    return container.paginate_through_content(base, page=page, page_size=page_size)
+
+
+def generate_paging_link_headers(
+    container_identifier, total, current_page, pages, has_next
+):
+    c_uri = f'{current_app.config["idPrefix"]}/{container_identifier}'
+    if not c_uri.endswith("/"):
+        c_uri = c_uri + "/"
+
+    etag = hash(f"{container_identifier}_{total}")
+    # The Etag will change as the membership total changes.
+    headers = {"ETag": etag}
+
+    links = [
+        '<http://www.w3.org/ns/ldp#Resource>; rel="type"',
+        '<http://www.w3.org/ns/ldp#BasicContainer>; rel="type"',
+        f'<{c_uri}>; rel="canonical"; etag="{etag}"',
+        f'<{c_uri}?page=1> rel="first"' f'<{c_uri}?page={pages}> rel="last"',
+    ]
+    if current_page > 1:
+        links.append(f'<{c_uri}?page={current_page - 1}> rel="prev"')
+    if current_page < pages:
+        links.append(f'<{c_uri}?page={current_page + 1}> rel="next"')
+
+    headers["Link"] = ",".join(links)
+
+    return headers

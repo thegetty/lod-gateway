@@ -192,23 +192,30 @@ class LDPContainer(db.Model):
     def as_jsonld(self, base: str):
         # base should be the FQDN for the root container, and should end in '/''
         ci = self.container_identifier
-        if not ci.endswith("/"):
-            ci = f"{ci}/"
+        if ci != "/":
+            if not ci.endswith("/"):
+                ci = f"{ci}/"
+            if ci.startswith("/"):
+                # For the relative pathing, with @base
+                ci = ci[1:]
+        else:
+            # Root container IS the base.
+            ci = ""
         base_jsonld = {
             "@context": [
                 {
                     "ldp": "http://www.w3.org/ns/ldp#",
                     "contains": {"@reverse": "ldp:member"},
-                    "dc": "http://purl.org/dc/terms/",
+                    "dcterm": "http://purl.org/dc/terms/",
                     "@base": base,
                 },
             ],
             "@id": ci,
-            "dc:title": self.dctitle,
+            "dcterm:title": self.dctitle,
             "@type": ["ldp:BasicContainer", "ldp:Container"],
         }
         if self.dcdescription:
-            base_jsonld["dc:description"] = self.dcdescription
+            base_jsonld["dcterm:description"] = self.dcdescription
 
         return base_jsonld
 
@@ -253,8 +260,12 @@ class LDPContainerContents(db.Model):
         }
 
     def to_ldp(self):
+        entid = self.entity_id
+        if entid.startswith("/"):
+            # For the relative ids using @base
+            entid = entid[1:]
         return {
-            "@id": self.entity_id,
+            "@id": entid,
             "@type": self.entity_type,
-            "dc:available": format_datetime(self.date_added),
+            "dcterm:available": format_datetime(self.date_added),
         }

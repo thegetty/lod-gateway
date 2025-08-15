@@ -228,8 +228,11 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
 
             # Only handle refresh requests if the PROCESS_RDF is enabled
             if ids_to_refresh:
-                # Reassert container chains if LDP Backend is running?
-                if current_app.config["LDP_BACKEND"] == True:
+                # Reassert container chains if LDP Backend is running + autocreate containers?
+                if (
+                    current_app.config["LDP_BACKEND"] is True
+                    and current_app.config["LDP_AUTOCREATE_CONTAINERS"] is True
+                ):
                     new_containers_created = assert_containers(ids_to_refresh)
                     current_app.logger.info(
                         f"REFRESH: Created containers: {new_containers_created}."

@@ -157,6 +157,9 @@ def get_data_using_profile_query(
 
 
 def reformat_rdf(data, shortformat="turtle", use_pyld=True, rdf_docloader=None):
+    if shortformat == "json-ld":
+        # Assume data is *already* JSON-LD
+        return data
     if use_pyld is True:
         # Use the PyLD library to parse into nquads, and rdflib to convert
         # rdflib's json-ld import has not been tested on our data, so not relying on it

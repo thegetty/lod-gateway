@@ -9,6 +9,8 @@ from flaskapp.models.container import (
     NoLDPContainerFoundError,
 )
 
+from urllib.parse import urljoin
+
 from flaskapp.utilities import segment_entity_id
 
 
@@ -188,7 +190,8 @@ def get_page_for_container(container_identifier, page=1, page_size=100):
 def generate_paging_link_headers(
     container_identifier, total, current_page, pages, has_next
 ):
-    c_uri = f'{current_app.config["idPrefix"]}/{container_identifier}'
+
+    c_uri = urljoin(current_app.config["idPrefix"], container_identifier)
     if not c_uri.endswith("/"):
         c_uri = c_uri + "/"
 

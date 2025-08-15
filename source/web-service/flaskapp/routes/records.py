@@ -17,6 +17,7 @@ from sqlalchemy import func, exc
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
+from flaskapp.models.container import NoLDPContainerFoundError
 from flaskapp.utilities import (
     Event,
     format_datetime,
@@ -30,10 +31,15 @@ from flaskapp.storage_utilities.record import (
     process_activity,
 )
 from flaskapp.storage_utilities.graph import graph_delete
+from flaskapp.storage_utilities.container import (
+    get_page_for_container,
+    generate_paging_link_headers,
+)
 from flaskapp.errors import (
     status_nt,
     construct_error_response,
     status_record_not_found,
+    status_container_not_found,
     status_page_not_found,
     status_db_save_error,
     status_graphstore_error,
@@ -249,11 +255,77 @@ def subaddressing_search(entity_id):
     return (None, None)
 
 
+def container_record(container_id):
+    # soft-redirect for pagination? look for page and also optional page_size parameters
+    if page := request.args.get("page"):
+        # Validate page
+        try:
+            page = int(page)
+        except ValueError:
+            return (
+                jsonify({"errors": [{"title": "Page parameter was not an integer"}]}),
+                400,
+            )
+
+        # TODO also listen to that weird Link setting in the request?
+        page_size = request.args.get("page_size", 100)
+
+        cid = f"/{container_id}"
+        try:
+            # We have a page! return that page of content if possible
+            pageresp = get_page_for_container(cid, page, page_size)
+        except NoLDPContainerFoundError as e:
+            # Can't find the container. Pass to record.entity_record? Fail?
+            # Going with fail for now:
+            current_app.logger.error(
+                f"Attempt to retrieve {cid} from database failed {str(e)}"
+            )
+            response = construct_error_response(status_container_not_found)
+            abort(response)
+
+        ldpheaders = generate_paging_link_headers(
+            container_identifier=cid,
+            total=pageresp["total"],
+            current_page=page,
+            pages=pageresp["pages"],
+            has_next=pageresp["has_next"],
+        )
+        # Handle Accept?
+        desired = determine_requested_format_and_profile(request)
+        content_type, q, shortformat = desired["accepted_mimetypes"][0]
+
+        # Add an html version too at some point?
+        if not shortformat:
+            shortformat = "json-ld"
+
+        data = reformat_rdf(
+            pageresp["jsonld"],
+            shortformat=shortformat,
+            use_pyld=current_app.config["USE_PYLD_REFORMAT"],
+            rdf_docloader=current_app.config["RDF_DOCLOADER"],
+        )
+        response = current_app.make_response(data)
+        response.headers = ldpheaders
+        response.headers["Content-Type"] = content_type
+
+        return response
+    else:
+        # Redirect with 303 as the LDP-PAGING spec says:
+        return redirect(
+            url_for("records.entity_record", entity_id=container_id, page=1),
+            code=303,
+        )
+
+
 @records.route("/<path:entity_id>")
 def entity_record(entity_id):
     """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard
     search for items in the LOD Gateway"""
     # idPrefix will be used by either the API route returning the record, or the route listing matches
+    if current_app.config["LDP_API"] and entity_id.endswith("/"):
+        # treat trailing slashes in IDs as containers
+        return container_record(entity_id)
+
     hostPrefix = current_app.config["BASE_URL"]
     idPrefix = current_app.config["idPrefix"]
 

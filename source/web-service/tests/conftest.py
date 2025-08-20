@@ -222,6 +222,8 @@ def linguisticobject():
         return {
             "@context": "https://linked.art/ns/v1/linked-art.json",
             "id": id,
+            "type": "LinguisticObject",
+            "rdfs:label": name,
             "content": name,
             "classified_as": [
                 {
@@ -290,7 +292,7 @@ def requests_mocker(requests_mock):
     """
 
     def mocker_text_callback(request, context):
-        print(request.url, request.path_url)
+        print(f"MOCKED REQUEST, begin handling -: {request.url}")
 
         if request.path_url.endswith("/status"):
             context.status_code = 200
@@ -303,7 +305,7 @@ def requests_mocker(requests_mock):
             "/update"
         ):  # TODO: this is not portable
             sparql = None
-
+            print("MOCKED REQUEST -: Treating as SPARQL query")
             if request.body.startswith("query=") or request.body.startswith("update="):
                 params = urllib.parse.parse_qsl(request.body)
                 if params:
@@ -313,6 +315,7 @@ def requests_mocker(requests_mock):
                             break
 
             if sparql:
+                print(f"MOCKED REQUEST -: SPARQL detected: {sparql}")
                 if sparql.startswith("SELECT"):
                     context.status_code = 200
                     return json.dumps(
@@ -348,6 +351,20 @@ def requests_mocker(requests_mock):
                     else:
                         context.status_code = 200
                     return None
+                elif (
+                    sparql.startswith(
+                        "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>"
+                    )
+                    and "document/2" in sparql
+                ):
+                    print("HIT MOCKED document 2 response")
+                    context.status_code = 200
+                    context.headers = {"Content-Type": "text/turtle"}
+                    # real world response from fuseki
+                    return b'@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix crm:   <http://www.cidoc-crm.org/cidoc-crm/> .\n@prefix dc:    <http://purl.org/dc/elements/1.1/> .\n\n<http://localhost:5100/document/2>\n        dc:description  "test document 2" ;\n        dc:title        "test document 2" ;\n        dc:type         "Subject Heading - Topical" ;\n        dc:type         <https://data.getty.edu/local/thesaurus/aspace-subject-topical> .\n'.decode(
+                        "utf-8"
+                    )
+
         else:
             print(f"*** unhandled mock request: {request.path_url}")
 

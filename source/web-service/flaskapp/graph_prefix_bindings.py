@@ -19,14 +19,16 @@ BINDING = {
 
 FORMATS = {
     # RDF triple formats
-    "application/ntriples;charset=UTF-8": "nt11",
-    "text/turtle;charset=UTF-8": "turtle",
-    "application/rdf+xml;charset=UTF-8": "xml",
-    "text/n3;charset=UTF-8": "n3",
+    "application/n-triples; charset=UTF-8": "nt11",
+    "application/ntriples; charset=UTF-8": "nt11",
+    "text/turtle; charset=UTF-8": "turtle",
+    "application/rdf+xml; charset=UTF-8": "xml",
+    "text/n3; charset=UTF-8": "n3",
     # RDF Quad/Triple formats:
-    "application/n-quads;charset=UTF-8": "nquads",
-    "application/ld+json;charset=UTF-8": "json-ld",
-    "application/trig;charset=UTF-8": "trig",
+    "application/n-quads; charset=UTF-8": "nquads",
+    "application/nquads; charset=UTF-8": "nquads",
+    "application/ld+json; charset=UTF-8": "json-ld",
+    "application/trig; charset=UTF-8": "trig",
     # "application/trix;charset=UTF-8": "trix",        the TriX output is not great tbh
 }
 
@@ -36,16 +38,3 @@ def get_bound_graph(identifier):
     for k, v in BINDING.items():
         g.bind(k, v)
     return g
-
-
-def desired_rdf_format(accept, accept_param):
-    if accept_param:
-        if accept_param == "nt":
-            accept_param = "nt11"
-        for k, v in FORMATS.items():
-            if v == accept_param.strip():
-                return (k, v)
-    if accept:
-        for k, v in FORMATS.items():
-            if k in accept:
-                return (k, v)

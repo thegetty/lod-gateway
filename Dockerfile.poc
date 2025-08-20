@@ -1,19 +1,42 @@
-FROM python:3.10
+FROM python:3.13 AS base
+
+LABEL description "Getty LOD Gateway Service"
 
 # Set our working directory
-WORKDIR /app
+ENV WHEELS=/wheels
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PYTHONUNBUFFERED=1
 
 # Install ca-certificates so that SSL/TLS can function from within the container
 RUN apt-get update && apt-get -y install ca-certificates
 
+RUN pip install --upgrade pip
+
+FROM base AS buildenv
+
+WORKDIR ${WHEELS}
+
+ARG NEXUS_USER
+ARG NEXUS_PASSWORD
+ARG PIP_INDEX_URL=https://${NEXUS_USER}:${NEXUS_PASSWORD}@artifacts.getty.edu/repository/jpgt-pypi-virtual/simple
+
+COPY requirements.txt requirements.txt
+RUN pip wheel --wheel-dir=${WHEELS} -r ${WHEELS}/requirements.txt
+
+FROM base AS runtime
+
+COPY --from=buildenv ${WHEELS} ${WHEELS}
+
+RUN pip install -f ${WHEELS} --no-index -r ${WHEELS}/requirements.txt \
+ && rm -rf ${WHEELS} \
+ && rm -rf /root/.cache/pip/*
+
+WORKDIR /app
+
 # Copy VERSION file for the current version to be displayed in the dashboard
 COPY VERSION.txt version.txt
-
-# Copy and install our dependencies from requirements.txt
 COPY requirements.txt requirements.txt
-
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
 
 RUN groupadd -r flask && useradd -r -g flask flask
 

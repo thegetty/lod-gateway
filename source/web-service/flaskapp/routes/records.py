@@ -5,6 +5,8 @@ import json
 # RFC1128 dates, yuck
 import dateparser
 import pytz
+import time
+
 from email.utils import formatdate
 
 from flask import Blueprint, current_app, abort, request, jsonify, url_for, redirect
@@ -41,10 +43,17 @@ from flaskapp.errors import (
 from flaskapp.utilities import checksum_json, authenticate_bearer
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
 
-import time
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import get_bound_graph, desired_rdf_format
+from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
+from flaskapp.conneg import (
+    desired_rdf_format,
+    determine_requested_format_and_profile,
+    get_data_using_profile_query,
+)
+
+from gettysparqlpatterns import RequiredParametersMissingError
+
 from pyld import jsonld
 
 # Create a new "records" route blueprint
@@ -311,6 +320,8 @@ def entity_record(entity_id):
             + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate" '
         )
 
+        # The Content Profile Link headers should be added if this is a L2, it is confirmed that there is data, and what object it is.
+
         if current_app.config["LINK_HEADER_PREV_VERSION"] and record is not None:
             prev = (
                 db.session.query(Version)
@@ -418,17 +429,22 @@ def entity_record(entity_id):
             # If the etag(s) did not match, then the record is not cached or known to the client
             # and should be sent:
 
-            desired = desired_rdf_format(
-                request.headers.get("accept"), request.values.get("format")
-            )
+            desired = determine_requested_format_and_profile(request)
+            # Response -> dict {"preferred_mimetype": ..., "accepted_mimetypes": [...,], "requested_profiles": [...,]}
 
-            current_app.logger.debug(f"Desired RDF format? {desired}")
+            # id/@id?
+            attr = "@id" if "@id" in record.data else "id"
+
+            current_app.logger.debug(
+                f"Desired RDF format and profile information? {desired}"
+            )
             current_app.logger.debug(
                 f"REQUESTS - relativeid? '{request.values.get('relativeid', '')}'"
             )
 
             # Recursively prefix each 'id' attribute that currently lacks a http(s):// prefix
             prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
+            unprefixed = False
             if (
                 request.values.get("relativeid", "").lower() in trueset
                 or prefixRecordIDs == "NONE"
@@ -436,8 +452,10 @@ def entity_record(entity_id):
                 # Use the subaddressing data if it has been set (and subaddressing is enabled)
                 # Use record data otherwise
 
-                # Don't allow format rewriting:
-                desired = None
+                # Don't allow format rewriting as most of the routes require valid URIs, which this
+                # request will not generate.
+                desired = {}
+                unprefixed = True
                 data = (
                     subdata or record.data
                 )  # so pass back the record data as-is to the client
@@ -452,7 +470,6 @@ def entity_record(entity_id):
                 data = subdata or record.data
 
                 # Assume that id/@id choice used in the data is the same as the top level
-                attr = "@id" if "@id" in data else "id"
                 urlprefixes = None
                 if current_app.config["PROCESS_RDF"] is True and "@context" in data:
                     urlprefixes = get_url_prefixes_from_context(data["@context"])
@@ -474,72 +491,182 @@ def entity_record(entity_id):
             # If this instance is RDF-enabled, do they want an alternate format?
             # either accept header or 'format' URL parameter
             content_type = "application/json;charset=UTF-8"
-
+            # etag can be overwritten if it is transformed - for now, the etag won't be included if the data is reformatted
+            etag = f'"{record.checksum}"'
             if current_app.config["PROCESS_RDF"] is True:
                 content_type = "application/ld+json;charset=UTF-8"
-                if desired is not None:
-                    # wants a particular format
-                    if desired[1] != "json-ld":
-                        # Set the mimetype:
-                        current_app.logger.debug(
-                            f"{entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
-                        )
-                        content_type = desired[0]
-                        if "force-plain-text" in request.values:
-                            # Browsers typically don't handle ntriples/turtle
-                            content_type = "text/plain;charset=UTF-8"
 
-                        if (
-                            current_app.config["USE_PYLD_REFORMAT"] is True
-                            and "rdflib" not in request.values
-                        ):
-                            current_app.logger.debug(
-                                f"{entity_id} - using PyLD to parse JSON-LD"
-                            )
-                            # Use the PyLD library to parse into nquads, and rdflib to convert
-                            # rdflib's json-ld import has not been tested on our data, so not relying on it
-                            proc = jsonld.JsonLdProcessor()
-                            serialized_rdf = proc.to_rdf(
-                                data,
-                                {
-                                    "format": "application/n-quads",
-                                    "documentLoader": current_app.config[
-                                        "RDF_DOCLOADER"
+                # Link headers, setting json-ld as the canonical
+                link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="application/ld+json") }>;rel="canonical";type="application/ld+json"'
+                # Add possible profiles:
+                if record.entity_type in current_app.config["CONTENT_PROFILE_PATTERNS"]:
+                    for profile in current_app.config["CONTENT_PROFILE_PATTERNS"][
+                        record.entity_type
+                    ]:
+                        link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="text/turtle", _profile=profile.profile_uri) }>;rel="alternate";type="text/turtle";format="{profile.profile_uri}"'
+
+                # Check for bad format requests, only if prefixed
+                if unprefixed is False and not desired.get("accepted_mimetypes"):
+                    response = construct_error_response(
+                        status_nt(
+                            400,
+                            "Requested mimetype is invalid",
+                            f"Accepted mimetypes are {[x for x in FORMATS]}",
+                        )
+                    )
+                    return abort(response)
+
+                if desired:
+                    # Request wants a particular format and/or profile that is not plain JSON-LD and no profile?
+                    if not (
+                        desired.get("preferred_mimetype", "").startswith(
+                            "application/ld+json"
+                        )
+                        and desired["requested_profiles"] == []
+                    ):
+                        if desired["requested_profiles"]:
+                            ## Get a profiled version based on the data ##
+                            try:
+                                current_app.logger.info(
+                                    f"Attempting to load profiled version of {data[attr]}"
+                                )
+                                if profiled_data := get_data_using_profile_query(
+                                    uri=data[attr],
+                                    uritype=data.get("type") or record.entity_type,
+                                    profiles=desired["requested_profiles"],
+                                    patterns=current_app.config[
+                                        "CONTENT_PROFILE_PATTERNS"
                                     ],
-                                },
-                            )
+                                    query_endpoint=current_app.config[
+                                        "SPARQL_QUERY_ENDPOINT"
+                                    ],
+                                    accept_header=",".join(
+                                        [
+                                            f"{x[0]};q={x[1]}"
+                                            for x in desired["accepted_mimetypes"]
+                                        ]
+                                    ),
+                                ):
+                                    current_app.logger.debug(
+                                        f"Got response for profile lookup {profiled_data}"
+                                    )
+                                    if hasattr(profiled_data, "code"):
+                                        # An error of some kind happened when trying to get the SPARQL response
+                                        current_app.logger.error(
+                                            f"Error getting Profile for {data[attr]} - {desired['requested_profiles']} - {profiled_data.title} {profiled_data.detail}"
+                                        )
+                                        return abort(profiled_data)
+                                    else:
+                                        current_app.logger.info(
+                                            f"Found data for {data[attr]} that conforms to profile {desired['requested_profiles']}"
+                                        )
+                                        # blank out the etag for now
+                                        etag = None
+                                        data, content_type, profile = profiled_data
+                                        # add yet another link header to say that this resource conforms to the given profile:
+                                        link_headers += f', <{profile}>;rel="profile"'
+                                else:
+                                    current_app.logger.debug(
+                                        "Requested profile is not supported."
+                                    )
+                                    # The decision on how to handle this is between ignoring the profile request and returning the JSON-LD
+                                    # or to report a HTTP 4XX error. A HTTP 400 Bad Request response is the best fit (IMO):
+                                    response = construct_error_response(
+                                        status_nt(
+                                            400,
+                                            "Profile is not supported",
+                                            f'Profile "{desired["requested_profiles"]}" is not supported for this resource.',
+                                        )
+                                    )
+                                    return abort(response)
+                            except RequiredParametersMissingError:
+                                # Pattern seems to need more parameters than just URI? Badly written
+                                response = construct_error_response(
+                                    status_nt(
+                                        400,
+                                        "Profile Pattern is Invalid",
+                                        "Profile pattern selected does not fit expected - it should only require the URI parameter.",
+                                    )
+                                )
+                                return abort(response)
+                            except Exception as e:
+                                # ConnectionError and related should have been caught and handled before this
+                                response = construct_error_response(
+                                    status_nt(500, "Exception Encountered", str(e))
+                                )
+                                return abort(response)
 
-                            ident = data.get("id") or data.get("@id")
-
-                            # rdflib to load and format the nquads
-                            # forcing it, because of pyld's awful nquad export
-                            g = get_bound_graph(identifier=ident)
-
-                            # May not be nquads, even though we requested it:
-                            serialized_rdf = triples_to_quads(serialized_rdf, ident)
-
-                            g.parse(data=serialized_rdf, format="nquads")
-                            data = g.serialize(format=desired[1])
                         else:
+                            ## Reformat the JSON-LD ##
+                            # Set the mimetype:
                             current_app.logger.debug(
-                                f"{entity_id} - using RDFLIB to parse JSON-LD"
+                                f"{entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
                             )
-                            ident = data.get("id") or data.get("@id")
+                            content_type, q, shortformat = desired[
+                                "accepted_mimetypes"
+                            ][0]
 
-                            # using rdflib to both parse and re-serialize the RDF:
-                            g = get_bound_graph(identifier=ident)
+                            if (
+                                current_app.config["USE_PYLD_REFORMAT"] is True
+                                and "rdflib" not in request.values
+                            ):
+                                current_app.logger.debug(
+                                    f"{entity_id} - using PyLD to parse JSON-LD"
+                                )
+                                # Use the PyLD library to parse into nquads, and rdflib to convert
+                                # rdflib's json-ld import has not been tested on our data, so not relying on it
+                                proc = jsonld.JsonLdProcessor()
+                                serialized_rdf = proc.to_rdf(
+                                    data,
+                                    {
+                                        "format": "application/n-quads",
+                                        "documentLoader": current_app.config[
+                                            "RDF_DOCLOADER"
+                                        ],
+                                    },
+                                )
 
-                            g.parse(data=json.dumps(data), format="json-ld")
-                            data = g.serialize(format=desired[1])
+                                ident = data.get("id") or data.get("@id")
 
-                        current_app.logger.debug(
-                            f"{entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"
-                        )
+                                # rdflib to load and format the nquads
+                                # forcing it, because of pyld's awful nquad export
+                                g = get_bound_graph(identifier=ident)
 
+                                # May not be nquads, even though we requested it:
+                                serialized_rdf = triples_to_quads(serialized_rdf, ident)
+
+                                g.parse(data=serialized_rdf, format="nquads")
+                                data = g.serialize(format=shortformat)
+                                # blank out the etag for now
+                                etag = None
+                            else:
+                                current_app.logger.debug(
+                                    f"{entity_id} - using RDFLIB to parse JSON-LD"
+                                )
+                                ident = data.get("id") or data.get("@id")
+
+                                # using rdflib to both parse and re-serialize the RDF:
+                                g = get_bound_graph(identifier=ident)
+
+                                g.parse(data=json.dumps(data), format="json-ld")
+                                data = g.serialize(format=shortformat)
+                                # blank out the etag for now
+                                etag = None
+
+                            current_app.logger.debug(
+                                f"{entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"
+                            )
+
+            # Force plaintext?
+            if "force-plain-text" in request.values or "plaintext" in request.values:
+                # Let browsers pretend the response is plain text to let them display it and not
+                # try to download it.
+                content_type = "text/plain;charset=UTF-8"
             response = current_app.make_response(data)
             response.headers["Content-Type"] = content_type
             response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
-            response.headers["ETag"] = f'"{record.checksum}"'
+            if etag:
+                response.headers["ETag"] = etag
             if current_app.config["KEEP_LAST_VERSION"] is True:
                 # Timemap
                 response.headers["Link"] = link_headers

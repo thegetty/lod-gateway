@@ -317,6 +317,18 @@ def container_record(container_id):
         )
 
 
+@records.route("/<path:entity_id>", methods=["POST"])
+def update_item(entity_id):
+    # Could be a resource or a container being POSTed to a target URI
+    # Behavior will be as LDP states:
+    # - if the target is a Container, and the POSTed item is a valid Resource or Container:
+    #      - parse as RDF,
+    #      - rebase URIs to container URI with id from Slug header OR adopted from resource if present
+    #      - and create Resource/Container as needed
+    #      - Should fail if item exists at where a Slug header would put it (PUT is necessary)
+    pass
+
+
 @records.route("/<path:entity_id>", methods=["GET", "HEAD", "OPTIONS"])
 def entity_record(entity_id):
     """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard

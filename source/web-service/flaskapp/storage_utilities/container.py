@@ -195,6 +195,7 @@ def generate_paging_link_headers(
     if not c_uri.endswith("/"):
         c_uri = c_uri + "/"
 
+    container_etag = hash(f"{container_identifier}_{total}")
     etag = hash(f"{container_identifier}_{total}_{current_page}")
     # The Etag will change as the membership total changes and the page.
     headers = {"ETag": etag}
@@ -202,7 +203,7 @@ def generate_paging_link_headers(
     links = [
         '<http://www.w3.org/ns/ldp#Resource>; rel="type"',
         '<http://www.w3.org/ns/ldp#BasicContainer>; rel="type"',
-        f'<{c_uri}>; rel="canonical"; etag="{etag}"',
+        f'<{c_uri}>; rel="canonical"; etag="{container_etag}"',
         f'<{c_uri}?page=1> rel="first"' f'<{c_uri}?page={pages}> rel="last"',
     ]
     if current_page > 1:

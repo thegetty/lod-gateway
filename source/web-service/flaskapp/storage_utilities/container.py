@@ -195,8 +195,8 @@ def generate_paging_link_headers(
     if not c_uri.endswith("/"):
         c_uri = c_uri + "/"
 
-    etag = hash(f"{container_identifier}_{total}")
-    # The Etag will change as the membership total changes.
+    etag = hash(f"{container_identifier}_{total}_{current_page}")
+    # The Etag will change as the membership total changes and the page.
     headers = {"ETag": etag}
 
     links = [

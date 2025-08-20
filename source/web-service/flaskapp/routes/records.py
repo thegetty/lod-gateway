@@ -256,7 +256,7 @@ def subaddressing_search(entity_id):
 
 
 def container_record(container_id):
-    # soft-redirect for pagination? look for page and also optional page_size parameters
+    # Redirect for pagination if a page parameter is not present.
     if page := request.args.get("page"):
         # Validate page
         try:
@@ -317,7 +317,7 @@ def container_record(container_id):
         )
 
 
-@records.route("/<path:entity_id>")
+@records.route("/<path:entity_id>", methods=["GET", "HEAD", "OPTIONS"])
 def entity_record(entity_id):
     """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard
     search for items in the LOD Gateway"""

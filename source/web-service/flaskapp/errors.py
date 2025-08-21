@@ -22,6 +22,9 @@ status_wrong_auth_token = status_nt(
 status_record_not_found = status_nt(
     404, "Record Not Found", "Unable to obtain matching record from database"
 )
+status_container_not_found = status_nt(
+    404, "Container Not Found", "Unable to find container in database"
+)
 
 status_page_not_found = status_nt(404, "Page Not Found", "Page number out of bounds")
 

@@ -26,6 +26,7 @@ from flaskapp.routes.timegate import timegate
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
+from flaskapp.models.container import LDPContainer, LDPContainerContents
 from flaskapp import local_thesaurus
 from flaskapp.base_graph_utils import base_graph_filter, document_loader
 
@@ -131,6 +132,10 @@ def create_app():
     app.config["RDF_FILTER_SET"] = None
     app.config["CONTENT_PROFILE_DATA_URL"] = None
     app.config["CONTENT_PROFILE_PATTERNS"] = {}
+    app.config["LDP_BACKEND"] = False
+    app.config["LDP_API"] = False
+    app.config["LDP_AUTOCREATE_CONTAINERS"] = False
+    app.config["LDP_VALIDATE_SLUGS"] = False
 
     # Set up RDF/Content Profile defaults:
     app.config["USE_PYLD_REFORMAT"] = True
@@ -142,6 +147,42 @@ def create_app():
         app.logger.info("RDF processing is enabled")
         app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
         app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
+
+        # LDP Support (NB all dependent on PROCESS_RDF being true)
+        # LDP_BACKEND -> This flag controls the backend bookkeeping where the container lists are kept
+        #                up-to-date based on record changes (add or delete).
+        # LDP_API -> This flag switches on the LDP support in the API (Link headers, API endpoint behaviors and responses)
+        #            Also dependent on the LDP_BACKEND flag
+        if ldp_backend := (environ.get("LDP_BACKEND", "False").lower() == "true"):
+            # LDP_API is dependent on the backend being switched on as well
+            app.config["LDP_BACKEND"] = ldp_backend
+
+            # Switch on the LDP API? This turns on both the advertising using Link headers, and also the routing support
+            # for containers, paging through their contents, and adding/updating resources and containers
+            app.config["LDP_API"] = environ.get("LDP_API", "False").lower() == "true"
+
+            # Should the backend automatically instantiate containers when a record is put through the /ingest route?
+            # eg if True, Adding '/objects/magazines/123456' will create an LDP container for '/objects' and for
+            # '/objects/magazines' with the parent-child relationship you'd expect, and add the resource
+            # '/objects/magazines/123456' to the container '/objects/magazines'
+            # If False, adding a resource through /ingest without the expected containers in place will fail, which will mimic
+            # the behavior of the LDP API if you attempt to add a resource to a container that does not exist
+            app.config["LDP_AUTOCREATE_CONTAINERS"] = (
+                environ.get("LDP_AUTOCREATE_CONTAINERS", "False").lower() == "true"
+            )
+
+            # Perform an extra step to validate that the generated slug for a resource doesn't exist in the container yet?
+            app.config["LDP_VALIDATE_SLUGS"] = (
+                environ.get("LDP_VALIDATE_SLUGS", "False").lower() == "true"
+            )
+
+            app.logger.info(
+                f"LDP Support: Backend active? {ldp_backend}, LDP API active? {app.config['LDP_API']}, Autocreate Containers on /ingest? {app.config['LDP_AUTOCREATE_CONTAINERS']}"
+            )
+        elif environ.get("LDP_API", "False").lower() == "true":
+            app.logger.error(
+                "LDP_API was set to True BUT LDP_BACKEND was not. LDP_API will NOT BE ACTIVE!"
+            )
 
         # Content Profiles - by URL resource
         app.config["CONTENT_PROFILE_DATA_URL"] = environ.get("CONTENT_PROFILE_DATA_URL")
@@ -304,6 +345,13 @@ def create_app():
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
             )
 
+        # Are we able to use postgresql optimizations?
+        engine = db.engine
+        if engine.dialect.name == "postgresql":
+            app.config["DB_DIALECT"] = "postgresql"
+        else:
+            app.config["DB_DIALECT"] = "base"
+
         app.config["SERVER_CAPABILITIES"] = (
             ", ".join(
                 [
@@ -314,6 +362,8 @@ def create_app():
                         ("SUBADDRESSING", "Subaddressing"),
                         ("KEEP_LAST_VERSION", "Versioning"),
                         ("CONTENT_PROFILE_PATTERNS_AVAILABLE", "Content Profiles"),
+                        ("LDP_BACKEND", "LDP Container Backend"),
+                        ("LDP_API", "LDP API Support"),
                     ]
                     if app.config.get(k)
                 ]
@@ -326,9 +376,9 @@ def create_app():
         if link_bank_str:
             try:
                 app.config["LINK_BANK"] = json.loads(link_bank_str)
-            except json.decoder.JSONDecodeError as e:
+            except json.decoder.JSONDecodeError:
                 app.logger.error(
-                    f"The data in ENV: 'LINK_BANK' is not valid JSON! Will not load Link Bank values"
+                    "The data in ENV: 'LINK_BANK' is not valid JSON! Will not load Link Bank values"
                 )
 
         app.register_blueprint(home_page, url_prefix=f"/{ns}")

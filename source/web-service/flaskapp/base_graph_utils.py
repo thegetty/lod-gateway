@@ -93,9 +93,9 @@ def base_graph_filter(basegraphobj, fqdn_id):
     try:
         record = get_record(basegraphobj)
 
-        if record and record.data:
+        if record and "record" in record and record["record"].data:
             # only change the named graph to be a FQDN
-            data = dict(record.data)
+            data = dict(record["record"].data)
         else:
             current_app.logger.warning(
                 f"No base graph was present at {basegraphobj} - adding an empty base graph."

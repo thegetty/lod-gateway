@@ -1,5 +1,7 @@
 from rdflib import ConjunctiveGraph, Namespace
 
+from rdflib.namespace import DC, DCTERMS
+
 
 BINDING = {
     "crm": Namespace("http://www.cidoc-crm.org/cidoc-crm/"),
@@ -35,6 +37,8 @@ FORMATS = {
 
 def get_bound_graph(identifier):
     g = ConjunctiveGraph(identifier=identifier)
+    g.bind("dc", DC)
+    g.bind("dcterm", DCTERMS)
     for k, v in BINDING.items():
         g.bind(k, v)
     return g

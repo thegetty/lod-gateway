@@ -322,7 +322,9 @@ def revert_triplestore_if_possible(list_of_relative_ids):
             f"Attempting to revert '{relative_id}' in triplestore to DB version"
         )
         record = get_record(relative_id)
-        if record is None or record.data is None:
+
+        # FIXME also handle container rollbacks?
+        if record is None or ("record" in record and record["record"].data is None):
             # this record did not exist before the bulk request
             try:
                 graph_delete(relative_id, query_endpoint, update_endpoint)
@@ -336,33 +338,41 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                 )
                 results[relative_id] = "connection_error"
         else:
-            # expand, skip if zero triples or fail, and reassert
-            try:
-                current_app.logger.warning(
-                    f"REVERT: Attempting to expand and reinsert {relative_id} into the triplestore."
-                )
-                # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
-                id_attr = "@id" if "@id" in record.data else "id"
-                data = inflate_relative_uris(data=record.data, id_attr=id_attr)
+            match record:
+                case {"record": record_obj}:
+                    # expand, skip if zero triples or fail, and reassert
+                    try:
+                        current_app.logger.warning(
+                            f"REVERT: Attempting to expand and reinsert {relative_id} into the triplestore."
+                        )
+                        # Recursively prefix each 'id' attribute that currently lacks a http(s)://<baseURL>/<namespace> prefix
+                        id_attr = "@id" if "@id" in record_obj.data else "id"
+                        data = inflate_relative_uris(
+                            data=record_obj.data, id_attr=id_attr
+                        )
 
-                nt = graph_expand(data, proc=proc)
-                if nt is False:
-                    current_app.logger.warning(
-                        f"REVERT: Attempted to revert {relative_id} to DB version, JSON-LD failed to expand. Skipping."
-                    )
-                    results[relative_id] = "graph_expansion_error"
-                else:
-                    graph_replace(data[id_attr], nt, update_endpoint)
-                    current_app.logger.warning(
-                        f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data[id_attr]})"
+                        nt = graph_expand(data, proc=proc)
+                        if nt is False:
+                            current_app.logger.warning(
+                                f"REVERT: Attempted to revert {relative_id} to DB version, JSON-LD failed to expand. Skipping."
+                            )
+                            results[relative_id] = "graph_expansion_error"
+                        else:
+                            graph_replace(data[id_attr], nt, update_endpoint)
+                            current_app.logger.warning(
+                                f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data[id_attr]})"
+                            )
+                            results[relative_id] = "refreshed"
+                    except (requests.exceptions.ConnectionError, RetryAfterError):
+                        current_app.logger.error(
+                            f"REVERT: Rollback failure - couldn't revert {relative_id} to match the DB"
+                        )
+                        results[relative_id] = "connection_error"
+                case {"container": _}:
+                    current_app.logger.debug(
+                        "Object to rollback is a container. Ignoring for now"
                     )
                     results[relative_id] = "refreshed"
-            except (requests.exceptions.ConnectionError, RetryAfterError):
-                current_app.logger.error(
-                    f"REVERT: Rollback failure - couldn't revert {relative_id} to match the DB"
-                )
-                results[relative_id] = "connection_error"
-
     return results
 
 

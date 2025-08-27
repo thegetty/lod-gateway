@@ -179,7 +179,7 @@ class LDPContainer(db.Model):
         container = self.as_jsonld(base)
 
         # Add the memberlist to the container representation
-        container["ldp:contains"] = [x.to_ldp() for x in items]
+        container["contains"] = [x.to_ldp() for x in items]
 
         return {
             "total": total,
@@ -266,6 +266,6 @@ class LDPContainerContents(db.Model):
             entid = entid[1:]
         return {
             "@id": entid,
-            "@type": self.entity_type,
+            "dcterm:type": self.entity_type,
             "dcterm:available": format_datetime(self.date_added),
         }

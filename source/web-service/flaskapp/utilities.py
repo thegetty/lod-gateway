@@ -233,11 +233,25 @@ def idPrefixer(attr, value, prefix=None, urlprefixes=None, **kwargs):
     """Helper callback method to prefix non-prefixed JSON-LD document 'id' attributes"""
     if urlprefixes is None:
         urlprefixes = set()
+
+    joiner = "/" if not value.startswith("/") and not prefix.endswith("/") else ""
+
+    if value.startswith("/") and prefix.endswith("/"):
+        # two slashes, remove one
+        value = value[1:]
+
     # prefix any relative uri with the prefix
     if value.split(":")[0] not in (ALLOWED_SCHEMES.union(urlprefixes)) and prefix:
-        return prefix + "/" + value
+        return prefix + joiner + value
 
     return value
+
+
+def idUnPrefixer(attr, value, prefix="", **kwargs):
+    """Helper callback method to remove the prefix from JSON-LD document 'id' attributes"""
+    if prefix and not prefix.endswith("/"):
+        prefix = f"{prefix}/"
+    return value.removeprefix(prefix)
 
 
 def requested_linkformat(request_obj, default_response_type):

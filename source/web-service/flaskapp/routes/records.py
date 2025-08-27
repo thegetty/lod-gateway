@@ -590,6 +590,11 @@ def entity_record(entity_id):
                     urlprefixes=urlprefixes,
                 )
 
+                if context := data.get("@context"):
+                    # id's have been prefixed, so remove the @base if it exists in the context
+                    if "@base" in data["@context"]:
+                        del data["@context"]["@base"]
+
                 current_app.logger.debug(
                     f"{entity_id} - PREFIXING IDs to absolute URIs ENDED at timecode {time.perf_counter() - profile_time}"
                 )

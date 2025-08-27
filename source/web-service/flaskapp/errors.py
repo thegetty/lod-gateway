@@ -53,6 +53,15 @@ status_db_save_error = status_nt(
 )
 
 
+class RDFDataError(ValueError):
+    """Error representing a general problem treating some data as RDF"""
+
+
+class ResourceValidationError(RDFDataError):
+    """An error occurred trying to validate the given resource. This can happen if say,
+    the JSONLD doc has a @base but its top level 'id' has a scheme like https/urn/etc"""
+
+
 # Construct 'error response' object
 def construct_error_response(status, source: int = None, detail: str = None):
 

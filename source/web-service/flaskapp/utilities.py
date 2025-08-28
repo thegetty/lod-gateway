@@ -249,9 +249,13 @@ def idPrefixer(attr, value, prefix=None, urlprefixes=None, **kwargs):
 
 def idUnPrefixer(attr, value, prefix="", **kwargs):
     """Helper callback method to remove the prefix from JSON-LD document 'id' attributes"""
-    if prefix and not prefix.endswith("/"):
-        prefix = f"{prefix}/"
-    return value.removeprefix(prefix)
+    if prefix is not None:
+        if not prefix.endswith("/"):
+            prefix = f"{prefix}/"
+
+        return value.removeprefix(prefix)
+    else:
+        return value
 
 
 def requested_linkformat(request_obj, default_response_type):

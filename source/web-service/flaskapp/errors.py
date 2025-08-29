@@ -22,6 +22,9 @@ status_wrong_auth_token = status_nt(
 status_record_not_found = status_nt(
     404, "Record Not Found", "Unable to obtain matching record from database"
 )
+status_container_not_found = status_nt(
+    404, "Container Not Found", "Unable to find container in database"
+)
 
 status_page_not_found = status_nt(404, "Page Not Found", "Page number out of bounds")
 
@@ -48,6 +51,15 @@ status_graphstore_error = status_nt(
 status_db_save_error = status_nt(
     503, "Service Unavailable", "Cannot perform database operation"
 )
+
+
+class RDFDataError(ValueError):
+    """Error representing a general problem treating some data as RDF"""
+
+
+class ResourceValidationError(RDFDataError):
+    """An error occurred trying to validate the given resource. This can happen if say,
+    the JSONLD doc has a @base but its top level 'id' has a scheme like https/urn/etc"""
 
 
 # Construct 'error response' object

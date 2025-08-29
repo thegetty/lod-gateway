@@ -1,4 +1,12 @@
-from flask import Blueprint, render_template, current_app, request, jsonify
+from flask import (
+    Blueprint,
+    render_template,
+    current_app,
+    request,
+    jsonify,
+    redirect,
+    url_for,
+)
 from math import ceil
 from urllib import parse
 from datetime import datetime
@@ -9,7 +17,11 @@ from flaskapp.models.activity import Activity
 from sqlalchemy import func, desc, exc
 from sqlalchemy.sql.functions import coalesce, max
 from flaskapp.models import db
-
+from flaskapp.storage_utilities.container import (
+    get_page_for_container,
+    generate_paging_link_headers,
+)
+from flaskapp.conneg import determine_requested_format_and_profile, reformat_rdf
 from flaskapp.utilities import wants_html
 
 # Create home page
@@ -17,6 +29,57 @@ home_page = Blueprint("home_page", __name__)
 
 
 @home_page.route("/", methods=["GET"])
+def root_container():
+    if wants_html(request) or current_app.config["LDP_API"] is False:
+        # Send them to the dashboard instead:
+        return redirect(url_for("home_page.get_home_page"))
+
+    if not current_app.config["LDP_API"]:
+        # LDP API is not on, so should redirect
+        return redirect(url_for("home_page.get_home_page"))
+
+    # soft-redirect for pagination? look for page and also optional page_size parameters
+    if page := request.args.get("page"):
+        # Validate page
+        try:
+            page = int(page)
+        except ValueError:
+            return (
+                jsonify({"errors": [{"title": "Page parameter was not an integer"}]}),
+                400,
+            )
+
+        # also listen to that weird Link setting in the requests?
+        page_size = request.args.get("page_size", 100)
+        # We have a page! return that page of content if possible
+        pageresp = get_page_for_container("/", page, page_size)
+        ldpheaders = generate_paging_link_headers(
+            container_identifier="/",
+            total=pageresp["total"],
+            current_page=page,
+            pages=pageresp["pages"],
+            has_next=pageresp["has_next"],
+        )
+        # Handle Accept?
+        desired = determine_requested_format_and_profile(request)
+        content_type, q, shortformat = desired["accepted_mimetypes"][0]
+
+        data = reformat_rdf(
+            pageresp["jsonld"],
+            shortformat=shortformat,
+            use_pyld=current_app.config["USE_PYLD_REFORMAT"],
+            rdf_docloader=current_app.config["RDF_DOCLOADER"],
+        )
+        response = current_app.make_response(data)
+        response.headers = ldpheaders
+        response.headers["Content-Type"] = content_type
+
+        return response
+    else:
+        # Redirect with 303 as the LDP-PAGING spec says:
+        return redirect(url_for("home_page.root_container", page=1), code=303)
+
+
 @home_page.route("/dashboard", methods=["GET"])
 def get_home_page():
     if not wants_html(request):
@@ -34,6 +97,17 @@ def get_home_page():
                     ),
                     "chk_subaddressing": (
                         True if current_app.config.get("SUBADDRESSING") else False
+                    ),
+                    "chk_content_profiles": (
+                        True
+                        if current_app.config.get("CONTENT_PROFILE_PATTERNS_AVAILABLE")
+                        else False
+                    ),
+                    "chk_ldp_backend": (
+                        True if current_app.config.get("LDP_BACKEND") else False
+                    ),
+                    "chk_ldp_api": (
+                        True if current_app.config.get("LDP_API") else False
                     ),
                 }
             ),

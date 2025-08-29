@@ -1,5 +1,8 @@
 import re
+import json
 import requests
+
+from pyld import jsonld
 
 from werkzeug.http import parse_accept_header
 
@@ -9,7 +12,13 @@ from gettysparqlpatterns import PatternSet
 
 from flaskapp.errors import status_graphstore_error, status_nt
 
-from .graph_prefix_bindings import FORMATS
+from .graph_prefix_bindings import (
+    FORMATS,
+    get_bound_graph,
+    get_frame,
+    BASE_FRAME_CONTEXT,
+)
+from .utilities import triples_to_quads
 
 # Trying to use a regex to parse out a profile="" statement from the Accept header
 # Not in use yet, but is close to workable so keeping this here.
@@ -150,3 +159,75 @@ def get_data_using_profile_query(
         except Exception as e:
             print(f"Hit unexpected Exception {str(e)}")
             raise e
+
+
+def reformat_rdf(data, shortformat="turtle", use_pyld=True, rdf_docloader=None):
+    if shortformat == "json-ld":
+        # Assume data is *already* JSON-LD
+        return data
+    if use_pyld is True:
+        # Use the PyLD library to parse into nquads, and rdflib to convert
+        # rdflib's json-ld import has not been tested on our data, so not relying on it
+        proc = jsonld.JsonLdProcessor()
+        serialized_rdf = proc.to_rdf(
+            data,
+            {
+                "format": "application/n-quads",
+                "documentLoader": rdf_docloader,
+            },
+        )
+
+        ident = data.get("id") or data.get("@id")
+
+        # rdflib to load and format the nquads
+        # forcing it, because of pyld's awful nquad export
+        g = get_bound_graph(identifier=ident)
+
+        # May not be nquads, even though we requested it:
+        serialized_rdf = triples_to_quads(serialized_rdf, ident)
+
+        g.parse(data=serialized_rdf, format="nquads")
+        data = g.serialize(format=shortformat)
+        return data
+    else:
+        ident = data.get("id") or data.get("@id")
+
+        # using rdflib to both parse and re-serialize the RDF:
+        g = get_bound_graph(identifier=ident)
+
+        g.parse(data=json.dumps(data), format="json-ld")
+        data = g.serialize(format=shortformat)
+        # blank out the etag for now
+        return data
+
+
+def reformat_to_jsonld(data, incoming_format, target_base=None, top_level_id=None):
+    if incoming_format == "json-ld":
+        return data
+
+    # Rebase to target
+    if incoming_format in ["turtle", "n3"] and target_base is not None:
+        # rewrite the incoming base to the new one
+        # the json-ld property setter will validate and finish the rebase properly
+        data = "\n".join(
+            [f"@base <{target_base}> ."]
+            + [x for x in data.split("\n") if not x.startswith("@base")]
+        )
+
+    # using rdflib to both parse and re-serialize the RDF:
+    g = get_bound_graph(identifier=top_level_id)
+    g.parse(data=data, format=incoming_format)
+
+    # data = g.serialize(format="json-ld", base=target_base, compact=True)
+    data = g.serialize(format="json-ld", compact=True)
+
+    # load it as JSON
+    return json.loads(data)
+
+
+def frame_jsonld(data, target_uri):
+    # This will be used on data pulled in via turtle or similar, not JSON-LD
+    frame = get_frame(target_uri)
+    expanded = jsonld.expand(data)
+    framed = jsonld.frame(expanded, frame)
+    return jsonld.compact(framed, BASE_FRAME_CONTEXT)

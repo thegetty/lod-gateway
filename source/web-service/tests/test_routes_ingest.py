@@ -3,8 +3,10 @@ import re
 
 from flaskapp.models import db
 from flaskapp.models.record import Record
+
 from flask import current_app
 from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
+from flaskapp.storage_utilities.container import find_parent_container
 from flaskapp.errors import status_nt
 
 
@@ -149,6 +151,16 @@ def _assert_data_in_db(record_id, **kwargs):
         for k, v in kwargs.items():
             if obj.data[k] != v:
                 print(f"In key '{k}' - should be {v}, found {obj.data[k]} instead")
+                return False
+
+        # Container test
+        if current_app.config["LDP_BACKEND"]:
+            print("LDP_BACKEND is on, checking that Record has an LDPContainer")
+            if c := find_parent_container(obj.entity_id, obj.entity_type):
+                print(f"Found {c.container_identifier} as container for {record_id}")
+                return True
+            else:
+                print(f"Couldn't find a parent container for {record_id}")
                 return False
         return True
     else:

@@ -25,6 +25,7 @@ class Event(Enum):
     Delete = 3
     Move = 4
     Refresh = 5
+    ContainerConflict = 6
 
 
 # Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
@@ -42,14 +43,14 @@ ALLOWED_SCHEMES = set(["https", "http", "ftp", "urn", "ftp", "file", "s3"])
 
 def is_quads(line):
     if line:
-        if match := QUADS.match(line):
+        if _ := QUADS.match(line):
             return True
     return False
 
 
 def is_ntriples(line):
     if line:
-        if match := NTRIPLES.match(line):
+        if _ := NTRIPLES.match(line):
             return True
     return False
 
@@ -232,11 +233,29 @@ def idPrefixer(attr, value, prefix=None, urlprefixes=None, **kwargs):
     """Helper callback method to prefix non-prefixed JSON-LD document 'id' attributes"""
     if urlprefixes is None:
         urlprefixes = set()
+
+    joiner = "/" if not value.startswith("/") and not prefix.endswith("/") else ""
+
+    if value.startswith("/") and prefix.endswith("/"):
+        # two slashes, remove one
+        value = value[1:]
+
     # prefix any relative uri with the prefix
     if value.split(":")[0] not in (ALLOWED_SCHEMES.union(urlprefixes)) and prefix:
-        return prefix + "/" + value
+        return prefix + joiner + value
 
     return value
+
+
+def idUnPrefixer(attr, value, prefix="", **kwargs):
+    """Helper callback method to remove the prefix from JSON-LD document 'id' attributes"""
+    if prefix is not None:
+        if not prefix.endswith("/"):
+            prefix = f"{prefix}/"
+
+        return value.removeprefix(prefix)
+    else:
+        return value
 
 
 def requested_linkformat(request_obj, default_response_type):
@@ -260,6 +279,11 @@ def wants_html(request_obj, default_response_type="text/html"):
             "application/xhtml+xml",
             "application/xml",
             "application/json",
+            "application/ld+json",
+            "application/rdf+xml",
+            "text/turtle",
+            "text/n-triples",
+            "text/n-quads",
         ],
         default=default_response_type,
     ) in ["text/html", "application/xhtml+xml"]
@@ -324,3 +348,25 @@ def execute_sparql_query_post(data: dict, accept_header: str, query_endpoint: st
         return response
     except requests.exceptions.ConnectionError:
         return status_graphstore_error
+
+
+# entity_id -> container chain then entity
+def segment_entity_id(entity_id):
+    segments = []
+    # clean up
+    seq = [x for x in entity_id.split("/") if x]
+    clean_entity_id = "/" + "/".join(seq)
+    if not entity_id.endswith("/"):
+        seq = seq[:-1]
+    else:
+        clean_entity_id += "/"
+    seq = [x for x in seq if x]
+    for segment in seq:
+        if segments:
+            segments.append(f"{segments[-1]}{segment}/")
+        else:
+            segments.append(f"/{segment}/")
+    segments = ["/"] + segments
+    if segments[-1] != clean_entity_id:
+        segments.append(clean_entity_id)
+    return segments

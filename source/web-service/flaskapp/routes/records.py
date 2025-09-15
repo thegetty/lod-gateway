@@ -248,11 +248,14 @@ def subaddressing_search(entity_id):
     return (None, None)
 
 
-@records.route("/<path:entity_id>")
+@records.route("/<path:entity_id>", methods=["GET", "HEAD"])
 def entity_record(entity_id):
     """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard
     search for items in the LOD Gateway"""
     # idPrefix will be used by either the API route returning the record, or the route listing matches
+    # This also handles the HEAD request, as the correct response has complex logic, it just does not
+    # send the body with the HEAD response.
+
     hostPrefix = current_app.config["BASE_URL"]
     idPrefix = current_app.config["idPrefix"]
 
@@ -682,6 +685,11 @@ def entity_record(entity_id):
             current_app.logger.debug(
                 f"{entity_id} - REQUEST COMPLETE at timecode {time.perf_counter() - profile_time}"
             )
+            if request.method == "HEAD":
+                # clear the response body as this is just a HEAD request
+                response.data = b""  # Set data to an empty byte string
+                response.headers["Content-Length"] = "0"
+
             return response
         elif record and record.data is None:
             # Record existed but has been deleted.

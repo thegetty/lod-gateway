@@ -28,6 +28,7 @@ FORMATS = {
     "application/n-quads; charset=UTF-8": "nquads",
     "application/nquads; charset=UTF-8": "nquads",
     "application/ld+json; charset=UTF-8": "json-ld",
+    "application/json; charset=UTF-8": "json-ld",
     "application/trig; charset=UTF-8": "trig",
     # "application/trix;charset=UTF-8": "trix",        the TriX output is not great tbh
 }

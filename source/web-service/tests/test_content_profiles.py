@@ -22,7 +22,7 @@ app = Flask(__name__)
             {},
             {
                 "preferred_mimetype": "application/json",
-                "accepted_mimetypes": [("application/json", 1.0, "jsonld")],
+                "accepted_mimetypes": [("application/json", 1.0, "json-ld")],
                 "requested_profiles": [],
             },
         ),

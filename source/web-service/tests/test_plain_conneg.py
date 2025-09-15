@@ -1,4 +1,6 @@
 import pytest
+
+
 class TestObtainRDFRecord:
     def test_prefix_record_and_accept_json(
         self, sample_idprefixdata, client, namespace, current_app
@@ -9,7 +11,7 @@ class TestObtainRDFRecord:
             headers={"Accept": "application/json"},
         )
         assert response.status_code == 200
-      
+
     def test_prefix_record_and_accept_jsonld(
         self, sample_idprefixdata, client, namespace, current_app
     ):

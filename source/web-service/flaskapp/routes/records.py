@@ -519,11 +519,13 @@ def entity_record(entity_id):
                 if desired:
                     # Request wants a particular format and/or profile that is not plain JSON-LD and no profile?
                     if not (
-                        (desired.get("preferred_mimetype", "").startswith(
-                            "application/ld+json"
-                        ) or desired.get("preferred_mimetype", "").startswith(
-                            "application/json"
-                        )
+                        (
+                            desired.get("preferred_mimetype", "").startswith(
+                                "application/ld+json"
+                            )
+                            or desired.get("preferred_mimetype", "").startswith(
+                                "application/json"
+                            )
                         )
                         and desired["requested_profiles"] == []
                     ):

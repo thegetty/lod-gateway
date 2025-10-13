@@ -114,7 +114,7 @@ def create_app():
     app.config["EXTERNALHTTPCALLS_TIMELIMIT"] = 45
     try:
         app.config["EXTERNALHTTPCALLS_TIMELIMIT"] = int(
-            environ.get("EXTERNALHTTPCALLS_TIMELIMIT")
+            environ.get("EXTERNALHTTPCALLS_TIMELIMIT", 45)
         )
     except ValueError:
         app.logger.error(

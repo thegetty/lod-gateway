@@ -93,7 +93,7 @@ The following legend details the placeholder names used in the route description
 
 #### HTTP GET {base-url}/{namespace}/health
 
-The `/health` endpoint provides a means for checking the current "health" of the application. If the application is running, and if the database (and where relevant, the graph store) is accessible, the endpoint will return a `200 OK` HTTP response, otherwise if either the database (or where relevant, the graph store) is offline or is temporarily inaccessible, the endpoint will return a `500 Internal Server Error` HTTP response.
+The `/health` endpoint provides a means for checking the current "health" of the application. If the application is running, and if the database is accessible, the endpoint will return a `200 OK` HTTP response, otherwise if either the database (or where relevant, the graph store) is offline or is temporarily inaccessible, the endpoint will return a `500 Internal Server Error` HTTP response.
 
 
 #### HTTP GET {base-url}/{namespace}/authhealth

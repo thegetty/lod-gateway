@@ -215,7 +215,10 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
                     current_app.logger.error(
                         f"Attempting to revert {graphstore_result}"
                     )
-                    revert_triplestore_if_possible(graphstore_result)
+                    revert_triplestore_if_possible(
+                        graphstore_result,
+                        timeout=current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+                    )
 
                     # This should be treated as a server error
                     return status_nt(
@@ -226,7 +229,10 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
 
             # Only handle refresh requests if the PROCESS_RDF is enabled
             if ids_to_refresh:
-                results = revert_triplestore_if_possible(ids_to_refresh)
+                results = revert_triplestore_if_possible(
+                    ids_to_refresh,
+                    timeout=current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+                )
                 result_dict.update(results)
 
         # Everything went fine - commit the transaction
@@ -477,7 +483,12 @@ def process_graphstore_record_set(
     for graph_uri in records_to_delete:
         resp = retry_request_function(
             graph_delete,
-            [graph_uri, query_endpoint, update_endpoint],
+            [
+                graph_uri,
+                query_endpoint,
+                update_endpoint,
+                current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+            ],
             retry_limit=retry_limit,
         )
 
@@ -499,7 +510,12 @@ def process_graphstore_record_set(
     for graph_uri, serialized_nt in serialized_nt_cache.items():
         replace_resp = retry_request_function(
             graph_replace,
-            [graph_uri, serialized_nt, update_endpoint],
+            [
+                graph_uri,
+                serialized_nt,
+                update_endpoint,
+                current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+            ],
             retry_limit=retry_limit,
         )
 

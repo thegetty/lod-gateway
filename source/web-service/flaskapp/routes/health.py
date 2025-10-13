@@ -17,23 +17,17 @@ from flaskapp.utilities import authenticate_bearer
 health = Blueprint("health", __name__)
 
 
+# Checks DB Connectivity ONLY
 @health.route("/health", methods=["GET"])
 def healthcheck_get():
     if health_db():
-        if current_app.config["PROCESS_RDF"] is True:
-            query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
-            if health_graphstore(query_endpoint):
-                return "OK"
-            else:
-                response = construct_error_response(status_graphstore_error)
-                return abort(response)
-        else:
-            return "OK"
+        return "OK"
     else:
         response = construct_error_response(status_db_error)
         return abort(response)
 
 
+# Checks DB Connectivity ONLY
 @health.route("/authhealth", methods=["GET"])
 def authd_healthcheck_get():
     # same as the normal healthcheck, but requires authentication. This will be a cheap
@@ -44,6 +38,18 @@ def authd_healthcheck_get():
     if status != status_ok:
         response = construct_error_response(status)
         return abort(response)
+
+    if health_db():
+        return "OK"
+    else:
+        response = construct_error_response(status_db_error)
+        return abort(response)
+
+
+# Checks DB Connectivity AND SPARQL endpoint status
+@health.route("/rdfhealth", methods=["GET"])
+def rdf_healthcheck_get():
+    # same as the normal healthcheck, but also checks the RDF SPARQL endpoint access
 
     if health_db():
         if current_app.config["PROCESS_RDF"] is True:

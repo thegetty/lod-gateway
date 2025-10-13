@@ -554,6 +554,9 @@ def entity_record(entity_id):
                                             for x in desired["accepted_mimetypes"]
                                         ]
                                     ),
+                                    timeout=current_app.config[
+                                        "EXTERNALHTTPCALLS_TIMELIMIT"
+                                    ],
                                 ):
                                     current_app.logger.debug(
                                         f"Got response for profile lookup {profiled_data}"
@@ -744,6 +747,7 @@ def delete(id):
                     full_uri,
                     current_app.config["SPARQL_QUERY_ENDPOINT"],
                     current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                    current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
                 )
 
                 # if RDF process fails, roll back and return graph store specific error

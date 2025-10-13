@@ -64,14 +64,13 @@ DEFAULT_BASE_GRAPH = {
 #         "documentUrl": None,
 #     }
 # }
-def document_loader(docCache, cache_expires=30):
+def document_loader(docCache, cache_expires=30, timeout=45):
     def load_document_and_cache(url, *args, **kwargs):
         now = datetime.now()
         if url in docCache:
             doc = docCache[url]
             expires = doc["expires"]
             if expires is not None:
-                diff = now - expires
                 if expires > now:
                     return doc
             else:
@@ -79,7 +78,7 @@ def document_loader(docCache, cache_expires=30):
                 return doc
 
         doc = {"expires": None, "contextUrl": None, "documentUrl": None, "document": ""}
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=timeout)
         data = resp.json()
         doc["document"] = data
         doc["expires"] = now + timedelta(minutes=cache_expires)

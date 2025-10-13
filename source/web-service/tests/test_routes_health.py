@@ -10,6 +10,10 @@ class TestHealthRoute:
         )
         assert response.status_code == 200
 
+    def test_rdf_health_ok(self, client, namespace, test_db, auth_token):
+        response = client.get(f"/{namespace}/rdfhealth")
+        assert response.status_code == 200
+
     def test_health_db_down(self, client, namespace, test_db):
         test_db.drop_all()
         response = client.get(f"/{namespace}/health")

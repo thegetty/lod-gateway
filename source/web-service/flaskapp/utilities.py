@@ -295,10 +295,15 @@ def authenticate_bearer(request, current_app):
     return status_ok
 
 
-def execute_sparql_query(query: str, accept_header: str, query_endpoint: str):
+def execute_sparql_query(
+    query: str, accept_header: str, query_endpoint: str, timeout: int = 45
+):
     try:
         res = requests.post(
-            query_endpoint, data={"query": query}, headers={"Accept": accept_header}
+            query_endpoint,
+            data={"query": query},
+            headers={"Accept": accept_header},
+            timeout=timeout,
         )
 
         res.raise_for_status()
@@ -311,10 +316,15 @@ def execute_sparql_query(query: str, accept_header: str, query_endpoint: str):
         return status_graphstore_error
 
 
-def execute_sparql_query_post(data: dict, accept_header: str, query_endpoint: str):
+def execute_sparql_query_post(
+    data: dict, accept_header: str, query_endpoint: str, timeout: int = 45
+):
     try:
         res = requests.post(
-            query_endpoint, data=data, headers={"Accept": accept_header}
+            query_endpoint,
+            data=data,
+            headers={"Accept": accept_header},
+            timeout=timeout,
         )
         res.raise_for_status()
 

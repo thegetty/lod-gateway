@@ -45,6 +45,10 @@ status_graphstore_error = status_nt(
     500, "Graph Store Error", "Graph store connection cannot be established"
 )
 
+status_graphstore_timeout = status_nt(
+    504, "Graph Store Timeout", "Graph store query timed out"
+)
+
 status_db_save_error = status_nt(
     503, "Service Unavailable", "Cannot perform database operation"
 )

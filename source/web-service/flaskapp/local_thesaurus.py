@@ -87,7 +87,10 @@ def create_record(csv_line):
 
 
 def read_csv_file():
-    download = requests.get(current_app.config["LOCAL_THESAURUS_URL"])
+    download = requests.get(
+        current_app.config["LOCAL_THESAURUS_URL"],
+        timeout=current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+    )
     decoded = download.content.decode("utf-8")
     cr = csv.reader(decoded.splitlines(), delimiter=",")
     return list(cr)

@@ -1,4 +1,4 @@
-from rdflib import ConjunctiveGraph, Namespace
+from rdflib import Dataset, Namespace
 
 
 BINDING = {
@@ -35,7 +35,7 @@ FORMATS = {
 
 
 def get_bound_graph(identifier):
-    g = ConjunctiveGraph(identifier=identifier)
+    g = Dataset(identifier=identifier)
     for k, v in BINDING.items():
         g.bind(k, v)
     return g

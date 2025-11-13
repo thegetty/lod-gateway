@@ -172,7 +172,7 @@ def graph_expand(data, proc=None):
         current_app.logger.debug(
             f"{json_ld_id} - RDFLIB parsing START at timecode {time.perf_counter() - tictoc}"
         )
-        g = get_bound_graph(identifier=json_ld_id)
+        ds, g = get_bound_graph(identifier=json_ld_id)
         g.parse(data=json.dumps(data), format="json-ld")
         current_app.logger.debug(
             f"{json_ld_id} - RDFLIB parsing END, START serialization at timecode {time.perf_counter() - tictoc}"
@@ -182,7 +182,7 @@ def graph_expand(data, proc=None):
                 f"No suitable quads or triples were parsed from the supplied JSON-LD. Is {json_ld_id} actually JSON-LD?"
             )
             return False
-        return g.serialize(format="nquads")
+        return ds.serialize(format="nquads")
 
 
 def graph_replace(

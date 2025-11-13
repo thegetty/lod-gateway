@@ -33,10 +33,12 @@ FORMATS = {
     # "application/trix;charset=UTF-8": "trix",        the TriX output is not great tbh
 }
 
+QUAD_ENABLED = ("nquads", "json-ld", "trig")
+
 
 def get_bound_graph(identifier):
     ds = Dataset()
     for k, v in BINDING.items():
         ds.bind(k, v)
     g = ds.graph(identifier)
-    return g
+    return ds, g

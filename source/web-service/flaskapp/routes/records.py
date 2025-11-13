@@ -41,7 +41,7 @@ from flaskapp.errors import (
     status_db_error,
 )
 from flaskapp.utilities import checksum_json, authenticate_bearer
-from flaskapp.base_graph_utils import get_url_prefixes_from_context
+from flaskapp.base_graph_utils import get_url_prefixes_from_context, QUAD_ENABLED
 
 
 # RDF format translations
@@ -641,13 +641,18 @@ def entity_record(entity_id):
 
                                 # rdflib to load and format the nquads
                                 # forcing it, because of pyld's awful nquad export
-                                g = get_bound_graph(identifier=ident)
+                                ds, g = get_bound_graph(identifier=ident)
 
                                 # May not be nquads, even though we requested it:
                                 serialized_rdf = triples_to_quads(serialized_rdf, ident)
 
-                                g.parse(data=serialized_rdf, format="nquads")
-                                data = g.serialize(format=shortformat)
+                                ds.parse(data=serialized_rdf, format="nquads")
+                                if shortformat in QUAD_ENABLED:
+                                    # formats allow quads
+                                    data = ds.serialize(format=shortformat)
+                                else:
+                                    # Triple-focussed output:
+                                    data = g.serialize(format=shortformat)
                                 # blank out the etag for now
                                 etag = None
                             else:
@@ -657,10 +662,15 @@ def entity_record(entity_id):
                                 ident = data.get("id") or data.get("@id")
 
                                 # using rdflib to both parse and re-serialize the RDF:
-                                g = get_bound_graph(identifier=ident)
+                                ds, g = get_bound_graph(identifier=ident)
 
-                                g.parse(data=json.dumps(data), format="json-ld")
-                                data = g.serialize(format=shortformat)
+                                ds.parse(data=json.dumps(data), format="json-ld")
+                                if shortformat in QUAD_ENABLED:
+                                    # formats allow quads
+                                    data = ds.serialize(format=shortformat)
+                                else:
+                                    # Triple-focussed output:
+                                    data = g.serialize(format=shortformat)
                                 # blank out the etag for now
                                 etag = None
 
@@ -914,13 +924,18 @@ def entity_version(entity_id):
 
                             # rdflib to load and format the nquads
                             # forcing it, because of pyld's awful nquad export
-                            g = get_bound_graph(identifier=ident)
+                            ds, g = get_bound_graph(identifier=ident)
 
                             # May not be nquads, even though we requested it:
                             serialized_rdf = triples_to_quads(serialized_rdf, ident)
 
-                            g.parse(data=serialized_rdf, format="nquads")
-                            data = g.serialize(format=desired[1])
+                            ds.parse(data=serialized_rdf, format="nquads")
+                            if desired[1] in QUAD_ENABLED:
+                                # formats allow quads
+                                data = ds.serialize(format=desired[1])
+                            else:
+                                # Triple-focussed output:
+                                data = g.serialize(format=desired[1])
                         else:
                             current_app.logger.debug(
                                 f"{entity_id} - using RDFLIB to parse JSON-LD"
@@ -928,10 +943,16 @@ def entity_version(entity_id):
                             ident = data.get("id") or data.get("@id")
 
                             # using rdflib to both parse and re-serialize the RDF:
-                            g = get_bound_graph(identifier=ident)
+                            ds, g = get_bound_graph(identifier=ident)
 
-                            g.parse(data=json.dumps(data), format="json-ld")
-                            data = g.serialize(format=desired[1])
+                            ds.parse(data=json.dumps(data), format="json-ld")
+
+                            if desired[1] in QUAD_ENABLED:
+                                # formats allow quads
+                                data = ds.serialize(format=desired[1])
+                            else:
+                                # Triple-focussed output:
+                                data = g.serialize(format=desired[1])
 
                         current_app.logger.debug(
                             f"VERSION {entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"

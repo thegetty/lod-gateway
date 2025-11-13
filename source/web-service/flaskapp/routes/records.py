@@ -41,11 +41,11 @@ from flaskapp.errors import (
     status_db_error,
 )
 from flaskapp.utilities import checksum_json, authenticate_bearer
-from flaskapp.base_graph_utils import get_url_prefixes_from_context, QUAD_ENABLED
+from flaskapp.base_graph_utils import get_url_prefixes_from_context
 
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
+from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS, QUAD_ENABLED
 from flaskapp.conneg import (
     desired_rdf_format,
     determine_requested_format_and_profile,

@@ -35,7 +35,8 @@ FORMATS = {
 
 
 def get_bound_graph(identifier):
-    g = Dataset(identifier=identifier)
+    ds = Dataset()
     for k, v in BINDING.items():
-        g.bind(k, v)
+        ds.bind(k, v)
+    g = ds.graph(identifier)
     return g

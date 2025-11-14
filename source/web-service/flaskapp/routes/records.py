@@ -930,15 +930,18 @@ def entity_version(entity_id):
                             serialized_rdf = triples_to_quads(serialized_rdf, ident)
 
                             ds.parse(data=serialized_rdf, format="nquads")
-                            print(len(ds))
                             if desired[1] in QUAD_ENABLED:
                                 # formats allow quads
                                 data = ds.serialize(format=desired[1])
-                                print(f"quad: {data}")
+                                current_app.logger.debug(
+                                    f"quad output {desired[1]}:  '{data}'"
+                                )
                             else:
                                 # Triple-focussed output:
                                 data = g.serialize(format=desired[1])
-                                print(f"trip: {data}")
+                                current_app.logger.debug(
+                                    f"triples output {desired[1]}:  '{data}'"
+                                )
                         else:
                             current_app.logger.debug(
                                 f"{entity_id} - using RDFLIB to parse JSON-LD"
@@ -952,11 +955,15 @@ def entity_version(entity_id):
                             if desired[1] in QUAD_ENABLED:
                                 # formats allow quads
                                 data = ds.serialize(format=desired[1])
-                                print(f"quad: {data}")
+                                current_app.logger.debug(
+                                    f"quad output {desired[1]}:  '{data}'"
+                                )
                             else:
                                 # Triple-focussed output:
                                 data = g.serialize(format=desired[1])
-                                print(f"trip: {data}")
+                                current_app.logger.debug(
+                                    f"triples output {desired[1]}:  '{data}'"
+                                )
 
                         current_app.logger.debug(
                             f"VERSION {entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"

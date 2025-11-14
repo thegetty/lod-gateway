@@ -664,13 +664,15 @@ def entity_record(entity_id):
                                 # using rdflib to both parse and re-serialize the RDF:
                                 ds, g = get_bound_graph(identifier=ident)
 
-                                ds.parse(data=json.dumps(data), format="json-ld")
                                 if shortformat in QUAD_ENABLED:
                                     # formats allow quads
+                                    ds.parse(data=json.dumps(data), format="json-ld")
                                     data = ds.serialize(format=shortformat)
                                 else:
                                     # Triple-focussed output:
+                                    g.parse(data=json.dumps(data), format="json-ld")
                                     data = g.serialize(format=shortformat)
+
                                 # blank out the etag for now
                                 etag = None
 

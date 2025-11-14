@@ -951,8 +951,8 @@ def entity_version(entity_id):
                             # using rdflib to both parse and re-serialize the RDF:
                             ds, g = get_bound_graph(identifier=ident)
 
-                            ds.parse(data=json.dumps(data), format="json-ld")
                             if desired[1] in QUAD_ENABLED:
+                                ds.parse(data=json.dumps(data), format="json-ld")
                                 # formats allow quads
                                 data = ds.serialize(format=desired[1])
                                 current_app.logger.debug(
@@ -960,6 +960,7 @@ def entity_version(entity_id):
                                 )
                             else:
                                 # Triple-focussed output:
+                                g.parse(data=json.dumps(data), format="json-ld")
                                 data = g.serialize(format=desired[1])
                                 current_app.logger.debug(
                                     f"triples output {desired[1]}:  '{data}'"

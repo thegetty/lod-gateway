@@ -930,12 +930,15 @@ def entity_version(entity_id):
                             serialized_rdf = triples_to_quads(serialized_rdf, ident)
 
                             ds.parse(data=serialized_rdf, format="nquads")
+                            print(len(ds))
                             if desired[1] in QUAD_ENABLED:
                                 # formats allow quads
                                 data = ds.serialize(format=desired[1])
+                                print(f"quad: {data}")
                             else:
                                 # Triple-focussed output:
                                 data = g.serialize(format=desired[1])
+                                print(f"trip: {data}")
                         else:
                             current_app.logger.debug(
                                 f"{entity_id} - using RDFLIB to parse JSON-LD"
@@ -946,13 +949,14 @@ def entity_version(entity_id):
                             ds, g = get_bound_graph(identifier=ident)
 
                             ds.parse(data=json.dumps(data), format="json-ld")
-
                             if desired[1] in QUAD_ENABLED:
                                 # formats allow quads
                                 data = ds.serialize(format=desired[1])
+                                print(f"quad: {data}")
                             else:
                                 # Triple-focussed output:
                                 data = g.serialize(format=desired[1])
+                                print(f"trip: {data}")
 
                         current_app.logger.debug(
                             f"VERSION {entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"

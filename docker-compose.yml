@@ -15,7 +15,7 @@ services:
             context: ./
             dockerfile: ./Dockerfile.sparql-service
         volumes:
-            - data_fuseki:/fuseki/databases/tdb2
+            - data_fuseki:/opt/fuseki/databases/tdb2
         ports:
             - ${FUSEKI_EXT_PORT:-3030}:3030
 

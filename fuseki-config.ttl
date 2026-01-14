@@ -1,0 +1,70 @@
+PREFIX fuseki:  <http://jena.apache.org/fuseki#>
+PREFIX rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX tdb2:    <http://jena.apache.org/2016/tdb#>
+PREFIX tdb1:    <http://jena.hpl.hp.com/2008/tdb#>
+PREFIX ja:      <http://jena.hpl.hp.com/2005/11/Assembler#>
+PREFIX :        <#>
+
+[] rdf:type fuseki:Server ;
+   fuseki:services (
+     <#service1>
+   ) .
+
+<#service1> rdf:type fuseki:Service ;
+    fuseki:name "ds" ;
+    fuseki:dataset <#tdbDataset> ;
+    fuseki:endpoint [ 
+        # /sparql and /query are equiv
+        fuseki:operation fuseki:query  ; 
+        fuseki:name "sparql"
+    ] ;
+    fuseki:endpoint [ 
+        fuseki:operation fuseki:query  ; 
+        fuseki:name "query"
+    ] ;
+
+    fuseki:endpoint [ 
+        # updates through /update
+        fuseki:operation fuseki:update  ; 
+        fuseki:name "update"
+    ] ;
+
+    fuseki:endpoint [ 
+         # HTML file upload service
+        fuseki:operation fuseki:upload ; 
+        fuseki:name "upload" 
+    ] ;
+
+    fuseki:endpoint [ 
+         # SPARQL Graph Store Protocol (read)
+        fuseki:operation fuseki:gsp_r ; 
+        fuseki:name "get" 
+    ] ;
+    fuseki:endpoint [ 
+        # SPARQL Graph Store Protcol (read and write)
+        fuseki:operation fuseki:gsp_rw ; 
+        fuseki:name "data" 
+    ] ;
+
+    fuseki:dataset  <#tdbDataset> ;
+    .
+
+<#tdbDataset> rdf:type tdb2:DatasetTDB2 ;
+    tdb2:location "/opt/fuseki/databases/tdb2" ;
+    tdb2:unionDefaultGraph true .
+
+# Dataset with union graph as default
+:dataset rdf:type ja:RDFDataset ;
+    ja:defaultGraph :unionGraph ;
+    ja:namedGraph :graphStore .
+
+# Union graph that dynamically includes all named graphs
+:unionGraph rdf:type ja:UnionModel ;
+    ja:rootModel :graphStore .
+
+# Graph store for all named graphs
+:graphStore rdf:type tdb2:GraphTDB2 ;
+    tdb2:dataset <#tdbDataset> ;
+    tdb2:unionDefaultGraph true .
+

@@ -129,6 +129,7 @@ def get_data_using_profile_query(
     patterns: dict,
     query_endpoint: str,
     accept_header: str = "application/ld+json, text/turtle",
+    timeout: int = 45,
 ) -> tuple[str, str, str] | None:
     # Returns the content and returned mimetype from the SPARQL construct query verbatim
     # Returns None if no matching pattern can be used or found
@@ -141,6 +142,7 @@ def get_data_using_profile_query(
                 query_endpoint,
                 data={"query": sparql_query},
                 headers={"Accept": accept_header},
+                timeout=timeout,
             )
             res.raise_for_status()
 

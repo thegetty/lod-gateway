@@ -18,6 +18,15 @@ app = Flask(__name__)
             },
         ),
         (
+            {"_mediatype": "application/json"},
+            {},
+            {
+                "preferred_mimetype": "application/json",
+                "accepted_mimetypes": [("application/json", 1.0, "json-ld")],
+                "requested_profiles": [],
+            },
+        ),
+        (
             {"format": "nt"},
             {},
             {

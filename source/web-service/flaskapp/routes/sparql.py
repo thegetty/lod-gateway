@@ -1,4 +1,5 @@
 import time
+import requests
 
 from flask import (
     Blueprint,
@@ -12,6 +13,7 @@ from flask import (
 from flaskapp.errors import (
     status_nt,
     construct_error_response,
+    status_graphstore_timeout,
 )
 
 from flaskapp.utilities import execute_sparql_query_post, execute_sparql_query
@@ -76,14 +78,24 @@ def query_entrypoint():
 
     if request.method == "POST":
         st = time.perf_counter()
-        res = execute_sparql_query_post(
-            # The request.form key-value pairs are combined with the query key-value
-            # pair to ensure the query string is always sent to execute_sparql_query_post()
-            # whether provided via request.args, request.form, or request.data:
-            dict(request.form, query=query),
-            accept_header,
-            query_endpoint,
-        )
+        try:
+            res = execute_sparql_query_post(
+                # The request.form key-value pairs are combined with the query key-value
+                # pair to ensure the query string is always sent to execute_sparql_query_post()
+                # whether provided via request.args, request.form, or request.data:
+                dict(request.form, query=query),
+                accept_header,
+                query_endpoint,
+                timeout=current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+            )
+        except requests.exceptions.Timeout:
+            # SPARQL query did not return within the set timeout time
+            current_app.logger.error(
+                f"SPARQL POST query endpoint took longer than {current_app.config['EXTERNALHTTPCALLS_TIMELIMIT']} seconds and has timed timeout"
+            )
+            response = construct_error_response(status_graphstore_timeout)
+            return response
+
         current_app.logger.info(
             f"Remote SPARQL POST query executed in {time.perf_counter() - st:.2f}s"
         )
@@ -108,7 +120,20 @@ def query_entrypoint():
             return make_response(res.content, res.status_code, headers)
     else:
         st = time.perf_counter()
-        res = execute_sparql_query(query, accept_header, query_endpoint)
+        try:
+            res = execute_sparql_query(
+                query,
+                accept_header,
+                query_endpoint,
+                timeout=current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+            )
+        except requests.exceptions.Timeout:
+            # SPARQL query did not return within the set timeout time
+            current_app.logger.error(
+                f"SPARQL GET Query endpoint took longer than {current_app.config['EXTERNALHTTPCALLS_TIMELIMIT']} seconds and has timed timeout"
+            )
+            response = construct_error_response(status_graphstore_timeout)
+            return response
 
         current_app.logger.debug(
             f"Remote SPARQL GET query executed in {time.perf_counter() - st:.2f}s"

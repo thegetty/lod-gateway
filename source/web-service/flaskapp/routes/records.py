@@ -631,8 +631,13 @@ def entity_record(entity_id):
                 if desired:
                     # Request wants a particular format and/or profile that is not plain JSON-LD and no profile?
                     if not (
-                        desired.get("preferred_mimetype", "").startswith(
-                            "application/ld+json"
+                        (
+                            desired.get("preferred_mimetype", "").startswith(
+                                "application/ld+json"
+                            )
+                            or desired.get("preferred_mimetype", "").startswith(
+                                "application/json"
+                            )
                         )
                         and desired["requested_profiles"] == []
                     ):
@@ -658,6 +663,9 @@ def entity_record(entity_id):
                                             for x in desired["accepted_mimetypes"]
                                         ]
                                     ),
+                                    timeout=current_app.config[
+                                        "EXTERNALHTTPCALLS_TIMELIMIT"
+                                    ],
                                 ):
                                     current_app.logger.debug(
                                         f"Got response for profile lookup {profiled_data}"
@@ -774,7 +782,12 @@ def entity_record(entity_id):
             current_app.logger.debug(
                 f"{entity_id} - REQUEST COMPLETE at timecode {time.perf_counter() - profile_time}"
             )
-            abort(response)
+            if request.method == "HEAD":
+                # clear the response body as this is just a HEAD request
+                response.data = b""  # Set data to an empty byte string
+                response.headers["Content-Length"] = "0"
+
+            return response
         elif record and record.data is None:
             # Record existed but has been deleted.
             response = construct_error_response(status_record_not_found)
@@ -828,6 +841,7 @@ def delete(id):
                     full_uri,
                     current_app.config["SPARQL_QUERY_ENDPOINT"],
                     current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                    current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
                 )
 
                 # if RDF process fails, roll back and return graph store specific error

@@ -3,6 +3,7 @@ import logging.config
 from os import environ, getenv
 from flaskapp.logging_configuration import get_logging_config
 import json
+import requests
 
 from datetime import datetime
 import sqlite3
@@ -107,8 +108,22 @@ def create_app():
         )
     except ValueError:
         app.logger.error(
-            "The value in the 'CONTEXTPREFIX_TTL' environment key was not an integer duration of seconds. Setting to {app.config['CONTEXTPREFIX_TTL']}"
+            f"The value in the 'CONTEXTPREFIX_TTL' environment key was not an integer duration of seconds. Setting to {app.config['CONTEXTPREFIX_TTL']}"
         )
+
+    # Time limit for all external HTTP requests
+    app.config["EXTERNALHTTPCALLS_TIMELIMIT"] = 45
+    try:
+        app.config["EXTERNALHTTPCALLS_TIMELIMIT"] = int(
+            environ.get("EXTERNALHTTPCALLS_TIMELIMIT", 45)
+        )
+    except ValueError:
+        app.logger.error(
+            "The value in the 'EXTERNALHTTPCALLS_TIMELIMIT' environment key was not an integer duration of seconds.}"
+        )
+    app.logger.info(
+        f"Setting the timelimit for external HTTP calls to be {app.config['EXTERNALHTTPCALLS_TIMELIMIT']} seconds"
+    )
 
     app.config["SQLALCHEMY_DATABASE_URI"] = environ["DATABASE"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -259,11 +274,13 @@ def create_app():
             try:
                 doc_cache = json.loads(doccache_json)
                 app.config["RDF_DOCLOADER"] = document_loader(
-                    docCache=doc_cache, cache_expires=doccache_default_expiry
+                    docCache=doc_cache,
+                    cache_expires=doccache_default_expiry,
+                    timeout=app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
                 )
-            except json.decoder.JSONDecodeError as e:
+            except (json.decoder.JSONDecodeError, requests.exceptions.Timeout) as e:
                 app.logger.error(
-                    f"The data in ENV: 'RDF_CONTEXT_CACHE' is not JSON! Will not load presets."
+                    f"The data in ENV: 'RDF_CONTEXT_CACHE' could not be loaded! {str(e)}"
                 )
 
     # Setting the limit on number of records returned due to a glob browse request

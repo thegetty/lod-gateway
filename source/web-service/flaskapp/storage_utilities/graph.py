@@ -52,7 +52,15 @@ def inflate_relative_uris(data, id_attr="id"):
 
 
 def graph_check_endpoint(query_endpoint):
-    res = requests.get(query_endpoint.replace("sparql", "status"))
+    try:
+        # healthcheck should fail fast
+        res = requests.get(query_endpoint.replace("sparql", "status"), timeout=15)
+    except requests.exceptions.Timeout:
+        current_app.logger.error(
+            "FAILUTE: SPARQL endpoint healthcheck did not return in 15 seconds"
+        )
+        return False
+
     try:
         current_app.logger.info(
             f"Graph Check response: HTTP {res.status_code} - '{res.content}'"
@@ -177,7 +185,9 @@ def graph_expand(data, proc=None):
         return g.serialize(format="nquads")
 
 
-def graph_replace(graph_name, serialized_nt, update_endpoint):
+def graph_replace(
+    graph_name: str, serialized_nt: str, update_endpoint: str, timeout: int = 45
+):
     # This will replace the named graph with only the triples supplied
 
     # Quads supplied instead?
@@ -223,7 +233,16 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         f"Size of graph replace statement: {len(replace_stmt)} characters"
     )
     tictoc = time.perf_counter()
-    res = requests.post(update_endpoint, data={"update": replace_stmt})
+    try:
+        res = requests.post(
+            update_endpoint, data={"update": replace_stmt}, timeout=timeout
+        )
+    except requests.exceptions.Timeout:
+        current_app.logger.critical(
+            f"Graph Update went past the timeout limit of {timeout} seconds."
+        )
+        return False
+
     if res.status_code == 200:
         current_app.logger.info(
             f"Graph {graph_name} replaced in {time.perf_counter() - tictoc:05f}s"
@@ -266,15 +285,26 @@ def graph_replace(graph_name, serialized_nt, update_endpoint):
         return False
 
 
-def graph_delete(graph_name, query_endpoint, update_endpoint):
+def graph_delete(
+    graph_name: str, query_endpoint: str, update_endpoint: str, timeout: int = 45
+):
     # Delete graph from triplestore
     tictoc = time.perf_counter()
     # drop graph
     if graph_name is not None:
         current_app.logger.info(f"Attempting to DROP GRAPH <{graph_name}>")
-        res = requests.post(
-            update_endpoint, data={"update": "DROP GRAPH <" + graph_name + ">"}
-        )
+        try:
+            res = requests.post(
+                update_endpoint,
+                data={"update": "DROP GRAPH <" + graph_name + ">"},
+                timeout=timeout,
+            )
+        except requests.exceptions.Timeout:
+            current_app.logger.critical(
+                f"Graph Delete went past the timeout limit of {timeout} seconds."
+            )
+            return False
+
         if res.status_code == 200:
             current_app.logger.info(
                 f"Graph {graph_name} deleted in {time.perf_counter() - tictoc:05f}s"
@@ -303,7 +333,7 @@ def graph_delete(graph_name, query_endpoint, update_endpoint):
         return False
 
 
-def revert_triplestore_if_possible(list_of_relative_ids):
+def revert_triplestore_if_possible(list_of_relative_ids: list, timeout: int = 45):
     """This method loads the requested ids from the DB and attempts to refresh the triplestore with the expanded triples.
 
     If there is a DB error on update or create, this function will also be called in an attempt to revert the triplestore to match the
@@ -327,7 +357,7 @@ def revert_triplestore_if_possible(list_of_relative_ids):
         if record is None or ("record" in record and record["record"].data is None):
             # this record did not exist before the bulk request
             try:
-                graph_delete(relative_id, query_endpoint, update_endpoint)
+                graph_delete(relative_id, query_endpoint, update_endpoint, timeout)
                 current_app.logger.warning(
                     f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
                 )
@@ -358,7 +388,7 @@ def revert_triplestore_if_possible(list_of_relative_ids):
                             )
                             results[relative_id] = "graph_expansion_error"
                         else:
-                            graph_replace(data[id_attr], nt, update_endpoint)
+                            graph_replace(data[id_attr], nt, update_endpoint, timeout)
                             current_app.logger.warning(
                                 f"REVERT: Reasserted {relative_id} in triplestore to match DB state (graph - {data[id_attr]})"
                             )
@@ -376,16 +406,23 @@ def revert_triplestore_if_possible(list_of_relative_ids):
     return results
 
 
-def graph_exists(graph_name, query_endpoint):
+def graph_exists(graph_name: str, query_endpoint: str, timeout: int = 45):
     # function left here for utility
-    res = requests.post(
-        query_endpoint,
-        data={
-            "query": "SELECT (count(?s) as ?count) { GRAPH <"
-            + graph_name
-            + "> {?s ?p ?o}}"
-        },
-    )
+    try:
+        res = requests.post(
+            query_endpoint,
+            data={
+                "query": "SELECT (count(?s) as ?count) { GRAPH <"
+                + graph_name
+                + "> {?s ?p ?o}}"
+            },
+            timeout=timeout,
+        )
+    except requests.exceptions.Timeout:
+        current_app.logger.critical(
+            f"Graph Exists Query went past the timeout limit of {timeout} seconds."
+        )
+        return False
     count_json = json.loads(res.content)
     if int(count_json["results"]["bindings"][0]["count"]["value"]) > 0:
         return True
@@ -396,11 +433,13 @@ def graph_exists(graph_name, query_endpoint):
 ### Deprecated RDF functions:
 
 
-def graph_insert(graph_name, serialized_nt, update_endpoint):
+def graph_insert(
+    graph_name: str, serialized_nt: str, update_endpoint: str, timeout: int = 45
+):
     # This will append triples to a given named graph
     insert_stmt = "INSERT DATA {GRAPH <" + graph_name + "> {" + serialized_nt + "}}"
     tictoc = time.perf_counter()
-    res = requests.post(update_endpoint, data={"update": insert_stmt})
+    res = requests.post(update_endpoint, data={"update": insert_stmt}, timeout=timeout)
     current_app.logger.info(
         f"Graph {graph_name} inserted in {time.perf_counter() - tictoc:05f}s"
     )

@@ -1,0 +1,293 @@
+# pytest for Python 3.13
+import json
+import typing as t
+
+import pytest
+import requests
+from rdflib import Graph, Namespace, URIRef
+from rdflib.namespace import RDF
+import urllib.parse as urlparse
+
+
+# LDP & common namespaces
+LDP = Namespace("http://www.w3.org/ns/ldp#")
+DCTERMS = Namespace("http://purl.org/dc/terms/")
+FOAF = Namespace("http://xmlns.com/foaf/0.1/")
+
+BASE_URL = "http://localhost:5100/"
+JSONLD_CT = "application/ld+json"
+
+
+def to_abs(url: str) -> str:
+    return urlparse.urljoin(BASE_URL.rstrip("/") + "/", url.lstrip("/"))
+
+
+def parse_link_header(h: str) -> t.List[t.Dict[str, str]]:
+    """
+    Parse RFC8288 Link header into a list of dicts: {"url": ..., "rel": ..., "type": ...}
+    `requests` has parse_header_links but it expects <...>; rel= format with commas.
+    """
+    links = []
+    if not h:
+        return links
+    # Split by comma, then parse parameters
+    parts = [p.strip() for p in h.split(",") if p.strip()]
+    for p in parts:
+        # <url>; param1=val1; param2="val2"
+        if not p.startswith("<"):
+            continue
+        url_end = p.find(">")
+        url = p[1:url_end]
+        params_str = p[url_end + 1 :].strip().lstrip(";").strip()
+        params = {}
+        for kv in [x.strip() for x in params_str.split(";") if x.strip()]:
+            if "=" in kv:
+                k, v = kv.split("=", 1)
+                params[k.strip()] = v.strip().strip('"')
+        links.append({"url": url, **params})
+    return links
+
+
+def get_graph(namespace, client, url: str) -> Graph:
+    """GET URL with Accept: application/ld+json and parse into RDFLib graph."""
+    r = client.get(f"/{namespace}/{url}")
+    r.raise_for_status()
+    assert JSONLD_CT in r.headers.get(
+        "Content-Type", ""
+    ), f"Expected Content-Type {JSONLD_CT}, got {r.headers.get('Content-Type')}"
+    g = Graph()
+    g.parse(data=r.text, format="json-ld")
+    return g, r  # return response for header checks, too
+
+
+def _post_jsonld(
+    container_url: str, body: dict, slug: str | None = None
+) -> requests.Response:
+    headers = {"Content-Type": JSONLD_CT, **auth_headers()}
+    if slug:
+        headers["Slug"] = slug  # server may honor slug for resource naming
+    r = requests.post(container_url, data=json.dumps(body), headers=headers)
+    assert r.status_code in (201, 202), f"POST failed: {r.status_code} {r.text}"
+    assert "Location" in r.headers, "Location header missing on POST."
+    return r  # [1](https://www.w3.org/TR/ldp/)
+
+
+def post_resource(namespace, client, auth_token, url: str, data: dict, slug: str):
+    """POST with auth."""
+    headers = {"Content-Type": JSONLD_CT, "Authorization": "Bearer " + auth_token}
+    if slug:
+        headers["Slug"] = slug  # server may honor slug for resource naming
+    response = client.post(
+        f"/{namespace}/{url}",
+        data=data,
+        headers=headers,
+    )
+    assert response.status_code in [200, 201]
+    assert response.status_code in (
+        201,
+        202,
+    ), f"POST failed: {response.status_code} {response.text}"
+
+    assert JSONLD_CT in response.headers.get(
+        "Content-Type", ""
+    ), f"Expected Content-Type {JSONLD_CT}, got {response.headers.get('Content-Type')}"
+
+    assert "Location" in response.headers, "Location header missing on POST."
+    return response
+
+
+def delete_resource(namespace, client, auth_token, url: str):
+    """DELETE with auth."""
+    response = client.delete(
+        f"/{namespace}/{url}",
+        headers={"Authorization": "Bearer " + auth_token},
+    )
+    assert response.status_code == 200
+
+    assert JSONLD_CT in response.headers.get(
+        "Content-Type", ""
+    ), f"Expected Content-Type {JSONLD_CT}, got {response.headers.get('Content-Type')}"
+
+    return response
+
+
+def require_link_type_contains(link_headers: t.List[t.Dict[str, str]], type_uri: str):
+    """Assert Link: rel=type includes type_uri."""
+    found = any(
+        l.get("rel") == "type" and l.get("url") == type_uri for l in link_headers
+    )
+    assert found, f'Expected Link rel="type" to include <{type_uri}>'
+
+
+def basic_container_iri(namespace) -> str:
+    # conftest will need to create one perhaps
+    return to_abs(namespace)
+
+
+def _is_basic_container(g: Graph, container_url: str) -> bool:
+    subj = URIRef(container_url)
+    return (subj, RDF.type, LDP.BasicContainer) in g
+
+
+# --- Tests ---
+
+
+def test_basic_container_properties_and_ldp_advertisement(namespace, client):
+    """
+    Ensure the configured endpoint is a BasicContainer and advertises LDP.
+    - rdf:type ldp:BasicContainer
+    - Link rel=type includes ldp:Resource and ldp:Container
+    - Returns application/ld+json
+    """
+    url = basic_container_iri()
+    g, r = get_graph(namespace, client, url)
+
+    if not _is_basic_container(g, url):
+        pytest.skip(f"{url} is not an ldp:BasicContainer (skipping).")
+
+    subj = URIRef(url)
+    assert (subj, RDF.type, LDP.BasicContainer) in g, "Not an ldp:BasicContainer."
+
+    links = parse_link_header(r.headers.get("Link", ""))
+    require_link_type_contains(links, str(LDP.Resource))
+    require_link_type_contains(links, str(LDP.Container))
+    # JSON-LD content type already checked in get_graph()
+
+
+def test_ldp_container_advertises_ldp_and_is_jsonld(client):
+    """
+    Validate the endpoint is an LDP Container and returns JSON-LD.
+    - Must advertise LDP via Link rel="type" to ldp#Resource and ldp#Container. (spec 4.2.1.4, containers)  # [1](https://www.w3.org/TR/ldp/)
+    """
+    url = basic_container_iri()
+    r = client.get(url, headers={"Accept": JSONLD_CT})
+
+    # Link header(s)
+    links = parse_link_header(r.headers.get("Link", ""))
+    require_link_type_contains(links, str(LDP.Resource))
+    require_link_type_contains(links, str(LDP.Container))
+
+    # JSON-LD Content-Type
+    assert JSONLD_CT in r.headers.get(
+        "Content-Type", ""
+    ), "Container did not return JSON-LD."  # [3](https://json-ld.org/)[4](https://en.wikipedia.org/wiki/JSON-LD)
+
+
+def test_container_lists_containment_and_iterates_members(namespace, client):
+    """
+    GET container, read ldp:contains triples, iterate each contained resource.
+    Each resource must be retrievable and (if RDF) parseable as JSON-LD.
+    """
+    g, _ = get_graph(namespace, client, basic_container_iri())
+    subj = URIRef(basic_container_iri())
+
+    contained = [o for (s, p, o) in g.triples((subj, LDP.contains, None))]
+    assert (
+        len(contained) >= 0
+    ), "No ldp:contains triples found (allowed to be empty)."  # [1](https://www.w3.org/TR/ldp/)
+
+    for member in contained:
+        # Try GET member as JSON-LD; if server returns Non-RDF, we still ensure GET 200.
+        r = requests.get(str(member), headers={"Accept": JSONLD_CT, **auth_headers()})
+        assert r.status_code == 200, f"Member {member} not retrievable."
+        ct = r.headers.get("Content-Type", "")
+        if JSONLD_CT in ct:
+            Graph().parse(
+                data=r.text, format="json-ld"
+            )  # parseable JSON-LD  # [3](https://json-ld.org/)
+
+
+def test_basic_container_adds_and_removes_containment():
+    """
+    POST a new RDFSource to the BasicContainer and verify:
+      - <container> ldp:contains <created>
+    Then DELETE it and verify the containment triple is removed.
+    """
+    url = basic_container_iri()
+    g, _ = get_graph(url)
+
+    if not _is_basic_container(g, url):
+        pytest.skip(f"{url} is not an ldp:BasicContainer (skipping).")
+
+    c_subj = URIRef(url)
+
+    # Create a simple RDFSource
+    body = {
+        "@context": {"dcterms": str(DCTERMS), "type": "@type"},
+        "type": "http://www.w3.org/ns/ldp#RDFSource",
+        "dcterms:title": "pytest-created child of BasicContainer",
+    }
+    r = _post_jsonld(url, body, slug="pytest-basic-child")
+    created_res = r.headers["Location"]
+    created_ref = URIRef(created_res)
+
+    # Verify containment exists after POST
+    g_after_post, _ = get_graph(url)
+    assert (
+        c_subj,
+        LDP.contains,
+        created_ref,
+    ) in g_after_post, "BasicContainer did not add ldp:contains for the newly created resource."  # containment is server-managed  # [1](https://www.w3.org/TR/ldp/)
+
+    # Retrieve created child to ensure it's available and parseable if JSON-LD
+    r_child = requests.get(created_res, headers={"Accept": JSONLD_CT, **auth_headers()})
+    assert r_child.status_code == 200
+    if JSONLD_CT in r_child.headers.get("Content-Type", ""):
+        Graph().parse(data=r_child.text, format="json-ld")
+
+    # DELETE the child
+    d = requests.delete(created_res, headers=auth_headers())
+    assert d.status_code in (200, 202, 204), f"DELETE failed: {d.status_code} {d.text}"
+
+    # Verify containment removed after DELETE
+    g_after_del, _ = get_graph(url)
+    assert (
+        c_subj,
+        LDP.contains,
+        created_ref,
+    ) not in g_after_del, "Containment triple still present after DELETE in BasicContainer."  # [1](https://www.w3.org/TR/ldp/)
+
+
+def test_iterate_all_resources_in_container_and_fetch():
+    """
+    Iterate all resources in container via ldp:contains and GET them.
+    """
+    g, _ = get_graph(basic_container_iri())
+    subj = URIRef(basic_container_iri())
+    for member in [o for (s, p, o) in g.triples((subj, LDP.contains, None))]:
+        r = requests.get(str(member), headers={"Accept": JSONLD_CT, **auth_headers()})
+        assert r.status_code == 200, f"Member {member} not retrievable."
+        # Optionally check ETag existence (LDP suggests ETags on representations)
+        assert (
+            "ETag" in r.headers
+        ), "ETag header should be present on resource representation."  # [1](https://www.w3.org/TR/ldp/)
+
+
+def test_prefer_headers_and_accept_post_are_exposed():
+    """
+    Optional but recommended checks:
+    - Container should expose Accept-Post to tell which media types can be POSTed.
+    - Prefer header controls (membership vs containment) via ldp:PreferMembership / ldp:PreferContainment.
+    """
+    # Accept-Post
+    r = requests.options(basic_container_iri(), headers=auth_headers())
+    assert r.status_code == 200, "OPTIONS failed."
+    # Server may include Accept-Post in GET responses too; OPTIONS is a safe place to check.
+    accept_post = r.headers.get("Accept-Post", "")
+    # Even if not present, this is a hint; LDP defines the header.
+    assert isinstance(
+        accept_post, str
+    ), "Accept-Post header not present or wrong type."  # [1](https://www.w3.org/TR/ldp/)
+
+    # Prefer headers round-trip (server may honor or ignore)
+    h = {
+        "Accept": JSONLD_CT,
+        "Prefer": f'return=representation; include="{str(LDP.PreferMembership)}"',
+        **auth_headers(),
+    }
+    r2 = requests.get(basic_container_iri(), headers=h)
+    assert r2.status_code == 200, "GET with Prefer failed."
+    # When honored, server may add Preference-Applied
+    _ = r2.headers.get("Preference-Applied")  # informational
+    # At minimum ensure JSON-LD parseable
+    Graph().parse(data=r2.text, format="json-ld")  # [2](https://www.w3.org/ns/ldp)

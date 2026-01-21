@@ -427,6 +427,13 @@ def entity_record(entity_id):
             + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate" '
         )
 
+        # IF LDP API, add in that this is a http://www.w3.org/ns/ldp#Resource to HTTP headers
+        if current_app.config["LDP_API"]:
+            # Adding in LDP boilerplate
+            link_headers = link_headers + (
+                '<http://www.w3.org/ns/ldp#Resource>; rel="type"',
+            )
+
         # The Content Profile Link headers should be added if this is a L2, it is confirmed that there is data, and what object it is.
 
         if current_app.config["LINK_HEADER_PREV_VERSION"] and record is not None:

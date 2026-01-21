@@ -24,8 +24,6 @@ def to_abs(url: str) -> str:
 
 def to_relative(url: str) -> str:
     rel = url.split(BASE_URL, 1)[-1]
-    if not rel.startswith("/"):
-        rel = "/" + rel
     return rel
 
 
@@ -151,7 +149,7 @@ def test_basic_container_properties_and_ldp_advertisement(namespace, client):
     # JSON-LD content type already checked in get_graph()
 
 
-def test_ldp_container_advertises_ldp_and_is_jsonld(namespace, client):
+def test_ldp_container_advertises_ldp_and_is_jsonld(namespace, client, current_app):
     """
     Validate the endpoint is an LDP Container and returns JSON-LD.
     - Must advertise LDP via Link rel="type" to ldp#Resource and ldp#Container. (spec 4.2.1.4, containers)  # [1](https://www.w3.org/TR/ldp/)
@@ -170,7 +168,9 @@ def test_ldp_container_advertises_ldp_and_is_jsonld(namespace, client):
     ), "Container did not return JSON-LD."  # [3](https://json-ld.org/)[4](https://en.wikipedia.org/wiki/JSON-LD)
 
 
-def test_container_lists_containment_and_iterates_members(namespace, client):
+def test_container_lists_containment_and_iterates_members(
+    namespace, client, current_app
+):
     """
     GET container, read ldp:contains triples, iterate each contained resource.
     Each resource must be retrievable and (if RDF) parseable as JSON-LD.
@@ -194,7 +194,9 @@ def test_container_lists_containment_and_iterates_members(namespace, client):
             )  # parseable JSON-LD  # [3](https://json-ld.org/)
 
 
-def test_basic_container_adds_and_removes_containment(namespace, client, auth_token):
+def test_basic_container_adds_and_removes_containment(
+    namespace, client, auth_token, current_app
+):
     """
     POST a new RDFSource to the BasicContainer and verify:
       - <container> ldp:contains <created>
@@ -246,7 +248,7 @@ def test_basic_container_adds_and_removes_containment(namespace, client, auth_to
     ) not in g_after_del, "Containment triple still present after DELETE in BasicContainer."  # [1](https://www.w3.org/TR/ldp/)
 
 
-def test_iterate_all_resources_in_container_and_fetch(namespace, client):
+def test_iterate_all_resources_in_container_and_fetch(namespace, client, current_app):
     """
     Iterate all resources in container via ldp:contains and GET them.
     """
@@ -261,14 +263,14 @@ def test_iterate_all_resources_in_container_and_fetch(namespace, client):
         ), "ETag header should be present on resource representation."  # [1](https://www.w3.org/TR/ldp/)
 
 
-def test_prefer_headers_and_accept_post_are_exposed():
+def test_prefer_headers_and_accept_post_are_exposed(namespace, client, current_app):
     """
     Optional but recommended checks:
     - Container should expose Accept-Post to tell which media types can be POSTed.
     - Prefer header controls (membership vs containment) via ldp:PreferMembership / ldp:PreferContainment.
     """
     # Accept-Post
-    r = requests.options(basic_container_iri(), headers=auth_headers())
+    r = client.options(basic_container_iri())
     assert r.status_code == 200, "OPTIONS failed."
     # Server may include Accept-Post in GET responses too; OPTIONS is a safe place to check.
     accept_post = r.headers.get("Accept-Post", "")
@@ -281,9 +283,8 @@ def test_prefer_headers_and_accept_post_are_exposed():
     h = {
         "Accept": JSONLD_CT,
         "Prefer": f'return=representation; include="{str(LDP.PreferMembership)}"',
-        **auth_headers(),
     }
-    r2 = requests.get(basic_container_iri(), headers=h)
+    r2 = client.get(basic_container_iri(), headers=h)
     assert r2.status_code == 200, "GET with Prefer failed."
     # When honored, server may add Preference-Applied
     _ = r2.headers.get("Preference-Applied")  # informational

@@ -103,6 +103,12 @@ class Representation:
             self._jsonld = json_ld
 
 
+def parse_representation(request):
+    # check for valid JSON-LD
+    # rebase, and return Representation
+    pass
+
+
 def prefix_rdf_ids(
     data: dict,
     base_id: str,

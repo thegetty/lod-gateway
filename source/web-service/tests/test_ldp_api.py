@@ -55,7 +55,16 @@ def parse_link_header(h: str) -> t.List[t.Dict[str, str]]:
 
 def get_graph(namespace, client, url: str) -> Graph:
     """GET URL with Accept: application/ld+json and parse into RDFLib graph."""
-    r = client.get(f"/{namespace}/{url}")
+    # Make relative if necessary
+    if url.startswith("http"):
+        url = to_relative(url)
+
+    # add namespace if not present
+    if not url.startswith(f"/{namespace}/"):
+        url = f"/{namespace}/{url}"
+
+    print(f"Getting graph: '{url}'")
+    r = client.get(url, follow_redirects=True)
     assert r.status_code == 200
     assert JSONLD_CT in r.headers.get(
         "Content-Type", ""
@@ -268,7 +277,7 @@ def test_prefer_headers_and_accept_post_are_exposed(namespace, client, test_db):
     - Prefer header controls (membership vs containment) via ldp:PreferMembership / ldp:PreferContainment.
     """
     # Accept-Post
-    r = client.options(basic_container_iri(namespace))
+    r = client.options(basic_container_iri(namespace), follow_redirects=True)
     assert r.status_code == 200, "OPTIONS failed."
     # Server may include Accept-Post in GET responses too; OPTIONS is a safe place to check.
     accept_post = r.headers.get("Accept-Post", "")

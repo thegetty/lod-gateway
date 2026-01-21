@@ -4,8 +4,13 @@ from flaskapp.errors import ResourceValidationError
 
 
 @pytest.fixture
-def base_uri():
-    return "http://example.org/base/"
+def server_root():
+    return "http://example.org/"
+
+
+@pytest.fixture
+def relative_container():
+    return "base/"
 
 
 @pytest.fixture
@@ -57,27 +62,33 @@ def test_validate_jsonld_empty_id(invalid_jsonld_empty_id):
     assert Representation._validate_jsonld(invalid_jsonld_empty_id) is False
 
 
-def test_jsonld_setter_valid_jsonld_sets_context(base_uri, valid_jsonld_with_id):
-    r = Representation(base=base_uri)
+def test_jsonld_setter_valid_jsonld_sets_context(
+    server_root, relative_container, valid_jsonld_with_id
+):
+    r = Representation(server_root=server_root, relative_container=relative_container)
     r.json_ld = valid_jsonld_with_id
-    assert r.json_ld["@context"]["@base"] == base_uri
+    assert r.json_ld["@context"]["@base"] == "http://example.org/base/"
 
 
-def test_jsonld_setter_invalid_jsonld_raises(base_uri, invalid_jsonld_missing_id):
-    r = Representation(base=base_uri)
+def test_jsonld_setter_invalid_jsonld_raises(
+    server_root, relative_container, invalid_jsonld_missing_id
+):
+    r = Representation(server_root=server_root, relative_container=relative_container)
     with pytest.raises(ResourceValidationError):
         r.json_ld = invalid_jsonld_missing_id
 
 
-def test_jsonld_with_context_and_base(base_uri, jsonld_with_context_and_base):
-    r = Representation(base=base_uri)
+def test_jsonld_with_context_and_base(
+    server_root, relative_container, jsonld_with_context_and_base
+):
+    r = Representation(server_root=server_root, relative_container=relative_container)
     r.json_ld = jsonld_with_context_and_base
-    assert r.json_ld["@context"]["@base"] == base_uri
+    assert r.json_ld["@context"]["@base"] == "http://example.org/base/"
 
 
 def test_jsonld_with_absolute_id_and_base_raises(
-    base_uri, jsonld_with_context_and_absolute_id
+    server_root, relative_container, jsonld_with_context_and_absolute_id
 ):
-    r = Representation(base=base_uri)
+    r = Representation(server_root=server_root, relative_container=relative_container)
     with pytest.raises(ResourceValidationError):
         r.json_ld = jsonld_with_context_and_absolute_id

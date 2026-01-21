@@ -1,9 +1,7 @@
 # pytest for Python 3.13
-import json
 import typing as t
 
 import pytest
-import requests
 from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import RDF
 import urllib.parse as urlparse
@@ -35,6 +33,8 @@ def parse_link_header(h: str) -> t.List[t.Dict[str, str]]:
     links = []
     if not h:
         return links
+
+    print(f"Headers recieved: {h}")
     # Split by comma, then parse parameters
     parts = [p.strip() for p in h.split(",") if p.strip()]
     for p in parts:
@@ -127,7 +127,7 @@ def _is_basic_container(g: Graph, container_url: str) -> bool:
 # --- Tests ---
 
 
-def test_basic_container_properties_and_ldp_advertisement(namespace, client):
+def test_basic_container_properties_and_ldp_advertisement(namespace, client, test_db):
     """
     Ensure the configured endpoint is a BasicContainer and advertises LDP.
     - rdf:type ldp:BasicContainer
@@ -149,7 +149,7 @@ def test_basic_container_properties_and_ldp_advertisement(namespace, client):
     # JSON-LD content type already checked in get_graph()
 
 
-def test_ldp_container_advertises_ldp_and_is_jsonld(namespace, client, current_app):
+def test_ldp_container_advertises_ldp_and_is_jsonld(namespace, client, test_db):
     """
     Validate the endpoint is an LDP Container and returns JSON-LD.
     - Must advertise LDP via Link rel="type" to ldp#Resource and ldp#Container. (spec 4.2.1.4, containers)  # [1](https://www.w3.org/TR/ldp/)
@@ -168,9 +168,7 @@ def test_ldp_container_advertises_ldp_and_is_jsonld(namespace, client, current_a
     ), "Container did not return JSON-LD."  # [3](https://json-ld.org/)[4](https://en.wikipedia.org/wiki/JSON-LD)
 
 
-def test_container_lists_containment_and_iterates_members(
-    namespace, client, current_app
-):
+def test_container_lists_containment_and_iterates_members(namespace, client, test_db):
     """
     GET container, read ldp:contains triples, iterate each contained resource.
     Each resource must be retrievable and (if RDF) parseable as JSON-LD.
@@ -195,7 +193,7 @@ def test_container_lists_containment_and_iterates_members(
 
 
 def test_basic_container_adds_and_removes_containment(
-    namespace, client, auth_token, current_app
+    namespace, client, auth_token, test_db
 ):
     """
     POST a new RDFSource to the BasicContainer and verify:
@@ -248,12 +246,12 @@ def test_basic_container_adds_and_removes_containment(
     ) not in g_after_del, "Containment triple still present after DELETE in BasicContainer."  # [1](https://www.w3.org/TR/ldp/)
 
 
-def test_iterate_all_resources_in_container_and_fetch(namespace, client, current_app):
+def test_iterate_all_resources_in_container_and_fetch(namespace, client, test_db):
     """
     Iterate all resources in container via ldp:contains and GET them.
     """
-    g, _ = get_graph(basic_container_iri())
-    subj = URIRef(basic_container_iri())
+    g, _ = get_graph(basic_container_iri(namespace))
+    subj = URIRef(basic_container_iri(namespace))
     for member in [o for (s, p, o) in g.triples((subj, LDP.contains, None))]:
         r = get_graph(namespace, client, str(member))
         assert r.status_code == 200, f"Member {member} not retrievable."
@@ -263,14 +261,14 @@ def test_iterate_all_resources_in_container_and_fetch(namespace, client, current
         ), "ETag header should be present on resource representation."  # [1](https://www.w3.org/TR/ldp/)
 
 
-def test_prefer_headers_and_accept_post_are_exposed(namespace, client, current_app):
+def test_prefer_headers_and_accept_post_are_exposed(namespace, client, test_db):
     """
     Optional but recommended checks:
     - Container should expose Accept-Post to tell which media types can be POSTed.
     - Prefer header controls (membership vs containment) via ldp:PreferMembership / ldp:PreferContainment.
     """
     # Accept-Post
-    r = client.options(basic_container_iri())
+    r = client.options(basic_container_iri(namespace))
     assert r.status_code == 200, "OPTIONS failed."
     # Server may include Accept-Post in GET responses too; OPTIONS is a safe place to check.
     accept_post = r.headers.get("Accept-Post", "")
@@ -284,7 +282,7 @@ def test_prefer_headers_and_accept_post_are_exposed(namespace, client, current_a
         "Accept": JSONLD_CT,
         "Prefer": f'return=representation; include="{str(LDP.PreferMembership)}"',
     }
-    r2 = client.get(basic_container_iri(), headers=h)
+    r2 = client.get(basic_container_iri(namespace), headers=h)
     assert r2.status_code == 200, "GET with Prefer failed."
     # When honored, server may add Preference-Applied
     _ = r2.headers.get("Preference-Applied")  # informational

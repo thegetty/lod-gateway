@@ -12,6 +12,8 @@ from flaskapp import create_app
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
+
+from flaskapp.storage_utilities.container import get_container
 from flaskapp.utilities import Event
 
 
@@ -112,6 +114,8 @@ def test_db(current_app):
         )
     db.drop_all()
     db.create_all()
+    # get or create-and-get the root container to ensure it always is in the test db
+    _ = get_container("/")
     return db
 
 
@@ -124,6 +128,8 @@ def test_db_no_rdf(current_app_no_rdf):
         )
     db.drop_all()
     db.create_all()
+    # get or create-and-get the root container to ensure it always is in the test db
+    _ = get_container("/")
     return db
 
 

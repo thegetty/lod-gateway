@@ -8,6 +8,8 @@ import requests
 
 from enum import Enum
 
+from urllib.parse import urlsplit, urlunsplit
+
 from flaskapp.errors import (
     status_wrong_auth_token,
     status_bad_auth_header,
@@ -380,3 +382,37 @@ def segment_entity_id(entity_id):
     if segments[-1] != clean_entity_id:
         segments.append(clean_entity_id)
     return segments
+
+
+def strip_scheme_host(iri: str) -> str:
+    """
+    Remove any scheme/host from an IRI, returning a relative IRI form
+    (path, query, fragment only). Leaves relative inputs unchanged.
+    """
+    parts = urlsplit(iri)
+    if parts.scheme or parts.netloc:
+        # Strip scheme and host; keep path, query, fragment.
+        return urlunsplit(("", "", parts.path, parts.query, parts.fragment))
+    return iri
+
+
+def join_baseid_and_rel(base: str, rel: str) -> str:
+    """
+    Join normalized base (scheme/host-free) with a relative IRI `rel`.
+
+    - If rel starts with '#', create a fragment on base: 'base#frag'
+    - If base ends with '#', append directly after '#': 'basefrag'
+    - Otherwise join with a single '/'.
+    """
+    # Normalize separators on both sides
+    if rel.startswith("#"):
+        frag = rel.lstrip("#")
+        # Ensure single '#'
+        return f"{base.rstrip('/#')}#{frag}"
+
+    # If base ends with '#', treat everything as fragment-ish
+    if base.endswith("#"):
+        return f"{base}{rel.lstrip('#/')}"
+
+    # Otherwise, slash-join for pathy rels (including those starting with '/')
+    return f"{base.rstrip('/')}/{rel.lstrip('/')}"

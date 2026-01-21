@@ -22,6 +22,13 @@ def to_abs(url: str) -> str:
     return urlparse.urljoin(BASE_URL.rstrip("/") + "/", url.lstrip("/"))
 
 
+def to_relative(url: str) -> str:
+    rel = url.split(BASE_URL, 1)[-1]
+    if not rel.startswith("/"):
+        rel = "/" + rel
+    return rel
+
+
 def parse_link_header(h: str) -> t.List[t.Dict[str, str]]:
     """
     Parse RFC8288 Link header into a list of dicts: {"url": ..., "rel": ..., "type": ...}
@@ -51,7 +58,7 @@ def parse_link_header(h: str) -> t.List[t.Dict[str, str]]:
 def get_graph(namespace, client, url: str) -> Graph:
     """GET URL with Accept: application/ld+json and parse into RDFLib graph."""
     r = client.get(f"/{namespace}/{url}")
-    r.raise_for_status()
+    assert r.status_code == 200
     assert JSONLD_CT in r.headers.get(
         "Content-Type", ""
     ), f"Expected Content-Type {JSONLD_CT}, got {r.headers.get('Content-Type')}"
@@ -61,25 +68,15 @@ def get_graph(namespace, client, url: str) -> Graph:
 
 
 def _post_jsonld(
-    container_url: str, body: dict, slug: str | None = None
-) -> requests.Response:
-    headers = {"Content-Type": JSONLD_CT, **auth_headers()}
-    if slug:
-        headers["Slug"] = slug  # server may honor slug for resource naming
-    r = requests.post(container_url, data=json.dumps(body), headers=headers)
-    assert r.status_code in (201, 202), f"POST failed: {r.status_code} {r.text}"
-    assert "Location" in r.headers, "Location header missing on POST."
-    return r  # [1](https://www.w3.org/TR/ldp/)
-
-
-def post_resource(namespace, client, auth_token, url: str, data: dict, slug: str):
+    namespace, client, auth_token, container_url: str, body: dict, slug: str
+):
     """POST with auth."""
     headers = {"Content-Type": JSONLD_CT, "Authorization": "Bearer " + auth_token}
     if slug:
         headers["Slug"] = slug  # server may honor slug for resource naming
     response = client.post(
-        f"/{namespace}/{url}",
-        data=data,
+        f"/{namespace}/{container_url}",
+        data=body,
         headers=headers,
     )
     assert response.status_code in [200, 201]
@@ -139,8 +136,8 @@ def test_basic_container_properties_and_ldp_advertisement(namespace, client):
     - Link rel=type includes ldp:Resource and ldp:Container
     - Returns application/ld+json
     """
-    url = basic_container_iri()
-    g, r = get_graph(namespace, client, url)
+    url = basic_container_iri(namespace)
+    g, r = get_graph(namespace, client, to_relative(url))
 
     if not _is_basic_container(g, url):
         pytest.skip(f"{url} is not an ldp:BasicContainer (skipping).")
@@ -154,13 +151,13 @@ def test_basic_container_properties_and_ldp_advertisement(namespace, client):
     # JSON-LD content type already checked in get_graph()
 
 
-def test_ldp_container_advertises_ldp_and_is_jsonld(client):
+def test_ldp_container_advertises_ldp_and_is_jsonld(namespace, client):
     """
     Validate the endpoint is an LDP Container and returns JSON-LD.
     - Must advertise LDP via Link rel="type" to ldp#Resource and ldp#Container. (spec 4.2.1.4, containers)  # [1](https://www.w3.org/TR/ldp/)
     """
-    url = basic_container_iri()
-    r = client.get(url, headers={"Accept": JSONLD_CT})
+    url = basic_container_iri(namespace)
+    r = client.get(to_relative(url), headers={"Accept": JSONLD_CT})
 
     # Link header(s)
     links = parse_link_header(r.headers.get("Link", ""))
@@ -178,8 +175,8 @@ def test_container_lists_containment_and_iterates_members(namespace, client):
     GET container, read ldp:contains triples, iterate each contained resource.
     Each resource must be retrievable and (if RDF) parseable as JSON-LD.
     """
-    g, _ = get_graph(namespace, client, basic_container_iri())
-    subj = URIRef(basic_container_iri())
+    g, _ = get_graph(namespace, client, basic_container_iri(namespace))
+    subj = URIRef(basic_container_iri(namespace))
 
     contained = [o for (s, p, o) in g.triples((subj, LDP.contains, None))]
     assert (
@@ -188,7 +185,7 @@ def test_container_lists_containment_and_iterates_members(namespace, client):
 
     for member in contained:
         # Try GET member as JSON-LD; if server returns Non-RDF, we still ensure GET 200.
-        r = requests.get(str(member), headers={"Accept": JSONLD_CT, **auth_headers()})
+        r = client.get(to_relative(str(member)), headers={"Accept": JSONLD_CT})
         assert r.status_code == 200, f"Member {member} not retrievable."
         ct = r.headers.get("Content-Type", "")
         if JSONLD_CT in ct:
@@ -197,14 +194,14 @@ def test_container_lists_containment_and_iterates_members(namespace, client):
             )  # parseable JSON-LD  # [3](https://json-ld.org/)
 
 
-def test_basic_container_adds_and_removes_containment():
+def test_basic_container_adds_and_removes_containment(namespace, client, auth_token):
     """
     POST a new RDFSource to the BasicContainer and verify:
       - <container> ldp:contains <created>
     Then DELETE it and verify the containment triple is removed.
     """
-    url = basic_container_iri()
-    g, _ = get_graph(url)
+    url = basic_container_iri(namespace)
+    g, _ = get_graph(namespace, client, to_relative(url))
 
     if not _is_basic_container(g, url):
         pytest.skip(f"{url} is not an ldp:BasicContainer (skipping).")
@@ -217,12 +214,14 @@ def test_basic_container_adds_and_removes_containment():
         "type": "http://www.w3.org/ns/ldp#RDFSource",
         "dcterms:title": "pytest-created child of BasicContainer",
     }
-    r = _post_jsonld(url, body, slug="pytest-basic-child")
+    r = _post_jsonld(
+        namespace, client, auth_token, url, body, slug="pytest-basic-child"
+    )
     created_res = r.headers["Location"]
     created_ref = URIRef(created_res)
 
     # Verify containment exists after POST
-    g_after_post, _ = get_graph(url)
+    g_after_post, _ = get_graph(namespace, client, to_relative(url))
     assert (
         c_subj,
         LDP.contains,
@@ -230,14 +229,13 @@ def test_basic_container_adds_and_removes_containment():
     ) in g_after_post, "BasicContainer did not add ldp:contains for the newly created resource."  # containment is server-managed  # [1](https://www.w3.org/TR/ldp/)
 
     # Retrieve created child to ensure it's available and parseable if JSON-LD
-    r_child = requests.get(created_res, headers={"Accept": JSONLD_CT, **auth_headers()})
+    r_child = client.get(to_relative(created_res), headers={"Accept": JSONLD_CT})
     assert r_child.status_code == 200
     if JSONLD_CT in r_child.headers.get("Content-Type", ""):
         Graph().parse(data=r_child.text, format="json-ld")
 
     # DELETE the child
-    d = requests.delete(created_res, headers=auth_headers())
-    assert d.status_code in (200, 202, 204), f"DELETE failed: {d.status_code} {d.text}"
+    _ = delete_resource(namespace, client, auth_token, to_relative(created_res))
 
     # Verify containment removed after DELETE
     g_after_del, _ = get_graph(url)
@@ -248,14 +246,14 @@ def test_basic_container_adds_and_removes_containment():
     ) not in g_after_del, "Containment triple still present after DELETE in BasicContainer."  # [1](https://www.w3.org/TR/ldp/)
 
 
-def test_iterate_all_resources_in_container_and_fetch():
+def test_iterate_all_resources_in_container_and_fetch(namespace, client):
     """
     Iterate all resources in container via ldp:contains and GET them.
     """
     g, _ = get_graph(basic_container_iri())
     subj = URIRef(basic_container_iri())
     for member in [o for (s, p, o) in g.triples((subj, LDP.contains, None))]:
-        r = requests.get(str(member), headers={"Accept": JSONLD_CT, **auth_headers()})
+        r = get_graph(namespace, client, str(member))
         assert r.status_code == 200, f"Member {member} not retrievable."
         # Optionally check ETag existence (LDP suggests ETags on representations)
         assert (

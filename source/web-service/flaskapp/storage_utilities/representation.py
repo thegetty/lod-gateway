@@ -1,6 +1,12 @@
+from __future__ import annotations  # for python 3.10
+
 import re
 
-from flask import current_app
+from urllib.parse import urljoin
+
+from typing import Any, Tuple
+
+from flaskapp.utilities import strip_scheme_host, join_baseid_and_rel
 
 from flaskapp.utilities import (
     containerRecursiveCallback,
@@ -9,12 +15,11 @@ from flaskapp.utilities import (
     ALLOWED_SCHEMES,
     quads_to_triples,
     graph_filter,
+    strip_scheme_host,
+    join_baseid_and_rel,
 )
 
 from flaskapp.errors import ResourceValidationError
-
-from pyld import jsonld
-from pyld.jsonld import JsonLdError
 
 from flaskapp.conneg import reformat_to_jsonld
 
@@ -27,13 +32,18 @@ validid = re.compile(r"^[A-z0-9-._~:@!$'()*+,;=\/\[\]]+\Z")
 class Representation:
     "A class to hold the parsed representation of the entity that was POST/PUT/PATCHed to the service."
 
-    def __init__(self, base):
+    def __init__(self, server_root, relative_container, json_ld=None):
         # Base really is the critical parameter here - all the 'id's will be made relative to that after all
         # in most/all cases it will be the root container of the LOD Gateway
-        self.base = base
+        self.base = urljoin(server_root, relative_container)
+        self.relative_container = relative_container
         self._json_ld = None
         self._original = None
         self._original_format = None
+
+        if json_ld is not None:
+            # Should trigger the property.setter 'json_ld'
+            self.json_ld = json_ld
 
     @classmethod
     def _validate_jsonld(cls, json_ld):
@@ -63,16 +73,11 @@ class Representation:
             raise ResourceValidationError(
                 "The JSONLD supplied is not valid (eg missing top level id/@id)"
             )
+
         attr = "id" if "id" in json_ld else "@id"
         if context := json_ld.get("@context"):
             if "@base" in context:
                 b = context["@base"]
-                if json_ld[attr].split(":")[0] in ALLOWED_SCHEMES:
-                    # json_ld has a @base BUT the IDs start with a URI scheme!
-                    # failure!
-                    raise ResourceValidationError(
-                        "JSONLD document has a @base in its context, but the top-level '@id' is a FQDN of some kind."
-                    )
                 if self.base.startswith(b):
                     # Already partially prefixed
                     # add in the container prefix to make it relative to root
@@ -92,20 +97,104 @@ class Representation:
                 json_ld["@context"]["@base"] = self.base
                 self._jsonld = json_ld
         else:
-            attr = "id" if "id" in json_ld else "@id"
-            # just in case, remove the base prefix if it exists
-            json_ld = containerRecursiveCallback(
-                data=json_ld,
-                attr=attr,
-                callback=idUnPrefixer,
-                prefix=self.base,
-                recursive=True,
-            )
-            # json_ld document has no context... hmm odd.
-
+            # in_place changes:
+            prefix_rdf_ids(json_ld, self.relative_container)
             json_ld["@context"] = {"@base": self.base}
             self._jsonld = json_ld
 
 
-def parse_representation(self, request):
-    pass
+def prefix_rdf_ids(
+    data: dict,
+    base_id: str,
+    *,
+    id_keys: Tuple[str, ...] = ("@id", "id"),
+    inplace: bool = False,
+) -> dict:
+    """
+    Prefix all RDF identifiers in a JSON-LD dict with `base_id`, producing relative IRIs.
+    No touching stuff in @context
+
+    Rules
+    -----
+    1) Only string values under keys in `id_keys` (default: '@id', 'id') are modified.
+    2) If an ID already starts with `base_id` (after removing any scheme/host),
+       it is not modified again (no repetition).
+    3) Any scheme/host (e.g., 'https://example.org') is stripped from both the
+       source IDs and the `base_id`.
+    4) IDs become *relative IRIs* (no scheme, no host). Fragments are preserved.
+    5) Blank node identifiers (e.g., '_:b1') are left unchanged.
+    6) '@context' is not traversed or altered.
+
+    eg
+    >>> sample = {
+    ...   "@graph": [
+    ...     {"@id": "https://example.org/items/123"},
+    ...     {"@id": "items/456"},
+    ...     {"@id": "#frag"},
+    ...     {"@id": "_:b1"},
+    ...     {"@id": "/absolute/path"},
+    ...     {"@id": "http://another.host/things?id=1#part"},
+    ...   ],
+    ...   "@context": {
+    ...     "name": "http://schema.org/name"  # left unchanged
+    ...   }
+    ... }
+    >>> out = prefix_rdf_ids(sample, "items/")
+    >>> [n["@id"] for n in out["@graph"]]
+    ['items/123', 'items/456', 'items#frag', '_:b1', 'items/absolute/path', 'items/things?id=1#part']
+    """
+
+    norm_base = strip_scheme_host(base_id.strip())
+
+    def transform_id(value: str) -> str:
+        # Leave blank nodes untouched
+        if value.startswith("_:"):
+            return value
+
+        rel = strip_scheme_host(value.strip())
+
+        # If already starts with the normalized base, do not repeat the prefix.
+        if rel.startswith(norm_base):
+            return rel
+
+        # Join base and the relative part carefully (fragments vs paths)
+        return join_baseid_and_rel(norm_base, rel)
+
+    def walk(node: Any) -> Any:
+        if isinstance(node, dict):
+            # Do not traverse @context
+            items = node.items() if inplace else list(node.items())
+            target = node if inplace else {}
+            for k, v in items:
+                if k == "@context":
+                    # Keep as-is
+                    if not inplace:
+                        target[k] = v
+                    continue
+
+                if k in id_keys and isinstance(v, str):
+                    new_v = transform_id(v)
+                    if inplace:
+                        node[k] = new_v
+                    else:
+                        target[k] = new_v
+                else:
+                    new_v = walk(v)
+                    if inplace:
+                        node[k] = new_v
+                    else:
+                        target[k] = new_v
+            return node if inplace else target
+
+        if isinstance(node, list):
+            if inplace:
+                for i, item in enumerate(node):
+                    node[i] = walk(item)
+                return node
+            else:
+                return [walk(item) for item in node]
+
+        # primitives
+        return node
+
+    return walk(data)

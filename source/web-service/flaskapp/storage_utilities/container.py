@@ -1,3 +1,5 @@
+from __future__ import annotations  # for python 3.10
+
 # Container convenience classes, mostly used when creating, searching for, or autogenerating containers
 from uuid import uuid4
 from flask import current_app

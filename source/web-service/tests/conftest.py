@@ -348,7 +348,7 @@ def ldp_sample_containers(test_db, namespace):
     parent = get_container("/")
 
     for title, desc, ident in [
-        ("Basic Object Container /object/", "Auto-generated container", "/object/"),
+        ("Basic Object Container /object/", "Auto-generated container", "object"),
         (
             "Basic Object Container /document/",
             "Auto-generated container",

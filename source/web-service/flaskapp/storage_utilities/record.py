@@ -54,7 +54,7 @@ def validate_record_set(record_list):
 
 
 # There is no entry with this 'id'. Create a new record
-def record_create(input_rec, commit=False, process_activity=False):
+def record_create(input_rec, commit=False, process_the_activity=False):
     r = Record()
     id_attr = "@id" if "@id" in input_rec else "id"
     entity_id = input_rec[id_attr]
@@ -96,7 +96,7 @@ def record_create(input_rec, commit=False, process_activity=False):
             f"Created {r.entity_id} and added to {parent_container.container_identifier}"
         )
 
-    if process_activity is True:
+    if process_the_activity is True:
         process_activity(entity_id, Event.Create)
 
     if commit is True:
@@ -107,7 +107,7 @@ def record_create(input_rec, commit=False, process_activity=False):
 
 
 # Do not return anything. Calling function has all the info
-def record_update(db_rec, input_rec, commit=False, process_activity=False):
+def record_update(db_rec, input_rec, commit=False, process_the_activity=False):
     if current_app.config["KEEP_LAST_VERSION"] is True:
         # Versioning
         current_app.logger.info(
@@ -157,7 +157,7 @@ def record_update(db_rec, input_rec, commit=False, process_activity=False):
             )
             raise
 
-    if process_activity is True:
+    if process_the_activity is True:
         process_activity(db_rec.entity_id, Event.Update)
 
     if commit is True:
@@ -165,7 +165,7 @@ def record_update(db_rec, input_rec, commit=False, process_activity=False):
 
 
 # Delete record by leaving a stub record (no .data, w/ a datatime_deleted.)
-def record_delete(db_rec, input_rec, commit=False, process_activity=False):
+def record_delete(db_rec, input_rec, commit=False, process_the_activity=False):
     # Versioning
     if current_app.config["KEEP_LAST_VERSION"] is True:
         if current_app.config.get("KEEP_VERSIONS_AFTER_DELETION") is True:
@@ -224,7 +224,7 @@ def record_delete(db_rec, input_rec, commit=False, process_activity=False):
             f"Removed {db_rec.entity_id} from {parent_container.container_identifier}? {removed_from_container}"
         )
 
-    if process_activity is True:
+    if process_the_activity is True:
         process_activity(db_rec.entity_id, Event.Delete)
 
     if commit is True:

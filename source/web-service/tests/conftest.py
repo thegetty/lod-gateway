@@ -97,7 +97,7 @@ def ldp_fixture_app(app_ldpapi, test_db, ldp_sample_containers):
             annotation_id_base="annotations/ml-test/",
             options=options,
         )
-        record_create(doc, process_activity=True)
+        record_create(doc, process_the_activity=True)
     test_db.session.commit()
 
     yield current_app

@@ -9,12 +9,19 @@ from datetime import datetime
 from uuid import uuid4
 
 from flaskapp import create_app
+from flaskapp.utilities import Event
+
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
 
 from flaskapp.storage_utilities.container import get_container
-from flaskapp.utilities import Event
+from flaskapp.storage_utilities.record import (
+    record_create,
+    process_activity,
+)
+
+from .utilities import create_web_annotation, AnnotationOptions, FAKE_MOVIE_ANNOTATIONS
 
 
 @pytest.fixture
@@ -30,6 +37,7 @@ def app_ldpapi(mocker):
     flask_app.config["TESTING"] = True
     flask_app.config["LDP_BACKEND"] = True
     flask_app.config["LDP_API"] = True
+    flask_app.config["LDP_AUTOCREATE_CONTAINERS"] = True
     yield flask_app
 
 
@@ -59,6 +67,38 @@ def current_app_no_rdf(app_no_rdf):
 
 
 @pytest.fixture
+def client_ldpapi(app_ldpapi):
+    testing_client = app_ldpapi.test_client()
+    ctx = app_ldpapi.app_context()
+    ctx.push()
+    yield testing_client  # this is where the testing happens!
+    ctx.pop()
+
+
+@pytest.fixture
+def ldp_fixture_app(app_ldpapi, test_db, ldp_sample_containers):
+    # Add some basic objects. One for the basic containers, and all the annotations into /annotations/ml-test/
+    # for pagination testing.
+    options = AnnotationOptions()
+
+    options.creator = {"name": "Some random person"}
+    options.motivation = "assessing"
+    options.language = "en"
+    for m in FAKE_MOVIE_ANNOTATIONS:
+        doc = create_web_annotation(
+            target=m["target"],
+            target_generator="https://www.imdb.com/",
+            body_string=m["body_string"],
+            annotation_id_base="annotations/ml-test/",
+            options=options,
+        )
+        record_create(doc, process_activity=True)
+    test_db.session.commit()
+
+    yield current_app
+
+
+@pytest.fixture
 def auth_token(current_app):
     yield current_app.config["AUTH_TOKEN"]
 
@@ -79,16 +119,6 @@ def client(app):
     testing_client = app.test_client()
 
     ctx = app.app_context()
-    ctx.push()
-    yield testing_client  # this is where the testing happens!
-    ctx.pop()
-
-
-@pytest.fixture
-def client_ldpapi(app_ldpapi):
-    testing_client = app_ldpapi.test_client()
-
-    ctx = app_ldpapi.app_context()
     ctx.push()
     yield testing_client  # this is where the testing happens!
     ctx.pop()
@@ -306,6 +336,48 @@ def sample_data_with_ids(sample_record_with_ids, sample_activity_with_ids):
     record = sample_record_with_ids()
     activity = sample_activity_with_ids(record.id)
     return {"record": record, "activity": activity}
+
+
+@pytest.fixture
+def ldp_sample_containers(test_db, namespace):
+    parent = get_container("/")
+
+    for title, desc, ident in [
+        ("Basic Object Container /object/", "Auto-generated container", "/object/"),
+        (
+            "Basic Object Container /document/",
+            "Auto-generated container",
+            "/documents/",
+        ),
+        (
+            "Basic Object Container /component/",
+            "Auto-generated container",
+            "/components/",
+        ),
+        (
+            "Basic Object Container /annotations/",
+            "Auto-generated container",
+            "/annotations/",
+        ),
+    ]:
+        parent.new_child_container(
+            ident,
+            dctitle=title,
+            dcdescription=desc,
+            db_dialect=current_app.config["DB_DIALECT"],
+        )
+
+    test_db.session.commit()
+
+    # Setup /annotations/ml-test/ as an example
+    anno = get_container("/annotations/")
+    anno.new_child_container(
+        "/annotations/ml-test/",
+        dctitle="ML test annotation Container",
+        dcdescription="Annotation collections in this container are for test purposes and not ready for public consumption",
+        db_dialect=current_app.config["DB_DIALECT"],
+    )
+    test_db.session.commit()
 
 
 @pytest.fixture(autouse=True)

@@ -271,7 +271,7 @@ def container_record(container_id):
             )
 
         # TODO also listen to that weird Link setting in the request?
-        page_size = request.args.get("page_size", 100)
+        page_size = request.args.get("page_size", current_app.config["LDP_PAGE_SIZE"])
 
         cid = f"/{container_id}"
         try:

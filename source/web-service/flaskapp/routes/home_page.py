@@ -50,7 +50,7 @@ def root_container():
             )
 
         # also listen to that weird Link setting in the requests?
-        page_size = request.args.get("page_size", 100)
+        page_size = request.args.get("page_size", current_app.config["LDP_PAGE_SIZE"])
         # We have a page! return that page of content if possible
         pageresp = get_page_for_container("/", page, page_size)
         ldpheaders = generate_paging_link_headers(

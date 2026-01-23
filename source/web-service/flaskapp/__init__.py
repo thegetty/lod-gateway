@@ -151,6 +151,7 @@ def create_app():
     app.config["LDP_API"] = False
     app.config["LDP_AUTOCREATE_CONTAINERS"] = False
     app.config["LDP_VALIDATE_SLUGS"] = False
+    app.config["LDP_PAGE_SIZE"] = 200
 
     # Set up RDF/Content Profile defaults:
     app.config["USE_PYLD_REFORMAT"] = True
@@ -191,8 +192,16 @@ def create_app():
                 environ.get("LDP_VALIDATE_SLUGS", "False").lower() == "true"
             )
 
+            try:
+                if environ.get("LDP_PAGE_SIZE"):
+                    app.config["LDP_PAGE_SIZE"] = int(environ.get("LDP_PAGE_SIZE"), 200)
+            except ValueError:
+                app.logger.error(
+                    "Environment variable 'LDP_PAGE_SIZE' is not an integer. Defaulting to 200."
+                )
+
             app.logger.info(
-                f"LDP Support: Backend active? {ldp_backend}, LDP API active? {app.config['LDP_API']}, Autocreate Containers on /ingest? {app.config['LDP_AUTOCREATE_CONTAINERS']}"
+                f"LDP Support: Backend active? {ldp_backend}, LDP API active? {app.config['LDP_API']}, Autocreate Containers on /ingest? {app.config['LDP_AUTOCREATE_CONTAINERS']}, Container page size {app.config['LDP_PAGE_SIZE']}"
             )
         elif environ.get("LDP_API", "False").lower() == "true":
             app.logger.error(

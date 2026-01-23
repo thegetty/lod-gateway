@@ -545,7 +545,7 @@ def annotation_options():
     return a
 
 
-@dataclass(frozen=True)
+@dataclass
 class AnnotationOptions:
     """
     Optional parameters to enrich the annotation.

@@ -352,17 +352,17 @@ def ldp_sample_containers(test_db, namespace):
         (
             "Basic Object Container /document/",
             "Auto-generated container",
-            "/documents/",
+            "documents",
         ),
         (
             "Basic Object Container /component/",
             "Auto-generated container",
-            "/components/",
+            "components",
         ),
         (
             "Basic Object Container /annotations/",
             "Auto-generated container",
-            "/annotations/",
+            "annotations",
         ),
     ]:
         parent.new_child_container(
@@ -377,7 +377,7 @@ def ldp_sample_containers(test_db, namespace):
     # Setup /annotations/ml-test/ as an example
     anno = get_container("/annotations/")
     anno.new_child_container(
-        "/annotations/ml-test/",
+        "ml-test",
         dctitle="ML test annotation Container",
         dcdescription="Annotation collections in this container are for test purposes and not ready for public consumption",
         db_dialect="base",

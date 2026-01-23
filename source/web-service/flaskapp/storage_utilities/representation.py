@@ -98,7 +98,7 @@ class Representation:
                 self._jsonld = json_ld
         else:
             # in_place changes:
-            prefix_rdf_ids(json_ld, self.relative_container)
+            prefix_rdf_ids(json_ld, self.base)
             json_ld["@context"] = {"@base": self.base}
             self._jsonld = json_ld
 

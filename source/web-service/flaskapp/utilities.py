@@ -392,7 +392,10 @@ def strip_scheme_host(iri: str) -> str:
     parts = urlsplit(iri)
     if parts.scheme or parts.netloc:
         # Strip scheme and host; keep path, query, fragment.
-        return urlunsplit(("", "", parts.path, parts.query, parts.fragment))
+        relative_uri = urlunsplit(("", "", parts.path, parts.query, parts.fragment))
+        if relative_uri.startswith("/"):
+            return relative_uri[1:]
+        return relative_uri
     return iri
 
 

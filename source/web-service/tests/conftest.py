@@ -369,7 +369,7 @@ def ldp_sample_containers(test_db, namespace):
             ident,
             dctitle=title,
             dcdescription=desc,
-            db_dialect=current_app.config["DB_DIALECT"],
+            db_dialect="base",
         )
 
     test_db.session.commit()
@@ -380,7 +380,7 @@ def ldp_sample_containers(test_db, namespace):
         "/annotations/ml-test/",
         dctitle="ML test annotation Container",
         dcdescription="Annotation collections in this container are for test purposes and not ready for public consumption",
-        db_dialect=current_app.config["DB_DIALECT"],
+        db_dialect="base",
     )
     test_db.session.commit()
 

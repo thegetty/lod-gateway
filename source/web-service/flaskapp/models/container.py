@@ -85,7 +85,7 @@ class LDPContainer(db.Model):
         if "/" in child_slug:
             raise BadContainerSlugError("The child slug identifier cannot contain '/'")
 
-        container_identifier = f"{self.container_identifier}/{child_slug}"
+        container_identifier = f"{self.container_identifier}{child_slug}/"
         if not dctitle:
             dctitle = container_identifier
         child_container = LDPContainer(
@@ -97,6 +97,8 @@ class LDPContainer(db.Model):
         child_container.parent = self
         db.session.add(child_container)
         self.add_to_container(child_container, is_container=True, db_dialect=db_dialect)
+
+        return child_container
 
     # Add a child Record, but do not flush or commit
     def add_to_container(self, item, is_container: bool = False, db_dialect="base"):

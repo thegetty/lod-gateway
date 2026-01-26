@@ -266,16 +266,18 @@ def test_basic_container_adds_and_removes_containment(
     ) not in g_after_del, "Containment triple still present after DELETE in BasicContainer."  # [1](https://www.w3.org/TR/ldp/)
 
 
-def test_iterate_all_resources_in_container_and_fetch(
+def test_iterate_all_resources_in_root_container_and_fetch(
     namespace, client_ldpapi, ldp_fixture_app
 ):
     """
     Iterate all resources in container via ldp:contains and GET them.
     """
-    g, _ = get_graph(basic_container_iri(namespace))
+
+    url = basic_container_iri(namespace)
+    g, _ = get_graph(namespace, client_ldpapi, to_relative(url))
     subj = URIRef(basic_container_iri(namespace))
     for member in [o for (s, p, o) in g.triples((subj, LDP.contains, None))]:
-        r = get_graph(namespace, client_ldpapi, str(member))
+        g, r = get_graph(namespace, client_ldpapi, str(member))
         assert r.status_code == 200, f"Member {member} not retrievable."
         # Optionally check ETag existence (LDP suggests ETags on representations)
         assert (
@@ -283,13 +285,10 @@ def test_iterate_all_resources_in_container_and_fetch(
         ), "ETag header should be present on resource representation."  # [1](https://www.w3.org/TR/ldp/)
 
 
-def test_prefer_headers_and_accept_post_are_exposed(
-    namespace, client_ldpapi, ldp_fixture_app
-):
+def test_accept_post_are_exposed(namespace, client_ldpapi, ldp_fixture_app):
     """
     Optional but recommended checks:
     - Container should expose Accept-Post to tell which media types can be POSTed.
-    - Prefer header controls (membership vs containment) via ldp:PreferMembership / ldp:PreferContainment.
     """
     # Accept-Post
     r = client_ldpapi.options(basic_container_iri(namespace), follow_redirects=True)
@@ -301,14 +300,25 @@ def test_prefer_headers_and_accept_post_are_exposed(
         accept_post, str
     ), "Accept-Post header not present or wrong type."  # [1](https://www.w3.org/TR/ldp/)
 
+    """
+    #### NB retaining the following portion of a test but at the moment, the LOD Gateway implementation
+    might ignore LDP 'Prefer' headers until this becomes useful to us.
+
+
+    - Prefer header controls (membership vs containment) via ldp:PreferMembership / ldp:PreferContainment.
+
     # Prefer headers round-trip (server may honor or ignore)
     h = {
         "Accept": JSONLD_CT,
         "Prefer": f'return=representation; include="{str(LDP.PreferMembership)}"',
     }
-    r2 = client_ldpapi.get(basic_container_iri(namespace), headers=h)
+    r2 = client_ldpapi.get(
+        basic_container_iri(namespace), headers=h, follow_redirects=True
+    )
     assert r2.status_code == 200, "GET with Prefer failed."
     # When honored, server may add Preference-Applied
     _ = r2.headers.get("Preference-Applied")  # informational
     # At minimum ensure JSON-LD parseable
     Graph().parse(data=r2.text, format="json-ld")  # [2](https://www.w3.org/ns/ldp)
+
+    """

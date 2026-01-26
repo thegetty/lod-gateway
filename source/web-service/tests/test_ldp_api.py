@@ -158,7 +158,7 @@ def test_root_container_properties_and_ldp_advertisement(
 
     links = parse_link_header(r.headers.get("Link", ""))
     require_link_type_contains(links, str(LDP.Resource))
-    require_link_type_contains(links, str(LDP.Container))
+    require_link_type_contains(links, str(LDP.BasicContainer))
     # JSON-LD content type already checked in get_graph()
 
 
@@ -166,21 +166,22 @@ def test_ldp_container_advertises_ldp_and_is_jsonld(
     namespace, client_ldpapi, ldp_fixture_app
 ):
     """
-    Validate the endpoint is an LDP Container and returns JSON-LD.
+    Validate the preconfigured containers are LDP Containers and returns JSON-LD.
     - Must advertise LDP via Link rel="type" to ldp#Resource and ldp#Container. (spec 4.2.1.4, containers)  # [1](https://www.w3.org/TR/ldp/)
     """
-    url = basic_container_iri(namespace)
-    r = client_ldpapi.get(to_relative(url), headers={"Accept": JSONLD_CT})
+    for container in ["document", "object", "component", "annotations/ml-test"]:
+        url = to_abs(namespace, f"/{container}/")
+        g, r = get_graph(namespace, client_ldpapi, to_relative(url))
 
-    # Link header(s)
-    links = parse_link_header(r.headers.get("Link", ""))
-    require_link_type_contains(links, str(LDP.Resource))
-    require_link_type_contains(links, str(LDP.Container))
+        # Link header(s)
+        links = parse_link_header(r.headers.get("Link", ""))
+        require_link_type_contains(links, str(LDP.Resource))
+        require_link_type_contains(links, str(LDP.BasicContainer))
 
-    # JSON-LD Content-Type
-    assert JSONLD_CT in r.headers.get(
-        "Content-Type", ""
-    ), "Container did not return JSON-LD."  # [3](https://json-ld.org/)[4](https://en.wikipedia.org/wiki/JSON-LD)
+        # JSON-LD Content-Type
+        assert JSONLD_CT in r.headers.get(
+            "Content-Type", ""
+        ), "Container did not return JSON-LD."  # [3](https://json-ld.org/)[4](https://en.wikipedia.org/wiki/JSON-LD)
 
 
 def test_container_lists_containment_and_iterates_members(
@@ -190,8 +191,10 @@ def test_container_lists_containment_and_iterates_members(
     GET container, read ldp:contains triples, iterate each contained resource.
     Each resource must be retrievable and (if RDF) parseable as JSON-LD.
     """
-    g, _ = get_graph(namespace, client_ldpapi, basic_container_iri(namespace))
-    subj = URIRef(basic_container_iri(namespace))
+
+    annotations = "/annotations/ml-test/"
+    g, _ = get_graph(namespace, client_ldpapi, annotations)
+    subj = URIRef(to_abs(namespace, annotations))
 
     contained = [o for (s, p, o) in g.triples((subj, LDP.contains, None))]
     assert (

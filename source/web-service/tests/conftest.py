@@ -352,12 +352,12 @@ def ldp_sample_containers(test_db, namespace):
         (
             "Basic Object Container /document/",
             "Auto-generated container",
-            "documents",
+            "document",
         ),
         (
             "Basic Object Container /component/",
             "Auto-generated container",
-            "components",
+            "component",
         ),
         (
             "Basic Object Container /annotations/",

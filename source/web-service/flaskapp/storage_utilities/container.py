@@ -206,7 +206,8 @@ def generate_paging_link_headers(
         '<http://www.w3.org/ns/ldp#Resource>; rel="type"',
         '<http://www.w3.org/ns/ldp#BasicContainer>; rel="type"',
         f'<{c_uri}>; rel="canonical"; etag="{container_etag}"',
-        f'<{c_uri}?page=1> rel="first"' f'<{c_uri}?page={pages}> rel="last"',
+        f'<{c_uri}?page=1> rel="first"',
+        f'<{c_uri}?page={pages}> rel="last"',
     ]
     if current_page > 1:
         links.append(f'<{c_uri}?page={current_page - 1}> rel="prev"')

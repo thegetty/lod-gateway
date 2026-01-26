@@ -66,8 +66,7 @@ def get_graph(namespace, client_ldpapi, url: str) -> Graph:
     if not (url.startswith(f"/{namespace}/") or url.startswith(f"{namespace}/")):
         url = f"/{namespace}/{url}"
 
-    print(f"Getting graph: '{url}'")
-    r = client_ldpapi.get(url, follow_redirects=True)
+    r = client_ldpapi.get(url, follow_redirects=True, headers={"Accept": JSONLD_CT})
     assert r.status_code == 200
     assert JSONLD_CT in r.headers.get(
         "Content-Type", ""
@@ -127,7 +126,7 @@ def require_link_type_contains(link_headers: t.List[t.Dict[str, str]], type_uri:
 
 
 def basic_container_iri(namespace) -> str:
-    return to_abs(namespace)
+    return to_abs(namespace, "/")
 
 
 def _is_basic_container(g: Graph, container_url: str) -> bool:
@@ -138,7 +137,7 @@ def _is_basic_container(g: Graph, container_url: str) -> bool:
 # --- Tests ---
 
 
-def test_basic_container_properties_and_ldp_advertisement(
+def test_root_container_properties_and_ldp_advertisement(
     namespace, client_ldpapi, ldp_fixture_app
 ):
     """
@@ -148,6 +147,7 @@ def test_basic_container_properties_and_ldp_advertisement(
     - Returns application/ld+json
     """
     url = basic_container_iri(namespace)
+
     g, r = get_graph(namespace, client_ldpapi, to_relative(url))
 
     if not _is_basic_container(g, url):

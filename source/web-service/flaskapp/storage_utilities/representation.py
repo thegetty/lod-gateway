@@ -192,9 +192,11 @@ def prefix_rdf_ids(
 
     # slug?
     relative_prefix = container_path
+    unprefixer = ""
     if slug:
         # create a new top-level id/@id from the container_path and the slug
         # switch to "container_path/slug" for the prefix
+        unprefixer = f"{container_path.rstrip('/')}/"
         relative_prefix = join_baseid_and_rel(container_path, slug)
         altered = False
         for id_attr in id_keys:
@@ -221,6 +223,11 @@ def prefix_rdf_ids(
         parsed_baseurl = urlparse(rel)
         if bool(parsed_baseurl.scheme):
             return rel
+
+        # slug - unprefixer? eg so that "items/1234" with slug 'slug' turns into 'items/slug/1234'
+        #           instead of 'items/slug/items/1234'
+        if unprefixer:
+            rel = rel.removeprefix(unprefixer)
 
         # Join base and the relative part carefully (fragments vs paths)
         return join_baseid_and_rel(relative_prefix, rel)

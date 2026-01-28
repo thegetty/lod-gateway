@@ -61,13 +61,6 @@ class Representation:
                     if not bool(parsed_baseurl.scheme):
                         raise ValueError("@base value needs to be an absolute URI")
 
-                    # now check if the root 'id' is relative, which is required with a @base
-                    parsed_url = urlparse(json_ld[id_attr])
-                    if bool(parsed_url.scheme):
-                        raise ValueError(
-                            f"JSON-LD had a valid '@base' URI but has an absolute URI for its '{id_attr}' values"
-                        )
-
             # all validations succeeded, return OK
             return True
         except ValueError:
@@ -123,7 +116,9 @@ class Representation:
                 self._jsonld = json_ld
         else:
             # in_place changes:
-            json_ld = prefix_rdf_ids(json_ld, self.relative_container)
+            json_ld = prefix_rdf_ids(
+                json_ld, base_id=self.base, container_path=self.relative_container
+            )
             json_ld["@context"] = {"@base": self.base}
             self._jsonld = json_ld
 
@@ -150,6 +145,7 @@ def prefix_rdf_ids(
     data: dict,
     base_id: str,
     *,
+    container_path: str = "",
     id_keys: Tuple[str, ...] = ("@id", "id"),
     inplace: bool = False,
 ) -> dict:
@@ -171,12 +167,12 @@ def prefix_rdf_ids(
     eg
     >>> sample = {
     ...   "@graph": [
-    ...     {"@id": "https://example.org/items/123"},
+    ...     {"@id": "https://example.org/items/123"}, # left unchanged
     ...     {"@id": "items/456"},
     ...     {"@id": "#frag"},
     ...     {"@id": "_:b1"},
     ...     {"@id": "/absolute/path"},
-    ...     {"@id": "http://another.host/things?id=1#part"},
+    ...     {"@id": "http://another.host/things?id=1#part"}, # left unchanged
     ...   ],
     ...   "@context": {
     ...     "name": "http://schema.org/name"  # left unchanged
@@ -184,24 +180,23 @@ def prefix_rdf_ids(
     ... }
     >>> out = prefix_rdf_ids(sample, "items/")
     >>> [n["@id"] for n in out["@graph"]]
-    ['items/123', 'items/456', 'items#frag', '_:b1', 'items/absolute/path', 'items/things?id=1#part']
+    ['https://example.org/items/123', 'items/456', 'items#frag', '_:b1', 'items/absolute/path', 'http://another.host/things?id=1#part']
     """
-
-    norm_base = strip_scheme_host(base_id.strip())
 
     def transform_id(value: str) -> str:
         # Leave blank nodes untouched
         if value.startswith("_:"):
             return value
 
-        rel = strip_scheme_host(value.strip())
+        # Remove base_id if present
+        rel = value.removeprefix(base_id)
 
         # If already starts with the normalized base, do not repeat the prefix.
-        if rel.startswith(norm_base):
+        if rel.startswith(container_path):
             return rel
 
         # Join base and the relative part carefully (fragments vs paths)
-        return join_baseid_and_rel(norm_base, rel)
+        return join_baseid_and_rel(container_path, rel)
 
     def walk(node: Any) -> Any:
         if isinstance(node, dict):

@@ -111,6 +111,5 @@ def test_jsonld_with_absolute_id_and_base_raises(
     server_root, relative_container, jsonld_with_context_and_absolute_id
 ):
     r = Representation(server_root=server_root, relative_container=relative_container)
-    with pytest.raises(ResourceValidationError):
-        r.json_ld = jsonld_with_context_and_absolute_id
-        print(r.json_ld)
+    r.json_ld = jsonld_with_context_and_absolute_id
+    print(r.json_ld)

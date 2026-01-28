@@ -401,7 +401,7 @@ def strip_scheme_host(iri: str) -> str:
 
 def join_baseid_and_rel(base: str, rel: str) -> str:
     """
-    Join normalized base (scheme/host-free) with a relative IRI `rel`.
+    Join normalized base (path/host-free) with a relative IRI `rel`.
 
     - If rel starts with '#', create a fragment on base: 'base#frag'
     - If base ends with '#', append directly after '#': 'basefrag'

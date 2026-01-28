@@ -322,7 +322,7 @@ def test_matches_provided_example_slug():
     assert [n["@id"] for n in out["@graph"]] == [
         "items/slug-id/123",
         "items/slug-id/456",
-        "itemsslug-id#frag",  # no extra slash before fragment
+        "items/slug-id#frag",  # no extra slash before fragment
         "_:b1",  # blank node unchanged
         "items/slug-id/absolute/path",  # single slash joining
         "http://another.host/things?id=1#part",

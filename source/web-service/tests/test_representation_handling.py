@@ -118,7 +118,9 @@ def test_jsonld_with_absolute_id_and_base_raises(
     r = Representation(server_root=server_root, relative_container=relative_container)
     r.json_ld = jsonld_with_context_and_absolute_id
     print(r.json_ld)
-    assert r.json_ld["@id"] == "resource/789"
+    assert (
+        r.json_ld["@id"] == "http://external.org/resource/789"
+    )  # the external.org is not the base
 
 
 def test_jsonld_with_slug_and_slug_changes(

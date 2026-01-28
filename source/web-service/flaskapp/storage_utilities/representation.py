@@ -195,6 +195,11 @@ def prefix_rdf_ids(
         if rel.startswith(container_path):
             return rel
 
+        # If the id value is an absolute URI for a different host, leave it be
+        parsed_baseurl = urlparse(rel)
+        if bool(parsed_baseurl.scheme):
+            return rel
+
         # Join base and the relative part carefully (fragments vs paths)
         return join_baseid_and_rel(container_path, rel)
 

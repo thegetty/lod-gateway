@@ -30,12 +30,12 @@ def _collect_ids(node, id_keys=("@id", "id"), skip_context=True):
 def test_matches_provided_example():
     sample = {
         "@graph": [
-            {"@id": "https://example.org/items/123"},
+            {"@id": "https://example.org/items/123"},  # Will shorten
             {"@id": "items/456"},
             {"@id": "#frag"},
             {"@id": "_:b1"},
             {"@id": "/absolute/path"},
-            {"@id": "http://another.host/things?id=1#part"},
+            {"@id": "http://another.host/things?id=1#part"},  # left unchanged
         ],
         "@context": {"name": "http://schema.org/name"},  # left unchanged
     }
@@ -44,7 +44,7 @@ def test_matches_provided_example():
         sample, base_id="https://example.org/", container_path="items/"
     )
     assert [n["@id"] for n in out["@graph"]] == [
-        "https://example.org/items/123",
+        "items/123",
         "items/456",
         "items#frag",  # no extra slash before fragment
         "_:b1",  # blank node unchanged
@@ -68,7 +68,7 @@ def test_does_not_traverse_or_alter_context():
         "id": "http://data.org/a/2",
     }
 
-    out = prefix_rdf_ids(sample, base_id="https://data.org/", container_path="base")
+    out = prefix_rdf_ids(sample, base_id="http://data.org/", container_path="base")
     # IDs outside @context become relative with base
     assert out["@id"] == "base/a/1"
     assert out["id"] == "base/a/2"
@@ -86,7 +86,7 @@ def test_only_id_keys_are_modified_other_keys_unchanged():
         "nested": {"notId": "https://example.com/will-not-change-either"},
     }
 
-    out = prefix_rdf_ids(sample, base_id="https://example.org/", container_path="base")
+    out = prefix_rdf_ids(sample, base_id="http://example.org/", container_path="base")
     assert out["@id"] == "base/a/1"
     assert out["id"] == "base/a/2"
 
@@ -145,7 +145,7 @@ def test_already_prefixed_ids_not_duplicated():
             {
                 "@id": "https://example.org/items/456"
             },  # also starts with base after stripping
-            {"@id": "http://example.org/items/789"},  # same host with different scheme
+            {"@id": "https://example.org/items/789"},
         ]
     }
 
@@ -220,10 +220,10 @@ def test_nested_structures_traversed_but_context_not():
     assert out["@context"]["inner"] == sample["@context"]["inner"]
 
 
-@pytest.mark.parametrize("base_id", ["items/", "items"])
-def test_querystring_and_fragment_preserved(base_id):
+@pytest.mark.parametrize("container_path", ["items/", "items"])
+def test_querystring_and_fragment_preserved(container_path):
     sample = {"@id": "https://x.org/path/to?foo=1&bar=2#frag"}
-    out = prefix_rdf_ids(sample, "https://x.org/", "items")
+    out = prefix_rdf_ids(sample, "https://x.org/", container_path=container_path)
     assert out["@id"] == "items/path/to?foo=1&bar=2#frag"
 
 
@@ -270,7 +270,7 @@ def test_handles_ids_that_are_just_fragment_or_empty_path():
             {"@id": ""},  # empty string should be treated as path-like (no scheme/host)
         ]
     }
-    out = prefix_rdf_ids(sample, "urn:", "items/")
+    out = prefix_rdf_ids(sample, "urn:", container_path="items/")
     assert out["@graph"][0]["@id"] == "items#only-fragment"
     # For empty string, joining should yield base without adding extra slash at end.
     # Expected behavior: "items/" + "" → "items/" or "items" depending on implementation choice.

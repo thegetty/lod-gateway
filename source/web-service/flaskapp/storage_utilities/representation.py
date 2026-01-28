@@ -96,7 +96,10 @@ class Representation:
         self._id_attr = attr
         if context := json_ld.get("@context"):
             if b := context.get("@base"):
-                if b.startswith(self.base):
+                # Assume it is already in the right form.
+                if b == self.base:
+                    self._jsonld = json_ld
+                elif b.startswith(self.base):
                     # Already partially prefixed
                     # add in the container prefix to make it relative to root
                     container_prefix = b.removeprefix(self.base)
@@ -104,20 +107,23 @@ class Representation:
                         container_prefix = container_prefix[:-1]
 
                     attr = "id" if "id" in json_ld else "@id"
-                    json_ld = containerRecursiveCallback(
-                        data=json_ld,
-                        attr=attr,
-                        callback=idPrefixer,
-                        prefix=container_prefix,
-                        recursive=True,
+                    json_ld = prefix_rdf_ids(
+                        json_ld,
+                        base_id=self.base,
+                        container_path=container_prefix,
+                        slug=self.slug,
                     )
+
                 # Trust that the json_ld doc *is* already relative as @base is present
                 json_ld["@context"]["@base"] = self.base
                 self._jsonld = json_ld
         else:
             # in_place changes:
             json_ld = prefix_rdf_ids(
-                json_ld, base_id=self.base, container_path=self.relative_container
+                json_ld,
+                base_id=self.base,
+                container_path=self.relative_container,
+                slug=self.slug,
             )
             json_ld["@context"] = {"@base": self.base}
             self._jsonld = json_ld
@@ -146,8 +152,9 @@ def prefix_rdf_ids(
     base_id: str,
     *,
     container_path: str = "",
-    id_keys: Tuple[str, ...] = ("@id", "id"),
+    id_keys: Tuple[str, ...] = ("id", "@id"),
     inplace: bool = False,
+    slug: str = "",
 ) -> dict:
     """
     Prefix all RDF identifiers in a JSON-LD dict with `base_id`, producing relative IRIs.
@@ -183,6 +190,21 @@ def prefix_rdf_ids(
     ['https://example.org/items/123', 'items/456', 'items#frag', '_:b1', 'items/absolute/path', 'http://another.host/things?id=1#part']
     """
 
+    # slug?
+    relative_prefix = container_path
+    if slug:
+        # create a new top-level id/@id from the container_path and the slug
+        # switch to "container_path/slug" for the prefix
+        relative_prefix = join_baseid_and_rel(container_path, slug)
+        altered = False
+        for id_attr in id_keys:
+            if id_attr in data and not altered:
+                data[id_attr] = relative_prefix
+                altered = True
+        if not altered:
+            # add in a top-level id using the first 'id_keys' property
+            data[id_keys[0]] = relative_prefix
+
     def transform_id(value: str) -> str:
         # Leave blank nodes untouched
         if value.startswith("_:"):
@@ -192,7 +214,7 @@ def prefix_rdf_ids(
         rel = value.removeprefix(base_id)
 
         # If already starts with the normalized base, do not repeat the prefix.
-        if rel.startswith(container_path):
+        if rel.startswith(relative_prefix):
             return rel
 
         # If the id value is an absolute URI for a different host, leave it be
@@ -201,7 +223,7 @@ def prefix_rdf_ids(
             return rel
 
         # Join base and the relative part carefully (fragments vs paths)
-        return join_baseid_and_rel(container_path, rel)
+        return join_baseid_and_rel(relative_prefix, rel)
 
     def walk(node: Any) -> Any:
         if isinstance(node, dict):

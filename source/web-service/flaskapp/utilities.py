@@ -417,5 +417,8 @@ def join_baseid_and_rel(base: str, rel: str) -> str:
     if base.endswith("#"):
         return f"{base}{rel.lstrip('#/')}"
 
+    if not base.rstrip("/"):
+        return rel.lstrip("/")
+
     # Otherwise, slash-join for pathy rels (including those starting with '/')
     return f"{base.rstrip('/')}/{rel.lstrip('/')}"

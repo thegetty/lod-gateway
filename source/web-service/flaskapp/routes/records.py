@@ -29,7 +29,7 @@ from flaskapp.utilities import (
 from flaskapp.storage_utilities.record import (
     get_record,
     record_delete,
-    record_add,
+    record_create,
     record_update,
     process_activity,
 )

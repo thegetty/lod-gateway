@@ -35,7 +35,12 @@ def invalid_jsonld_empty_id():
 
 @pytest.fixture
 def jsonld_with_context_and_base():
-    return {"@context": {"@base": "http://example.org/base/"}, "@id": "resource/789"}
+    return {
+        "@context": {"@base": "http://example.org/base/"},
+        "@id": "resource/789",
+        "part_of": {"@id": "resource/789/collection"},
+        "linked_to": {"@id": "resource/900/collection"},
+    }
 
 
 @pytest.fixture
@@ -113,3 +118,17 @@ def test_jsonld_with_absolute_id_and_base_raises(
     r = Representation(server_root=server_root, relative_container=relative_container)
     r.json_ld = jsonld_with_context_and_absolute_id
     print(r.json_ld)
+    assert r.json_ld["@id"] == "resource/789"
+
+
+def test_jsonld_with_slug_and_slug_changes(
+    server_root, relative_container, jsonld_with_context_and_base
+):
+    r = Representation(
+        server_root=server_root, relative_container=relative_container, slug="test-slug"
+    )
+    r.json_ld = jsonld_with_context_and_base
+    print(r.json_ld)
+
+    assert r.json_ld["@id"] == "resource/test-slug"
+    assert r.json_ld["part_of"]["@id"] == "resource/test-slug/collection"

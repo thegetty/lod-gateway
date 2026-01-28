@@ -1,6 +1,7 @@
 from __future__ import annotations  # for python 3.10
 
 import re
+import copy
 
 from urllib.parse import urljoin, urlparse
 
@@ -33,7 +34,6 @@ class Representation:
         self.slug = slug
         self._jsonld = None
         self._original = None
-        self._original_format = None
         self._id_attr = "@id"
 
         if json_ld is not None:
@@ -86,19 +86,35 @@ class Representation:
         return self._jsonld
 
     @json_ld.setter
-    def json_ld(self, json_ld):
+    def json_ld(self, json_ld_input):
+        # do a shallow copy so that changes to the top-level dict won't affect the
+        # supplied dict.
+        json_ld = json_ld_input.copy()
+
         if Representation._validate_jsonld(json_ld) is False:
             raise ResourceValidationError(
                 "The JSONLD supplied is not valid (eg missing top level id/@id)"
             )
 
+        # Now validated, capture the original jsonld with a deep copy, as it can be mutated later
+        self._original = copy.deepcopy(json_ld)
+
         attr = "id" if "id" in json_ld else "@id"
         self._id_attr = attr
         if context := json_ld.get("@context"):
             if b := context.get("@base"):
-                # Assume it is already in the right form.
                 if b == self.base:
+                    # Assume it is already in the right form.
+                    if self.slug:
+                        json_ld = prefix_rdf_ids(
+                            json_ld,
+                            base_id=self.base,
+                            container_path=self.relative_container,
+                            slug=self.slug,
+                            id_keys=[self._id_attr],
+                        )
                     self._jsonld = json_ld
+                    return
                 elif b.startswith(self.base):
                     # Already partially prefixed
                     # add in the container prefix to make it relative to root
@@ -106,27 +122,48 @@ class Representation:
                     if container_prefix.endswith("/"):
                         container_prefix = container_prefix[:-1]
 
-                    attr = "id" if "id" in json_ld else "@id"
                     json_ld = prefix_rdf_ids(
                         json_ld,
                         base_id=self.base,
                         container_path=container_prefix,
                         slug=self.slug,
+                        id_keys=[self._id_attr],
                     )
+                    self._jsonld = json_ld
+                    return
+                else:
+                    # Trust that the json_ld doc *is* already relative as @base is present
+                    json_ld["@context"]["@base"] = self.base
+                    json_ld = prefix_rdf_ids(
+                        json_ld,
+                        base_id=self.base,
+                        container_path=self.relative_container,
+                        slug=self.slug,
+                        id_keys=[self._id_attr],
+                    )
+                    self._jsonld = json_ld
+                    return
 
-                # Trust that the json_ld doc *is* already relative as @base is present
-                json_ld["@context"]["@base"] = self.base
-                self._jsonld = json_ld
-        else:
-            # in_place changes:
-            json_ld = prefix_rdf_ids(
-                json_ld,
-                base_id=self.base,
-                container_path=self.relative_container,
-                slug=self.slug,
-            )
-            json_ld["@context"] = {"@base": self.base}
-            self._jsonld = json_ld
+        # in_place changes:
+        json_ld = prefix_rdf_ids(
+            json_ld,
+            base_id=self.base,
+            container_path=self.relative_container,
+            slug=self.slug,
+            id_keys=[self._id_attr],
+        )
+        json_ld["@context"] = {"@base": self.base}
+        self._jsonld = json_ld
+
+    @property
+    def slug_id(self):
+        return self.slug
+
+    @slug_id.setter
+    def slug_id(self, slug_id):
+        self.slug = slug_id
+        # set the json_ld back to the original request version, and rebase
+        self.json_ld = self._original
 
 
 def parse_representation(server_root, relative_container, request):
@@ -201,6 +238,8 @@ def prefix_rdf_ids(
         altered = False
         for id_attr in id_keys:
             if id_attr in data and not altered:
+                # capture the original id value to replace with the new slug-id prefix
+                unprefixer = data.get(id_attr, unprefixer)
                 data[id_attr] = relative_prefix
                 altered = True
         if not altered:
@@ -215,22 +254,24 @@ def prefix_rdf_ids(
         # Remove base_id if present
         rel = value.removeprefix(base_id)
 
-        # If already starts with the normalized base, do not repeat the prefix.
-        if rel.startswith(relative_prefix):
-            return rel
-
         # If the id value is an absolute URI for a different host, leave it be
         parsed_baseurl = urlparse(rel)
         if bool(parsed_baseurl.scheme):
             return rel
 
         # slug - unprefixer? eg so that "items/1234" with slug 'slug' turns into 'items/slug/1234'
-        #           instead of 'items/slug/items/1234'
-        if unprefixer:
+        #        instead of 'items/slug/items/1234' but 'items/999' stays as 'items/999'
+        if unprefixer and rel.startswith(unprefixer):
             rel = rel.removeprefix(unprefixer)
+            # Join base and the relative part carefully (fragments vs paths)
+            return join_baseid_and_rel(relative_prefix, rel)
 
-        # Join base and the relative part carefully (fragments vs paths)
-        return join_baseid_and_rel(relative_prefix, rel)
+        # If already starts with the normalized base, do not repeat the prefix.
+        if rel.startswith(container_path):
+            return rel
+
+        # Not an id 'owned' by this named graph but still relative, rebase it as expected without a slug.
+        return join_baseid_and_rel(container_path, rel)
 
     def walk(node: Any) -> Any:
         if isinstance(node, dict):

@@ -2,7 +2,7 @@ from __future__ import annotations  # for python 3.10
 
 import re
 
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from typing import Any, Tuple
 
@@ -11,35 +11,30 @@ from flaskapp.utilities import strip_scheme_host, join_baseid_and_rel
 from flaskapp.utilities import (
     containerRecursiveCallback,
     idPrefixer,
-    idUnPrefixer,
-    ALLOWED_SCHEMES,
-    quads_to_triples,
-    graph_filter,
-    strip_scheme_host,
-    join_baseid_and_rel,
 )
 
 from flaskapp.errors import ResourceValidationError
 
-from flaskapp.conneg import reformat_to_jsonld
-
-from flaskapp.base_graph_utils import base_graph_filter, get_url_prefixes_from_context
-from flaskapp.graph_prefix_bindings import get_bound_graph
-
 validid = re.compile(r"^[A-z0-9-._~:@!$'()*+,;=\/\[\]]+\Z")
+LDP_URI = "http://www.w3.org/ns/ldp#"
 
 
 class Representation:
     "A class to hold the parsed representation of the entity that was POST/PUT/PATCHed to the service."
 
-    def __init__(self, server_root, relative_container, json_ld=None):
+    def __init__(self, server_root, relative_container, slug=None, json_ld=None):
         # Base really is the critical parameter here - all the 'id's will be made relative to that after all
         # in most/all cases it will be the root container of the LOD Gateway
-        self.base = urljoin(server_root, relative_container)
+
+        # Base should be the root address, including service namespace (eg https://data.getty.edu/research/collection/)
+        # relative_container should be the container relative URI (eg 'object/')
+        self.base = server_root
         self.relative_container = relative_container
-        self._json_ld = None
+        self.slug = slug
+        self._jsonld = None
         self._original = None
         self._original_format = None
+        self._id_attr = "@id"
 
         if json_ld is not None:
             # Should trigger the property.setter 'json_ld'
@@ -58,10 +53,40 @@ class Representation:
             if not validid.match(json_ld[id_attr]):
                 return False
 
+            # context @base and absolute id == Nope
+            if "@context" in json_ld and isinstance(json_ld["@context"], dict):
+                if baseurl := json_ld["@context"].get("@base"):
+                    # First, if base is present, make sure it is absolute:
+                    parsed_baseurl = urlparse(baseurl)
+                    if not bool(parsed_baseurl.scheme):
+                        raise ValueError("@base value needs to be an absolute URI")
+
+                    # now check if the root 'id' is relative, which is required with a @base
+                    parsed_url = urlparse(json_ld[id_attr])
+                    if bool(parsed_url.scheme):
+                        raise ValueError(
+                            f"JSON-LD had a valid '@base' URI but has an absolute URI for its '{id_attr}' values"
+                        )
+
             # all validations succeeded, return OK
             return True
         except ValueError:
             return False
+
+    @property
+    def is_basic_container(self):
+        if not self._jsonld:
+            return False
+
+        # default absolute, find prefix if exists
+        prefix = LDP_URI
+        if "@context" in self._jsonld:
+            for k, v in self._jsonld["@context"].items():
+                if v == LDP_URI:
+                    prefix = f"{k}:"
+
+        # is ldp:BasicContainer part of the top-level 'type' property value, or property list?
+        return f"{prefix}BasicContainer" in self._jsonld.get("type", "")
 
     @property
     def json_ld(self):
@@ -75,10 +100,10 @@ class Representation:
             )
 
         attr = "id" if "id" in json_ld else "@id"
+        self._id_attr = attr
         if context := json_ld.get("@context"):
-            if "@base" in context:
-                b = context["@base"]
-                if self.base.startswith(b):
+            if b := context.get("@base"):
+                if b.startswith(self.base):
                     # Already partially prefixed
                     # add in the container prefix to make it relative to root
                     container_prefix = b.removeprefix(self.base)
@@ -98,15 +123,27 @@ class Representation:
                 self._jsonld = json_ld
         else:
             # in_place changes:
-            prefix_rdf_ids(json_ld, self.base)
+            json_ld = prefix_rdf_ids(json_ld, self.relative_container)
             json_ld["@context"] = {"@base": self.base}
             self._jsonld = json_ld
 
 
-def parse_representation(request):
+def parse_representation(server_root, relative_container, request):
     # check for valid JSON-LD
     # rebase, and return Representation
-    pass
+    # capture the Slug header if present, even though the rebase does not take that into account yet.
+    if request.headers["Content-Type"] == "application/ld+json":
+        # Slug?
+        slug = request.headers.get("Slug") or None
+        r = Representation(
+            server_root=server_root, relative_container=relative_container, slug=slug
+        )
+        r.json_ld = request.get_json()
+        return r
+    else:
+        raise ResourceValidationError(
+            "Only application/ld+json Content-Type is acceptable"
+        )
 
 
 def prefix_rdf_ids(

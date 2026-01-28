@@ -5,12 +5,12 @@ from flaskapp.errors import ResourceValidationError
 
 @pytest.fixture
 def server_root():
-    return "http://example.org/"
+    return "http://example.org/base/"
 
 
 @pytest.fixture
 def relative_container():
-    return "base/"
+    return "resource"
 
 
 @pytest.fixture
@@ -36,6 +36,14 @@ def invalid_jsonld_empty_id():
 @pytest.fixture
 def jsonld_with_context_and_base():
     return {"@context": {"@base": "http://example.org/base/"}, "@id": "resource/789"}
+
+
+@pytest.fixture
+def jsonld_with_absolute_uris():
+    return {
+        "@id": "http://example.org/base/resource/789",
+        "part_of": {"@id": "http://example.org/base/resource/789/collection"},
+    }
 
 
 @pytest.fixture
@@ -84,6 +92,19 @@ def test_jsonld_with_context_and_base(
     r = Representation(server_root=server_root, relative_container=relative_container)
     r.json_ld = jsonld_with_context_and_base
     assert r.json_ld["@context"]["@base"] == "http://example.org/base/"
+    # the id should be unchanged
+    assert r.json_ld["@id"] == "resource/789"
+
+
+def test_jsonld_with_absolute_uris(
+    server_root, relative_container, jsonld_with_absolute_uris
+):
+    r = Representation(server_root=server_root, relative_container=relative_container)
+    r.json_ld = jsonld_with_absolute_uris
+    assert r.json_ld["@context"]["@base"] == "http://example.org/base/"
+    # the ids should be rebased:
+    assert r.json_ld["@id"] == "resource/789"
+    assert r.json_ld["part_of"]["@id"] == "resource/789/collection"
 
 
 def test_jsonld_with_absolute_id_and_base_raises(

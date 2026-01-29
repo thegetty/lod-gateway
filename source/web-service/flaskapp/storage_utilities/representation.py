@@ -291,6 +291,7 @@ def prefix_rdf_ids(
                 altered = True
         if not altered:
             # add in a top-level id using the first 'id_keys' property
+            unprefixer = relative_prefix
             data[id_keys[0]] = relative_prefix
 
         print(relative_prefix, unprefixer)

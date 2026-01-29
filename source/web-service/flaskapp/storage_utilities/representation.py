@@ -32,6 +32,7 @@ class Representation:
         self._id_attr = "@id"
         self._title = None
         self._description = None
+        self._toplevelid = None
 
         if json_ld is not None:
             # Should trigger the property.setter 'json_ld'
@@ -59,7 +60,10 @@ class Representation:
             if not validid.match(json_ld[id_attr]):
                 return False
 
-            # context @base and absolute id == Nope
+            # cache the id:
+            self._toplevelid = json_ld[id_attr]
+
+            # context @base has to be valid if present too
             if "@context" in json_ld and isinstance(json_ld["@context"], dict):
                 if baseurl := json_ld["@context"].get("@base"):
                     # First, if base is present, make sure it is absolute:
@@ -68,15 +72,12 @@ class Representation:
                         raise ValueError("@base value needs to be an absolute URI")
 
             # all validations succeeded, return OK
-            return True
+            return json_ld[id_attr]
         except ValueError:
             return False
 
     def has_top_level_id(self):
-        if not Representation._has_top_level_id(self.json_ld):
-            raise ResourceValidationError("No top-level id present.")
-        else:
-            return True
+        return Representation._has_top_level_id(self.json_ld)
 
     @property
     def is_basic_container(self):

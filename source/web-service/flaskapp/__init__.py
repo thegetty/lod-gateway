@@ -30,6 +30,7 @@ from flaskapp.models.record import Record
 from flaskapp.models.container import LDPContainer, LDPContainerContents
 from flaskapp import local_thesaurus
 from flaskapp.base_graph_utils import base_graph_filter, document_loader
+from flaskapp.ldp_id_generation import LDP_ID_GEN_OPTIONS
 
 from gettysparqlpatterns import PatternSet, NoPatternsFoundError
 
@@ -152,6 +153,8 @@ def create_app():
     app.config["LDP_AUTOCREATE_CONTAINERS"] = False
     app.config["LDP_VALIDATE_SLUGS"] = False
     app.config["LDP_PAGE_SIZE"] = 200
+    # default ID generator:
+    app.config["LDP_ID_GEN"] = LDP_ID_GEN_OPTIONS["uuid"]
 
     # Set up RDF/Content Profile defaults:
     app.config["USE_PYLD_REFORMAT"] = True
@@ -203,6 +206,12 @@ def create_app():
             app.logger.info(
                 f"LDP Support: Backend active? {ldp_backend}, LDP API active? {app.config['LDP_API']}, Autocreate Containers on /ingest? {app.config['LDP_AUTOCREATE_CONTAINERS']}, Container page size {app.config['LDP_PAGE_SIZE']}"
             )
+
+            if id_gen := environ.get("LDP_ID_GEN"):
+                if id_gen in LDP_ID_GEN_OPTIONS:
+                    # use a specific method for generating IDs for unlabelled POSTed JSON-LD
+                    app.config["LDP_ID_GEN"] = LDP_ID_GEN_OPTIONS[id_gen]
+
         elif environ.get("LDP_API", "False").lower() == "true":
             app.logger.error(
                 "LDP_API was set to True BUT LDP_BACKEND was not. LDP_API will NOT BE ACTIVE!"

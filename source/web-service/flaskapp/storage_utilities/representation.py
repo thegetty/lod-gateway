@@ -32,7 +32,6 @@ class Representation:
         self._id_attr = "@id"
         self._title = None
         self._description = None
-        self._toplevelid = None
 
         if json_ld is not None:
             # Should trigger the property.setter 'json_ld'
@@ -59,9 +58,6 @@ class Representation:
 
             if not validid.match(json_ld[id_attr]):
                 return False
-
-            # cache the id:
-            self._toplevelid = json_ld[id_attr]
 
             # context @base has to be valid if present too
             if "@context" in json_ld and isinstance(json_ld["@context"], dict):

@@ -93,7 +93,9 @@ class Representation:
                     prefix = f"{k}:"
 
         # is ldp:BasicContainer part of the top-level 'type' property value, or property list?
-        return f"{prefix}BasicContainer" in self._jsonld.get("type", "")
+        return f"{prefix}BasicContainer" in self._jsonld.get(
+            "@type", self._jsonld.get("type", "")
+        )
 
     @property
     def json_ld(self):

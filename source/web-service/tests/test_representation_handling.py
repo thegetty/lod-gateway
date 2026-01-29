@@ -94,11 +94,16 @@ def test_validate_jsonld_valid_at_id(valid_jsonld_with_at_id):
 
 
 def test_validate_jsonld_missing_id(invalid_jsonld_missing_id):
-    assert Representation._validate_jsonld(invalid_jsonld_missing_id) is False
+    assert (
+        Representation._validate_jsonld(invalid_jsonld_missing_id) is True
+    )  # valid JSON-LD
+
+    assert Representation._has_top_level_id(invalid_jsonld_missing_id) is False
 
 
 def test_validate_jsonld_empty_id(invalid_jsonld_empty_id):
-    assert Representation._validate_jsonld(invalid_jsonld_empty_id) is False
+    assert Representation._validate_jsonld(invalid_jsonld_empty_id) is True
+    assert Representation._has_top_level_id(invalid_jsonld_empty_id) is False
 
 
 def test_jsonld_setter_valid_jsonld_sets_context(
@@ -115,7 +120,7 @@ def test_jsonld_setter_invalid_jsonld_raises(
     r = Representation(server_root=server_root, relative_container=relative_container)
     with pytest.raises(ResourceValidationError):
         r.json_ld = invalid_jsonld_missing_id
-        r.has_top_level_id
+        r.has_top_level_id()
 
 
 def test_jsonld_with_context_and_base(
@@ -177,7 +182,7 @@ def test_jsonld_container(
     r.json_ld = jsonld_basic_container_fqdn_dctermstitle
     print(r.json_ld)
 
-    assert r.is_basic_container()
+    assert r.is_basic_container() is True
     assert r.json_ld["@id"] == "resource/annotations"
     assert r.title == "Test Title"
     assert r.description == ""
@@ -194,7 +199,7 @@ def test_jsonld_container_prefixed_dcterms(
     r.json_ld = jsonld_basic_container_prefix_dctermstitle
     print(r.json_ld)
 
-    assert r.is_basic_container()
+    assert r.is_basic_container() is True
     assert r.json_ld["@id"] == "resource/annotations"
     assert r.title == "Test Title"
     assert r.description == "Test Description"

@@ -49,8 +49,7 @@ class Representation:
             return False
 
     @classmethod
-    def has_top_level_id(self):
-        json_ld = self.json_ld
+    def _has_top_level_id(cls, json_ld):
         try:
             # return 'id_missing' if no 'id' present
             id_attr = "@id" if "@id" in json_ld.keys() else "id"
@@ -73,7 +72,13 @@ class Representation:
             # all validations succeeded, return OK
             return True
         except ValueError:
+            return False
+
+    def has_top_level_id(self):
+        if not Representation._has_top_level_id(self.json_ld):
             raise ResourceValidationError("No top-level id present.")
+        else:
+            return True
 
     @property
     def is_basic_container(self):

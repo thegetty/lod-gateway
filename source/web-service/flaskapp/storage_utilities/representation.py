@@ -3,18 +3,15 @@ from __future__ import annotations  # for python 3.10
 import re
 import copy
 
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 from typing import Any, Tuple
 
-from flaskapp.utilities import strip_scheme_host, join_baseid_and_rel
-
-from flaskapp.utilities import (
-    containerRecursiveCallback,
-    idPrefixer,
-)
+from flaskapp.utilities import join_baseid_and_rel
 
 from flaskapp.errors import ResourceValidationError
+
+from pyld import jsonld
 
 validid = re.compile(r"^[A-z0-9-._~:@!$'()*+,;=\/\[\]]+\Z")
 LDP_URI = "http://www.w3.org/ns/ldp#"
@@ -35,6 +32,8 @@ class Representation:
         self._jsonld = None
         self._original = None
         self._id_attr = "@id"
+        self._title = None
+        self._description = None
 
         if json_ld is not None:
             # Should trigger the property.setter 'json_ld'
@@ -98,6 +97,9 @@ class Representation:
 
         # Now validated, capture the original jsonld with a deep copy, as it can be mutated later
         self._original = copy.deepcopy(json_ld)
+
+        # reset title and description
+        self._title = self._description = None
 
         attr = "id" if "id" in json_ld else "@id"
         self._id_attr = attr
@@ -164,6 +166,33 @@ class Representation:
         self.slug = slug_id
         # set the json_ld back to the original request version, and rebase
         self.json_ld = self._original
+
+    @property
+    def title(self):
+        if self._title is not None:
+            return self._title
+        else:
+            self.get_dcterms(self)
+            return self._title
+
+    @property
+    def description(self):
+        if self._description is not None:
+            return self._description
+        else:
+            self.get_dcterms(self)
+            return self._description
+
+    def get_dcterms(self):
+        self._title = self._description = ""
+        expanded = jsonld.expand(self.jsonld)
+
+        for k, v in expanded.items():
+            match k:
+                case "http://purl.org/dc/terms/title":
+                    self._title = v
+                case "http://purl.org/dc/terms/description":
+                    self._description = v
 
 
 def parse_representation(server_root, relative_container, request):

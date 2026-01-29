@@ -59,6 +59,32 @@ def jsonld_with_context_and_absolute_id():
     }
 
 
+@pytest.fixture
+def jsonld_basic_container_fqdn_dctermstitle():
+    return {
+        "@context": {
+            "@base": "http://example.org/base/",
+            "ldp": "http://www.w3.org/ns/ldp#",
+        },
+        "@type": ["ldp:BasicContainer", "ldp:Resource"],
+        "http://purl.org/dc/terms/title": "Test Container",
+    }
+
+
+@pytest.fixture
+def jsonld_basic_container_prefix_dctermstitle():
+    return {
+        "@context": {
+            "@base": "http://example.org/base/",
+            "ldp": "http://www.w3.org/ns/ldp#",
+            "dc": "http://purl.org/dc/terms/",
+        },
+        "@type": ["ldp:BasicContainer", "ldp:Resource"],
+        "dc:title": "Test Container",
+        "dc:description": "Test Description",
+    }
+
+
 def test_validate_jsonld_valid_id(valid_jsonld_with_id):
     assert Representation._validate_jsonld(valid_jsonld_with_id) is True
 
@@ -134,3 +160,40 @@ def test_jsonld_with_slug_and_slug_changes(
 
     assert r.json_ld["@id"] == "resource/test-slug"
     assert r.json_ld["part_of"]["@id"] == "resource/test-slug/collection"
+
+
+# Containers
+
+
+def test_jsonld_container(
+    server_root, relative_container, jsonld_basic_container_fqdn_dctermstitle
+):
+    r = Representation(
+        server_root=server_root,
+        relative_container=relative_container,
+        slug="annotations",
+    )
+    r.json_ld = jsonld_basic_container_fqdn_dctermstitle
+    print(r.json_ld)
+
+    assert r.is_basic_container()
+    assert r.json_ld["@id"] == "resource/annotations"
+    assert r.title == "Test Title"
+    assert r.description == ""
+
+
+def test_jsonld_container_prefixed_dcterms(
+    server_root, relative_container, jsonld_basic_container_prefix_dctermstitle
+):
+    r = Representation(
+        server_root=server_root,
+        relative_container=relative_container,
+        slug="annotations",
+    )
+    r.json_ld = jsonld_basic_container_prefix_dctermstitle
+    print(r.json_ld)
+
+    assert r.is_basic_container()
+    assert r.json_ld["@id"] == "resource/annotations"
+    assert r.title == "Test Title"
+    assert r.description == "Test Description"

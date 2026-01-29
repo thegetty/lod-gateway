@@ -302,16 +302,19 @@ def test_id_keys_inside_context_are_not_touched_even_if_present():
 def test_matches_provided_example_slug():
     sample = {
         "@graph": [
-            {"@id": "https://example.org/items/123"},  # Will shorten
-            {"@id": "items/456"},
-            {"@id": "#frag"},
+            {"@id": "https://example.org/items/780"},  # Will shorten
+            {"@id": "items/780/anno/456"},
+            {"@id": "#frag"},  # not actually in the 'items' graph => no slug
+            {"@id": "items#frag"},
             {"@id": "_:b1"},
-            {"@id": "/absolute/path"},
+            {"@id": "items/780/absolute/path"},
             {"@id": "http://another.host/things?id=1#part"},  # left unchanged
         ],
-        "@context": {"name": "http://schema.org/name"},  # left unchanged
+        "@id": "items/780",
+        "@context": {"name": "http://schema.org/name"},  # left unchanged, no base
     }
 
+    # resource being POSTed to /items container, with suggested slug of 'slug-id':
     out = prefix_rdf_ids(
         sample,
         base_id="https://example.org/",
@@ -320,9 +323,9 @@ def test_matches_provided_example_slug():
         id_keys=["@id"],
     )
     assert [n["@id"] for n in out["@graph"]] == [
-        "items/slug-id/123",
-        "items/slug-id/456",
-        "items/slug-id#frag",  # no extra slash before fragment
+        "items/slug-id",
+        "items/slug-id/anno/456",
+        "items#frag",  # no extra slash before fragment
         "_:b1",  # blank node unchanged
         "items/slug-id/absolute/path",  # single slash joining
         "http://another.host/things?id=1#part",

@@ -272,13 +272,14 @@ def prefix_rdf_ids(
     """
 
     # slug?
-    relative_prefix = container_path
+    relative_prefix = container_path.rstrip("/")
     unprefixer = ""
     if slug:
         # create a new top-level id/@id from the container_path and the slug
         # switch to "container_path/slug" for the prefix
         unprefixer = f"{container_path.rstrip('/')}/"
-        relative_prefix = join_baseid_and_rel(container_path, slug)
+        relative_prefix = join_baseid_and_rel(container_path, slug).rstrip("/")
+
         altered = False
         for id_attr in id_keys:
             if id_attr in data and not altered:
@@ -289,6 +290,8 @@ def prefix_rdf_ids(
         if not altered:
             # add in a top-level id using the first 'id_keys' property
             data[id_keys[0]] = relative_prefix
+
+        print(relative_prefix, unprefixer)
 
     def transform_id(value: str) -> str:
         # Leave blank nodes untouched
@@ -308,7 +311,7 @@ def prefix_rdf_ids(
         if unprefixer and rel.startswith(unprefixer):
             rel = rel.removeprefix(unprefixer)
             # Join base and the relative part carefully (fragments vs paths)
-            return join_baseid_and_rel(relative_prefix, rel)
+            return join_baseid_and_rel(relative_prefix, rel).rstrip("/")
 
         # If already starts with the normalized base, do not repeat the prefix.
         if rel.startswith(container_path):

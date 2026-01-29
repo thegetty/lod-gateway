@@ -182,7 +182,7 @@ def test_jsonld_container(
     r.json_ld = jsonld_basic_container_fqdn_dctermstitle
     print(r.json_ld)
 
-    assert r.is_basic_container() is True
+    assert r.is_basic_container is True
     assert r.json_ld["@id"] == "resource/annotations"
     assert r.title == "Test Title"
     assert r.description == ""
@@ -199,7 +199,7 @@ def test_jsonld_container_prefixed_dcterms(
     r.json_ld = jsonld_basic_container_prefix_dctermstitle
     print(r.json_ld)
 
-    assert r.is_basic_container() is True
+    assert r.is_basic_container is True
     assert r.json_ld["@id"] == "resource/annotations"
     assert r.title == "Test Title"
     assert r.description == "Test Description"

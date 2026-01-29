@@ -215,5 +215,6 @@ def generate_paging_link_headers(
         links.append(f'<{c_uri}?page={current_page + 1}> rel="next"')
 
     headers["Link"] = ",".join(links)
+    headers["Location"] = c_uri
 
     return headers

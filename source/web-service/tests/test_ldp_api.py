@@ -220,7 +220,7 @@ def test_basic_container_adds_and_removes_containment(
       - <container> ldp:contains <created>
     Then DELETE it and verify the containment triple is removed.
     """
-    url = to_abs(namespace, "object")
+    url = to_abs(namespace, "object/")
     g, _ = get_graph(namespace, client_ldpapi, to_relative(url))
 
     if not _is_basic_container(g, url):

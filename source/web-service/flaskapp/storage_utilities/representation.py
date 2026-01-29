@@ -4,14 +4,12 @@ import re
 import copy
 
 from urllib.parse import urlparse
-
 from typing import Any, Tuple
+from pyld import jsonld as pyjsonld
 
 from flaskapp.utilities import join_baseid_and_rel
-
 from flaskapp.errors import ResourceValidationError
 
-from pyld import jsonld
 
 validid = re.compile(r"^[A-z0-9-._~:@!$'()*+,;=\/\[\]]+\Z")
 LDP_URI = "http://www.w3.org/ns/ldp#"
@@ -43,9 +41,9 @@ class Representation:
     def _validate_jsonld(cls, json_ld):
         try:
             # Expand the JSON-LD to check for syntax/structure compliance
-            jsonld.expand(json_ld)
+            pyjsonld.expand(json_ld)
             return True
-        except jsonld.JsonLdError:
+        except pyjsonld.JsonLdError:
             return False
 
     @classmethod
@@ -189,7 +187,7 @@ class Representation:
         if self._title is not None:
             return self._title
         else:
-            self.get_dcterms(self)
+            self.get_dcterms()
             return self._title
 
     @property
@@ -197,19 +195,23 @@ class Representation:
         if self._description is not None:
             return self._description
         else:
-            self.get_dcterms(self)
+            self.get_dcterms()
             return self._description
 
     def get_dcterms(self):
         self._title = self._description = ""
-        expanded = jsonld.expand(self.jsonld)
+        expanded = pyjsonld.expand(self.json_ld)
 
-        for k, v in expanded.items():
-            match k:
-                case "http://purl.org/dc/terms/title":
-                    self._title = v
-                case "http://purl.org/dc/terms/description":
-                    self._description = v
+        def _get_value(d):
+            return next((x.get("@value") for x in d if "@value" in x), "")
+
+        for graph in expanded:
+            for k, v in graph.items():
+                match k:
+                    case "http://purl.org/dc/terms/title":
+                        self._title = _get_value(v)
+                    case "http://purl.org/dc/terms/description":
+                        self._description = _get_value(v)
 
 
 def parse_representation(server_root, relative_container, request):
@@ -279,7 +281,7 @@ def prefix_rdf_ids(
     if slug:
         # create a new top-level id/@id from the container_path and the slug
         # switch to "container_path/slug" for the prefix
-        unprefixer = f"{container_path.rstrip('/')}/"
+        unprefixer = f""
         relative_prefix = join_baseid_and_rel(container_path, slug).rstrip("/")
 
         altered = False

@@ -115,6 +115,7 @@ def test_jsonld_setter_invalid_jsonld_raises(
     r = Representation(server_root=server_root, relative_container=relative_container)
     with pytest.raises(ResourceValidationError):
         r.json_ld = invalid_jsonld_missing_id
+        r.has_top_level_id
 
 
 def test_jsonld_with_context_and_base(

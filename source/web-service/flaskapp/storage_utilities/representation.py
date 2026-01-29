@@ -42,6 +42,16 @@ class Representation:
     @classmethod
     def _validate_jsonld(cls, json_ld):
         try:
+            # Expand the JSON-LD to check for syntax/structure compliance
+            jsonld.expand(json_ld)
+            return True
+        except jsonld.JsonLdError:
+            return False
+
+    @classmethod
+    def has_top_level_id(self):
+        json_ld = self.json_ld
+        try:
             # return 'id_missing' if no 'id' present
             id_attr = "@id" if "@id" in json_ld.keys() else "id"
 
@@ -63,7 +73,7 @@ class Representation:
             # all validations succeeded, return OK
             return True
         except ValueError:
-            return False
+            raise ResourceValidationError("No top-level id present.")
 
     @property
     def is_basic_container(self):

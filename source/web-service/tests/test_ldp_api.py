@@ -220,7 +220,7 @@ def test_basic_container_adds_and_removes_containment(
       - <container> ldp:contains <created>
     Then DELETE it and verify the containment triple is removed.
     """
-    url = basic_container_iri(namespace)
+    url = to_abs(namespace, "object")
     g, _ = get_graph(namespace, client_ldpapi, to_relative(url))
 
     if not _is_basic_container(g, url):
@@ -235,7 +235,7 @@ def test_basic_container_adds_and_removes_containment(
         "dcterms:title": "pytest-created child of BasicContainer",
     }
     r = _post_jsonld(
-        namespace, client_ldpapi, auth_token, url, body, slug="pytest-basic-child"
+        namespace, client_ldpapi, auth_token, "object/", body, slug="pytest-basic-child"
     )
     created_res = r.headers["Location"]
     created_ref = URIRef(created_res)

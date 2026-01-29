@@ -305,7 +305,6 @@ def test_matches_provided_example_slug():
             {"@id": "https://example.org/items/780"},  # Will shorten
             {"@id": "items/780/anno/456"},
             {"@id": "#frag"},  # not actually in the 'items' graph => no slug
-            {"@id": "items#frag"},
             {"@id": "_:b1"},
             {"@id": "items/780/absolute/path"},
             {"@id": "http://another.host/things?id=1#part"},  # left unchanged

@@ -56,7 +56,7 @@ from flaskapp.errors import (
     status_not_implemented,
     ResourceValidationError,
 )
-from flaskapp.utilities import checksum_json, authenticate_bearer
+from flaskapp.utilities import checksum_json, authenticate_bearer, squish_dict
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
 
 
@@ -287,6 +287,9 @@ def container_record(container_id):
 
         try:
             # We have a page! return that page of content if possible
+            current_app.logger.info(
+                f"Attempting to get representation for page {page} of container {cid}"
+            )
             pageresp = get_page_for_container(cid, page, page_size)
         except NoLDPContainerFoundError as e:
             # Can't find the container. Pass to record.entity_record? Fail?
@@ -378,7 +381,9 @@ def container_post_item(entity_id):
     # Valid JSON-LD? Fail if not with a HTTP 422 Wrong Syntax
     try:
         posted_representation = parse_representation(
-            current_app.config["BASE_URL"], container_breadcrumbs[-2], request
+            f'{current_app.config["idPrefix"]}/',
+            container_breadcrumbs[-1].strip("/"),
+            request,
         )
         current_app.logger.debug(
             "POSTed JSON parsed as JSON-LD and rebased to the URI given."
@@ -411,13 +416,13 @@ def container_post_item(entity_id):
         .filter(Record.entity_id == entity_id)
         .options(defer(Record.data))
         .limit(1)
-        .first()
+        .one_or_none()
     )
 
     if record:
         # Cannot POST things to a Record
         current_app.logger.error(
-            f"Request failed - Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer"
+            "Request failed - Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer"
         )
         response = construct_error_response(
             status_nt(
@@ -433,6 +438,8 @@ def container_post_item(entity_id):
     if not cid.endswith("/"):
         cid += "/"
 
+    current_app.logger.info(f"Checking if '{cid}' is a valid container to POST to")
+
     if c := get_container(cid, optimistic=True):
         # Check if the posted JSON-LD is a ldp:BasicContainer, and update if sensible
         # otherwise, HTTP 409
@@ -441,7 +448,7 @@ def container_post_item(entity_id):
         # if the POSTed JSON-LD has no top-level id, assign one
         identifier = posted_representation.has_top_level_id()
         if identifier is False:
-            posted_representation.slug = current_app.config["LDP_ID_GEN"]()
+            posted_representation.slug_id = current_app.config["LDP_ID_GEN"]()
             identifier = posted_representation.has_top_level_id()
             current_app.logger.info(
                 f"Generated {identifier} identifier for POSTed JSON-LD to {cid}"
@@ -475,13 +482,19 @@ def container_post_item(entity_id):
                 )
                 abort(response)
             else:
-                parent.new_child_container(
-                    new_container_id,
+                # get just the last path 'slug' for this child container
+                container_slug_id = identifier.strip("/").split("/")[-1]
+                c.new_child_container(
+                    container_slug_id,
                     dctitle=posted_representation.title,
                     dcdescription=posted_representation.description,
                     db_dialect=current_app.config["DB_DIALECT"],
                 )
                 db.session.commit()
+
+                current_app.logger.info(
+                    f"Successfully created new ldp:BasicContainer at {identifier}"
+                )
                 # respond with newly created page
                 response = container_record(new_container_id)
                 response.status_code = 201
@@ -495,7 +508,7 @@ def container_post_item(entity_id):
                 .filter(Record.entity_id == identifier)
                 .options(defer(Record.data))
                 .limit(1)
-                .first()
+                .one_or_none()
             )
             if existing:
                 current_app.logger.error(
@@ -520,7 +533,9 @@ def container_post_item(entity_id):
                 )
 
                 ldpheaders = {
-                    "Location": urljoin(current_app.config["idPrefix"], identifier),
+                    "Location": urljoin(
+                        current_app.config["idPrefix"].rstrip("/") + "/", identifier
+                    ),
                     "Content-Type": "application/ld+json",
                 }
                 return jsonify(posted_representation.json_ld), 201, ldpheaders
@@ -619,8 +634,8 @@ def entity_record(entity_id):
         # IF LDP API, add in that this is a http://www.w3.org/ns/ldp#Resource to HTTP headers
         if current_app.config["LDP_API"]:
             # Adding in LDP boilerplate
-            link_headers = link_headers + (
-                '<http://www.w3.org/ns/ldp#Resource>; rel="type"',
+            link_headers = (
+                basic_link_headers + ', <http://www.w3.org/ns/ldp#Resource>; rel="type"'
             )
 
         # The Content Profile Link headers should be added if this is a L2, it is confirmed that there is data, and what object it is.
@@ -640,7 +655,7 @@ def entity_record(entity_id):
             )
             if prev is not None:
                 link_headers = (
-                    basic_link_headers
+                    link_headers
                     + f', <{hostPrefix}{ url_for("records.entity_version", entity_id=prev.entity_id) }>; rel="previous"'
                 )
 
@@ -766,6 +781,7 @@ def entity_record(entity_id):
                 current_app.logger.debug(
                     f"{entity_id} - PREFIXING IDs to absolute URIs STARTED at timecode {time.perf_counter() - profile_time}"
                 )
+
                 recursive = (
                     False if prefixRecordIDs == "TOP" else True
                 )  # recursive by default
@@ -786,10 +802,22 @@ def entity_record(entity_id):
                     urlprefixes=urlprefixes,
                 )
 
+                # Removing @base, if present
                 if context := data.get("@context"):
-                    # id's have been prefixed, so remove the @base if it exists in the context
-                    if "@base" in data["@context"]:
-                        del data["@context"]["@base"]
+                    if isinstance(context, dict):
+                        if "@base" in context:
+                            del context["@base"]
+                    elif isinstance(context, list):
+                        for x in context:
+                            if isinstance(x, dict) and "@base" in x:
+                                del x["@base"]
+
+                    # Now, flatten the context if needed, removing empty lists, dicts
+                    if flattened_context := squish_dict(context):
+                        data["@context"] = flattened_context
+                    else:
+                        # Nothing in @context now?
+                        del data["@context"]
 
                 current_app.logger.debug(
                     f"{entity_id} - PREFIXING IDs to absolute URIs ENDED at timecode {time.perf_counter() - profile_time}"
@@ -805,13 +833,19 @@ def entity_record(entity_id):
                 content_type = "application/ld+json;charset=UTF-8"
 
                 # Link headers, setting json-ld as the canonical
-                link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="application/ld+json") }>;rel="canonical";type="application/ld+json"'
+                link_headers = (
+                    link_headers
+                    + f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="application/ld+json") }>;rel="canonical";type="application/ld+json"'
+                )
                 # Add possible profiles:
                 if record.entity_type in current_app.config["CONTENT_PROFILE_PATTERNS"]:
                     for profile in current_app.config["CONTENT_PROFILE_PATTERNS"][
                         record.entity_type
                     ]:
-                        link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="text/turtle", _profile=profile.profile_uri) }>;rel="alternate";type="text/turtle";format="{profile.profile_uri}"'
+                        link_headers = (
+                            link_headers
+                            + f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="text/turtle", _profile=profile.profile_uri) }>;rel="alternate";type="text/turtle";format="{profile.profile_uri}"'
+                        )
 
                 # Check for bad format requests, only if prefixed
                 if unprefixed is False and not desired.get("accepted_mimetypes"):
@@ -880,7 +914,10 @@ def entity_record(entity_id):
                                         etag = None
                                         data, content_type, profile = profiled_data
                                         # add yet another link header to say that this resource conforms to the given profile:
-                                        link_headers += f', <{profile}>;rel="profile"'
+                                        link_headers = (
+                                            link_headers
+                                            + f', <{profile}>;rel="profile"'
+                                        )
                                 else:
                                     current_app.logger.debug(
                                         "Requested profile is not supported."
@@ -1011,54 +1048,62 @@ def delete(id):
     current_app.logger.debug("Authentication checked - DELETE request allowed.")
 
     # Get record from DB
-    db_rec = get_record(id)
+    db_resp = get_record(id)
 
     # No such record or a stub record
-    if db_rec is None or (db_rec.data is None and db_rec.checksum is None):
-        response = construct_error_response(status_record_not_found)
-        abort(response)
+    match db_resp:
+        case {"record": db_rec}:
+            if db_rec is None or (db_rec.data is None and db_rec.checksum is None):
+                response = construct_error_response(status_record_not_found)
+                abort(response)
 
-    # Process DELETE
-    with db.session.no_autoflush:
-        try:
-            current_app.logger.debug(f"Starting delete process on {id}")
+            # Process DELETE
+            with db.session.no_autoflush:
+                try:
+                    current_app.logger.debug(f"Starting delete process on {id}")
 
-            process_activity(db_rec.id, Event.Delete)
-            record_delete(db_rec, None)
+                    process_activity(db_rec.id, Event.Delete)
+                    record_delete(db_rec, None)
 
-            # Process RDF if applicable
-            if current_app.config["PROCESS_RDF"] is True:
-                full_uri = f"{current_app.config['RDFidPrefix']}/{id}"
-                current_app.logger.debug(
-                    f"Attempting to delete {full_uri} from graphstore"
-                )
+                    # Process RDF if applicable
+                    if current_app.config["PROCESS_RDF"] is True:
+                        full_uri = f"{current_app.config['RDFidPrefix']}/{id}"
+                        current_app.logger.debug(
+                            f"Attempting to delete {full_uri} from graphstore"
+                        )
 
-                graphstore_result = graph_delete(
-                    full_uri,
-                    current_app.config["SPARQL_QUERY_ENDPOINT"],
-                    current_app.config["SPARQL_UPDATE_ENDPOINT"],
-                    current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
-                )
+                        graphstore_result = graph_delete(
+                            full_uri,
+                            current_app.config["SPARQL_QUERY_ENDPOINT"],
+                            current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                            current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+                        )
 
-                # if RDF process fails, roll back and return graph store specific error
-                if graphstore_result is not True:
-                    current_app.logger.error(
-                        "Error occurred processing DELETE in graph store. Rolling back."
+                        # if RDF process fails, roll back and return graph store specific error
+                        if graphstore_result is not True:
+                            current_app.logger.error(
+                                "Error occurred processing DELETE in graph store. Rolling back."
+                            )
+                            db.session.rollback()
+
+                            abort(construct_error_response(status_graphstore_error))
+
+                    db.session.commit()
+
+                # Catch only OperationalError exception (e.g. DB is down)
+                except exc.OperationalError as e:
+                    current_app.logger.error(e)
+                    current_app.logger.critical(
+                        f"DB Failure when attempting to delete {id}"
                     )
                     db.session.rollback()
+                    abort(construct_error_response(status_db_save_error))
 
-                    abort(construct_error_response(status_graphstore_error))
-
-            db.session.commit()
-
-        # Catch only OperationalError exception (e.g. DB is down)
-        except exc.OperationalError as e:
-            current_app.logger.error(e)
-            current_app.logger.critical(f"DB Failure when attempting to delete {id}")
-            db.session.rollback()
-            abort(construct_error_response(status_db_save_error))
-
-    return "", 204
+            return "", 204
+        case {"container": container_obj}:
+            # Deleting a container is not implmented yet.
+            response = construct_error_response(status_not_implemented)
+            abort(response)
 
 
 # old version of a record

@@ -193,7 +193,9 @@ def generate_paging_link_headers(
     container_identifier, total, current_page, pages, has_next
 ):
 
-    c_uri = urljoin(current_app.config["idPrefix"], container_identifier)
+    c_uri = urljoin(
+        current_app.config["idPrefix"].rstrip("/") + "/", container_identifier
+    )
     if not c_uri.endswith("/"):
         c_uri = c_uri + "/"
 

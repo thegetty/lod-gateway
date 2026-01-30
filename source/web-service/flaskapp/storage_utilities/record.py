@@ -97,7 +97,7 @@ def record_create(input_rec, commit=False, process_the_activity=False):
         )
 
     if process_the_activity is True:
-        process_activity(entity_id, Event.Create)
+        process_activity(r.id, Event.Create)
 
     if commit is True:
         db.session.commit()
@@ -158,7 +158,7 @@ def record_update(db_rec, input_rec, commit=False, process_the_activity=False):
             raise
 
     if process_the_activity is True:
-        process_activity(db_rec.entity_id, Event.Update)
+        process_activity(db_rec.id, Event.Update)
 
     if commit is True:
         db.session.commit()
@@ -225,7 +225,7 @@ def record_delete(db_rec, input_rec, commit=False, process_the_activity=False):
         )
 
     if process_the_activity is True:
-        process_activity(db_rec.entity_id, Event.Delete)
+        process_activity(db_rec.id, Event.Delete)
 
     if commit is True:
         db.session.commit()

@@ -422,3 +422,57 @@ def join_baseid_and_rel(base: str, rel: str) -> str:
 
     # Otherwise, slash-join for pathy rels (including those starting with '/')
     return f"{base.rstrip('/')}/{rel.lstrip('/')}"
+
+
+_DEADBEEF = object()
+
+
+def _prune_and_unwrap_singleton_lists(obj):
+    """
+    Deep-copy `obj` while:
+      - Removing empty dict/list containers recursively
+      - Removing dict keys / list items that prune away
+      - Unwrapping lists of length 1 to their single element (after pruning)
+
+    Returns:
+      - The pruned/transformed object
+    """
+    # Dict handling
+    if isinstance(obj, dict):
+        if not obj:
+            return _DEADBEEF
+
+        new = {}
+        for k, v in obj.items():
+            pv = _prune_and_unwrap_singleton_lists(v)
+            if pv is not _DEADBEEF:
+                new[k] = pv
+
+        return new if new else _DEADBEEF
+
+    # List handling
+    if isinstance(obj, list):
+        if not obj:
+            return _DEADBEEF
+
+        new_items = []
+        for item in obj:
+            pi = _prune_and_unwrap_singleton_lists(item)
+            if pi is not _DEADBEEF:
+                new_items.append(pi)
+
+        # After pruning, decide what to do with the list
+        if not new_items:
+            return _DEADBEEF
+        if len(new_items) == 1:
+            # unwrap singleton list
+            return new_items[0]
+        return new_items
+
+    # Base case: strings and other primitives/objects kept as-is
+    return obj
+
+
+def squish_dict(obj, default=None):
+    out = _prune_and_unwrap_singleton_lists(obj)
+    return default if out is _DEADBEEF else out

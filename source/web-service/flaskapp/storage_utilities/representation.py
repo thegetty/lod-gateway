@@ -83,9 +83,16 @@ class Representation:
         # default absolute, find prefix if exists
         prefix = LDP_URI
         if "@context" in self._jsonld:
-            for k, v in self._jsonld["@context"].items():
-                if v == LDP_URI:
-                    prefix = f"{k}:"
+            if isinstance(self._jsonld["@context"], dict):
+                for k, v in self._jsonld["@context"].items():
+                    if v == LDP_URI:
+                        prefix = f"{k}:"
+            elif isinstance(self._jsonld["@context"], list):
+                for context_block in self._jsonld["@context"]:
+                    if isinstance(context_block, dict):
+                        for k, v in context_block.items():
+                            if v == LDP_URI:
+                                prefix = f"{k}:"
 
         # is ldp:BasicContainer part of the top-level 'type' property value, or property list?
         return f"{prefix}BasicContainer" in self._jsonld.get(
@@ -116,7 +123,10 @@ class Representation:
         attr = "id" if "id" in json_ld else "@id"
         self._id_attr = attr
         if context := json_ld.get("@context"):
-            if b := context.get("@base"):
+            if isinstance(context, str):
+                # TODO deal with dereferencable contexts
+                pass
+            elif b := context.get("@base"):
                 if b == self.base:
                     # Assume it is already in the right form.
                     if self.slug:
@@ -166,7 +176,14 @@ class Representation:
             slug=self.slug,
             id_keys=[self._id_attr],
         )
-        json_ld["@context"] = {"@base": self.base}
+        if "@context" in json_ld:
+            if isinstance(json_ld["@context"], str):
+                json_ld["@context"] = [json_ld["@context"], {"@base": self.base}]
+            elif isinstance(json_ld["@context"], dict):
+                json_ld["@context"]["@base"] = self.base
+        else:
+            json_ld["@context"] = {"@base": self.base}
+
         self._jsonld = json_ld
 
     @property
@@ -292,8 +309,6 @@ def prefix_rdf_ids(
             # add in a top-level id using the first 'id_keys' property
             unprefixer = relative_prefix
             data[id_keys[0]] = relative_prefix
-
-        print(relative_prefix, unprefixer)
 
     def transform_id(value: str) -> str:
         # Leave blank nodes untouched

@@ -181,7 +181,7 @@ class LDPContainer(db.Model):
         container = self.as_jsonld(base)
 
         # Add the memberlist to the container representation
-        container["contains"] = [x.to_ldp() for x in items]
+        container["ldp:contains"] = [x.to_ldp() for x in items]
 
         return {
             "total": total,
@@ -207,7 +207,6 @@ class LDPContainer(db.Model):
             "@context": [
                 {
                     "ldp": "http://www.w3.org/ns/ldp#",
-                    "contains": {"@reverse": "ldp:member"},
                     "dcterm": "http://purl.org/dc/terms/",
                     "@base": base,
                 },

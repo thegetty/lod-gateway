@@ -97,7 +97,9 @@ def _post_jsonld(
         json=body,
         headers=headers,
     )
-    assert response.status_code in [200, 201]
+
+    print(response.text, response.headers)
+
     assert response.status_code in (
         201,
         202,

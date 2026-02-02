@@ -385,8 +385,8 @@ def container_post_item(entity_id):
             container_breadcrumbs[-1].strip("/"),
             request,
         )
-        current_app.logger.debug(
-            "POSTed JSON parsed as JSON-LD and rebased to the URI given."
+        current_app.logger.info(
+            f"POSTed JSON parsed as JSON-LD and rebased to: {posted_representation.has_top_level_id()}"
         )
     except ResourceValidationError:
         current_app.logger.debug(str(ResourceValidationError))

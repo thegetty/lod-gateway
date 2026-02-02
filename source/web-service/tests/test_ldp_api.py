@@ -83,9 +83,18 @@ def _post_jsonld(
     headers = {"Content-Type": JSONLD_CT, "Authorization": "Bearer " + auth_token}
     if slug:
         headers["Slug"] = slug  # server may honor slug for resource naming
+
+    if not (
+        container_url.startswith(f"/{namespace}/")
+        or container_url.startswith(f"{namespace}/")
+    ):
+        container_url = f"/{namespace}/{container_url}"
+
+    container_url = container_url.rstrip("/") + "/"
+
     response = client_ldpapi.post(
         f"/{namespace}/{container_url}",
-        data=body,
+        json=body,
         headers=headers,
     )
     assert response.status_code in [200, 201]

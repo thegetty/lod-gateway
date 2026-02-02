@@ -18,7 +18,7 @@ JSONLD_CT = "application/ld+json"
 
 
 BASIC_BNODE_ANNO = {
-    "@context": "http://www.w3.org/ns/anno.jsonld",
+    "@context": "https://www.w3.org/ns/anno.jsonld",
     "type": "Annotation",
     "body": {
         "type": "TextualBody",
@@ -29,7 +29,7 @@ BASIC_BNODE_ANNO = {
 }
 
 BASIC_ID_ANNO = {
-    "@context": ["http://www.w3.org/ns/anno.jsonld", {"@base": "urn:"}],
+    "@context": ["https://www.w3.org/ns/anno.jsonld", {"@base": "urn:"}],
     "type": "AnnotationCollection",
     "id": "this",
     "first": [

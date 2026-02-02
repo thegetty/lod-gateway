@@ -38,7 +38,7 @@ class Representation:
         self.slug = slug
         self._jsonld = None
         self._original = None
-        self._id_attr = "@id"
+        self.id_attr = "@id"
         self._title = None
         self._description = None
 
@@ -52,7 +52,8 @@ class Representation:
             # Expand the JSON-LD to check for syntax/structure compliance
             pyjsonld.expand(json_ld)
             return True
-        except pyjsonld.JsonLdError:
+        except pyjsonld.JsonLdError as e:
+            print(str(e))
             return False
 
     @classmethod
@@ -120,7 +121,7 @@ class Representation:
 
         if Representation._validate_jsonld(json_ld) is False:
             raise ResourceValidationError(
-                "The JSONLD supplied is not valid (eg missing top level id/@id)"
+                "The JSONLD supplied is not valid and could not be expanded"
             )
 
         # Now validated, capture the original jsonld with a deep copy, as it can be mutated later
@@ -130,7 +131,7 @@ class Representation:
         self._title = self._description = None
 
         attr = "id" if "id" in json_ld else "@id"
-        self._id_attr = attr
+        self.id_attr = attr
         if context := json_ld.get("@context"):
             if isinstance(context, str):
                 # TODO deal with dereferencable contexts
@@ -144,7 +145,7 @@ class Representation:
                             base_id=self.base,
                             container_path=self.relative_container,
                             slug=self.slug,
-                            prefer_id=self._id_attr,
+                            prefer_id=self.id_attr,
                         )
                     self._jsonld = json_ld
                     return
@@ -160,7 +161,7 @@ class Representation:
                         base_id=self.base,
                         container_path=container_prefix,
                         slug=self.slug,
-                        prefer_id=self._id_attr,
+                        prefer_id=self.id_attr,
                     )
                     self._jsonld = json_ld
                     return
@@ -179,7 +180,7 @@ class Representation:
                         base_id=self.base,
                         container_path=self.relative_container,
                         slug=self.slug,
-                        prefer_id=self._id_attr,
+                        prefer_id=self.id_attr,
                     )
                     self._jsonld = json_ld
                     return
@@ -190,7 +191,7 @@ class Representation:
             base_id=self.base,
             container_path=self.relative_container,
             slug=self.slug,
-            prefer_id=self._id_attr,
+            prefer_id=self.id_attr,
         )
         if "@context" in json_ld:
             if isinstance(json_ld["@context"], str):

@@ -32,10 +32,14 @@ from flaskapp.storage_utilities.record import (
     get_record,
     record_delete,
     record_create,
-    record_update,
     process_activity,
 )
-from flaskapp.storage_utilities.graph import graph_delete
+from flaskapp.storage_utilities.graph import (
+    graph_delete,
+    graph_replace,
+    graph_expand,
+    inflate_relative_uris,
+)
 from flaskapp.storage_utilities.container import (
     get_page_for_container,
     generate_paging_link_headers,
@@ -524,22 +528,54 @@ def container_post_item(entity_id):
                 )
                 abort(response)
             else:
-                record_id = record_create(
-                    posted_representation.json_ld,
-                    commit=True,
-                    process_the_activity=True,
-                )
-                current_app.logger.info(
-                    f"Created new Record {record_id} for '{identifier}' and as part of '{c.container_identifier}'"
-                )
+                with db.session.no_autoflush:
+                    record_id = record_create(
+                        posted_representation.json_ld,
+                        commit=False,
+                        process_the_activity=True,
+                    )
 
-                ldpheaders = {
-                    "Location": urljoin(
-                        current_app.config["idPrefix"].rstrip("/") + "/", identifier
-                    ),
-                    "Content-Type": "application/ld+json",
-                }
-                return jsonify(posted_representation.json_ld), 201, ldpheaders
+                    prefixed_jsonld = inflate_relative_uris(
+                        posted_representation.json_ld, posted_representation.id_attr
+                    )
+
+                    if expanded := graph_expand(prefixed_jsonld):
+                        graph_uri = prefixed_jsonld[posted_representation.id_attr]
+                        updated_graph = graph_replace(
+                            graph_uri,
+                            expanded,
+                            current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                            current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+                        )
+                        if updated_graph is False:
+                            # Failed to process this as a graph:
+                            db.session.rollback()
+                            status_nt(
+                                422,
+                                "Graph expansion error",
+                                "Could not convert JSON-LD to RDF, id " + graph_uri,
+                            )
+
+                        db.session.commit()
+                        current_app.logger.info(
+                            f"Created new Record {record_id} for '{identifier}' and as part of '{c.container_identifier}'"
+                        )
+
+                        ldpheaders = {
+                            "Location": urljoin(
+                                current_app.config["idPrefix"].rstrip("/") + "/",
+                                identifier,
+                            ),
+                            "Content-Type": "application/ld+json",
+                        }
+                        return jsonify(posted_representation.json_ld), 201, ldpheaders
+                    else:
+                        db.session.rollback()
+                        status_nt(
+                            422,
+                            "Graph expansion error",
+                            "Could not expand JSON-LD to RDF",
+                        )
 
     else:
         current_app.logger.error(

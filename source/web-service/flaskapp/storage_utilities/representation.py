@@ -15,6 +15,15 @@ validid = re.compile(r"^[A-z0-9-._~:@!$'()*+,;=\/\[\]]+\Z")
 LDP_URI = "http://www.w3.org/ns/ldp#"
 
 
+def _get_base_from(context):
+    if isinstance(context, dict):
+        return context.get("@base")
+    elif isinstance(context, list):
+        for x in context:
+            if b := _get_base_from(x):
+                return b
+
+
 class Representation:
     "A class to hold the parsed representation of the entity that was POST/PUT/PATCHed to the service."
 
@@ -126,7 +135,7 @@ class Representation:
             if isinstance(context, str):
                 # TODO deal with dereferencable contexts
                 pass
-            elif b := context.get("@base"):
+            if b := _get_base_from(context):
                 if b == self.base:
                     # Assume it is already in the right form.
                     if self.slug:
@@ -135,7 +144,6 @@ class Representation:
                             base_id=self.base,
                             container_path=self.relative_container,
                             slug=self.slug,
-                            id_keys=[self._id_attr],
                         )
                     self._jsonld = json_ld
                     return
@@ -151,19 +159,24 @@ class Representation:
                         base_id=self.base,
                         container_path=container_prefix,
                         slug=self.slug,
-                        id_keys=[self._id_attr],
                     )
                     self._jsonld = json_ld
                     return
                 else:
                     # Trust that the json_ld doc *is* already relative as @base is present
-                    json_ld["@context"]["@base"] = self.base
+                    if isinstance(json_ld["@context"], dict):
+                        json_ld["@context"]["@base"] = self.base
+                    elif isinstance(json_ld["@context"], list):
+                        for x in json_ld["@context"]:
+                            if isinstance(x, dict) and "@base" in x:
+                                x["@base"] = self.base
+                                break
+
                     json_ld = prefix_rdf_ids(
                         json_ld,
                         base_id=self.base,
                         container_path=self.relative_container,
                         slug=self.slug,
-                        id_keys=[self._id_attr],
                     )
                     self._jsonld = json_ld
                     return
@@ -251,7 +264,7 @@ def prefix_rdf_ids(
     base_id: str,
     *,
     container_path: str = "",
-    id_keys: Tuple[str, ...] = ("id", "@id"),
+    id_keys: Tuple[str, ...] = ("@id", "id"),
     inplace: bool = False,
     slug: str = "",
 ) -> dict:

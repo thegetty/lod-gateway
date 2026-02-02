@@ -17,6 +17,45 @@ BASE_URL = "http://localhost:5100/"
 JSONLD_CT = "application/ld+json"
 
 
+BASIC_BNODE_ANNO = {
+    "@context": "http://www.w3.org/ns/anno.jsonld",
+    "type": "Annotation",
+    "body": {
+        "type": "TextualBody",
+        "value": "I like this page!",
+        "format": "text/plain",
+    },
+    "target": "http://www.example.com/index.html",
+}
+
+BASIC_BNODE_ANNO = {
+    "@context": ["http://www.w3.org/ns/anno.jsonld", {"@base": "urn:"}],
+    "type": "AnnotationCollection",
+    "first": [
+        {
+            "id": "1",
+            "body": {
+                "id": "http://some/aat/classification",
+            },
+            "target": "http://www.example.com/irises.jpg",
+            "agent": {
+                "type": "Software",
+                "name": "Unique name for the ML classification service and version",
+            },
+        },
+        {
+            "id": "2",
+            "body": {
+                "type": "TextualBody",
+                "value": "A collection of flowers",
+                "format": "text/plain",
+            },
+            "target": "http://www.example.com/irises.jpg",
+        },
+    ],
+}
+
+
 def to_abs(namespace, url: str) -> str:
     base = BASE_URL
     if namespace:

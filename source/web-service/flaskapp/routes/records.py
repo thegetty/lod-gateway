@@ -1099,10 +1099,14 @@ def delete(id):
                     db.session.rollback()
                     abort(construct_error_response(status_db_save_error))
 
-            return "", 204
+            return f"{id} deleted", 204
         case {"container": container_obj}:
             # Deleting a container is not implmented yet.
             response = construct_error_response(status_not_implemented)
+            abort(response)
+        case None:
+            current_app.logger.error(f"No such resource at {id}")
+            response = construct_error_response(status_record_not_found)
             abort(response)
 
 

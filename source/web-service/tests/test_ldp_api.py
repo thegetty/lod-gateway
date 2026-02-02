@@ -6,6 +6,7 @@ from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import RDF
 import urllib.parse as urlparse
 
+from random import choice
 
 # LDP & common namespaces
 LDP = Namespace("http://www.w3.org/ns/ldp#")
@@ -98,8 +99,6 @@ def _post_jsonld(
         headers=headers,
     )
 
-    print(response.text, response.headers)
-
     assert response.status_code in (
         201,
         202,
@@ -115,10 +114,14 @@ def _post_jsonld(
 
 def delete_resource(namespace, client_ldpapi, auth_token, url: str):
     """DELETE with auth."""
+    if not (url.startswith(f"/{namespace}/") or url.startswith(f"{namespace}/")):
+        url = f"/{namespace}/{url}"
+
     response = client_ldpapi.delete(
-        f"/{namespace}/{url}",
+        url,
         headers={"Authorization": "Bearer " + auth_token},
     )
+    print(response.text, response.headers, response.status_code)
     assert response.status_code == 200
 
     assert JSONLD_CT in response.headers.get(
@@ -287,7 +290,9 @@ def test_iterate_all_resources_in_root_container_and_fetch(
     url = basic_container_iri(namespace)
     g, _ = get_graph(namespace, client_ldpapi, to_relative(url))
     subj = URIRef(basic_container_iri(namespace))
-    for member in [o for (s, p, o) in g.triples((subj, LDP.contains, None))]:
+    contains = [o for (s, p, o) in g.triples((subj, LDP.contains, None))]
+    for _ in range(3):
+        member = choice(contains)
         g, r = get_graph(namespace, client_ldpapi, str(member))
         assert r.status_code == 200, f"Member {member} not retrievable."
         # Optionally check ETag existence (LDP suggests ETags on representations)

@@ -93,7 +93,7 @@ def _post_jsonld(
     container_url = container_url.rstrip("/") + "/"
 
     response = client_ldpapi.post(
-        f"/{namespace}/{container_url}",
+        container_url,
         json=body,
         headers=headers,
     )

@@ -336,6 +336,7 @@ def container_record(container_id):
 
 
 @records.route("/<path:entity_id>/", methods=["POST"])
+@records.route("/", methods=["POST"], defaults={"entity_id": "/"})
 def container_post_item(entity_id):
     # Could be a resource or a container being POSTed to a target URI which has to be an existing container
     # Behavior will be as LDP states:
@@ -389,7 +390,7 @@ def container_post_item(entity_id):
             f"POSTed JSON parsed as JSON-LD and rebased to: {posted_representation.has_top_level_id()}"
         )
     except ResourceValidationError:
-        current_app.logger.debug(str(ResourceValidationError))
+        current_app.logger.error(str(ResourceValidationError))
         response = construct_error_response(status_wrong_syntax)
         abort(response)
 

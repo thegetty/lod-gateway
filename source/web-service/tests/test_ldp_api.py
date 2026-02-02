@@ -384,7 +384,7 @@ def test_assign_ids_to_toplevel_bnode_w_slug(
         namespace,
         client_ldpapi,
         auth_token,
-        "annotations/",
+        "object/",
         BASIC_BNODE_ANNO,
         slug="pytest-basic-bnode_anno",
     )
@@ -412,8 +412,8 @@ def test_assign_ids_annotationcollection_w_slug_and_id_pref(
         namespace,
         client_ldpapi,
         auth_token,
-        "annotations/",
-        BASIC_ID_ANNO,
+        container_url="object/",
+        body=BASIC_ID_ANNO,
         slug=slug,
     )
     assert r.status_code == 201

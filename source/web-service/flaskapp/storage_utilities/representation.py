@@ -307,6 +307,8 @@ def prefix_rdf_ids(
     """
 
     # The JSON-LD may have a preference for a form of the '@id' property, eg if it has been aliased in the context.
+    # Make a mutable version of what is passed (as the default value should not be mutable)
+    id_keys = list(id_keys)
     if prefer_id:
         if prefer_id in id_keys:
             # Move the preferred key property to the first position

@@ -413,7 +413,7 @@ def test_assign_ids_annotationcollection_w_slug_and_id_pref(
         client_ldpapi,
         auth_token,
         "annotations/",
-        BASIC_BNODE_ANNO,
+        BASIC_ID_ANNO,
         slug=slug,
     )
     assert r.status_code == 201

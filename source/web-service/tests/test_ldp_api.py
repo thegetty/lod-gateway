@@ -269,7 +269,7 @@ def test_basic_container_adds_and_removes_containment(
     _ = delete_resource(namespace, client_ldpapi, auth_token, to_relative(created_res))
 
     # Verify containment removed after DELETE
-    g_after_del, _ = get_graph(url)
+    g_after_del, _ = get_graph(namespace, client_ldpapi, to_relative(url))
     assert (
         c_subj,
         LDP.contains,

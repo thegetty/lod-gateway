@@ -398,7 +398,7 @@ def test_assign_ids_to_toplevel_bnode_w_slug(
     r_child = client_ldpapi.get(to_relative(created_res), headers={"Accept": JSONLD_CT})
     assert r_child.status_code == 200
 
-    doc = r_child.json()
+    doc = r_child.json
 
     assert "@id" in doc
     assert doc["@id"].endswith("pytest-basic-bnode_anno")
@@ -426,7 +426,7 @@ def test_assign_ids_annotationcollection_w_slug_and_id_pref(
     r_child = client_ldpapi.get(to_relative(created_res), headers={"Accept": JSONLD_CT})
     assert r_child.status_code == 200
 
-    doc = r_child.json()
+    doc = r_child.json
 
     # ID was given using the 'id' property, so this should be preferred:
     assert "id" in doc

@@ -1099,7 +1099,7 @@ def delete(id):
                     db.session.rollback()
                     abort(construct_error_response(status_db_save_error))
 
-            return f"{id} deleted", 204
+            return f"", 200
         case {"container": container_obj}:
             # Deleting a container is not implmented yet.
             response = construct_error_response(status_not_implemented)

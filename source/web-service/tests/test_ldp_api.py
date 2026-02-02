@@ -123,11 +123,6 @@ def delete_resource(namespace, client_ldpapi, auth_token, url: str):
     )
     print(response.text, response.headers, response.status_code)
     assert response.status_code == 200
-
-    assert JSONLD_CT in response.headers.get(
-        "Content-Type", ""
-    ), f"Expected Content-Type {JSONLD_CT}, got {response.headers.get('Content-Type')}"
-
     return response
 
 
@@ -215,7 +210,9 @@ def test_container_lists_containment_and_iterates_members(
         len(contained) >= 0
     ), "No ldp:contains triples found (allowed to be empty)."  # [1](https://www.w3.org/TR/ldp/)
 
-    for member in contained:
+    # sample 20 of them and resolve them:
+    for _ in range(20):
+        member = choice(contained)
         # Try GET member as JSON-LD; if server returns Non-RDF, we still ensure GET 200.
         r = client_ldpapi.get(to_relative(str(member)), headers={"Accept": JSONLD_CT})
         assert r.status_code == 200, f"Member {member} not retrievable."

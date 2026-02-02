@@ -28,12 +28,13 @@ BASIC_BNODE_ANNO = {
     "target": "http://www.example.com/index.html",
 }
 
-BASIC_BNODE_ANNO = {
+BASIC_ID_ANNO = {
     "@context": ["http://www.w3.org/ns/anno.jsonld", {"@base": "urn:"}],
     "type": "AnnotationCollection",
+    "id": "this",
     "first": [
         {
-            "id": "1",
+            "id": "this/1",
             "body": {
                 "id": "http://some/aat/classification",
             },
@@ -44,7 +45,7 @@ BASIC_BNODE_ANNO = {
             },
         },
         {
-            "id": "2",
+            "id": "this/2",
             "body": {
                 "type": "TextualBody",
                 "value": "A collection of flowers",
@@ -374,3 +375,64 @@ def test_accept_post_are_exposed(namespace, client_ldpapi, ldp_fixture_app):
     Graph().parse(data=r2.text, format="json-ld")  # [2](https://www.w3.org/ns/ldp)
 
     """
+
+
+def test_assign_ids_to_toplevel_bnode_w_slug(
+    namespace, client_ldpapi, auth_token, ldp_fixture_app
+):
+    r = _post_jsonld(
+        namespace,
+        client_ldpapi,
+        auth_token,
+        "annotations/",
+        BASIC_BNODE_ANNO,
+        slug="pytest-basic-bnode_anno",
+    )
+    assert r.status_code == 201
+    created_res = r.headers["Location"]
+    created_ref = URIRef(created_res)
+
+    # Slug ID used in URI
+    assert created_ref.endswith("pytest-basic-bnode_anno")
+
+    r_child = client_ldpapi.get(to_relative(created_res), headers={"Accept": JSONLD_CT})
+    assert r_child.status_code == 200
+
+    doc = r_child.json()
+
+    assert "@id" in doc
+    assert doc["@id"].endswith("pytest-basic-bnode_anno")
+
+
+def test_assign_ids_annotationcollection_w_slug_and_id_pref(
+    namespace, client_ldpapi, auth_token, ldp_fixture_app
+):
+    slug = "pytest-ided-anno"
+    r = _post_jsonld(
+        namespace,
+        client_ldpapi,
+        auth_token,
+        "annotations/",
+        BASIC_BNODE_ANNO,
+        slug=slug,
+    )
+    assert r.status_code == 201
+    created_res = r.headers["Location"]
+    created_ref = URIRef(created_res)
+
+    # Slug ID used in URI
+    assert created_ref.endswith(slug)
+
+    r_child = client_ldpapi.get(to_relative(created_res), headers={"Accept": JSONLD_CT})
+    assert r_child.status_code == 200
+
+    doc = r_child.json()
+
+    # ID was given using the 'id' property, so this should be preferred:
+    assert "id" in doc
+    assert doc["id"].endswith(slug)
+
+    # Check children annotations have been rebased to use the new slug id as a subpath:
+    anno1, anno2 = doc["first"]
+    assert anno1["id"].endswith(f"{slug}/1")
+    assert anno2["id"].endswith(f"{slug}/2")

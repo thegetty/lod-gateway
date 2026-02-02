@@ -144,6 +144,7 @@ class Representation:
                             base_id=self.base,
                             container_path=self.relative_container,
                             slug=self.slug,
+                            prefer_id=self._id_attr,
                         )
                     self._jsonld = json_ld
                     return
@@ -159,6 +160,7 @@ class Representation:
                         base_id=self.base,
                         container_path=container_prefix,
                         slug=self.slug,
+                        prefer_id=self._id_attr,
                     )
                     self._jsonld = json_ld
                     return
@@ -177,6 +179,7 @@ class Representation:
                         base_id=self.base,
                         container_path=self.relative_container,
                         slug=self.slug,
+                        prefer_id=self._id_attr,
                     )
                     self._jsonld = json_ld
                     return
@@ -187,7 +190,7 @@ class Representation:
             base_id=self.base,
             container_path=self.relative_container,
             slug=self.slug,
-            id_keys=[self._id_attr],
+            prefer_id=self._id_attr,
         )
         if "@context" in json_ld:
             if isinstance(json_ld["@context"], str):
@@ -264,6 +267,7 @@ def prefix_rdf_ids(
     base_id: str,
     *,
     container_path: str = "",
+    prefer_id: str = "@id",
     id_keys: Tuple[str, ...] = ("@id", "id"),
     inplace: bool = False,
     slug: str = "",
@@ -301,6 +305,14 @@ def prefix_rdf_ids(
     >>> [n["@id"] for n in out["@graph"]]
     ['https://example.org/items/123', 'items/456', 'items#frag', '_:b1', 'items/absolute/path', 'http://another.host/things?id=1#part']
     """
+
+    # The JSON-LD may have a preference for a form of the '@id' property, eg if it has been aliased in the context.
+    if prefer_id:
+        if prefer_id in id_keys:
+            # Move the preferred key property to the first position
+            id_keys.insert(0, id_keys.pop(id_keys.index(prefer_id)))
+        else:
+            id_keys.insert(0, prefer_id)
 
     # slug?
     relative_prefix = container_path.rstrip("/")

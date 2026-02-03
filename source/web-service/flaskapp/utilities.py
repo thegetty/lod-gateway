@@ -40,7 +40,7 @@ NTRIPLES = re.compile(
 )
 
 # idPrefixer URI schemes it will not prefix with the LOD external URI on display
-ALLOWED_SCHEMES = set(["https", "http", "ftp", "urn", "ftp", "file", "s3", "_:"])
+ALLOWED_SCHEMES = set(["https", "http", "ftp", "urn", "ftp", "file", "s3", "_"])
 
 
 def is_quads(line):

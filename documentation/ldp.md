@@ -72,6 +72,163 @@ The setting `LDP_AUTOCREATE_CONTAINERS` when enabled is the key to this process.
 
 `LDP_API` can be enabled to support the LDP REST API. This supports Container resolution, pagination, and a Container POST endpoint to allow authenticated users to create or add resources (including other containers). It is safe to enable this from the start on any newly deployed LOD Gateway instance, but enabling it on existing instances will require the data to be refreshed before use, as described above. Otherwise, the containers will not be present or have a valid list of child resources that they manage.
 
+### LDP Pagination
+
+LOD Gateway Containers will typically contain many thousands of resources, which makes it sensible that the default representation for Containers adhere to the [LDP PAGING specification](https://www.w3.org/TR/ldp-paging/) with strong limitations on the 'Prefer' request header functionality.
+
+- An HTTP request on a container URI will be redirected using HTTP 303 to the first `ldp:Page` object for this container. A `Prefer` representation header will be ignored for this iteration of the LDP API, including max-triple-count, max-member-count, and max-kbyte-count parameters. 
+- While not client accessible, the `max-member-count` is a server-side configuration. The page will list an amount of items based on this setting.
+    - NB (this is done in the same manner as the Activitystream DB logic so that the pagination scales to large numbers. As a consequence it mean that the number of items in a given page cannot be not guaranteed, and it is possible for the service to generate empty Page resources that just need to be iterated through.)
+- While the LDP PAGING specification states that all of the pagination MUST be done throught HTTP Link headers, this does not stop the JSON-LD representation from containing RDF to represent these links. The LOD Gateway implementation of the LDP Paging includes both ways.
+
+#### How to navigate
+The Linked Data Platform Paging specification defines a way for servers to split large container representations into multiple *page resources*. Clients use **HTTP `Link` headers** to navigate through these pages. [\[w3.org\]](https://www.w3.org/TR/ldp-paging/)
+
+When a client performs a `GET` on a container or page resource, the server includes HTTP `Link` headers indicating the presence of additional pages. 
+
+*   **`first`** — the first page in the sequence
+*   **`next`** — the next page after the current one (if exists)
+*   **`previous`** — the page before the current one (if exists)
+*   **`last`** — the final page in the sequence
+
+##### 1. Client requests the container
+
+The client sends:
+
+```http
+GET /demo/components/
+```
+
+The LOD Gateway responds with HTTP 303 redirecting to the first page. All containers are paginated so this is expected regardless to container size.
+
+##### 2. Client fetches the first page
+
+```http
+GET https://data.getty.edu/demo/components/?page=1
+```
+
+The server HTTP header response may include:
+
+    Link: <https://data.getty.edu/demo/components/?page=2>; rel="next"
+    Link: <https://data.getty.edu/demo/components/?page=1>; rel="first"
+    Link: <https://data.getty.edu/demo/components/?page=11020>; rel="last"
+
+NB first and last will always be present. next and previous will only be present if there is a next page or a previous one.
+
+The body JSON-LD contains the subset of items for page 1 in the `ldp:contains` property. The **next** link tells the client how to continue. 
+
+If Link headers are too problematic, then within the dcterms:hasPart resource in the body of the response the same links will be present as RDF triples (see later section on the use of `dcterms:hasPart`). While outside of the LDP specification, these may prove easier for some clients to use for navigation.
+
+
+##### 3. Client follows the `next` link
+
+```http
+GET https://data.getty.edu/demo/components/?page=2
+```
+
+The response might include:
+
+    Link: <https://data.getty.edu/demo/components/?page=3>; rel="next"
+    Link: <https://data.getty.edu/demo/components/?page=1>; rel="first"
+    Link: <https://data.getty.edu/demo/components/?page=1>; rel="previous"
+    Link: <https://data.getty.edu/demo/components/?page=11020>; rel="last"
+
+The client repeats this process until there is **no `next` link**, which means the end of the sequence has been reached.  
+The `previous` and `first` links allow backward navigation if needed.
+
+
+#### Example container page
+```
+{
+  "@context": [
+    {
+      "ldp": "http://www.w3.org/ns/ldp#",
+      "dcterm": "http://purl.org/dc/terms/",
+      "getty": "https://data.getty.edu/local/thesaurus/",
+      "@base": "https://data.getty.edu/demo/",
+      "first": {
+        "@id": "getty:pagination/first",
+        "@type": "@id"
+      },
+      "last": {
+        "@id": "getty:pagination/last",
+        "@type": "@id"
+      },
+      "next": {
+        "@id": "getty:pagination/next",
+        "@type": "@id"
+      },
+      "prev": {
+        "@id": "getty:pagination/prev",
+        "@type": "@id"
+      }
+    }
+  ],
+  "@id": "component/my-container/",
+  "dcterm:title": "pytest-created child of BasicContainer",
+  "@type": [
+    "ldp:BasicContainer",
+    "ldp:Container"
+  ],
+  "ldp:contains": [ 
+      {
+      "@id": "component/my-container/newitems/",
+      "dcterm:type": "ldp:BasicContainer",
+      "dcterm:available": "2026-02-03T00:26:35+0000"
+    },
+    {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, … 
+  ],
+  "dcterms:hasPart": {
+    "@id": "component/my-container/?page=1",
+    "@type": [
+      "ldp:Resource",
+      "ldp:Page"
+    ],
+    "first": "component/my-container/?page=1",
+    "last": "component/my-container/?page=6",
+    "next": "component/my-container/?page=2"
+  }
+}
+```
+
+##### @context
+This has been extended and includes a few other conveniences. 
+
+The `@base` is key, as all of the relative URIs in the representation should be treated as being prefixed by this value.
+
+The `getty:next` and so on are properties for the pagination signposts, as `ldp` does not provide any. These are mapped to simple terms for convenience.
+
+##### Container @id, ldp:contains
+The main `@id` corresponds to the Container URI, and the key property is `ldp:contains` which is a list of resources that are within this container.
+
+The resources listed by the ldp:contains property are not exhaustive but they will be unique. In other words, it is intended that these lists of resources from multiple Page responses should be combined, and when combined they will not create duplicate entries.
+
+`dcterms:type` is used as this will be the verbatim value of the first `@type/type` in the resources JSON-LD, and will not be a FQDN and may only be understood using the @context of the resource. This is a reasonable limitation of system as it stands, and this limitation is also present in the Activitystream service.
+
+`dcterms:available` is the date stamp of when the resource was first added to the container.
+
+##### dcterms:hasPart
+The LDP Paging specification does not definitive ways to describe the `ldp:Page` in RDF, so the choice has been taken to use `dcterms:hasPart` to indicate that a Container has an ldp:Page as a part of itself. The @id of this part corresponds to the URL used to resolve this page.
+
+This is where the pagination information is stored and provides context. `first` and `last` properties are reliably present, even if there is only a single page. `next` will only be present when the page has a subsequent page, and `prev` will only present when there is one to go back. For example:
+
+```
+ ...
+  "dcterms:hasPart": {
+    "@id": "component/my-container/?page=2",
+    "@type": [
+      "ldp:Resource",
+      "ldp:Page"
+    ],
+    "first": "component/my-container/?page=1",
+    "last": "component/my-container/?page=6",
+    "next": "component/my-container/?page=3",
+    "prev": "component/my-container/?page=1"
+  }
+```
+
+The HTTP response headers will include these URIs as well, so it is up to the client which will be more convenient to use.
+
 ### LDP POST examples
 
 When a JSON-LD document is uploaded using the LDP POST API, the document's internal or self-referencial '@id' properties will need to be 'rebased' to match the destination URI. For example:
@@ -258,11 +415,28 @@ Note that the relative reference to a different resource within the same 'host' 
     {
       "ldp": "http://www.w3.org/ns/ldp#",
       "dcterm": "http://purl.org/dc/terms/",
-      "@base": "http://localhost:5100/museum/collection/"
+      "getty": "https://data.getty.edu/local/thesaurus/",
+      "@base": "https://data.getty.edu/demo/",
+      "first": {
+        "@id": "getty:pagination/first",
+        "@type": "@id"
+      },
+      "last": {
+        "@id": "getty:pagination/last",
+        "@type": "@id"
+      },
+      "next": {
+        "@id": "getty:pagination/next",
+        "@type": "@id"
+      },
+      "prev": {
+        "@id": "getty:pagination/prev",
+        "@type": "@id"
+      }
     }
   ],
-  "@id": "my-container/newitems/",
-  "dcterm:title": "/my-container/newitems/",
+  "@id": "component/my-container/newitems/",
+  "dcterm:title": "/component/my-container/newitems/",
   "@type": [
     "ldp:BasicContainer",
     "ldp:Container"
@@ -270,11 +444,20 @@ Note that the relative reference to a different resource within the same 'host' 
   "dcterm:description": "Auto-generated container",
   "ldp:contains": [
     {
-      "@id": "my-container/newitems/780",
+      "@id": "component/my-container/newitems/780",
       "dcterm:type": "https://www.w3.org/2004/03/trix/rdfg-1/Graph",
       "dcterm:available": "2026-02-03T00:26:35+0000"
     }
-  ]
+  ],
+  "dcterms:hasPart": {
+    "@id": "component/my-container/newitems/?page=1",
+    "@type": [
+      "ldp:Resource",
+      "ldp:Page"
+    ],
+    "first": "component/my-container/newitems/?page=1",
+    "last": "component/my-container/newitems/?page=1"
+  }
 }
 ```
 

@@ -174,6 +174,16 @@ def require_link_type_contains(link_headers: t.List[t.Dict[str, str]], type_uri:
     assert found, f'Expected Link rel="type" to include <{type_uri}>'
 
 
+def get_link_rel_contains(link_headers: t.List[t.Dict[str, str]], rel: str):
+    """Assert Link: rel=type includes type_uri."""
+    rels = [l.get("url") for l in link_headers if l.get("rel") == rel]
+
+    if len(rels) == 1:
+        return rels[0]
+    else:
+        return rels
+
+
 def basic_container_iri(namespace) -> str:
     return to_abs(namespace, "/")
 
@@ -336,6 +346,39 @@ def test_iterate_all_resources_in_root_container_and_fetch(
         assert (
             "ETag" in r.headers
         ), "ETag header should be present on resource representation."  # [1](https://www.w3.org/TR/ldp/)
+
+
+def test_pagination_on_annotation_container_and_fetch(
+    namespace, client_ldpapi, ldp_fixture_app
+):
+    """
+    Iterate all resources in container via ldp:contains and GET them.
+    """
+
+    url = to_abs(namespace, "annotations/ml-test/")
+    g, r = get_graph(namespace, client_ldpapi, to_relative(url))
+    subj = URIRef(basic_container_iri(namespace))
+    contains = [o for (s, p, o) in g.triples((subj, LDP.contains, None))]
+    assert len(contains) > 3
+
+    # check there is an ldp.Page type in the
+    links = parse_link_header(r.headers.get("Link", ""))
+    require_link_type_contains(links, str(LDP.Resource))
+    require_link_type_contains(links, str(LDP.Page))
+
+    # assert that there is a single canonical link:
+    assert isinstance(get_link_rel_contains(links, "canonical"), str)
+
+    first = get_link_rel_contains(links, "first")
+    assert first.endswith("page=1")
+
+    # should contain enough items to require multiple pages
+    last = get_link_rel_contains(links, "last")
+    assert last != first
+
+    # There should be a page 2
+    next_page = get_link_rel_contains(links, "next")
+    assert next_page.endswith("page=2")
 
 
 def test_accept_post_are_exposed(namespace, client_ldpapi, ldp_fixture_app):

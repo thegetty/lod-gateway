@@ -208,7 +208,12 @@ class LDPContainer(db.Model):
                 {
                     "ldp": "http://www.w3.org/ns/ldp#",
                     "dcterm": "http://purl.org/dc/terms/",
+                    "getty": "https://data.getty.edu/local/thesaurus/",
                     "@base": base,
+                    "first": {"@id": "getty:pagination/first", "@type": "@id"},
+                    "last": {"@id": "getty:pagination/last", "@type": "@id"},
+                    "next": {"@id": "getty:pagination/next", "@type": "@id"},
+                    "prev": {"@id": "getty:pagination/prev", "@type": "@id"},
                 },
             ],
             "@id": ci,

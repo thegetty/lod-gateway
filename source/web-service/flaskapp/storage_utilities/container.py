@@ -11,8 +11,6 @@ from flaskapp.models.container import (
     NoLDPContainerFoundError,
 )
 
-from urllib.parse import urljoin
-
 from flaskapp.utilities import segment_entity_id
 
 
@@ -192,31 +190,55 @@ def get_page_for_container(container_identifier, page=1, page_size=100):
 def generate_paging_link_headers(
     container_identifier, total, current_page, pages, has_next
 ):
-
-    c_uri = urljoin(
-        current_app.config["idPrefix"].rstrip("/") + "/", container_identifier
+    link_set = paging_navigation_links(
+        container_identifier, total, current_page, pages, has_next
     )
-    if not c_uri.endswith("/"):
-        c_uri = c_uri + "/"
-
-    container_etag = hash(f"{container_identifier}_{total}")
-    etag = hash(f"{container_identifier}_{total}_{current_page}")
+    buri = link_set["container"]["base"]
     # The Etag will change as the membership total changes and the page.
-    headers = {"ETag": etag}
+    headers = {"ETag": link_set["etag"]}
 
+    # Link headers require FQDN
     links = [
         '<http://www.w3.org/ns/ldp#Resource>; rel="type"',
-        '<http://www.w3.org/ns/ldp#BasicContainer>; rel="type"',
-        f'<{c_uri}>; rel="canonical"; etag="{container_etag}"',
-        f'<{c_uri}?page=1> rel="first"',
-        f'<{c_uri}?page={pages}> rel="last"',
+        '<http://www.w3.org/ns/ldp#Page>; rel="type"',
+        f'<{buri}{link_set["this"]}>; rel="this"; etag="{link_set["etag"]}"',
+        f'<{link_set["container"]["canonical"]}>; rel="canonical"; etag="{link_set["container"]["etag"]}"',
+        f'<{buri}{link_set["first"]}> rel="first"',
+        f'<{buri}{link_set["last"]}> rel="last"',
     ]
-    if current_page > 1:
-        links.append(f'<{c_uri}?page={current_page - 1}> rel="prev"')
-    if current_page < pages:
-        links.append(f'<{c_uri}?page={current_page + 1}> rel="next"')
+
+    if "prev" in link_set:
+        links.append(f'<{buri}{link_set["prev"]}> rel="previous"')
+    if "next" in link_set:
+        links.append(f'<{buri}{link_set["next"]}> rel="next"')
 
     headers["Link"] = ",".join(links)
-    headers["Location"] = c_uri
+    headers["Location"] = f'{buri}{link_set["this"]}'
 
     return headers
+
+
+def paging_navigation_links(container_identifier, total, current_page, pages, has_next):
+    base_uri = f'{current_app.config["idPrefix"].rstrip("/")}/'
+    relative_uri = f"{container_identifier.strip('/')}/"
+
+    container_etag = hash(f"{base_uri}{container_identifier}_{total}")
+    etag = hash(f"{base_uri}{container_identifier}_{total}_{current_page}")
+
+    links = {
+        "container": {
+            "etag": container_etag,
+            "canonical": f"{base_uri}{relative_uri}",
+            "base": base_uri,
+        },
+        "etag": etag,
+        "first": f"{relative_uri}?page=1",
+        "last": f"{relative_uri}?page={pages}",
+        "this": f"{relative_uri}?page={current_page}",
+    }
+    if current_page > 1:
+        links["prev"] = f"{relative_uri}?page={current_page - 1}"
+    if current_page < pages:
+        links["next"] = f"{relative_uri}?page={current_page + 1}"
+
+    return links

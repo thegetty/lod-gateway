@@ -44,6 +44,7 @@ from flaskapp.storage_utilities.container import (
     get_page_for_container,
     generate_paging_link_headers,
     get_container,
+    paging_navigation_links,
 )
 from flaskapp.storage_utilities.representation import parse_representation
 from flaskapp.errors import (
@@ -311,6 +312,29 @@ def container_record(container_id):
             pages=pageresp["pages"],
             has_next=pageresp["has_next"],
         )
+
+        pagination_uris = paging_navigation_links(
+            container_identifier=cid,
+            total=pageresp["total"],
+            current_page=page,
+            pages=pageresp["pages"],
+            has_next=pageresp["has_next"],
+        )
+
+        data = pageresp["jsonld"]
+
+        data["dcterms:hasPart"] = {
+            "@id": pagination_uris["this"],
+            "@type": ["ldp:Resource", "ldp:Page"],
+            "first": pagination_uris["first"],
+            "last": pagination_uris["last"],
+        }
+
+        if "next" in pagination_uris:
+            data["dcterms:hasPart"]["next"] = pagination_uris["next"]
+        if "prev" in pagination_uris:
+            data["dcterms:hasPart"]["prev"] = pagination_uris["prev"]
+
         # Handle Accept?
         desired = determine_requested_format_and_profile(request)
         content_type, q, shortformat = desired["accepted_mimetypes"][0]
@@ -320,7 +344,7 @@ def container_record(container_id):
             shortformat = "json-ld"
 
         data = reformat_rdf(
-            pageresp["jsonld"],
+            data,
             shortformat=shortformat,
             use_pyld=current_app.config["USE_PYLD_REFORMAT"],
             rdf_docloader=current_app.config["RDF_DOCLOADER"],
@@ -399,7 +423,11 @@ def container_post_item(entity_id):
         abort(response)
 
     # Attempt to get a possible parent
-    parent = get_container(container_breadcrumbs[-2], optimistic=True)
+    if len(container_breadcrumbs) == 1:
+        # root container
+        parent = get_container("/", optimistic=True)
+    else:
+        parent = get_container(container_breadcrumbs[-2], optimistic=True)
 
     # Abort here if there is no parent, and LDP_AUTOCREATE_CONTAINERS is off
     # The LDO Gateway implementation of LDP requires there to be a chain of Containers from
@@ -583,8 +611,8 @@ def container_post_item(entity_id):
         )
         response = construct_error_response(
             status_nt(
-                400,
-                "Bad Request",
+                404,
+                "No Resource Found",
                 f"Must POST a resource to a valid ldp:BasicContainer. {entity_id} is not a container",
             )
         )

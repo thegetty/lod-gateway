@@ -196,8 +196,7 @@ def create_app():
             )
 
             try:
-                if environ.get("LDP_PAGE_SIZE"):
-                    app.config["LDP_PAGE_SIZE"] = int(environ.get("LDP_PAGE_SIZE"), 200)
+                app.config["LDP_PAGE_SIZE"] = int(environ.get("LDP_PAGE_SIZE", 200))
             except ValueError:
                 app.logger.error(
                     "Environment variable 'LDP_PAGE_SIZE' is not an integer. Defaulting to 200."

@@ -41,10 +41,8 @@ from flaskapp.storage_utilities.graph import (
     inflate_relative_uris,
 )
 from flaskapp.storage_utilities.container import (
-    get_page_for_container,
-    generate_paging_link_headers,
     get_container,
-    paging_navigation_links,
+    get_full_container_page_representation,
 )
 from flaskapp.storage_utilities.representation import parse_representation
 from flaskapp.errors import (
@@ -295,45 +293,12 @@ def container_record(container_id):
             current_app.logger.info(
                 f"Attempting to get representation for page {page} of container {cid}"
             )
-            pageresp = get_page_for_container(cid, page, page_size)
-        except NoLDPContainerFoundError as e:
-            # Can't find the container. Pass to record.entity_record? Fail?
-            # Going with fail for now:
-            current_app.logger.error(
-                f"Attempt to retrieve {cid} from database failed {str(e)}"
+            ldpheaders, data = get_full_container_page_representation(
+                cid, page, page_size
             )
+        except NoLDPContainerFoundError:
             response = construct_error_response(status_container_not_found)
             abort(response)
-
-        ldpheaders = generate_paging_link_headers(
-            container_identifier=cid,
-            total=pageresp["total"],
-            current_page=page,
-            pages=pageresp["pages"],
-            has_next=pageresp["has_next"],
-        )
-
-        pagination_uris = paging_navigation_links(
-            container_identifier=cid,
-            total=pageresp["total"],
-            current_page=page,
-            pages=pageresp["pages"],
-            has_next=pageresp["has_next"],
-        )
-
-        data = pageresp["jsonld"]
-
-        data["dcterms:hasPart"] = {
-            "@id": pagination_uris["this"],
-            "@type": ["ldp:Resource", "ldp:Page"],
-            "first": pagination_uris["first"],
-            "last": pagination_uris["last"],
-        }
-
-        if "next" in pagination_uris:
-            data["dcterms:hasPart"]["next"] = pagination_uris["next"]
-        if "prev" in pagination_uris:
-            data["dcterms:hasPart"]["prev"] = pagination_uris["prev"]
 
         # Handle Accept?
         desired = determine_requested_format_and_profile(request)

@@ -242,3 +242,51 @@ def paging_navigation_links(container_identifier, total, current_page, pages, ha
         links["next"] = f"{relative_uri}?page={current_page + 1}"
 
     return links
+
+
+def get_full_container_page_representation(cid, page, page_size):
+    try:
+        # We have a page! return that page of content if possible
+        current_app.logger.info(
+            f"Attempting to get representation for page {page} of container {cid}"
+        )
+        pageresp = get_page_for_container(cid, page, page_size)
+    except NoLDPContainerFoundError as e:
+        # Can't find the container. Pass to record.entity_record? Fail?
+        # Going with fail for now:
+        current_app.logger.error(
+            f"Attempt to retrieve {cid} from database failed {str(e)}"
+        )
+        raise e
+
+    ldpheaders = generate_paging_link_headers(
+        container_identifier=cid,
+        total=pageresp["total"],
+        current_page=page,
+        pages=pageresp["pages"],
+        has_next=pageresp["has_next"],
+    )
+
+    pagination_uris = paging_navigation_links(
+        container_identifier=cid,
+        total=pageresp["total"],
+        current_page=page,
+        pages=pageresp["pages"],
+        has_next=pageresp["has_next"],
+    )
+
+    data = pageresp["jsonld"]
+
+    data["dcterms:hasPart"] = {
+        "@id": pagination_uris["this"],
+        "@type": ["ldp:Resource", "ldp:Page"],
+        "first": pagination_uris["first"],
+        "last": pagination_uris["last"],
+    }
+
+    if "next" in pagination_uris:
+        data["dcterms:hasPart"]["next"] = pagination_uris["next"]
+    if "prev" in pagination_uris:
+        data["dcterms:hasPart"]["prev"] = pagination_uris["prev"]
+
+    return ldpheaders, data

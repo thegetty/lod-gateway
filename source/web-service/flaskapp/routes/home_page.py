@@ -17,12 +17,15 @@ from flaskapp.models.activity import Activity
 from sqlalchemy import func, desc, exc
 from sqlalchemy.sql.functions import coalesce, max
 from flaskapp.models import db
+from flaskapp.models.container import NoLDPContainerFoundError
 from flaskapp.storage_utilities.container import (
     get_page_for_container,
     generate_paging_link_headers,
+    get_full_container_page_representation,
 )
 from flaskapp.conneg import determine_requested_format_and_profile, reformat_rdf
 from flaskapp.utilities import wants_html
+from flaskapp.errors import construct_error_response, status_container_not_found
 
 # Create home page
 home_page = Blueprint("home_page", __name__)
@@ -52,20 +55,29 @@ def root_container():
         # also listen to that weird Link setting in the requests?
         page_size = request.args.get("page_size", current_app.config["LDP_PAGE_SIZE"])
         # We have a page! return that page of content if possible
-        pageresp = get_page_for_container("/", page, page_size)
-        ldpheaders = generate_paging_link_headers(
-            container_identifier="/",
-            total=pageresp["total"],
-            current_page=page,
-            pages=pageresp["pages"],
-            has_next=pageresp["has_next"],
-        )
+        cid = "/"
+        try:
+            # We have a page! return that page of content if possible
+            current_app.logger.info(
+                f"Attempting to get representation for page {page} of container {cid}"
+            )
+            ldpheaders, data = get_full_container_page_representation(
+                cid, page, page_size
+            )
+        except NoLDPContainerFoundError:
+            response = construct_error_response(status_container_not_found)
+            return response
+
         # Handle Accept?
         desired = determine_requested_format_and_profile(request)
         content_type, q, shortformat = desired["accepted_mimetypes"][0]
 
+        # Add an html version too at some point?
+        if not shortformat:
+            shortformat = "json-ld"
+
         data = reformat_rdf(
-            pageresp["jsonld"],
+            data,
             shortformat=shortformat,
             use_pyld=current_app.config["USE_PYLD_REFORMAT"],
             rdf_docloader=current_app.config["RDF_DOCLOADER"],
@@ -73,11 +85,15 @@ def root_container():
         response = current_app.make_response(data)
         response.headers = ldpheaders
         response.headers["Content-Type"] = content_type
+        response.headers["Accept-Post"] = "application/ld+json"
 
         return response
     else:
         # Redirect with 303 as the LDP-PAGING spec says:
-        return redirect(url_for("home_page.root_container", page=1), code=303)
+        return redirect(
+            url_for("home_page.root_container", page=1),
+            code=303,
+        )
 
 
 @home_page.route("/dashboard", methods=["GET"])

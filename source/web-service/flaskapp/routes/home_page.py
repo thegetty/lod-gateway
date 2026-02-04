@@ -70,7 +70,11 @@ def root_container():
 
         # Handle Accept?
         desired = determine_requested_format_and_profile(request)
-        content_type, q, shortformat = desired["accepted_mimetypes"][0]
+        if desired["accepted_mimetypes"]:
+            content_type, _, shortformat = desired["accepted_mimetypes"][0]
+        else:
+            content_type = "application/ld+json"
+            shortformat = "json-ld"
 
         # Add an html version too at some point?
         if not shortformat:

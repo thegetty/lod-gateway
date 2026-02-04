@@ -212,13 +212,47 @@ def test_root_container_properties_and_ldp_advertisement(
     if not _is_basic_container(g, url):
         pytest.skip(f"{url} is not an ldp:BasicContainer (skipping).")
 
+    # NB the URL for the container will redirect to the URL for the first page, so response
+    # has an overall Link header type of ldp:Page, but JSON-LD it returns should contain
+    # triples that describe the container URL as being a ldp:BasicContainer:
     subj = URIRef(url)
     assert (subj, RDF.type, LDP.BasicContainer) in g, "Not an ldp:BasicContainer."
 
+    # and then test that this is actually a Page Response
     links = parse_link_header(r.headers.get("Link", ""))
     require_link_type_contains(links, str(LDP.Resource))
-    require_link_type_contains(links, str(LDP.BasicContainer))
-    # JSON-LD content type already checked in get_graph()
+    require_link_type_contains(links, str(LDP.Page))
+
+    # Finally, as this is an ldp:Page response, check that it contains triples about the page
+    # itself:
+    pagecount = 0
+    if pageuri := g.value(subject=subj, predicate=DCTERMS.hasPart, object=None):
+        page_types = list(g.objects(subject=pageuri, predicate=RDF.type))
+        assert LDP.Page in page_types
+        assert LDP.Resource in page_types
+        assert any(
+            g.triples(
+                (
+                    pageuri,
+                    URIRef("https://data.getty.edu/local/thesaurus/pagination/first"),
+                    None,
+                )
+            )
+        )
+        assert any(
+            g.triples(
+                (
+                    pageuri,
+                    URIRef("https://data.getty.edu/local/thesaurus/pagination/last"),
+                    None,
+                )
+            )
+        )
+
+    else:
+        raise Exception(
+            "Page URL was not found connected using dcterms:hasPart to container"
+        )
 
 
 def test_ldp_container_advertises_ldp_and_is_jsonld(
@@ -235,7 +269,7 @@ def test_ldp_container_advertises_ldp_and_is_jsonld(
         # Link header(s)
         links = parse_link_header(r.headers.get("Link", ""))
         require_link_type_contains(links, str(LDP.Resource))
-        require_link_type_contains(links, str(LDP.BasicContainer))
+        require_link_type_contains(links, str(LDP.Page))
 
         # JSON-LD Content-Type
         assert JSONLD_CT in r.headers.get(
@@ -358,6 +392,8 @@ def test_pagination_on_annotation_container_and_fetch(
     url = to_abs(namespace, "annotations/ml-test/")
     g, r = get_graph(namespace, client_ldpapi, to_relative(url))
     subj = URIRef(basic_container_iri(namespace))
+    print(len(g))
+    print(r.text)
     contains = [o for (s, p, o) in g.triples((subj, LDP.contains, None))]
     assert len(contains) > 3
 

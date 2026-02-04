@@ -56,7 +56,7 @@ def get_frame(identifier):
 def get_bound_graph(identifier):
     g = ConjunctiveGraph(identifier=identifier)
     g.bind("dc", DC)
-    g.bind("dcterm", DCTERMS)
+    g.bind("dcterms", DCTERMS)
     for k, v in BINDING.items():
         g.bind(k, v)
     return g

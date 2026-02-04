@@ -225,7 +225,6 @@ def test_root_container_properties_and_ldp_advertisement(
 
     # Finally, as this is an ldp:Page response, check that it contains triples about the page
     # itself:
-    pagecount = 0
     if pageuri := g.value(subject=subj, predicate=DCTERMS.hasPart, object=None):
         page_types = list(g.objects(subject=pageuri, predicate=RDF.type))
         assert LDP.Page in page_types
@@ -250,6 +249,8 @@ def test_root_container_properties_and_ldp_advertisement(
         )
 
     else:
+        print(len(g))
+        print(r.text)
         raise Exception(
             "Page URL was not found connected using dcterms:hasPart to container"
         )
@@ -382,7 +383,7 @@ def test_iterate_all_resources_in_root_container_and_fetch(
         ), "ETag header should be present on resource representation."  # [1](https://www.w3.org/TR/ldp/)
 
 
-def test_pagination_on_annotation_container_and_fetch(
+def test_pagination_on_annotation_container_and_check_link_headers(
     namespace, client_ldpapi, ldp_fixture_app
 ):
     """
@@ -391,7 +392,7 @@ def test_pagination_on_annotation_container_and_fetch(
 
     url = to_abs(namespace, "annotations/ml-test/")
     g, r = get_graph(namespace, client_ldpapi, to_relative(url))
-    subj = URIRef(basic_container_iri(namespace))
+    subj = URIRef(url)
     print(len(g))
     print(r.text)
     contains = [o for (s, p, o) in g.triples((subj, LDP.contains, None))]

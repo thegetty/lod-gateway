@@ -207,7 +207,7 @@ class LDPContainer(db.Model):
             "@context": [
                 {
                     "ldp": "http://www.w3.org/ns/ldp#",
-                    "dcterm": "http://purl.org/dc/terms/",
+                    "dcterms": "http://purl.org/dc/terms/",
                     "getty": "https://data.getty.edu/local/thesaurus/",
                     "@base": base,
                     "first": {"@id": "getty:pagination/first", "@type": "@id"},
@@ -217,11 +217,11 @@ class LDPContainer(db.Model):
                 },
             ],
             "@id": ci,
-            "dcterm:title": self.dctitle,
+            "dcterms:title": self.dctitle,
             "@type": ["ldp:BasicContainer", "ldp:Container"],
         }
         if self.dcdescription:
-            base_jsonld["dcterm:description"] = self.dcdescription
+            base_jsonld["dcterms:description"] = self.dcdescription
 
         return base_jsonld
 
@@ -272,6 +272,6 @@ class LDPContainerContents(db.Model):
             entid = entid[1:]
         return {
             "@id": entid,
-            "dcterm:type": self.entity_type,
-            "dcterm:available": format_datetime(self.date_added),
+            "dcterms:type": self.entity_type,
+            "dcterms:available": format_datetime(self.date_added),
         }

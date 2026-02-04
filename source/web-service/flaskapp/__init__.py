@@ -416,6 +416,10 @@ def create_app():
                     "The data in ENV: 'LINK_BANK' is not valid JSON! Will not load Link Bank values"
                 )
 
+        app.logger.info(
+            f"LOD Gateway will serve from a base of '{app.config['idPrefix']}"
+        )
+
         app.register_blueprint(home_page, url_prefix=f"/{ns}")
         app.register_blueprint(activity, url_prefix=f"/{ns}")
         app.register_blueprint(activity_entity, url_prefix=f"/{ns}")

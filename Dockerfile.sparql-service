@@ -1,7 +1,7 @@
 FROM eclipse-temurin:21-jdk
 
 # Set Fuseki version and environment variables
-ARG FUSEKI_VERSION=5.6.0
+ARG FUSEKI_VERSION=6.0.0
 
 # NB fuseki-config.ttl will also need to be updated to new DB location if this changes
 ENV FUSEKI_HOME=/opt/fuseki

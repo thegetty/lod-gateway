@@ -277,6 +277,8 @@ def get_full_container_page_representation(cid, page, page_size):
 
     data = pageresp["jsonld"]
 
+    data["totalItems"] = pageresp["total"]
+
     data["dcterms:hasPart"] = {
         "@id": pagination_uris["this"],
         "@type": ["ldp:Resource", "ldp:Page"],

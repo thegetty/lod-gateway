@@ -214,6 +214,10 @@ class LDPContainer(db.Model):
                     "last": {"@id": "getty:pagination/last", "@type": "@id"},
                     "next": {"@id": "getty:pagination/next", "@type": "@id"},
                     "prev": {"@id": "getty:pagination/prev", "@type": "@id"},
+                    "totalItems": {
+                        "@id": "getty:pagination/totalItems",
+                        "@type": "@id",
+                    },
                 },
             ],
             "@id": ci,

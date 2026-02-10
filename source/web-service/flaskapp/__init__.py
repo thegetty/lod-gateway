@@ -429,7 +429,7 @@ def create_app():
         app.register_blueprint(timegate, url_prefix=f"/{ns}")
         app.register_blueprint(health, url_prefix=f"/{ns}")
 
-        app.logger.info(f"LOD Gateway configured and ready for use")
+        app.logger.info("LOD Gateway configured and ready for use")
 
         # Index Route
         @app.route(f"/{ns}/")

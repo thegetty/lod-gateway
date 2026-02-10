@@ -269,9 +269,9 @@ def subaddressing_search(entity_id):
 
 
 # GET Container + member list
-def container_record(container_id):
+def container_record(container_id, page=None):
     # Redirect for pagination if a page parameter is not present.
-    if page := request.args.get("page"):
+    if page := request.args.get("page", page):
         # Validate page
         try:
             page = int(page)
@@ -437,7 +437,7 @@ def container_post_item(entity_id):
 
     # See if the entity_id is actually an existing container:
     cid = container_breadcrumbs[-1]
-    if not cid.endswith("/"):
+    if cid != "/" and not cid.endswith("/"):
         cid += "/"
 
     current_app.logger.info(f"Checking if '{cid}' is a valid container to POST to")
@@ -498,7 +498,7 @@ def container_post_item(entity_id):
                     f"Successfully created new ldp:BasicContainer at {identifier}"
                 )
                 # respond with newly created page
-                response = container_record(new_container_id)
+                response = container_record(new_container_id, page=1)
                 response.status_code = 201
                 return response
 
@@ -1068,6 +1068,55 @@ def entity_record(entity_id):
         else:
             response = construct_error_response(status_record_not_found)
             abort(response)
+
+
+# 'DELETE' container method.
+# Currently requires the container to be empty
+@records.route("/<path:container_id>", methods=["DELETE"])
+def delete_container(container_id):
+    # Authentication
+    status = authenticate_bearer(request, current_app)
+    if status != status_ok:
+        response = construct_error_response(status)
+        abort(response)
+
+    current_app.logger.debug(
+        "Authentication checked - DELETE container request allowed."
+    )
+
+    cid = f'/{container_id.strip("/")}/'
+
+    if c := get_container(cid, optimistic=True):
+        # container exists - does it have any child containers, or child content?:
+        if c.children.count() != 0 or c.contents.count() != 0:
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict: Container is not empty",
+                    f"The container '{c.container_identifier}' cannot be deleted as it still contains some content.",
+                )
+            )
+            abort(response)
+        else:
+            if c.parent.remove_from_container(c, is_container=True):
+                # Was able to remove this container from the parent
+                db.session.delete(c)
+                db.session.commit()
+                # successful delete:
+                return "", 200
+            else:
+                db.session.rollback()
+                response = construct_error_response(
+                    status_nt(
+                        409,
+                        "Conflict: Container could not be removed from parent",
+                        f"The container '{c.container_identifier}' cannot be deleted.",
+                    )
+                )
+            abort(response)
+    else:
+        response = construct_error_response(status_record_not_found)
+        abort(response)
 
 
 # 'DELETE' method.

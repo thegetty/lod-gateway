@@ -364,6 +364,8 @@ def execute_sparql_query_post(
 
 # entity_id -> container chain then entity
 def segment_entity_id(entity_id):
+    if entity_id == "/":
+        return ["/"]
     segments = []
     # clean up
     seq = [x for x in entity_id.split("/") if x]

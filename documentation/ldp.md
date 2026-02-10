@@ -461,7 +461,11 @@ Note that the relative reference to a different resource within the same 'host' 
 }
 ```
 
-## Limitations
+## Current Limitations
+
+### Other container classes and arbitrary triples in a Container are not supported
+
+Only ldp:BasicContainer classed containers are supported, and these only capture dcterms:title and dcterms:description if present. Other triples are discarded.
 
 ### LOD Gateway Delete Container support
 
@@ -471,4 +475,10 @@ At this time, there is no provision to feasibly handle this within the lifespan 
 
 ### PATCH/PUT support (lack of)
 
-PATCH, the ability to alter containers once created, is not supported. LOD Gateway containers do not contain arbitrary data, and only support a dcterms title and description field at creation time.
+PATCH, the ability to alter containers once created, is not supported. LOD Gateway containers do not contain arbitrary data, and only support a dcterms title and description field at creation time. At this time, PATCH on containers or resources is not supported
+
+PUT is more complicated due to the rebasing - the PUT data's relative 'id' values have to exactly match the destination URI. With the batch `/ingest` route, the 'id' defined the destination so that it was not necessary to validate the URIs as they would simply be served from whereever they defined it. This is another area where a compromise will need to be defined between the existing semantics of the LOD Gateway and the LDP specification. It will not be complex, it just requires decisions to be made about what is acceptable and this work can be left to a later version. The `/ingest` mechanism will still function as expected regardless and can be used to perform PUT-like functionality.
+
+### VERSIONING, Slugs and LDP POST
+
+There is a small conflict between LDP and Slug ids, and Versioning functionality. Currently, a POST to a container with a Slug ID will fail with HTTP 409 if a resource exists or there are previous versions of a resource that have existed with that ID. Once the semantics of LOD Gateway PUT has been finalized, this will shift to match that functionality rather than fail.

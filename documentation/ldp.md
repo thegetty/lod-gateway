@@ -8,7 +8,7 @@ One of the core concepts is the idea of a 'container' which contains zero or mor
 
 When the LDP features are enabled, the LOD Gateway is extended with container structures, and the service itself is viewed as having a single 'root' container, that everything else (resources and other containers) is part of. The API is also extended, to allow for a subset of the LDP API functionality as defined in the specification.
 
-### Quick overview of some useful LDP Concepts
+## Quick overview of some useful LDP Concepts
 
 LDP introduces two major categories of resources:
 
@@ -23,7 +23,7 @@ A *BasicContainer* is the simplest form of an LDP container. It is an RDF Source
 - Allow creation of new contained resources via HTTP POST.
 - Provide predictable, REST-friendly behavior similar to folders or AtomPub collections.
 
-#### How BasicContainers and RDF Resources Work Together
+### How BasicContainers and RDF Resources Work Together
 
 A BasicContainer is itself an RDF Source that describes:
 
@@ -37,7 +37,7 @@ The container automatically adds a membership triple linking to that new resourc
 
 This structure enables predictable navigation and management of collections in a RESTful, linked-data‑friendly way. It functions similarly to a blog with posts or a directory with files—except using RDF semantics and HTTP.
 
-### Overview of Support for these LDP Concepts
+## Overview of LOD Gateway Support for these LDP Concepts
 The LOD Gateway and the LDP specification are based around different ideas on how to handle and store Linked Data: 
 - The LOD Gateway is built around a CRUD API for JSON documents and extends that by adding optional Named Graph JSON-LD RDF capabilities, Content Negotiation, SPARQL, Activitystreams and fast bulk ingest and updating.
 - LDP is a much broader specification which can involve both RDF and Non-RDF resources such as images, and specifies the concepts and API for containers. The focus is on the REST API that is required to manage these resources and containers.
@@ -65,7 +65,7 @@ The LOD Gateway implementation supports a narrower portion of the full LDP speci
         - If a top-level id is not present, the LOD Gateway will generate and add one. While this is configured through the 'LDP_ID_GEN' environment variable, only 'uuid' is supported. Other methods can be added as required later.
         - A Slug header can be used to specify a desired (leaf) 'identifier' for the graph. For example, a POST to `/objects/my-container/` with a slug of `annotation1` will result in a URI of `/objects/my-container/annotation1`
 
-### Two-tiered Support - LDP_BACKEND and LDP_API
+### Two-tier Support - LDP_BACKEND and LDP_API
 `LDP_BACKEND` can be enabled without any other LDP feature turned on. This allows an LOD Gateway with existing datasets access to the DB models required to support LDP, and the ability to generate the necessary Containers gradually in the background rather than require the whole service's dataset be updated at once. `LDP_BACKEND` must be enabled for all LDP functionality.
 
 The setting `LDP_AUTOCREATE_CONTAINERS` when enabled is the key to this process. When both of the above settings are enabled, adding to or refreshing content in the LOD Gateway will auto-populate the LDP data that is required. In other words, the same maintenance mechanism that allows an administrator to refresh a Triplestore will generate the Container and Container member tables as well.
@@ -81,7 +81,7 @@ LOD Gateway Containers will typically contain many thousands of resources, which
     - NB (this is done in the same manner as the Activitystream DB logic so that the pagination scales to large numbers. As a consequence it mean that the number of items in a given page cannot be not guaranteed, and it is possible for the service to generate empty Page resources that just need to be iterated through.)
 - While the LDP PAGING specification states that all of the pagination MUST be done throught HTTP Link headers, this does not stop the JSON-LD representation from containing RDF to represent these links. The LOD Gateway implementation of the LDP Paging includes both ways.
 
-#### How to navigate
+## How to navigate
 The Linked Data Platform Paging specification defines a way for servers to split large container representations into multiple *page resources*. Clients use **HTTP `Link` headers** to navigate through these pages. [\[w3.org\]](https://www.w3.org/TR/ldp-paging/)
 
 When a client performs a `GET` on a container or page resource, the server includes HTTP `Link` headers indicating the presence of additional pages. 
@@ -91,7 +91,7 @@ When a client performs a `GET` on a container or page resource, the server inclu
 *   **`previous`** — the page before the current one (if exists)
 *   **`last`** — the final page in the sequence
 
-##### 1. Client requests the container
+### 1. Client requests the container
 
 The client sends:
 
@@ -101,7 +101,7 @@ GET /demo/components/
 
 The LOD Gateway responds with HTTP 303 redirecting to the first page. All containers are paginated so this is expected regardless to container size.
 
-##### 2. Client fetches the first page
+### 2. Client fetches the first page
 
 ```http
 GET https://data.getty.edu/demo/components/?page=1
@@ -120,7 +120,7 @@ The body JSON-LD contains the subset of items for page 1 in the `ldp:contains` p
 If Link headers are too problematic, then within the dcterms:hasPart resource in the body of the response the same links will be present as RDF triples (see later section on the use of `dcterms:hasPart`). While outside of the LDP specification, these may prove easier for some clients to use for navigation.
 
 
-##### 3. Client follows the `next` link
+### 3. Client follows the `next` link
 
 ```http
 GET https://data.getty.edu/demo/components/?page=2
@@ -207,7 +207,7 @@ The resources listed by the ldp:contains property are not exhaustive but they wi
 
 `dcterms:available` is the date stamp of when the resource was first added to the container.
 
-##### dcterms:hasPart
+###### dcterms:hasPart
 The LDP Paging specification does not definitive ways to describe the `ldp:Page` in RDF, so the choice has been taken to use `dcterms:hasPart` to indicate that a Container has an ldp:Page as a part of itself. The @id of this part corresponds to the URL used to resolve this page.
 
 This is where the pagination information is stored and provides context. `first` and `last` properties are reliably present, even if there is only a single page. `next` will only be present when the page has a subsequent page, and `prev` will only present when there is one to go back. For example:
@@ -229,7 +229,7 @@ This is where the pagination information is stored and provides context. `first`
 
 The HTTP response headers will include these URIs as well, so it is up to the client which will be more convenient to use.
 
-### LDP POST examples
+## LDP POST examples
 
 When a JSON-LD document is uploaded using the LDP POST API, the document's internal or self-referencial '@id' properties will need to be 'rebased' to match the destination URI. For example:
 
@@ -254,9 +254,9 @@ If this is POSTed to a container at `https://data.getty.edu/research/collections
 - `@base` properties already in the context will be used to change the relative URIs to match the destination
 - If a resource is POSTed with a `Slug` HTTP header, then, the top-level URI (and its relative children) WILL BE REPLACED by the Slug prefix.
 
-#### Examples of rebasing
+### Examples of rebasing
 (All examples will be POSTed to `/my-container/` on `https://data.getty.edu/demo`)
-##### Example 1
+#### Example 1
 ```
 {
     "@context": "https://www.w3.org/ns/anno.jsonld",
@@ -269,7 +269,7 @@ If this is POSTed to a container at `https://data.getty.edu/research/collections
     "target": "http://www.example.com/index.html",
 }
 ```
-##### Example 1 POSTed with no Slug:
+#### Example 1 POSTed with no Slug:
 ```
 {
   "@context": "http://www.w3.org/ns/anno.jsonld",
@@ -283,7 +283,7 @@ If this is POSTed to a container at `https://data.getty.edu/research/collections
   "target": "http://www.example.com/index.html"
 }
 ```
-##### Example 2
+#### Example 2
 ```
  {
     "@context": ["https://www.w3.org/ns/anno.jsonld", {"@base": "urn:"}],
@@ -313,7 +313,7 @@ If this is POSTed to a container at `https://data.getty.edu/research/collections
     ],
 }
 ```
-##### Example 2, POSTed with the Slug 'not-this'
+#### Example 2, POSTed with the Slug 'not-this'
 NB Note the rebasing, and the shift from 'this' to 'not-this' URI ending, and how its children have been shifted as well, retaining their own identifier hierarchy (`this/1` -> `not-this/1`)
 ```
 {
@@ -345,7 +345,7 @@ NB Note the rebasing, and the shift from 'this' to 'not-this' URI ending, and ho
 }
 ```
 
-##### Example 3
+#### Example 3
 Complex @graph-based JSON-LD
 
 ```
@@ -365,7 +365,7 @@ Complex @graph-based JSON-LD
 }
 ```
 
-##### Example 3, POSTed with Slug 'newitems/780'
+#### Example 3, POSTed with Slug 'newitems/780'
 (getting the '?relativeid=true' representation of the Resource:)
 ```
 {
@@ -461,4 +461,14 @@ Note that the relative reference to a different resource within the same 'host' 
 }
 ```
 
+## Limitations
 
+### LOD Gateway Delete Container support
+
+The assumption is that when a container is deleted, all its contents will also be deleted so there is limited support for deleting containers. A container in an LOD Gateway could container hundreds of thousands of resources, and deleting all of those (and updating the activitystream to match) would be a resource intensive process.
+
+At this time, there is no provision to feasibly handle this within the lifespan of a single request so the support for deletions is limited to empty containers only. It is up to the client to remove the contents and child containers first before trying to delete the container.
+
+### PATCH/PUT support (lack of)
+
+PATCH, the ability to alter containers once created, is not supported. LOD Gateway containers do not contain arbitrary data, and only support a dcterms title and description field at creation time.

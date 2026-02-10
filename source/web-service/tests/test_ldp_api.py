@@ -28,6 +28,20 @@ BASIC_BNODE_ANNO = {
     "target": "http://www.example.com/index.html",
 }
 
+
+def create_basic_text_annotation(target, text_content, mimeformat="text/plain"):
+    return {
+        "@context": "https://www.w3.org/ns/anno.jsonld",
+        "type": "Annotation",
+        "body": {
+            "type": "TextualBody",
+            "value": text_content,
+            "format": mimeformat,
+        },
+        "target": target,
+    }
+
+
 BASIC_ID_ANNO = {
     "@context": ["https://www.w3.org/ns/anno.jsonld", {"@base": "urn:"}],
     "type": "AnnotationCollection",
@@ -156,6 +170,9 @@ def delete_resource(namespace, client_ldpapi, auth_token, url: str):
     """DELETE with auth."""
     if not (url.startswith(f"/{namespace}/") or url.startswith(f"{namespace}/")):
         url = f"/{namespace}/{url}"
+
+    # delete resources, not containers here
+    url = url.rstrip("/")
 
     response = client_ldpapi.delete(
         url,

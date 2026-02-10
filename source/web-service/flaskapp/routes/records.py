@@ -1072,7 +1072,7 @@ def entity_record(entity_id):
 
 # 'DELETE' container method.
 # Currently requires the container to be empty
-@records.route("/<path:container_id>", methods=["DELETE"])
+@records.route("/<path:container_id>/", methods=["DELETE"])
 def delete_container(container_id):
     # Authentication
     status = authenticate_bearer(request, current_app)

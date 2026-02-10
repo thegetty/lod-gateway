@@ -290,9 +290,6 @@ def container_record(container_id, page=None):
 
         try:
             # We have a page! return that page of content if possible
-            current_app.logger.info(
-                f"Attempting to get representation for page {page} of container {cid}"
-            )
             ldpheaders, data = get_full_container_page_representation(
                 cid, page, page_size
             )
@@ -1070,55 +1067,6 @@ def entity_record(entity_id):
             abort(response)
 
 
-# 'DELETE' container method.
-# Currently requires the container to be empty
-@records.route("/<path:container_id>/", methods=["DELETE"])
-def delete_container(container_id):
-    # Authentication
-    status = authenticate_bearer(request, current_app)
-    if status != status_ok:
-        response = construct_error_response(status)
-        abort(response)
-
-    current_app.logger.debug(
-        "Authentication checked - DELETE container request allowed."
-    )
-
-    cid = f'/{container_id.strip("/")}/'
-
-    if c := get_container(cid, optimistic=True):
-        # container exists - does it have any child containers, or child content?:
-        if c.children.count() != 0 or c.contents.count() != 0:
-            response = construct_error_response(
-                status_nt(
-                    409,
-                    "Conflict: Container is not empty",
-                    f"The container '{c.container_identifier}' cannot be deleted as it still contains some content.",
-                )
-            )
-            abort(response)
-        else:
-            if c.parent.remove_from_container(c, is_container=True):
-                # Was able to remove this container from the parent
-                db.session.delete(c)
-                db.session.commit()
-                # successful delete:
-                return "", 200
-            else:
-                db.session.rollback()
-                response = construct_error_response(
-                    status_nt(
-                        409,
-                        "Conflict: Container could not be removed from parent",
-                        f"The container '{c.container_identifier}' cannot be deleted.",
-                    )
-                )
-            abort(response)
-    else:
-        response = construct_error_response(status_record_not_found)
-        abort(response)
-
-
 # 'DELETE' method.
 @records.route("/<path:id>", methods=["DELETE"])
 def delete(id):
@@ -1182,11 +1130,39 @@ def delete(id):
                     db.session.rollback()
                     abort(construct_error_response(status_db_save_error))
 
-            return f"", 200
+            return "", 200
         case {"container": container_obj}:
-            # Deleting a container is not implmented yet.
-            response = construct_error_response(status_not_implemented)
-            abort(response)
+            if (
+                container_obj.children.count() != 0
+                or container_obj.contents.count() != 0
+            ):
+                response = construct_error_response(
+                    status_nt(
+                        409,
+                        "Conflict: Container is not empty",
+                        f"The container '{container_obj.container_identifier}' cannot be deleted as it still contains some content.",
+                    )
+                )
+                abort(response)
+            else:
+                if container_obj.parent.remove_from_container(
+                    container_obj, is_container=True
+                ):
+                    # Was able to remove this container from the parent
+                    db.session.delete(container_obj)
+                    db.session.commit()
+                    # successful delete:
+                    return "", 200
+                else:
+                    db.session.rollback()
+                    response = construct_error_response(
+                        status_nt(
+                            409,
+                            "Conflict: Container could not be removed from parent",
+                            f"The container '{container_obj.container_identifier}' cannot be deleted.",
+                        )
+                    )
+                    abort(response)
         case None:
             current_app.logger.error(f"No such resource at {id}")
             response = construct_error_response(status_record_not_found)

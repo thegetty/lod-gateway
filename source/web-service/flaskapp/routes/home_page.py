@@ -58,9 +58,6 @@ def root_container():
         cid = "/"
         try:
             # We have a page! return that page of content if possible
-            current_app.logger.info(
-                f"Attempting to get representation for page {page} of container {cid}"
-            )
             ldpheaders, data = get_full_container_page_representation(
                 cid, page, page_size
             )

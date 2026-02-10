@@ -28,9 +28,11 @@ def get_record(rec_id, also_containers=True):
     ):
         return {"record": result}
     elif current_app.config["LDP_BACKEND"] and also_containers:
+        # make sure it begins and ends with '/'
+        container_id = f"/{rec_id.strip('/')}/"
         if (
             result := db.session.query(LDPContainer)
-            .filter(LDPContainer.container_identifier == rec_id)
+            .filter(LDPContainer.container_identifier == container_id)
             .one_or_none()
         ):
             return {"container": result}

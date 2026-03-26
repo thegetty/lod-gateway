@@ -31,6 +31,8 @@ from flaskapp.storage_utilities.graph import (
     inflate_relative_uris,
     RetryAfterError,
 )
+from flaskapp.storage_utilities.container import assert_containers
+
 from flaskapp.errors import (
     status_nt,
     status_data_missing,
@@ -229,6 +231,16 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
 
             # Only handle refresh requests if the PROCESS_RDF is enabled
             if ids_to_refresh:
+                # Reassert container chains if LDP Backend is running + autocreate containers?
+                if (
+                    current_app.config["LDP_BACKEND"] is True
+                    and current_app.config["LDP_AUTOCREATE_CONTAINERS"] is True
+                ):
+                    new_containers_created = assert_containers(ids_to_refresh)
+                    current_app.logger.info(
+                        f"REFRESH: Created containers: {new_containers_created}."
+                    )
+
                 results = revert_triplestore_if_possible(
                     ids_to_refresh,
                     timeout=current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
@@ -293,6 +305,15 @@ def process_record(input_rec):
 
     # Record exists
     else:
+        # Is ingest attempting to overwrite an existing container?
+        if "container" in db_rec:
+            # Container exists in position that record wants to be ingested to
+            # --> Bad entity ID
+            return (None, id, Event.ContainerConflict)
+
+        # extract the record reference:
+        db_rec = db_rec["record"]
+
         chksum = checksum_json(data)
         if chksum == db_rec.checksum:
             current_app.logger.info(

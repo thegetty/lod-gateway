@@ -1,5 +1,7 @@
 from rdflib import ConjunctiveGraph, Namespace
 
+from rdflib.namespace import DC, DCTERMS
+
 
 BINDING = {
     "crm": Namespace("http://www.cidoc-crm.org/cidoc-crm/"),
@@ -16,6 +18,14 @@ BINDING = {
     "owl": Namespace("http://www.w3.org/2002/07/owl#"),
     "prov": Namespace("http://www.w3.org/ns/prov#"),
 }
+
+# For items uploaded outside of JSON-LD
+BASE_FRAME_CONTEXT = {
+    "id": "@id",
+    "type": "@type",
+}
+for k, v in BINDING.items():
+    BASE_FRAME_CONTEXT[k] = str(v)
 
 FORMATS = {
     # RDF triple formats
@@ -34,8 +44,19 @@ FORMATS = {
 }
 
 
+# Basic framing, anticipating a single top-level URI
+def get_frame(identifier):
+    return {
+        "@context": BASE_FRAME_CONTEXT,
+        "@id": identifier,
+        "@embed": "@always",
+    }
+
+
 def get_bound_graph(identifier):
     g = ConjunctiveGraph(identifier=identifier)
+    g.bind("dc", DC)
+    g.bind("dcterms", DCTERMS)
     for k, v in BINDING.items():
         g.bind(k, v)
     return g

@@ -1,6 +1,21 @@
 LOD Gateway - Changelog
 =======================
 
+v2.9.0 Linked Data Platform Support
+
+## What's Changed
+
+### FEATURE ADDITION
+
+Linked Data Platform backend and API support.
+
+The [Linked Data Platform (LDP)](https://www.w3.org/TR/ldp/#ldpc) is a W3C standard that defines a set of rules for interacting with web resources using HTTP, enabling a read-write Linked Data architecture on the web. It provides a way to access, create, update, and delete RDF resources over HTTP in a standardized manner, facilitating data integration and interoperability. LDP builds upon the principles of Linked Data, using URIs as names for things, providing useful information when a URI is looked up, including links to other URIs.
+
+One of the core concepts is the idea of a 'container' which contains zero or more Linked Data resources as a set. A container may have resources added or removed from it, and when resolving its URI, it should be possible to find out more about the container as well as list every resource it contains. A container may contain almost anything that can be referenced with a URI.
+
+When the LDP features are enabled, the LOD Gateway is extended with container structures, and the service itself is viewed as having a single 'root' container, that everything else (resources and other containers) is part of. The API is also extended, to allow for a subset of the LDP API functionality as defined in the specification.
+
+
 v2.8.0 Content Negotiation by Profile
 
 ## What's Changed

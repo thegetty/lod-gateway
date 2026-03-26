@@ -14,33 +14,52 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import load_only, defer
 from sqlalchemy import func, exc
 
+from urllib.parse import urljoin
+
 from flaskapp.models import db
 from flaskapp.models.record import Record, Version
 from flaskapp.models.activity import Activity
+from flaskapp.models.container import NoLDPContainerFoundError
 from flaskapp.utilities import (
     Event,
     format_datetime,
     containerRecursiveCallback,
     idPrefixer,
     triples_to_quads,
+    segment_entity_id,
 )
 from flaskapp.storage_utilities.record import (
     get_record,
     record_delete,
+    record_create,
     process_activity,
 )
-from flaskapp.storage_utilities.graph import graph_delete
+from flaskapp.storage_utilities.graph import (
+    graph_delete,
+    graph_replace,
+    graph_expand,
+    inflate_relative_uris,
+)
+from flaskapp.storage_utilities.container import (
+    get_container,
+    get_full_container_page_representation,
+)
+from flaskapp.storage_utilities.representation import parse_representation
 from flaskapp.errors import (
     status_nt,
     construct_error_response,
     status_record_not_found,
+    status_container_not_found,
     status_page_not_found,
     status_db_save_error,
     status_graphstore_error,
     status_ok,
     status_db_error,
+    status_wrong_syntax,
+    status_not_implemented,
+    ResourceValidationError,
 )
-from flaskapp.utilities import checksum_json, authenticate_bearer
+from flaskapp.utilities import checksum_json, authenticate_bearer, squish_dict
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
 
 
@@ -50,6 +69,7 @@ from flaskapp.conneg import (
     desired_rdf_format,
     determine_requested_format_and_profile,
     get_data_using_profile_query,
+    reformat_rdf,
 )
 
 from gettysparqlpatterns import RequiredParametersMissingError
@@ -248,13 +268,331 @@ def subaddressing_search(entity_id):
     return (None, None)
 
 
-@records.route("/<path:entity_id>", methods=["GET", "HEAD"])
+# GET Container + member list
+def container_record(container_id, page=None):
+    # Redirect for pagination if a page parameter is not present.
+    if page := request.args.get("page", page):
+        # Validate page
+        try:
+            page = int(page)
+        except ValueError:
+            return (
+                jsonify({"errors": [{"title": "Page parameter was not an integer"}]}),
+                400,
+            )
+
+        # TODO also listen to that weird Link setting in the request?
+        page_size = request.args.get("page_size", current_app.config["LDP_PAGE_SIZE"])
+
+        cid = f"/{container_id.strip('/')}/"
+        if cid == "//":
+            cid = "/"
+
+        try:
+            # We have a page! return that page of content if possible
+            ldpheaders, data = get_full_container_page_representation(
+                cid, page, page_size
+            )
+        except NoLDPContainerFoundError:
+            response = construct_error_response(status_container_not_found)
+            abort(response)
+
+        # Handle Accept?
+        desired = determine_requested_format_and_profile(request)
+        if desired["accepted_mimetypes"]:
+            content_type, _, shortformat = desired["accepted_mimetypes"][0]
+        else:
+            content_type = "application/ld+json"
+            shortformat = "json-ld"
+
+        # Add an html version too at some point?
+        if not shortformat:
+            shortformat = "json-ld"
+
+        data = reformat_rdf(
+            data,
+            shortformat=shortformat,
+            use_pyld=current_app.config["USE_PYLD_REFORMAT"],
+            rdf_docloader=current_app.config["RDF_DOCLOADER"],
+        )
+        response = current_app.make_response(data)
+        response.headers = ldpheaders
+        response.headers["Content-Type"] = content_type
+        response.headers["Accept-Post"] = "application/ld+json"
+
+        return response
+    else:
+        # Redirect with 303 as the LDP-PAGING spec says:
+        return redirect(
+            url_for("records.entity_record", entity_id=container_id, page=1),
+            code=303,
+        )
+
+
+@records.route("/<path:entity_id>/", methods=["POST"])
+@records.route("/", methods=["POST"], defaults={"entity_id": "/"})
+def container_post_item(entity_id):
+    # Could be a resource or a container being POSTed to a target URI which has to be an existing container
+    # Behavior will be as LDP states:
+    # - if the target is a Container, and the POSTed item is a valid Resource or Container:
+    #    - if Resource:
+    #      - Slug headers are captured at this point, but won't affect the rebase. This is a feature we can wait on.
+    #      - rebase* id URIs to container URI with id from Slug header OR adopted from resource if present
+    #      - Turn it into JSON-LD if it is not already (RDF only)
+    #      - create Record, Add Activity and add to Container
+    #    - if Container:
+    #      - Fail if record already exists, and fail if container (PATCH is needed, not POST)
+    #      - extract the dcterms properties
+    #      - Create new container and add to parent container.
+
+    # Rebasing should accept a number of different ways:
+    #      - relative ids with no @base (like ingest)
+    #      - relative ids ON THE CONTAINER (eg object/1/2 into container object/1/ would be retained
+    #      - JSON-LD does not have valid equivalent of turtle's "<>", but using a top-level blank node (eg no '@id')
+    #           will allow the service to recognize that it has to add one, either from the Slug or autogenerated. This will
+    #           also need to prefix all relative ids in the document with it as well.
+    #   The end aim of rebasing should be that regardless of which way the data is submitted, the end result ids that are stored
+    #   should be the same (except for the autogenerated id POST route)
+
+    if not current_app.config["LDP_API"] or not current_app.config["LDP_BACKEND"]:
+        response = construct_error_response(status_not_implemented)
+        abort(response)
+
+    # Authentication?
+    status = authenticate_bearer(request, current_app)
+    if status != status_ok:
+        response = construct_error_response(status)
+        abort(response)
+
+    current_app.logger.debug(
+        "Authentication checked - POST LDP resource request allowed."
+    )
+
+    # Get the implied container-hierarchy from the entity_id:
+    # eg "/object/1234" --> ["/", "/object/", "/object/1234"]
+    # Will always contain "/" as first item, unless the entity_id is "/"
+    container_breadcrumbs = segment_entity_id(entity_id)
+
+    # Valid JSON-LD? Fail if not with a HTTP 422 Wrong Syntax
+    try:
+        posted_representation = parse_representation(
+            f'{current_app.config["idPrefix"]}/',
+            container_breadcrumbs[-1].strip("/"),
+            request,
+        )
+        current_app.logger.info(
+            f"POSTed JSON parsed as JSON-LD and rebased to: {posted_representation.has_top_level_id()}"
+        )
+    except ResourceValidationError:
+        current_app.logger.error(str(ResourceValidationError))
+        response = construct_error_response(status_wrong_syntax)
+        abort(response)
+
+    # Attempt to get a possible parent
+    if len(container_breadcrumbs) == 1:
+        # root container
+        parent = get_container("/", optimistic=True)
+    else:
+        parent = get_container(container_breadcrumbs[-2], optimistic=True)
+
+    # Abort here if there is no parent, and LDP_AUTOCREATE_CONTAINERS is off
+    # The LDO Gateway implementation of LDP requires there to be a chain of Containers from
+    # the root "/" Container to each entity, with no gaps.
+    if not parent and not current_app.config["LDP_AUTOCREATE_CONTAINERS"]:
+        current_app.logger.error(
+            "Request failed - no parent container available, and LDP_AUTOCREATE_CONTAINERS flag is False"
+        )
+        # Does a HTTP 404 make more sense here?
+        response = construct_error_response(status_not_implemented)
+        abort(response)
+
+    # Is there a record here?
+    current_app.logger.debug(
+        f"Looking up resource {entity_id} in case it is a record not a container"
+    )
+    record = (
+        db.session.query(Record)
+        .filter(Record.entity_id == entity_id)
+        .options(defer(Record.data))
+        .limit(1)
+        .one_or_none()
+    )
+
+    if record:
+        # Cannot POST things to a Record
+        current_app.logger.error(
+            "Request failed - Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer"
+        )
+        response = construct_error_response(
+            status_nt(
+                400,
+                "Bad Request",
+                "Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer",
+            )
+        )
+        abort(response)
+
+    # See if the entity_id is actually an existing container:
+    cid = container_breadcrumbs[-1]
+    if cid != "/" and not cid.endswith("/"):
+        cid += "/"
+
+    current_app.logger.info(f"Checking if '{cid}' is a valid container to POST to")
+
+    if c := get_container(cid, optimistic=True):
+        # Check if the posted JSON-LD is a ldp:BasicContainer, and update if sensible
+        # otherwise, HTTP 409
+        # "/" might also be caught here, but it might be shadowed by the 'home_page.py' routes
+
+        # if the POSTed JSON-LD has no top-level id, assign one
+        identifier = posted_representation.has_top_level_id()
+        if identifier is False:
+            posted_representation.slug_id = current_app.config["LDP_ID_GEN"]()
+            identifier = posted_representation.has_top_level_id()
+            current_app.logger.info(
+                f"Generated {identifier} identifier for POSTed JSON-LD to {cid}"
+            )
+        else:
+            current_app.logger.info(
+                f"Found {identifier} identifier for POSTed JSON-LD to {cid}"
+            )
+
+        # Options: create new container if not already there (if container)
+        #          or add as new record, if not present at identifier
+        if posted_representation.is_basic_container is True:
+            # add the posted container to the parent if doesn't already exist
+            # return a representation and a valid Location header
+
+            # Container IDs start and end with '/'
+            new_container_id = f"/{identifier.strip('/')}/"
+            current_app.logger.debug(
+                f"Attempting to create new container at '{new_container_id}'"
+            )
+            if _ := get_container(new_container_id, optimistic=True):
+                current_app.logger.error(
+                    f"Request failed - Cannot create a new container with this identifier {new_container_id}, as it already exists"
+                )
+                response = construct_error_response(
+                    status_nt(
+                        409,
+                        "Conflict Error",
+                        f"Cannot create a new container with this identifier {new_container_id}, as it already exists",
+                    )
+                )
+                abort(response)
+            else:
+                # get just the last path 'slug' for this child container
+                container_slug_id = identifier.strip("/").split("/")[-1]
+                c.new_child_container(
+                    container_slug_id,
+                    dctitle=posted_representation.title,
+                    dcdescription=posted_representation.description,
+                    db_dialect=current_app.config["DB_DIALECT"],
+                )
+                db.session.commit()
+
+                current_app.logger.info(
+                    f"Successfully created new ldp:BasicContainer at {identifier}"
+                )
+                # respond with newly created page
+                response = container_record(new_container_id, page=1)
+                response.status_code = 201
+                return response
+
+        else:
+            # new record! see if the primary id doesn't exist already, add the record and return the rebased form with a Location header
+            # or if no primary id, generate one that doesn't exist in the container, and then add it.
+            existing = (
+                db.session.query(Record)
+                .filter(Record.entity_id == identifier)
+                .options(defer(Record.data))
+                .limit(1)
+                .one_or_none()
+            )
+            if existing:
+                current_app.logger.error(
+                    f"Request failed - Cannot create a new resource with this identifier {identifier}, as it already exists"
+                )
+                response = construct_error_response(
+                    status_nt(
+                        409,
+                        "Conflict Error",
+                        f"Cannot create a new resource with this identifier {identifier}, as it already exists",
+                    )
+                )
+                abort(response)
+            else:
+                with db.session.no_autoflush:
+                    record_id = record_create(
+                        posted_representation.json_ld,
+                        commit=False,
+                        process_the_activity=True,
+                    )
+
+                    prefixed_jsonld = inflate_relative_uris(
+                        posted_representation.json_ld, posted_representation.id_attr
+                    )
+
+                    if expanded := graph_expand(prefixed_jsonld):
+                        graph_uri = prefixed_jsonld[posted_representation.id_attr]
+                        updated_graph = graph_replace(
+                            graph_uri,
+                            expanded,
+                            current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                            current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+                        )
+                        if updated_graph is False:
+                            # Failed to process this as a graph:
+                            db.session.rollback()
+                            status_nt(
+                                422,
+                                "Graph expansion error",
+                                "Could not convert JSON-LD to RDF, id " + graph_uri,
+                            )
+
+                        db.session.commit()
+                        current_app.logger.info(
+                            f"Created new Record {record_id} for '{identifier}' and as part of '{c.container_identifier}'"
+                        )
+
+                        ldpheaders = {
+                            "Location": urljoin(
+                                current_app.config["idPrefix"].rstrip("/") + "/",
+                                identifier,
+                            ),
+                            "Content-Type": "application/ld+json",
+                        }
+                        return jsonify(posted_representation.json_ld), 201, ldpheaders
+                    else:
+                        db.session.rollback()
+                        status_nt(
+                            422,
+                            "Graph expansion error",
+                            "Could not expand JSON-LD to RDF",
+                        )
+
+    else:
+        current_app.logger.error(
+            "Request failed - Must POST a resource to a valid ldp:BasicContainer"
+        )
+        response = construct_error_response(
+            status_nt(
+                404,
+                "No Resource Found",
+                f"Must POST a resource to a valid ldp:BasicContainer. {entity_id} is not a container",
+            )
+        )
+        abort(response)
+
+
+@records.route("/<path:entity_id>", methods=["GET", "HEAD", "OPTIONS"])
 def entity_record(entity_id):
     """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard
     search for items in the LOD Gateway"""
     # idPrefix will be used by either the API route returning the record, or the route listing matches
-    # This also handles the HEAD request, as the correct response has complex logic, it just does not
-    # send the body with the HEAD response.
+    if current_app.config["LDP_API"] and entity_id.endswith("/"):
+        # treat trailing slashes in IDs as containers
+        return container_record(entity_id)
 
     hostPrefix = current_app.config["BASE_URL"]
     idPrefix = current_app.config["idPrefix"]
@@ -314,14 +652,22 @@ def entity_record(entity_id):
                     subdata["@context"] = record.data["@context"]
 
         if record is None:
+            # Other tests have failed - maybe it is an LDP Container?
             response = construct_error_response(status_record_not_found)
-            return abort(response)
+            abort(response)
 
         link_headers = basic_link_headers = (
             f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/link-format" , '
             + f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=record.entity_id) }>; rel="timemap"; type="application/json" , '
             + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id) }>; rel="original timegate" '
         )
+
+        # IF LDP API, add in that this is a http://www.w3.org/ns/ldp#Resource to HTTP headers
+        if current_app.config["LDP_API"]:
+            # Adding in LDP boilerplate
+            link_headers = (
+                basic_link_headers + ', <http://www.w3.org/ns/ldp#Resource>; rel="type"'
+            )
 
         # The Content Profile Link headers should be added if this is a L2, it is confirmed that there is data, and what object it is.
 
@@ -340,7 +686,7 @@ def entity_record(entity_id):
             )
             if prev is not None:
                 link_headers = (
-                    basic_link_headers
+                    link_headers
                     + f', <{hostPrefix}{ url_for("records.entity_version", entity_id=prev.entity_id) }>; rel="previous"'
                 )
 
@@ -386,7 +732,7 @@ def entity_record(entity_id):
                     response.headers["Link"] = link_headers
                     response.headers["Vary"] = "accept-datetime"
 
-                    return abort(response)
+                    abort(response)
 
                 current_app.logger.debug(
                     f"{entity_id} - Desired version generated at timecode {time.perf_counter() - profile_time}"
@@ -466,6 +812,7 @@ def entity_record(entity_id):
                 current_app.logger.debug(
                     f"{entity_id} - PREFIXING IDs to absolute URIs STARTED at timecode {time.perf_counter() - profile_time}"
                 )
+
                 recursive = (
                     False if prefixRecordIDs == "TOP" else True
                 )  # recursive by default
@@ -486,6 +833,23 @@ def entity_record(entity_id):
                     urlprefixes=urlprefixes,
                 )
 
+                # Removing @base, if present
+                if context := data.get("@context"):
+                    if isinstance(context, dict):
+                        if "@base" in context:
+                            del context["@base"]
+                    elif isinstance(context, list):
+                        for x in context:
+                            if isinstance(x, dict) and "@base" in x:
+                                del x["@base"]
+
+                    # Now, flatten the context if needed, removing empty lists, dicts
+                    if flattened_context := squish_dict(context):
+                        data["@context"] = flattened_context
+                    else:
+                        # Nothing in @context now?
+                        del data["@context"]
+
                 current_app.logger.debug(
                     f"{entity_id} - PREFIXING IDs to absolute URIs ENDED at timecode {time.perf_counter() - profile_time}"
                 )
@@ -500,13 +864,19 @@ def entity_record(entity_id):
                 content_type = "application/ld+json;charset=UTF-8"
 
                 # Link headers, setting json-ld as the canonical
-                link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="application/ld+json") }>;rel="canonical";type="application/ld+json"'
+                link_headers = (
+                    link_headers
+                    + f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="application/ld+json") }>;rel="canonical";type="application/ld+json"'
+                )
                 # Add possible profiles:
                 if record.entity_type in current_app.config["CONTENT_PROFILE_PATTERNS"]:
                     for profile in current_app.config["CONTENT_PROFILE_PATTERNS"][
                         record.entity_type
                     ]:
-                        link_headers += f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="text/turtle", _profile=profile.profile_uri) }>;rel="alternate";type="text/turtle";format="{profile.profile_uri}"'
+                        link_headers = (
+                            link_headers
+                            + f', <{hostPrefix}{ url_for("records.entity_record", entity_id=record.entity_id, _mediatype="text/turtle", _profile=profile.profile_uri) }>;rel="alternate";type="text/turtle";format="{profile.profile_uri}"'
+                        )
 
                 # Check for bad format requests, only if prefixed
                 if unprefixed is False and not desired.get("accepted_mimetypes"):
@@ -517,7 +887,7 @@ def entity_record(entity_id):
                             f"Accepted mimetypes are {[x for x in FORMATS]}",
                         )
                     )
-                    return abort(response)
+                    return response
 
                 if desired:
                     # Request wants a particular format and/or profile that is not plain JSON-LD and no profile?
@@ -566,7 +936,7 @@ def entity_record(entity_id):
                                         current_app.logger.error(
                                             f"Error getting Profile for {data[attr]} - {desired['requested_profiles']} - {profiled_data.title} {profiled_data.detail}"
                                         )
-                                        return abort(profiled_data)
+                                        abort(profiled_data)
                                     else:
                                         current_app.logger.info(
                                             f"Found data for {data[attr]} that conforms to profile {desired['requested_profiles']}"
@@ -575,7 +945,10 @@ def entity_record(entity_id):
                                         etag = None
                                         data, content_type, profile = profiled_data
                                         # add yet another link header to say that this resource conforms to the given profile:
-                                        link_headers += f', <{profile}>;rel="profile"'
+                                        link_headers = (
+                                            link_headers
+                                            + f', <{profile}>;rel="profile"'
+                                        )
                                 else:
                                     current_app.logger.debug(
                                         "Requested profile is not supported."
@@ -589,7 +962,7 @@ def entity_record(entity_id):
                                             f'Profile "{desired["requested_profiles"]}" is not supported for this resource.',
                                         )
                                     )
-                                    return abort(response)
+                                    return response
                             except RequiredParametersMissingError:
                                 # Pattern seems to need more parameters than just URI? Badly written
                                 response = construct_error_response(
@@ -599,13 +972,16 @@ def entity_record(entity_id):
                                         "Profile pattern selected does not fit expected - it should only require the URI parameter.",
                                     )
                                 )
-                                return abort(response)
+                                return response
                             except Exception as e:
+                                current_app.logger.debug(
+                                    f"Some sort of exception encountered: {str(e)}."
+                                )
                                 # ConnectionError and related should have been caught and handled before this
                                 response = construct_error_response(
                                     status_nt(500, "Exception Encountered", str(e))
                                 )
-                                return abort(response)
+                                return response
 
                         else:
                             ## Reformat the JSON-LD ##
@@ -617,50 +993,32 @@ def entity_record(entity_id):
                                 "accepted_mimetypes"
                             ][0]
 
-                            if (
+                            use_pyld = (
                                 current_app.config["USE_PYLD_REFORMAT"] is True
                                 and "rdflib" not in request.values
-                            ):
+                            )
+                            if use_pyld:
                                 current_app.logger.debug(
                                     f"{entity_id} - using PyLD to parse JSON-LD"
                                 )
-                                # Use the PyLD library to parse into nquads, and rdflib to convert
-                                # rdflib's json-ld import has not been tested on our data, so not relying on it
-                                proc = jsonld.JsonLdProcessor()
-                                serialized_rdf = proc.to_rdf(
+                                data = reformat_rdf(
                                     data,
-                                    {
-                                        "format": "application/n-quads",
-                                        "documentLoader": current_app.config[
-                                            "RDF_DOCLOADER"
-                                        ],
-                                    },
+                                    shortformat=shortformat,
+                                    use_pyld=use_pyld,
+                                    rdf_docloader=current_app.config["RDF_DOCLOADER"],
                                 )
-
-                                ident = data.get("id") or data.get("@id")
-
-                                # rdflib to load and format the nquads
-                                # forcing it, because of pyld's awful nquad export
-                                g = get_bound_graph(identifier=ident)
-
-                                # May not be nquads, even though we requested it:
-                                serialized_rdf = triples_to_quads(serialized_rdf, ident)
-
-                                g.parse(data=serialized_rdf, format="nquads")
-                                data = g.serialize(format=shortformat)
                                 # blank out the etag for now
                                 etag = None
                             else:
                                 current_app.logger.debug(
                                     f"{entity_id} - using RDFLIB to parse JSON-LD"
                                 )
-                                ident = data.get("id") or data.get("@id")
-
-                                # using rdflib to both parse and re-serialize the RDF:
-                                g = get_bound_graph(identifier=ident)
-
-                                g.parse(data=json.dumps(data), format="json-ld")
-                                data = g.serialize(format=shortformat)
+                                data = reformat_rdf(
+                                    data,
+                                    shortformat=shortformat,
+                                    use_pyld=False,
+                                    rdf_docloader=current_app.config["RDF_DOCLOADER"],
+                                )
                                 # blank out the etag for now
                                 etag = None
 
@@ -703,10 +1061,10 @@ def entity_record(entity_id):
 
                 if subaddressed is not None:
                     response.headers["Location"] = subaddressed
-            return abort(response)
+            abort(response)
         else:
             response = construct_error_response(status_record_not_found)
-            return abort(response)
+            abort(response)
 
 
 # 'DELETE' method.
@@ -716,59 +1074,99 @@ def delete(id):
     status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
-        return abort(response)
+        abort(response)
 
     current_app.logger.debug("Authentication checked - DELETE request allowed.")
 
     # Get record from DB
-    db_rec = get_record(id)
+    db_resp = get_record(id)
 
     # No such record or a stub record
-    if db_rec is None or (db_rec.data is None and db_rec.checksum is None):
-        response = construct_error_response(status_record_not_found)
-        return abort(response)
+    match db_resp:
+        case {"record": db_rec}:
+            if db_rec is None or (db_rec.data is None and db_rec.checksum is None):
+                response = construct_error_response(status_record_not_found)
+                abort(response)
 
-    # Process DELETE
-    with db.session.no_autoflush:
-        try:
-            current_app.logger.debug(f"Starting delete process on {id}")
+            # Process DELETE
+            with db.session.no_autoflush:
+                try:
+                    current_app.logger.debug(f"Starting delete process on {id}")
 
-            process_activity(db_rec.id, Event.Delete)
-            record_delete(db_rec, None)
+                    process_activity(db_rec.id, Event.Delete)
+                    record_delete(db_rec, None)
 
-            # Process RDF if applicable
-            if current_app.config["PROCESS_RDF"] is True:
-                full_uri = f"{current_app.config['RDFidPrefix']}/{id}"
-                current_app.logger.debug(
-                    f"Attempting to delete {full_uri} from graphstore"
-                )
+                    # Process RDF if applicable
+                    if current_app.config["PROCESS_RDF"] is True:
+                        full_uri = f"{current_app.config['RDFidPrefix']}/{id}"
+                        current_app.logger.debug(
+                            f"Attempting to delete {full_uri} from graphstore"
+                        )
 
-                graphstore_result = graph_delete(
-                    full_uri,
-                    current_app.config["SPARQL_QUERY_ENDPOINT"],
-                    current_app.config["SPARQL_UPDATE_ENDPOINT"],
-                    current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
-                )
+                        graphstore_result = graph_delete(
+                            full_uri,
+                            current_app.config["SPARQL_QUERY_ENDPOINT"],
+                            current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                            current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+                        )
 
-                # if RDF process fails, roll back and return graph store specific error
-                if graphstore_result is not True:
-                    current_app.logger.error(
-                        f"Error occurred processing DELETE in graph store. Rolling back."
+                        # if RDF process fails, roll back and return graph store specific error
+                        if graphstore_result is not True:
+                            current_app.logger.error(
+                                "Error occurred processing DELETE in graph store. Rolling back."
+                            )
+                            db.session.rollback()
+
+                            abort(construct_error_response(status_graphstore_error))
+
+                    db.session.commit()
+
+                # Catch only OperationalError exception (e.g. DB is down)
+                except exc.OperationalError as e:
+                    current_app.logger.error(e)
+                    current_app.logger.critical(
+                        f"DB Failure when attempting to delete {id}"
                     )
                     db.session.rollback()
+                    abort(construct_error_response(status_db_save_error))
 
-                    return abort(construct_error_response(status_graphstore_error))
-
-            db.session.commit()
-
-        # Catch only OperationalError exception (e.g. DB is down)
-        except exc.OperationalError as e:
-            current_app.logger.error(e)
-            current_app.logger.critical(f"DB Failure when attempting to delete {id}")
-            db.session.rollback()
-            return abort(construct_error_response(status_db_save_error))
-
-    return "", 204
+            return "", 200
+        case {"container": container_obj}:
+            if (
+                container_obj.children.count() != 0
+                or container_obj.contents.count() != 0
+            ):
+                response = construct_error_response(
+                    status_nt(
+                        409,
+                        "Conflict: Container is not empty",
+                        f"The container '{container_obj.container_identifier}' cannot be deleted as it still contains some content.",
+                    )
+                )
+                abort(response)
+            else:
+                if container_obj.parent.remove_from_container(
+                    container_obj, is_container=True
+                ):
+                    # Was able to remove this container from the parent
+                    db.session.delete(container_obj)
+                    db.session.commit()
+                    # successful delete:
+                    return "", 200
+                else:
+                    db.session.rollback()
+                    response = construct_error_response(
+                        status_nt(
+                            409,
+                            "Conflict: Container could not be removed from parent",
+                            f"The container '{container_obj.container_identifier}' cannot be deleted.",
+                        )
+                    )
+                    abort(response)
+        case None:
+            current_app.logger.error(f"No such resource at {id}")
+            response = construct_error_response(status_record_not_found)
+            abort(response)
 
 
 # old version of a record
@@ -781,7 +1179,7 @@ def entity_version(entity_id):
 
     if status != status_ok:
         response = construct_error_response(status)
-        return abort(response)
+        abort(response)
 
     current_app.logger.debug(f"{entity_id} - Profiling started 0.0000000")
     profile_time = time.perf_counter()
@@ -960,7 +1358,7 @@ def entity_version(entity_id):
             return response
         else:
             response = construct_error_response(status_record_not_found)
-            return abort(response)
+            abort(response)
     else:
         response = construct_error_response(
             status_nt(405, "Method not Allowed", "Versioning has been disabled.")
@@ -975,7 +1373,7 @@ def delete_entity_version(entity_id):
     status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
-        return abort(response)
+        abort(response)
 
     if current_app.config["KEEP_LAST_VERSION"] is True:
         """GET the version that exactly matches the id supplied"""
@@ -984,7 +1382,7 @@ def delete_entity_version(entity_id):
 
         if version is None:
             response = construct_error_response(status_record_not_found)
-            return abort(response)
+            abort(response)
 
         try:
             current_app.logger.warning(
@@ -1000,7 +1398,7 @@ def delete_entity_version(entity_id):
             )
             current_app.logger.error(e)
             response = construct_error_response(status_db_error)
-            return abort(response)
+            abort(response)
 
 
 ### Activity Stream of the record ###
@@ -1017,7 +1415,7 @@ def entity_record_activity_stream(entity_id):
             status_page_not_found,
             detail="An Activity Stream is only available for records that currently exist or previously existed",
         )
-        return abort(response)
+        abort(response)
     else:
         data = {
             "@context": "https://www.w3.org/ns/activitystreams",
@@ -1045,13 +1443,13 @@ def truncate_activity_stream_of_entity_id(entity_id):
     status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
-        return abort(response)
+        abort(response)
 
     count = get_record_activities_count(entity_id)
     # Are there events for this ID?
     if count == 0:
         response = construct_error_response(status_record_not_found)
-        return abort(response)
+        abort(response)
 
     # How many events to keep
     keep_latest_events = request.values.get("keep")
@@ -1132,7 +1530,7 @@ def record_activity_stream_page(entity_id, pagenum):
 
     if pagenum == 0 or pagenum > total_pages:
         response = construct_error_response(status_page_not_found)
-        return abort(response)
+        abort(response)
 
     data = {
         "@context": "https://www.w3.org/ns/activitystreams",

@@ -77,14 +77,15 @@ def assert_containers(entity_ids):
                 parent = c
             else:
                 # Create inferred container in current transaction
-                current_app.logger.info(f"Autogenerating LDP container '{container}'")
-                c = LDPContainer(
+                container_slug = container.rstrip("/").split("/")[-1]
+                current_app.logger.info(
+                    f"Autogenerating LDP container '{container}' - child slug: {container_slug}"
+                )
+                c = parent.new_child_container(
+                    child_slug=container_slug,
                     dctitle=container,
                     dcdescription="Auto-generated container",
-                    container_identifier=container,
-                )
-                parent.add_child_container(
-                    c, db_dialect=current_app.config["DB_DIALECT"]
+                    db_dialect=current_app.config["DB_DIALECT"],
                 )
                 parent = c
                 new_containers.append(container)

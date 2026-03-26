@@ -347,24 +347,20 @@ def get_num_changes_record_entity(rec_id):
 def get_most_recent_sparql(base_url, entity_id):
     url = base_url + "/sparql-ui#"
     graph = parse.quote(base_url + "/" + entity_id)
-    query1 = parse.quote(
-        """
+    query1 = parse.quote("""
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
         SELECT * WHERE {
         graph 
-        """
-    )
+        """)
 
-    query2 = parse.quote(
-        """
+    query2 = parse.quote("""
         {
             ?sub ?pred ?obj .
         }
     }
-    """
-    )
+    """)
 
     return f"{url}{query1}{graph}{query2}"
 

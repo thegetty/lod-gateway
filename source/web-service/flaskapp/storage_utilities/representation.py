@@ -10,7 +10,6 @@ from pyld import jsonld as pyjsonld
 from flaskapp.utilities import join_baseid_and_rel
 from flaskapp.errors import ResourceValidationError
 
-
 validid = re.compile(r"^[A-z0-9-._~:@!$'()*+,;=\/\[\]]+\Z")
 LDP_URI = "http://www.w3.org/ns/ldp#"
 

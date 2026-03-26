@@ -34,7 +34,6 @@ from flaskapp.ldp_id_generation import LDP_ID_GEN_OPTIONS
 
 from gettysparqlpatterns import PatternSet, NoPatternsFoundError
 
-
 # For JSON access logs:
 from pythonjsonlogger.jsonlogger import JsonFormatter, merge_record_extra
 

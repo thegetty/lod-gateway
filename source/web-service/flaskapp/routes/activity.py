@@ -19,7 +19,6 @@ from flaskapp.errors import (
     status_page_not_found,
 )
 
-
 # Create a new "activity" route blueprint
 activity = Blueprint("activity", __name__)
 

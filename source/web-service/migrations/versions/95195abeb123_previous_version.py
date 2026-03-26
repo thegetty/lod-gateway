@@ -12,7 +12,6 @@ from sqlalchemy import orm
 
 from flaskapp.models.record import Record
 
-
 # revision identifiers, used by Alembic.
 revision = "95195abeb123"
 down_revision = "51333de9b9b1"

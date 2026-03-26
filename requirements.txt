@@ -1,5 +1,5 @@
 alembic==1.12.1
-black==24.*
+black==26.*
 dateparser==1.2.1
 Flask==3.1.*
 Flask-Compress==1.14

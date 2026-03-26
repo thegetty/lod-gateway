@@ -2,7 +2,6 @@ from rdflib import ConjunctiveGraph, Namespace
 
 from rdflib.namespace import DC, DCTERMS
 
-
 BINDING = {
     "crm": Namespace("http://www.cidoc-crm.org/cidoc-crm/"),
     "aat": Namespace("http://vocab.getty.edu/aat/"),

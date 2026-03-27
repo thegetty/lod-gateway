@@ -370,9 +370,9 @@ def create_app():
         # Needs the app context and the db to be initialized:
         if basegraph := environ.get("RDF_BASE_GRAPH"):
             app.config["RDF_BASE_GRAPH"] = basegraph
-            app.config["FULL_BASE_GRAPH"] = (
-                f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
-            )
+            app.config[
+                "FULL_BASE_GRAPH"
+            ] = f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
 
             app.config["RDF_FILTER_SET"] = base_graph_filter(
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
@@ -384,6 +384,9 @@ def create_app():
             app.config["DB_DIALECT"] = "postgresql"
         else:
             app.config["DB_DIALECT"] = "base"
+
+        if environ.get("DB_DIALECT", None) is not None:
+            app.config["DB_DIALECT"] = environ["DB_DIALECT"]
 
         app.config["SERVER_CAPABILITIES"] = (
             ", ".join(

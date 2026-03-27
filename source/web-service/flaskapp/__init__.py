@@ -188,6 +188,10 @@ def create_app():
             app.config["LDP_AUTOCREATE_CONTAINERS"] = (
                 environ.get("LDP_AUTOCREATE_CONTAINERS", "False").lower() == "true"
             )
+            app.config["LDP_AUTOCREATE_CONTAINERS_w_COMMIT"] = (
+                environ.get("LDP_AUTOCREATE_CONTAINERS_w_COMMIT", "False").lower()
+                == "true"
+            )
 
             # Perform an extra step to validate that the generated slug for a resource doesn't exist in the container yet?
             app.config["LDP_VALIDATE_SLUGS"] = (

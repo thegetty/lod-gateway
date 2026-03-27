@@ -86,6 +86,7 @@ def assert_containers(entity_ids):
                     dctitle=container,
                     dcdescription="Auto-generated container",
                     db_dialect=current_app.config["DB_DIALECT"],
+                    commit=current_app.config["LDP_AUTOCREATE_CONTAINERS_w_COMMIT"],
                 )
                 parent = c
                 new_containers.append(container)

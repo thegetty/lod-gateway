@@ -151,6 +151,7 @@ def create_app():
     app.config["LDP_BACKEND"] = False
     app.config["LDP_API"] = False
     app.config["LDP_AUTOCREATE_CONTAINERS"] = False
+    app.config["LDP_AUTOCREATE_CONTAINERS_w_COMMIT"] = False
     app.config["LDP_VALIDATE_SLUGS"] = False
     app.config["LDP_PAGE_SIZE"] = 200
     # default ID generator:

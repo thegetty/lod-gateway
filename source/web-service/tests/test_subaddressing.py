@@ -4,7 +4,6 @@ import uuid
 
 from flask import current_app
 
-
 # Example HMO record
 hmo1 = {
     "@context": "https://linked.art/ns/v1/linked-art.json",

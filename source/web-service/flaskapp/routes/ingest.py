@@ -49,7 +49,6 @@ from flaskapp.utilities import (
 )
 from flaskapp.base_graph_utils import base_graph_filter
 
-
 # Create a new "ingest" route blueprint
 ingest = Blueprint("ingest", __name__)
 

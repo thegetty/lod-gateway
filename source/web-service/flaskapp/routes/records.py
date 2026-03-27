@@ -62,7 +62,6 @@ from flaskapp.errors import (
 from flaskapp.utilities import checksum_json, authenticate_bearer, squish_dict
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
 
-
 # RDF format translations
 from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
 from flaskapp.conneg import (

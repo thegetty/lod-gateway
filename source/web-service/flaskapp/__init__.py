@@ -66,6 +66,7 @@ def create_app():
 
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
     app.config["FLASK_ENV"] = getenv("FLASK_ENV", "production")
+    app.config["DB_DIALECT"] = "base"
 
     app.logger.info(f"LOD Gateway logging INFO at level {app.config['DEBUG_LEVEL']}")
 
@@ -369,6 +370,13 @@ def create_app():
         local_thesaurus.populate_db(app.app_context())
 
     with app.app_context():
+        # Are we able to use postgresql optimizations?
+        engine = db.engine
+        if engine.dialect.name == "postgresql":
+            app.config["DB_DIALECT"] = "postgresql"
+
+        if environ.get("DB_DIALECT", None) in ["base", "postgresql"]:
+            app.config["DB_DIALECT"] = environ["DB_DIALECT"]
         ns = app.config["NAMESPACE"]
 
         # Needs the app context and the db to be initialized:
@@ -381,16 +389,6 @@ def create_app():
             app.config["RDF_FILTER_SET"] = base_graph_filter(
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
             )
-
-        # Are we able to use postgresql optimizations?
-        engine = db.engine
-        if engine.dialect.name == "postgresql":
-            app.config["DB_DIALECT"] = "postgresql"
-        else:
-            app.config["DB_DIALECT"] = "base"
-
-        if environ.get("DB_DIALECT", None) is not None:
-            app.config["DB_DIALECT"] = environ["DB_DIALECT"]
 
         app.config["SERVER_CAPABILITIES"] = (
             ", ".join(

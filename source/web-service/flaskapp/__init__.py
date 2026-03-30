@@ -66,6 +66,7 @@ def create_app():
 
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
     app.config["FLASK_ENV"] = getenv("FLASK_ENV", "production")
+    app.config["DB_DIALECT"] = "base"
 
     app.logger.info(f"LOD Gateway logging INFO at level {app.config['DEBUG_LEVEL']}")
 
@@ -150,6 +151,7 @@ def create_app():
     app.config["LDP_BACKEND"] = False
     app.config["LDP_API"] = False
     app.config["LDP_AUTOCREATE_CONTAINERS"] = False
+    app.config["LDP_AUTOCREATE_CONTAINERS_w_COMMIT"] = False
     app.config["LDP_VALIDATE_SLUGS"] = False
     app.config["LDP_PAGE_SIZE"] = 200
     # default ID generator:
@@ -187,6 +189,10 @@ def create_app():
             # the behavior of the LDP API if you attempt to add a resource to a container that does not exist
             app.config["LDP_AUTOCREATE_CONTAINERS"] = (
                 environ.get("LDP_AUTOCREATE_CONTAINERS", "False").lower() == "true"
+            )
+            app.config["LDP_AUTOCREATE_CONTAINERS_w_COMMIT"] = (
+                environ.get("LDP_AUTOCREATE_CONTAINERS_w_COMMIT", "False").lower()
+                == "true"
             )
 
             # Perform an extra step to validate that the generated slug for a resource doesn't exist in the container yet?
@@ -365,6 +371,13 @@ def create_app():
         local_thesaurus.populate_db(app.app_context())
 
     with app.app_context():
+        # Are we able to use postgresql optimizations?
+        engine = db.engine
+        if engine.dialect.name == "postgresql":
+            app.config["DB_DIALECT"] = "postgresql"
+
+        if environ.get("DB_DIALECT", None) in ["base", "postgresql"]:
+            app.config["DB_DIALECT"] = environ["DB_DIALECT"]
         ns = app.config["NAMESPACE"]
 
         # Needs the app context and the db to be initialized:
@@ -377,13 +390,6 @@ def create_app():
             app.config["RDF_FILTER_SET"] = base_graph_filter(
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
             )
-
-        # Are we able to use postgresql optimizations?
-        engine = db.engine
-        if engine.dialect.name == "postgresql":
-            app.config["DB_DIALECT"] = "postgresql"
-        else:
-            app.config["DB_DIALECT"] = "base"
 
         app.config["SERVER_CAPABILITIES"] = (
             ", ".join(

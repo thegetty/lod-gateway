@@ -8,6 +8,8 @@ import requests
 
 from enum import Enum
 
+from urllib.parse import urlsplit, urlunsplit
+
 from flaskapp.errors import (
     status_wrong_auth_token,
     status_bad_auth_header,
@@ -25,6 +27,7 @@ class Event(Enum):
     Delete = 3
     Move = 4
     Refresh = 5
+    ContainerConflict = 6
 
 
 # Match quads only - doesn't handle escaped quotes yet, but the use of @graph JSON-LD will
@@ -37,19 +40,19 @@ NTRIPLES = re.compile(
 )
 
 # idPrefixer URI schemes it will not prefix with the LOD external URI on display
-ALLOWED_SCHEMES = set(["https", "http", "ftp", "urn", "ftp", "file", "s3"])
+ALLOWED_SCHEMES = set(["https", "http", "ftp", "urn", "ftp", "file", "s3", "_"])
 
 
 def is_quads(line):
     if line:
-        if match := QUADS.match(line):
+        if _ := QUADS.match(line):
             return True
     return False
 
 
 def is_ntriples(line):
     if line:
-        if match := NTRIPLES.match(line):
+        if _ := NTRIPLES.match(line):
             return True
     return False
 
@@ -232,11 +235,29 @@ def idPrefixer(attr, value, prefix=None, urlprefixes=None, **kwargs):
     """Helper callback method to prefix non-prefixed JSON-LD document 'id' attributes"""
     if urlprefixes is None:
         urlprefixes = set()
+
+    joiner = "/" if not value.startswith("/") and not prefix.endswith("/") else ""
+
+    if value.startswith("/") and prefix.endswith("/"):
+        # two slashes, remove one
+        value = value[1:]
+
     # prefix any relative uri with the prefix
     if value.split(":")[0] not in (ALLOWED_SCHEMES.union(urlprefixes)) and prefix:
-        return prefix + "/" + value
+        return prefix + joiner + value
 
     return value
+
+
+def idUnPrefixer(attr, value, prefix="", **kwargs):
+    """Helper callback method to remove the prefix from JSON-LD document 'id' attributes"""
+    if prefix is not None:
+        if not prefix.endswith("/"):
+            prefix = f"{prefix}/"
+
+        return value.removeprefix(prefix)
+    else:
+        return value
 
 
 def requested_linkformat(request_obj, default_response_type):
@@ -260,6 +281,11 @@ def wants_html(request_obj, default_response_type="text/html"):
             "application/xhtml+xml",
             "application/xml",
             "application/json",
+            "application/ld+json",
+            "application/rdf+xml",
+            "text/turtle",
+            "text/n-triples",
+            "text/n-quads",
         ],
         default=default_response_type,
     ) in ["text/html", "application/xhtml+xml"]
@@ -334,3 +360,121 @@ def execute_sparql_query_post(
         return response
     except requests.exceptions.ConnectionError:
         return status_graphstore_error
+
+
+# entity_id -> container chain then entity
+def segment_entity_id(entity_id):
+    if entity_id == "/":
+        return ["/"]
+    segments = []
+    # clean up
+    seq = [x for x in entity_id.split("/") if x]
+    clean_entity_id = "/" + "/".join(seq)
+    if not entity_id.endswith("/"):
+        seq = seq[:-1]
+    else:
+        clean_entity_id += "/"
+    seq = [x for x in seq if x]
+    for segment in seq:
+        if segments:
+            segments.append(f"{segments[-1]}{segment}/")
+        else:
+            segments.append(f"/{segment}/")
+    segments = ["/"] + segments
+    if segments[-1] != clean_entity_id:
+        segments.append(clean_entity_id)
+    return segments
+
+
+def strip_scheme_host(iri: str) -> str:
+    """
+    Remove any scheme/host from an IRI, returning a relative IRI form
+    (path, query, fragment only). Leaves relative inputs unchanged.
+    """
+    parts = urlsplit(iri)
+    if parts.scheme or parts.netloc:
+        # Strip scheme and host; keep path, query, fragment.
+        relative_uri = urlunsplit(("", "", parts.path, parts.query, parts.fragment))
+        if relative_uri.startswith("/"):
+            return relative_uri[1:]
+        return relative_uri
+    return iri
+
+
+def join_baseid_and_rel(base: str, rel: str) -> str:
+    """
+    Join normalized base (path/host-free) with a relative IRI `rel`.
+
+    - If rel starts with '#', create a fragment on base: 'base#frag'
+    - If base ends with '#', append directly after '#': 'basefrag'
+    - Otherwise join with a single '/'.
+    """
+    # Normalize separators on both sides
+    if rel.startswith("#"):
+        frag = rel.lstrip("#")
+        # Ensure single '#'
+        return f"{base.rstrip('/#')}#{frag}"
+
+    # If base ends with '#', treat everything as fragment-ish
+    if base.endswith("#"):
+        return f"{base}{rel.lstrip('#/')}"
+
+    if not base.rstrip("/"):
+        return rel.lstrip("/")
+
+    # Otherwise, slash-join for pathy rels (including those starting with '/')
+    return f"{base.rstrip('/')}/{rel.lstrip('/')}"
+
+
+_DEADBEEF = object()
+
+
+def _prune_and_unwrap_singleton_lists(obj):
+    """
+    Deep-copy `obj` while:
+      - Removing empty dict/list containers recursively
+      - Removing dict keys / list items that prune away
+      - Unwrapping lists of length 1 to their single element (after pruning)
+
+    Returns:
+      - The pruned/transformed object
+    """
+    # Dict handling
+    if isinstance(obj, dict):
+        if not obj:
+            return _DEADBEEF
+
+        new = {}
+        for k, v in obj.items():
+            pv = _prune_and_unwrap_singleton_lists(v)
+            if pv is not _DEADBEEF:
+                new[k] = pv
+
+        return new if new else _DEADBEEF
+
+    # List handling
+    if isinstance(obj, list):
+        if not obj:
+            return _DEADBEEF
+
+        new_items = []
+        for item in obj:
+            pi = _prune_and_unwrap_singleton_lists(item)
+            if pi is not _DEADBEEF:
+                new_items.append(pi)
+
+        # After pruning, decide what to do with the list
+        if not new_items:
+            return _DEADBEEF
+        if len(new_items) == 1:
+            # unwrap singleton list
+            return new_items[0]
+        return new_items
+
+    # Base case: strings and other primitives/objects kept as-is
+    return obj
+
+
+def squish_dict(obj, default=None):
+    out = _prune_and_unwrap_singleton_lists(obj)
+    return default if out is _DEADBEEF else out

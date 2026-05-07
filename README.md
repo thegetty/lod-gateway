@@ -9,6 +9,7 @@ The LOD Gateway offers the following key functionality:
  * provides an [Activity Streams](https://www.w3.org/TR/activitystreams-core/) compliant change history so that changes to documents are discoverable by external systems;
  * offers optional integration with a graph store such as [Fuseki](https://jena.apache.org/documentation/fuseki2/), [GraphDB](https://graphdb.ontotext.com) or [Neptune](https://aws.amazon.com/neptune/), which extends the functionality of the Gateway making it possible to perform graph queries against the stored JSON-LD documents using the [SPARQL](https://www.w3.org/TR/sparql11-query/) query language.
  * Supports [standard HTTP RDF Content Negotiation as well as Content Negotiation by Profile](documentation/content_negotiation.md) using Accept/Accept-Profile headers and `format`, `_profile` and `_mediatype` URL parameters
+ * Support for [Linked Data Platform concepts and API](documentation/ldp.md)
 
 The LOD Gateway can be used in a number of different ways out-of-the-box depending on how its settings are configured:
 

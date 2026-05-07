@@ -1,4 +1,12 @@
-from flask import Blueprint, render_template, current_app, request, jsonify
+from flask import (
+    Blueprint,
+    render_template,
+    current_app,
+    request,
+    jsonify,
+    redirect,
+    url_for,
+)
 from math import ceil
 from urllib import parse
 from datetime import datetime
@@ -9,14 +17,86 @@ from flaskapp.models.activity import Activity
 from sqlalchemy import func, desc, exc
 from sqlalchemy.sql.functions import coalesce, max
 from flaskapp.models import db
-
+from flaskapp.models.container import NoLDPContainerFoundError
+from flaskapp.storage_utilities.container import (
+    get_page_for_container,
+    generate_paging_link_headers,
+    get_full_container_page_representation,
+)
+from flaskapp.conneg import determine_requested_format_and_profile, reformat_rdf
 from flaskapp.utilities import wants_html
+from flaskapp.errors import construct_error_response, status_container_not_found
 
 # Create home page
 home_page = Blueprint("home_page", __name__)
 
 
 @home_page.route("/", methods=["GET"])
+def root_container():
+    if wants_html(request) or current_app.config["LDP_API"] is False:
+        # Send them to the dashboard instead:
+        return redirect(url_for("home_page.get_home_page"))
+
+    if not current_app.config["LDP_API"]:
+        # LDP API is not on, so should redirect
+        return redirect(url_for("home_page.get_home_page"))
+
+    # soft-redirect for pagination? look for page and also optional page_size parameters
+    if page := request.args.get("page"):
+        # Validate page
+        try:
+            page = int(page)
+        except ValueError:
+            return (
+                jsonify({"errors": [{"title": "Page parameter was not an integer"}]}),
+                400,
+            )
+
+        # also listen to that weird Link setting in the requests?
+        page_size = request.args.get("page_size", current_app.config["LDP_PAGE_SIZE"])
+        # We have a page! return that page of content if possible
+        cid = "/"
+        try:
+            # We have a page! return that page of content if possible
+            ldpheaders, data = get_full_container_page_representation(
+                cid, page, page_size
+            )
+        except NoLDPContainerFoundError:
+            response = construct_error_response(status_container_not_found)
+            return response
+
+        # Handle Accept?
+        desired = determine_requested_format_and_profile(request)
+        if desired["accepted_mimetypes"]:
+            content_type, _, shortformat = desired["accepted_mimetypes"][0]
+        else:
+            content_type = "application/ld+json"
+            shortformat = "json-ld"
+
+        # Add an html version too at some point?
+        if not shortformat:
+            shortformat = "json-ld"
+
+        data = reformat_rdf(
+            data,
+            shortformat=shortformat,
+            use_pyld=current_app.config["USE_PYLD_REFORMAT"],
+            rdf_docloader=current_app.config["RDF_DOCLOADER"],
+        )
+        response = current_app.make_response(data)
+        response.headers = ldpheaders
+        response.headers["Content-Type"] = content_type
+        response.headers["Accept-Post"] = "application/ld+json"
+
+        return response
+    else:
+        # Redirect with 303 as the LDP-PAGING spec says:
+        return redirect(
+            url_for("home_page.root_container", page=1),
+            code=303,
+        )
+
+
 @home_page.route("/dashboard", methods=["GET"])
 def get_home_page():
     if not wants_html(request):
@@ -34,6 +114,17 @@ def get_home_page():
                     ),
                     "chk_subaddressing": (
                         True if current_app.config.get("SUBADDRESSING") else False
+                    ),
+                    "chk_content_profiles": (
+                        True
+                        if current_app.config.get("CONTENT_PROFILE_PATTERNS_AVAILABLE")
+                        else False
+                    ),
+                    "chk_ldp_backend": (
+                        True if current_app.config.get("LDP_BACKEND") else False
+                    ),
+                    "chk_ldp_api": (
+                        True if current_app.config.get("LDP_API") else False
                     ),
                 }
             ),
@@ -256,24 +347,20 @@ def get_num_changes_record_entity(rec_id):
 def get_most_recent_sparql(base_url, entity_id):
     url = base_url + "/sparql-ui#"
     graph = parse.quote(base_url + "/" + entity_id)
-    query1 = parse.quote(
-        """
+    query1 = parse.quote("""
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
         SELECT * WHERE {
         graph 
-        """
-    )
+        """)
 
-    query2 = parse.quote(
-        """
+    query2 = parse.quote("""
         {
             ?sub ?pred ?obj .
         }
     }
-    """
-    )
+    """)
 
     return f"{url}{query1}{graph}{query2}"
 

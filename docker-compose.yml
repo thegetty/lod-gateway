@@ -14,7 +14,8 @@ services:
         build:
             context: ./
             dockerfile: ./Dockerfile.sparql-service
-        command: --tdb2 --update --loc databases/DB2 --set tdb:unionDefaultGraph=true /ds
+        volumes:
+            - data_fuseki:/opt/fuseki/databases/tdb2
         ports:
             - ${FUSEKI_EXT_PORT:-3030}:3030
 
@@ -36,3 +37,4 @@ services:
 
 volumes:
     data_postgres:
+    data_fuseki:

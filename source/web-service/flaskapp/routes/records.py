@@ -1006,43 +1006,18 @@ def entity_record(entity_id):
                                     use_pyld=use_pyld,
                                     rdf_docloader=current_app.config["RDF_DOCLOADER"],
                                 )
-
-                                ident = data.get("id") or data.get("@id")
-
-                                # rdflib to load and format the nquads
-                                # forcing it, because of pyld's awful nquad export
-                                ds, g = get_bound_graph(identifier=ident)
-
-                                # May not be nquads, even though we requested it:
-                                serialized_rdf = triples_to_quads(serialized_rdf, ident)
-
-                                ds.parse(data=serialized_rdf, format="nquads")
-                                if shortformat in QUAD_ENABLED:
-                                    # formats allow quads
-                                    data = ds.serialize(format=shortformat)
-                                else:
-                                    # Triple-focussed output:
-                                    data = g.serialize(format=shortformat)
                                 # blank out the etag for now
                                 etag = None
                             else:
                                 current_app.logger.debug(
                                     f"{entity_id} - using RDFLIB to parse JSON-LD"
                                 )
-                                ident = data.get("id") or data.get("@id")
-
-                                # using rdflib to both parse and re-serialize the RDF:
-                                ds, g = get_bound_graph(identifier=ident)
-
-                                if shortformat in QUAD_ENABLED:
-                                    # formats allow quads
-                                    ds.parse(data=json.dumps(data), format="json-ld")
-                                    data = ds.serialize(format=shortformat)
-                                else:
-                                    # Triple-focussed output:
-                                    g.parse(data=json.dumps(data), format="json-ld")
-                                    data = g.serialize(format=shortformat)
-
+                                data = reformat_rdf(
+                                    data,
+                                    shortformat=shortformat,
+                                    use_pyld=False,
+                                    rdf_docloader=current_app.config["RDF_DOCLOADER"],
+                                )
                                 # blank out the etag for now
                                 etag = None
 

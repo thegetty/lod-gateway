@@ -39,10 +39,6 @@ class TestSparqlSuccess:
             client.application.config["SPARQL_QUERY_AUTHENTICATION"] = True
             response = client.get(
                 f"/{namespace}/sparql" + "?query=SELECT+*+%7B%3Fs+%3Fp+%3Fo%7D+LIMIT+1",
-                headers={
-                    "Authorization": "Bearer " + auth_token,
-                    "Accept": "application/json",
-                },
             )
             # Should be blocked with HTTP 401
             assert response.status_code == 401

@@ -40,7 +40,7 @@ def get_yasgui():
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ")[1]
 
-        # No authentication required.
+        # /sparql queries requires token:
         yasgui_page = create_yasgui_html(endpoint, token=token)
         return yasgui_page
     else:

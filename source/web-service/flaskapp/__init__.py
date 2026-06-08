@@ -161,12 +161,18 @@ def create_app():
     app.config["USE_PYLD_REFORMAT"] = True
     app.config["PROCESS_RDF"] = False
     app.config["CONTENT_PROFILE_PATTERNS_AVAILABLE"] = False
+    app.config["SPARQL_QUERY_AUTHENTICATION"] = False
 
     if environ.get("PROCESS_RDF", "False").lower() == "true":
         app.config["PROCESS_RDF"] = True
         app.logger.info("RDF processing is enabled")
         app.config["SPARQL_QUERY_ENDPOINT"] = environ["SPARQL_QUERY_ENDPOINT"]
         app.config["SPARQL_UPDATE_ENDPOINT"] = environ["SPARQL_UPDATE_ENDPOINT"]
+
+        # Add Authentication to SPARQL endpoint?
+        app.config["SPARQL_QUERY_AUTHENTICATION"] = (
+            environ.get("SPARQL_QUERY_AUTHENTICATION", "False").lower() == "true"
+        )
 
         # LDP Support (NB all dependent on PROCESS_RDF being true)
         # LDP_BACKEND -> This flag controls the backend bookkeeping where the container lists are kept

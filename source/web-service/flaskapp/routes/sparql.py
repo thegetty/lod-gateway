@@ -12,11 +12,16 @@ from flask import (
 
 from flaskapp.errors import (
     status_nt,
+    status_ok,
     construct_error_response,
     status_graphstore_timeout,
 )
 
-from flaskapp.utilities import execute_sparql_query_post, execute_sparql_query
+from flaskapp.utilities import (
+    execute_sparql_query_post,
+    execute_sparql_query,
+    authenticate_bearer,
+)
 
 # Create a new "sparql" route blueprint
 sparql = Blueprint("sparql", __name__)
@@ -34,6 +39,13 @@ def query_entrypoint():
             )
         )
         return abort(response)
+
+    if current_app.config["SPARQL_QUERY_AUTHENTICATION"] is True:
+        # SPARQL endpoint requires authentication
+        status = authenticate_bearer(request, current_app)
+        if status != status_ok:
+            response = construct_error_response(status)
+            return abort(response)
 
     if "update" in request.args or request.form.get("update") is not None:
         response = construct_error_response(

@@ -398,9 +398,9 @@ def create_app():
         # Needs the app context and the db to be initialized:
         if basegraph := environ.get("RDF_BASE_GRAPH"):
             app.config["RDF_BASE_GRAPH"] = basegraph
-            app.config[
-                "FULL_BASE_GRAPH"
-            ] = f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
+            app.config["FULL_BASE_GRAPH"] = (
+                f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
+            )
 
             app.config["RDF_FILTER_SET"] = base_graph_filter(
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
@@ -505,7 +505,7 @@ def create_app():
                 x_proto=1,  # Ensures url_for() generates https:// instead of http:// if the original is https
                 x_host=X_HOST,  # Preserves the external domain name
                 x_for=X_FOR,  # 0 - Keeps internal IPs from polluting your logs, 1 - keep IPs passed from the proxy
-                x_prefix=X_PREFIX  # DISABLED: Unnecessary since internal and external paths match
+                x_prefix=X_PREFIX,  # DISABLED: Unnecessary since internal and external paths match
                 #    (eg external is ...edu/vocab/ and local is also served at /vocab/).
             )
         return app

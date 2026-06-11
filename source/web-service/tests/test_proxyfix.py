@@ -90,7 +90,7 @@ def test_proxy_fix_disabled(make_client):
     )
 
     print(response.status_code)
-    print(response.content)
+    print(response.data.decode("utf-8"))
     print(response.headers)
 
     # Throws away the HTTPS PROTO header and redirects to HTTP:

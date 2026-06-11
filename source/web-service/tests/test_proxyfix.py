@@ -5,7 +5,7 @@ from flask import Blueprint, url_for
 
 @pytest.fixture
 def make_client():
-    def _make_client(enable_proxy, app):
+    def _make_client(app, enable_proxy):
         os.environ["WERKZEUG_PROXY_FIX"] = "true" if enable_proxy else "false"
         os.environ["WERKZEUG_X_PREFIX"] = "0"
         os.environ["WERKZEUG_X_FOR"] = "1"
@@ -31,7 +31,7 @@ def make_client():
 
 
 def test_proxy_fix_enabled(app, make_client, test_db):
-    client = make_client(enable_proxy=True, app)
+    client = make_client(app, enable_proxy=True)
 
     namespace = app.config["NAMESPACE"]
 
@@ -67,7 +67,7 @@ def test_proxy_fix_enabled(app, make_client, test_db):
 
 
 def test_proxy_fix_disabled(app, make_client, test_db):
-    client = make_client(enable_proxy=False, app)
+    client = make_client(app, enable_proxy=False)
 
     namespace = app.config["NAMESPACE"]
 

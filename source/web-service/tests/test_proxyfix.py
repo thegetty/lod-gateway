@@ -1,6 +1,6 @@
 import os
 import pytest
-from flask import url_for
+from flask import Blueprint, url_for
 from flaskapp import create_app
 
 
@@ -12,17 +12,21 @@ def make_client():
         os.environ["WERKZEUG_X_FOR"] = "1"
         os.environ["WERKZEUG_X_HOST"] = "1"
 
-        # import the Blueprint *before* app initialization
-        from flaskapp.routes.home_page import home_page
-
-        # inject the route directly into the blueprint just for the test
-        @home_page.route("/dynamic-test-route")
-        def dynamic_test_route():
-            # For blueprints, url_for requires the 'blueprint_name.view_name' syntax
-            return {"url": url_for("home_page.dynamic_test_route", _external=True)}
-
-        # 3. Initialize the app
+        # Initialize the app
         app = create_app()
+        namespace = app.config["NAMESPACE"]
+
+        # Now bolt on a new BL with a debug route
+        test_bp = Blueprint("proxy_test_bp", __name__)
+
+        @test_bp.route("/dynamic-test-route")
+        def dynamic_test_route():
+            # Targets the local test blueprint mapping
+            return {"url": url_for("proxy_test_bp.dynamic_test_route", _external=True)}
+
+        # 4. Register the new test blueprint using your production namespace pattern
+        app.register_blueprint(test_bp, url_prefix=f"/{namespace}")
+
         return app, app.test_client()
 
     yield _make_client
@@ -36,7 +40,10 @@ def test_proxy_fix_enabled(make_client):
 
     response = client.get(
         f"/{namespace}/dynamic-test-route",
-        headers={"X-Forwarded-Proto": "https", "X-Forwarded-Host": "example.com"},
+        headers={
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "example.com",
+        },
     )
 
     assert response.json["url"] == f"https://example.com{namespace}/dynamic-test-route"
@@ -49,7 +56,10 @@ def test_proxy_fix_disabled(make_client):
 
     response = client.get(
         f"/{namespace}/dynamic-test-route",
-        headers={"X-Forwarded-Proto": "https", "X-Forwarded-Host": "example.com"},
+        headers={
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "example.com",
+        },
     )
 
     # Throws away the HTTPS PROTO header and redirects to HTTP:

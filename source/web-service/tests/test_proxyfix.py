@@ -79,6 +79,10 @@ def test_proxy_fix_disabled(app, make_client, test_db):
         },
     )
 
+    print(response.status_code)
+    print(response.content)
+    print(response.headers)
+
     # Throws away the HTTPS PROTO header and redirects to HTTP:
     assert response.json["url"].startswith("http://")
 

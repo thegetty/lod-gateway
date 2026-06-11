@@ -1,19 +1,16 @@
 import os
 import pytest
 from flask import Blueprint, url_for
-from flaskapp import create_app
 
 
 @pytest.fixture
 def make_client():
-    def _make_client(enable_proxy):
+    def _make_client(enable_proxy, app):
         os.environ["WERKZEUG_PROXY_FIX"] = "true" if enable_proxy else "false"
         os.environ["WERKZEUG_X_PREFIX"] = "0"
         os.environ["WERKZEUG_X_FOR"] = "1"
         os.environ["WERKZEUG_X_HOST"] = "1"
 
-        # Initialize the app
-        app = create_app()
         namespace = app.config["NAMESPACE"]
 
         # Now bolt on a new BL with a debug route
@@ -33,8 +30,8 @@ def make_client():
     os.environ.pop("WERKZEUG_PROXY_FIX", None)
 
 
-def test_proxy_fix_enabled(make_client):
-    app, client = make_client(enable_proxy=True)
+def test_proxy_fix_enabled(app, make_client, test_db):
+    client = make_client(enable_proxy=True, app)
 
     namespace = app.config["NAMESPACE"]
 
@@ -69,8 +66,8 @@ def test_proxy_fix_enabled(make_client):
     assert response.status_code == 200
 
 
-def test_proxy_fix_disabled(make_client):
-    app, client = make_client(enable_proxy=False)
+def test_proxy_fix_disabled(app, make_client, test_db):
+    client = make_client(enable_proxy=False, app)
 
     namespace = app.config["NAMESPACE"]
 

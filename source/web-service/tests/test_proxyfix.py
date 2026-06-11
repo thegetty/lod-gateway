@@ -48,6 +48,26 @@ def test_proxy_fix_enabled(make_client):
 
     assert response.json["url"] == f"https://example.com/{namespace}/dynamic-test-route"
 
+    # Make sure some other plain routes still work fine:
+    response = client.get(
+        f"/{namespace}/dashboard",
+        headers={
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "example.com",
+        },
+    )
+    assert response.status_code == 200
+    assert b"LOD Gateway" in response.data
+
+    response = client.get(
+        f"/{namespace}/health",
+        headers={
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "example.com",
+        },
+    )
+    assert response.status_code == 200
+
 
 def test_proxy_fix_disabled(make_client):
     app, client = make_client(enable_proxy=False)

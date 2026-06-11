@@ -63,6 +63,17 @@ logging.config.dictConfig(
 )
 
 
+def proxy_fix_wrap(app, x_for, x_host, x_prefix, x_proto=1):
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_proto=1,  # Ensures url_for() generates https:// instead of http:// if the original is https
+        x_host=x_host,  # Preserves the external domain name
+        x_for=x_for,  # 0 - Keeps internal IPs from polluting your logs, 1 - keep IPs passed from the proxy
+        x_prefix=x_prefix,  # DISABLED: Unnecessary since internal and external paths match
+        #    (eg external is ...edu/vocab/ and local is also served at /vocab/).
+    )
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -500,12 +511,6 @@ def create_app():
                 X_HOST = 0
 
             print("Applying Werkzeug Proxy Fixes")
-            app.wsgi_app = ProxyFix(
-                app.wsgi_app,
-                x_proto=1,  # Ensures url_for() generates https:// instead of http:// if the original is https
-                x_host=X_HOST,  # Preserves the external domain name
-                x_for=X_FOR,  # 0 - Keeps internal IPs from polluting your logs, 1 - keep IPs passed from the proxy
-                x_prefix=X_PREFIX,  # DISABLED: Unnecessary since internal and external paths match
-                #    (eg external is ...edu/vocab/ and local is also served at /vocab/).
-            )
+
+            proxy_fix_wrap(app, X_FOR, X_HOST, X_PREFIX, 1)
         return app

@@ -10,13 +10,13 @@ from flaskapp import proxy_fix_wrap
 def make_client(app, test_db):
     if not hasattr(app, "_original_wsgi_app"):
         app._original_wsgi_app = app.wsgi_app
+    else:
+        # reset needed?
+        app.wsgi_app = app._original_wsgi_app
 
     def _make_client(enable_proxy):
         if enable_proxy:
             os.environ["WERKZEUG_PROXY_FIX"] = "true"
-            os.environ["WERKZEUG_X_PREFIX"] = "0"
-            os.environ["WERKZEUG_X_FOR"] = "1"
-            os.environ["WERKZEUG_X_HOST"] = "1"
 
             proxy_fix_wrap(app, 1, 1, 0, 1)
 
@@ -36,7 +36,9 @@ def make_client(app, test_db):
         return app, app.test_client()
 
     yield _make_client
+
     app.wsgi_app = app._original_wsgi_app
+
     os.environ.pop("WERKZEUG_PROXY_FIX", None)
 
 

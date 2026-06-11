@@ -24,7 +24,7 @@ def make_client():
         # 4. Register the new test blueprint using your production namespace pattern
         app.register_blueprint(test_bp, url_prefix=f"/{namespace}")
 
-        return app, app.test_client()
+        return app.test_client()
 
     yield _make_client
     os.environ.pop("WERKZEUG_PROXY_FIX", None)

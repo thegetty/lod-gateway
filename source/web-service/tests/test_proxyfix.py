@@ -21,7 +21,7 @@ def make_client():
             # Targets the local test blueprint mapping
             return {"url": url_for("proxy_test_bp.dynamic_test_route", _external=True)}
 
-        # 4. Register the new test blueprint using your production namespace pattern
+        # Register the new test blueprint using your namespace
         app.register_blueprint(test_bp, url_prefix=f"/{namespace}")
 
         return app.test_client()

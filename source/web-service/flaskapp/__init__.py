@@ -481,7 +481,7 @@ def create_app():
 
             return response
 
-        if environ.get("WERKZEUG_PROXY_FIX", "true").lower() in ["true", "t", "1"]:
+        if environ.get("WERKZEUG_PROXY_FIX", "false").lower() in ["true", "t", "1"]:
             # Documentation: https://werkzeug.palletsprojects.com/en/stable/middleware/proxy_fix/
 
             # NGINX-Ingress can be set to cluster or local (externalTrafficPolicy)

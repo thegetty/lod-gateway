@@ -8,7 +8,7 @@ from flaskapp import create_app
 def make_client():
     def _make_client(enable_proxy):
         os.environ["WERKZEUG_PROXY_FIX"] = "true" if enable_proxy else "false"
-        os.environ["WERKZEUG_X_PREFIX"] = "0"
+        os.environ["WERKZEUG_X_PREFIX"] = "1"
         os.environ["WERKZEUG_X_FOR"] = "1"
         os.environ["WERKZEUG_X_HOST"] = "1"
 
@@ -46,7 +46,7 @@ def test_proxy_fix_enabled(make_client):
         },
     )
 
-    assert response.json["url"] == f"https://example.com{namespace}/dynamic-test-route"
+    assert response.json["url"] == f"https://example.com/{namespace}/dynamic-test-route"
 
 
 def test_proxy_fix_disabled(make_client):

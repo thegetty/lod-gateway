@@ -6,6 +6,7 @@ import os
 import re
 import requests
 import urllib.parse
+import types
 
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -22,6 +23,7 @@ from flaskapp.storage_utilities.record import (
     record_create,
     process_activity,
 )
+from flaskapp.storage_utilities.mock_sparql import MockSPARQLService
 
 
 from dataclasses import dataclass
@@ -385,153 +387,85 @@ def ldp_sample_containers(test_db, namespace):
     test_db.session.commit()
 
 
+@pytest.fixture
+def mock_sparql_service():
+    return MockSPARQLService()
+
+
 @pytest.fixture(autouse=True)
-def requests_mocker(requests_mock):
-    """The `requests_mocker()` method supports mocking requests to the graph store, which is inaccessible
-    from within CircleCI. The `requests_mocker()` method provides support for mocking successful
-    HTTP requests to the graph store, and providing appropriate responses for the limited set of queries
-    performed by the /ingest endpoint's `process_graphstore_record_set()` method, as well as support
-    for generating failed requests to mimic networking issues or connection time-outs.
+def requests_mocker(monkeypatch, mock_sparql_service):
+    """Intercept requests to SPARQL endpoints and route them through an
+    in-memory RDFLib-based graph store via ``MockSPARQLService``.
+
+    - ``mock-fail://`` URLs raise ``ConnectionError`` to simulate outages.
+    - ``mock-pass://`` and ``http://`` URLs go through to the RDFLib graph.
     """
+    original_post = requests.post
+    original_get = requests.get
 
-    def mocker_text_callback(request, context):
-        print(f"MOCKED REQUEST, begin handling -: {request.url}")
+    def _build_response(result: Dict[str, Any]) -> requests.Response:
+        resp = requests.Response()
+        resp.status_code = result["status_code"]
+        resp.headers.update(result.get("headers", {}))
+        raw = result.get("body")
+        if raw is not None and not isinstance(raw, bytes):
+            raw = raw.encode("utf-8")
+        resp._content = raw or b""
+        return resp
 
-        if request.path_url.endswith("/status"):
-            context.status_code = 200
-            return json.dumps(
-                {
-                    "status": "healthy",
-                }
-            )
-        elif request.path_url.endswith("/sparql") or request.path_url.endswith(
-            "/update"
-        ):  # TODO: this is not portable
-            sparql = None
-            print("MOCKED REQUEST -: Treating as SPARQL query")
-            if request.body.startswith("query=") or request.body.startswith("update="):
-                params = urllib.parse.parse_qsl(request.body)
-                if params:
-                    for param in params:
-                        if param[0] == "query" or param[0] == "update":
-                            sparql = param[1]
-                            break
+    def _patched_post(url, data=None, headers=None, **kwargs):
+        if _is_mock_fail(url):
+            raise requests.exceptions.ConnectionError("mock connection error")
+        if not _is_sparql_url(url):
+            return original_post(url, data=data, headers=headers, **kwargs)
 
-            if sparql:
-                print(f"MOCKED REQUEST -: SPARQL detected: {sparql}")
-                if sparql.startswith("SELECT"):
-                    context.status_code = 200
-                    return json.dumps(
-                        {
-                            "results": {
-                                "bindings": [
-                                    {
-                                        "count": {
-                                            "value": 0,
-                                        }
-                                    }
-                                ],
-                            },
-                        }
-                    )
-                elif sparql.startswith("INSERT DATA"):
-                    context.status_code = 200
-                    return None
-                elif sparql.startswith("DELETE {GRAPH <"):
-                    if "failure_uri_503" in sparql:
-                        context.status_code = 503
-                        context.headers["Retry-After"] = 5
-                    else:
-                        # Graph replace SPARQL update
-                        context.status_code = 200
-                    return None
-                elif sparql.startswith("DROP SILENT GRAPH"):
-                    context.status_code = 200
-                    return None
-                elif sparql.startswith("DROP GRAPH"):
-                    if "failure_upon_deletion" in sparql:
-                        context.status_code = 500
-                    else:
-                        context.status_code = 200
-                    return None
-                elif (
-                    sparql.startswith(
-                        "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>"
-                    )
-                    and "document/2" in sparql
-                ):
-                    print("HIT MOCKED document 2 response")
-                    context.status_code = 200
-                    context.headers = {"Content-Type": "text/turtle"}
-                    # real world response from fuseki
-                    return b'@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix crm:   <http://www.cidoc-crm.org/cidoc-crm/> .\n@prefix dc:    <http://purl.org/dc/elements/1.1/> .\n\n<http://localhost:5100/document/2>\n        dc:description  "test document 2" ;\n        dc:title        "test document 2" ;\n        dc:type         "Subject Heading - Topical" ;\n        dc:type         <https://data.getty.edu/local/thesaurus/aspace-subject-topical> .\n'.decode(
-                        "utf-8"
-                    )
+        body_str = None
+        if isinstance(data, dict):
+            body_str = urllib.parse.urlencode(data)
+        elif isinstance(data, (str, bytes)):
+            body_str = data.decode() if isinstance(data, bytes) else data
 
-        else:
-            print(f"*** unhandled mock request: {request.path_url}")
+        result = mock_sparql_service.handle_request(
+            _extract_path(url), body_str, headers
+        )
+        return _build_response(result)
 
-        context.status_code = 400
-        return None
+    def _patched_get(url, headers=None, **kwargs):
+        if _is_mock_fail(url):
+            raise requests.exceptions.ConnectionError("mock connection error")
+        if not _is_sparql_url(url):
+            return original_get(url, headers=headers, **kwargs)
 
-    query_endpoint = os.getenv("SPARQL_QUERY_ENDPOINT")
-    update_endpoint = os.getenv("SPARQL_UPDATE_ENDPOINT")
+        result = mock_sparql_service.handle_request(
+            _extract_path(url), None, headers
+        )
+        return _build_response(result)
 
-    # Configure the default mock handlers; these rely on the `mocker_text_callback()` method defined above
-    query_pattern = re.compile(query_endpoint.replace("/sparql", "/(.*)"))
-    update_pattern = re.compile(
-        update_endpoint.replace("/update", "/(.*)")
-    )  # TODO: this is not portable
+    monkeypatch.setattr(requests, "post", _patched_post)
+    monkeypatch.setattr(requests, "get", _patched_get)
 
-    for pattern in (query_pattern, update_pattern):
-        requests_mock.options(pattern, text=mocker_text_callback)
-        requests_mock.head(pattern, text=mocker_text_callback)
-        requests_mock.get(pattern, text=mocker_text_callback)
-        requests_mock.post(pattern, text=mocker_text_callback)
+    yield mock_sparql_service
 
-    # Configure the good mock handlers; these rely on the `mocker_text_callback()` method defined above
-    query_pattern = re.compile(
-        query_endpoint.replace("http://", "mock-pass://").replace("/sparql", "/(.*)")
-    )
-    update_pattern = re.compile(
-        update_endpoint.replace("http://", "mock-pass://").replace(
-            "/update", "/(.*)"
-        )  # TODO: this is not portable
-    )
 
-    for pattern in (query_pattern, update_pattern):
-        requests_mock.options(pattern, text=mocker_text_callback)
-        requests_mock.head(pattern, text=mocker_text_callback)
-        requests_mock.get(pattern, text=mocker_text_callback)
-        requests_mock.post(pattern, text=mocker_text_callback)
+def _is_mock_fail(url: str) -> bool:
+    return "mock-fail://" in url
 
-    # Configure the fail mock handlers; these rely on the mocker to throw the configured exception
-    query_pattern = re.compile(
-        query_endpoint.replace("http://", "mock-fail://").replace("/sparql", "/(.*)")
-    )
-    update_pattern = re.compile(
-        update_endpoint.replace("http://", "mock-fail://").replace(
-            "/update", "/(.*)"
-        )  # TODO: this is not portable
-    )
 
-    for pattern in (query_pattern, update_pattern):
-        requests_mock.options(pattern, exc=requests.exceptions.ConnectionError)
-        requests_mock.head(pattern, exc=requests.exceptions.ConnectionError)
-        requests_mock.get(pattern, exc=requests.exceptions.ConnectionError)
-        requests_mock.post(pattern, exc=requests.exceptions.ConnectionError)
+def _is_sparql_url(url: str) -> bool:
+    """Return True if the url targets a SPARQL endpoint path."""
+    for scheme in ("http://", "https://", "mock-pass://", "mock-fail://"):
+        if url.startswith(scheme):
+            path = url[len(scheme):]
+            return True
+    return False
 
-    # Allow all other non-matched URL patterns to be routed to real HTTP requests
-    pattern = re.compile("http(s)://(.*)")
-    requests_mock.options(pattern, real_http=True)
-    requests_mock.head(pattern, real_http=True)
-    requests_mock.get(pattern, real_http=True)
-    requests_mock.post(pattern, real_http=True)
-    requests_mock.put(pattern, real_http=True)
-    requests_mock.patch(pattern, real_http=True)
-    requests_mock.delete(pattern, real_http=True)
 
-    yield requests_mock
+def _extract_path(url: str) -> str:
+    """Strip scheme+host from the url, leaving just the path."""
+    for scheme in ("http://", "https://", "mock-pass://", "mock-fail://"):
+        if url.startswith(scheme):
+            return "/" + url[len(scheme):]
+    return "/" + url
 
 
 @pytest.fixture

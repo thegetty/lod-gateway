@@ -436,9 +436,7 @@ def requests_mocker(monkeypatch, mock_sparql_service):
         if not _is_sparql_url(url):
             return original_get(url, headers=headers, **kwargs)
 
-        result = mock_sparql_service.handle_request(
-            _extract_path(url), None, headers
-        )
+        result = mock_sparql_service.handle_request(_extract_path(url), None, headers)
         return _build_response(result)
 
     monkeypatch.setattr(requests, "post", _patched_post)
@@ -455,7 +453,7 @@ def _is_sparql_url(url: str) -> bool:
     """Return True if the url targets a SPARQL endpoint path."""
     for scheme in ("http://", "https://", "mock-pass://", "mock-fail://"):
         if url.startswith(scheme):
-            path = url[len(scheme):]
+            path = url[len(scheme) :]
             return True
     return False
 
@@ -464,7 +462,7 @@ def _extract_path(url: str) -> str:
     """Strip scheme+host from the url, leaving just the path."""
     for scheme in ("http://", "https://", "mock-pass://", "mock-fail://"):
         if url.startswith(scheme):
-            return "/" + url[len(scheme):]
+            return "/" + url[len(scheme) :]
     return "/" + url
 
 

@@ -101,9 +101,7 @@ class MockSPARQLService:
 
         return {"status_code": 400, "body": None, "headers": {}}
 
-    def _exec_select(
-        self, query: str, accept: str
-    ) -> Dict[str, Any]:
+    def _exec_select(self, query: str, accept: str) -> Dict[str, Any]:
         results = self.graph.query(query)
         accept_lower = accept.lower()
 
@@ -129,9 +127,7 @@ class MockSPARQLService:
             "headers": {"Content-Type": "text/csv"},
         }
 
-    def _exec_construct(
-        self, query: str, accept: str
-    ) -> Dict[str, Any]:
+    def _exec_construct(self, query: str, accept: str) -> Dict[str, Any]:
         result_graph = self.graph.query(query)
         accept_lower = accept.lower()
 
@@ -173,9 +169,7 @@ class MockSPARQLService:
             "headers": {"Content-Type": "application/sparql-results+json"},
         }
 
-    def _exec_describe(
-        self, query: str, accept: str
-    ) -> Dict[str, Any]:
+    def _exec_describe(self, query: str, accept: str) -> Dict[str, Any]:
         return self._exec_construct(query, accept)
 
     # ------------------------------------------------------------------

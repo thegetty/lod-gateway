@@ -72,6 +72,23 @@ class MockSPARQLService:
     # /sparql  (queries only)
     # ------------------------------------------------------------------
 
+    # Hardcoded responses for profile queries that were previously
+    # handled by the requests_mock-based approach.
+    _MOCKED_CONSTRUCT_RESPONSES = [
+        (
+            "document/2",
+            "@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n"
+            "@prefix crm:   <http://www.cidoc-crm.org/cidoc-crm/> .\n"
+            "@prefix dc:    <http://purl.org/dc/elements/1.1/> .\n"
+            "\n"
+            "<http://localhost:5100/document/2>\n"
+            "        dc:description  \"test document 2\" ;\n"
+            "        dc:title        \"test document 2\" ;\n"
+            "        dc:type         \"Subject Heading - Topical\" ;\n"
+            "        dc:type         <https://data.getty.edu/local/thesaurus/aspace-subject-topical> .\n",
+        ),
+    ]
+
     def _handle_sparql(
         self, body: Optional[str], headers: Dict[str, str]
     ) -> Dict[str, Any]:
@@ -82,11 +99,21 @@ class MockSPARQLService:
 
         accept = (headers.get("Accept") or "application/json").split(",")[0].strip()
 
+        # Check for mocked CONSTRUCT responses before executing the query
+        upper = query.strip().upper()
+        if "CONSTRUCT" in upper:
+            for doc_id, response_body in self._MOCKED_CONSTRUCT_RESPONSES:
+                if doc_id in query or doc_id.replace("/", "//") in query:
+                    return {
+                        "status_code": 200,
+                        "body": response_body,
+                        "headers": {"Content-Type": "text/turtle"},
+                    }
+
         try:
-            upper = query.strip().upper()
             if upper.startswith("SELECT"):
                 return self._exec_select(query, accept)
-            if upper.startswith("CONSTRUCT"):
+            if "CONSTRUCT" in upper:
                 return self._exec_construct(query, accept)
             if upper.startswith("ASK"):
                 return self._exec_ask(query, accept)
@@ -119,12 +146,12 @@ class MockSPARQLService:
                 "body": body,
                 "headers": {"Content-Type": "application/sparql-results+xml"},
             }
-        # Default: CSV
-        body = results.serialize(format="csv")
+        # Default: JSON (for */* or unmatched)
+        body = _serialize_sparql_json(results)
         return {
             "status_code": 200,
             "body": body,
-            "headers": {"Content-Type": "text/csv"},
+            "headers": {"Content-Type": "application/sparql-results+json"},
         }
 
     def _exec_construct(self, query: str, accept: str) -> Dict[str, Any]:

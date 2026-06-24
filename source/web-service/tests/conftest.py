@@ -392,6 +392,133 @@ def mock_sparql_service():
     return MockSPARQLService()
 
 
+# Mock JSON-LD context responses for tests that reference remote contexts.
+# Minimal linked.art context with properties needed by tests.
+_MOCK_CONTEXTS: Dict[str, Dict[str, Any]] = {
+    "https://linked.art/ns/v1/linked-art.json": {
+        "@context": {
+            "cidoc": "http://www.cidoc-crm.org/cidoc-crm#",
+            "crm": "http://www.cidoc-crm.org/cidoc-crm/",
+            "crmeps": "http://ermitage-digital.ru/crmeps#",
+            "dc": "http://purl.org/dc/elements/1.1/",
+            "dcterms": "http://purl.org/dc/terms/",
+            "dctype": "http://purl.org/dc/dcmitype/",
+            "key": "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+            "lido": "http://www.cidoc-crm.org/lido/",
+            "oa": "http://www.w3.org/ns/oa#",
+            "orv": "http://purl.org/stuff/ord#/",
+            "ps": "http://purl.org/net/property-set#",
+            "rdaGr2": "http://rdvocab.info/GrantsAwards/",
+            "schema": "http://schema.org/",
+            "skos": "http://www.w3.org/2004/02/skos/core#",
+            "time": "http://www.w3.org/2006/time#",
+            "unit": "http://qudt.org/vocab/unit/",
+            "vcard": "http://www.w3.org/2006/vcard/ns#",
+            "xyz": "http://example.org/xyz/",
+            "id": "@id",
+            "type": "@type",
+            "_label": {"@id": "rdfs:label"},
+            "classified_as": {"@id": "crm:P2_has_type", "@type": "@id", "@container": "@set"},
+            "identified_by": {"@id": "crm:P1_is_identified_by", "@type": "@id", "@container": "@set"},
+            "part_of": {"@id": "crm:P106i_forms_part_of", "@type": "@id", "@container": "@set"},
+            "content": {"@id": "crm:P190_has_symbolic_content"},
+            "Name": {"@id": "crm:E41_Appellation"},
+            "LinguisticObject": {"@id": "crm:E33_Linguistic_Object"},
+            "Type": {"@id": "crm:E55_Type"},
+            "Identifier": {"@id": "crm:E42_Identifier"},
+            "PhysicalThing": {"@id": "crm:E19_Physical_Object"},
+            "Concept": {"@id": "skos:Concept"},
+        }
+    },
+    "https://www.w3.org/ns/anno.jsonld": {
+        "@context": {
+            "oa": "http://www.w3.org/ns/oa#",
+            "dc": "http://purl.org/dc/elements/1.1/",
+            "dcterms": "http://purl.org/dc/terms/",
+            "dctypes": "http://purl.org/dc/dcmitype/",
+            "foaf": "http://xmlns.com/foaf/0.1/",
+            "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+            "skos": "http://www.w3.org/2004/02/skos/core#",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
+            "iana": "http://www.iana.org/assignments/relation/",
+            "owl": "http://www.w3.org/2002/07/owl#",
+            "as": "http://www.w3.org/ns/activitystreams#",
+            "schema": "http://schema.org/",
+            "id": {"@type": "@id", "@id": "@id"},
+            "type": {"@type": "@id", "@id": "@type"},
+            "Annotation": "oa:Annotation",
+            "TextualBody": "oa:TextualBody",
+            "SpecificResource": "oa:SpecificResource",
+            "FragmentSelector": "oa:FragmentSelector",
+            "CssSelector": "oa:CssSelector",
+            "XPathSelector": "oa:XPathSelector",
+            "TextQuoteSelector": "oa:TextQuoteSelector",
+            "TextPositionSelector": "oa:TextPositionSelector",
+            "SvgSelector": "oa:SvgSelector",
+            "RangeSelector": "oa:RangeSelector",
+            "Choice": "oa:Choice",
+            "Person": "foaf:Person",
+            "Organization": "foaf:Organization",
+            "AnnotationCollection": "as:OrderedCollection",
+            "AnnotationPage": "as:OrderedCollectionPage",
+            "Motivation": "oa:Motivation",
+            "bookmarking": "oa:bookmarking",
+            "classifying": "oa:classifying",
+            "commenting": "oa:commenting",
+            "describing": "oa:describing",
+            "highlighting": "oa:highlighting",
+            "identifying": "oa:identifying",
+            "linking": "oa:linking",
+            "questioning": "oa:questioning",
+            "replying": "oa:replying",
+            "reviewing": "oa:reviewing",
+            "assessing": "oa:assessing",
+            "tagging": "oa:tagging",
+            "body": {"@type": "@id", "@id": "oa:hasBody"},
+            "target": {"@type": "@id", "@id": "oa:hasTarget"},
+            "selector": {"@type": "@id", "@id": "oa:hasSelector"},
+            "refinedBy": {"@type": "@id", "@id": "oa:refinedBy"},
+            "creator": {"@type": "@id", "@id": "dcterms:creator"},
+            "generator": {"@type": "@id", "@id": "as:generator"},
+            "items": {"@type": "@id", "@id": "as:items", "@container": "@list"},
+            "partOf": {"@type": "@id", "@id": "as:partOf"},
+            "first": {"@type": "@id", "@id": "as:first"},
+            "last": {"@type": "@id", "@id": "as:last"},
+            "next": {"@type": "@id", "@id": "as:next"},
+            "prev": {"@type": "@id", "@id": "as:prev"},
+            "motivation": {"@type": "@vocab", "@id": "oa:motivatedBy"},
+            "bodyValue": "oa:bodyValue",
+            "format": "dc:format",
+            "value": "oa:content",
+            "language": "dc:language",
+            "source": {"@type": "@id", "@id": "oa:hasSource"},
+            "on": {"@type": "@id", "@id": "oa:hasTarget"},
+            "hasBody": {"@type": "@id", "@id": "oa:hasBody"},
+            "hasTarget": {"@type": "@id", "@id": "oa:hasTarget"},
+            "hasSelector": {"@type": "@id", "@id": "oa:hasSelector"},
+            "motivatedBy": {"@type": "@vocab", "@id": "oa:motivatedBy"},
+            "within": {"@type": "@id", "@id": "oa:hasTarget"},
+            "start": "oa:starts",
+            "end": "oa:end",
+            "source_format": "dcterms:format",
+        }
+    },
+}
+
+
+def _mock_context_response(url: str) -> Optional[Dict[str, Any]]:
+    """Return a mock context document for the given URL, or None if not mocked."""
+    ctx = _MOCK_CONTEXTS.get(url)
+    if ctx is None:
+        return None
+    return {
+        "status_code": 200,
+        "headers": {"Content-Type": "application/ld+json"},
+        "body": json.dumps(ctx),
+    }
+
+
 @pytest.fixture(autouse=True)
 def requests_mocker(monkeypatch, mock_sparql_service):
     """Intercept requests to SPARQL endpoints and route them through an
@@ -433,6 +560,11 @@ def requests_mocker(monkeypatch, mock_sparql_service):
     def _patched_get(url, headers=None, **kwargs):
         if _is_mock_fail(url):
             raise requests.exceptions.ConnectionError("mock connection error")
+
+        ctx_result = _mock_context_response(url)
+        if ctx_result is not None:
+            return _build_response(ctx_result)
+
         if not _is_sparql_url(url):
             return original_get(url, headers=headers, **kwargs)
 

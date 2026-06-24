@@ -82,9 +82,9 @@ class MockSPARQLService:
             "@prefix dc:    <http://purl.org/dc/elements/1.1/> .\n"
             "\n"
             "<http://localhost:5100/document/2>\n"
-            "        dc:description  \"test document 2\" ;\n"
-            "        dc:title        \"test document 2\" ;\n"
-            "        dc:type         \"Subject Heading - Topical\" ;\n"
+            '        dc:description  "test document 2" ;\n'
+            '        dc:title        "test document 2" ;\n'
+            '        dc:type         "Subject Heading - Topical" ;\n'
             "        dc:type         <https://data.getty.edu/local/thesaurus/aspace-subject-topical> .\n",
         ),
     ]

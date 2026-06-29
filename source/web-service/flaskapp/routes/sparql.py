@@ -30,6 +30,8 @@ _strip_openapi_kwargs(sparql)
     "/sparql",
     tags=[sparql_tag],
     summary="SPARQL query endpoint",
+    description="Execute a SPARQL query. Authentication is required if SPARQL_QUERY_AUTHENTICATION is set to true (default: false).",
+    security=[{"bearerAuth": []}, {}],
     responses={
         200: {"description": "SPARQL results"},
         400: {"description": "Bad request"},
@@ -41,6 +43,8 @@ _strip_openapi_kwargs(sparql)
     "/sparql",
     tags=[sparql_tag],
     summary="SPARQL query endpoint",
+    description="Execute a SPARQL query (POST variant). Authentication is required if SPARQL_QUERY_AUTHENTICATION is set to true (default: false).",
+    security=[{"bearerAuth": []}, {}],
     responses={
         200: {"description": "SPARQL results"},
         400: {"description": "Bad request"},

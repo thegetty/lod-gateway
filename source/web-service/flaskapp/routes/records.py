@@ -346,6 +346,8 @@ def container_record(container_id, page=None):
     "/<path:entity_id>/",
     tags=[ldp_tag, records_tag],
     summary="Create resource (LDP)",
+    description="Create a new resource or container by POSTing to an LDP container. Requires Bearer token authentication.",
+    security=[{"bearerAuth": []}],
     responses={
         201: {"description": "Resource created"},
         400: {"description": "Bad request"},
@@ -1105,6 +1107,8 @@ def entity_record(path: EntityIdPath):
     "/<path:id>",
     tags=[records_tag],
     summary="Delete record",
+    description="Permanently delete a record by entity ID. Requires Bearer token authentication.",
+    security=[{"bearerAuth": []}],
     responses={
         200: {"description": "Deleted successfully"},
         401: {"description": "Unauthorized"},
@@ -1216,6 +1220,8 @@ def delete(path: IdPath):
     "/-VERSION-/<path:entity_id>",
     tags=[timegate_tag, records_tag],
     summary="Get record version",
+    description="Retrieve a previous version of a record. Authentication is required if the VERSION_AUTH environment variable is set to true (default: true).",
+    security=[{"bearerAuth": []}, {}],
     responses={
         200: {"description": "Version data"},
         304: {"description": "Not Modified"},
@@ -1423,6 +1429,8 @@ def entity_version(path: EntityIdPath):
     "/-VERSION-/<path:entity_id>",
     tags=[timegate_tag],
     summary="Delete record version",
+    description="Delete a specific previous version of a record. Requires Bearer token authentication.",
+    security=[{"bearerAuth": []}],
     responses={
         200: {"description": "Version deleted"},
         404: {"description": "Not found"},
@@ -1511,6 +1519,8 @@ def entity_record_activity_stream(path: EntityIdPath):
     "/<path:entity_id>/activity-stream",
     tags=[activity_tag],
     summary="Truncate record activity stream",
+    description="Truncate the activity stream for a record, keeping only the N most recent events specified by the `keep` query parameter. Requires Bearer token authentication.",
+    security=[{"bearerAuth": []}],
     responses={
         200: {"description": "Events removed"},
         400: {"description": "Bad request"},

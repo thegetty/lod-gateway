@@ -15,6 +15,8 @@ _strip_openapi_kwargs(yasgui)
     "/sparql-ui",
     tags=[sparql_tag],
     summary="SPARQL UI page",
+    description="Serve the YASGUI SPARQL query interface. Authentication is required if SPARQL_QUERY_AUTHENTICATION is set to true (default: false).",
+    security=[{"bearerAuth": []}, {}],
     responses={
         200: {"description": "HTML page"},
         501: {"description": "RDF not enabled"},

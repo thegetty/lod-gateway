@@ -88,6 +88,7 @@ ingest.add_url_rule = _ingest_add_url_rule
     "/ingest",
     tags=[ingest_tag],
     summary="Ingest (GET — forbidden)",
+    description="The ingest endpoint only accepts POST requests. Use POST with a JSON-LD payload.",
     responses={405: {"description": "Method not allowed"}},
 )
 def ingest_get():
@@ -99,6 +100,8 @@ def ingest_get():
     "/ingest",
     tags=[ingest_tag],
     summary="Batch ingest records",
+    description="Batch ingest one or more JSON-LD records. Requires Bearer token authentication via `Authorization: Bearer <token>` header.\n\nAll records in a batch are processed atomically — a failure in any record rolls back the entire batch.",
+    security=[{"bearerAuth": []}],
     responses={
         200: {"description": "Ingestion results"},
         400: {"description": "Validation error"},

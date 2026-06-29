@@ -1242,7 +1242,9 @@ def entity_version(path: EntityIdPath):
         hostPrefix = current_app.config["BASE_URL"]
         idPrefix = current_app.config["idPrefix"]
 
-        version = Version.query.filter(Version.entity_id == path.entity_id).one_or_none()
+        version = Version.query.filter(
+            Version.entity_id == path.entity_id
+        ).one_or_none()
 
         if version is not None:
             # There is a record of a version of a resource here. The record is available through version.record
@@ -1436,7 +1438,9 @@ def delete_entity_version(path: EntityIdPath):
     if current_app.config["KEEP_LAST_VERSION"] is True:
         """GET the version that exactly matches the id supplied"""
 
-        version = Version.query.filter(Version.entity_id == path.entity_id).one_or_none()
+        version = Version.query.filter(
+            Version.entity_id == path.entity_id
+        ).one_or_none()
 
         if version is None:
             response = construct_error_response(status_record_not_found)

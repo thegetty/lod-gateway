@@ -151,13 +151,6 @@ def activity_stream_collection():
     return current_app.make_response(data)
 
 
-# Abort if 'pagenum' is not integer
-@activity.get("/activity-stream/page/<int:pagenum>")
-def activity_stream_wrong_page_format(pagenum):
-    response = construct_error_response(status_pagenum_not_integer)
-    return abort(response)
-
-
 @activity.get(
     "/activity-stream/page/<int:pagenum>",
     tags=[activity_tag],

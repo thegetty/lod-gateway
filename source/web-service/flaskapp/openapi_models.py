@@ -8,7 +8,8 @@ Each model defines a single path parameter matching a Flask URL rule converter
 """
 
 from pydantic import BaseModel, Field
-from uuid import UUID
+
+# from uuid import UUID
 from typing import Optional
 
 # Example of a query model for GET parameters:
@@ -52,7 +53,8 @@ class PagenumPath(BaseModel):
 
 class UuidPath(BaseModel):
     # Using Pydantic's native UUID type auto-validates format and updates Swagger UI
-    uuid: UUID = Field(..., description="A valid Universally Unique Identifier (UUID).")
+    # UUID is a little too narrow for this
+    uuid: str = Field(..., description="A valid Universally Unique Identifier (UUID).")
 
 
 class EntityTypePath(BaseModel):

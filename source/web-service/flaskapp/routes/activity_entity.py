@@ -56,7 +56,7 @@ def activity_stream_entity_collection(entity_type):
 
 
 @activity_entity.get(
-    "/activity-stream/type/<string:entity_type>/page/<string:pagenum>",
+    "/activity-stream/type/<string:entity_type>/page/<int:pagenum>",
     tags=[activity_tag],
     summary="Activity Stream by type, paginated",
     path=EntityTypePagenumPath,

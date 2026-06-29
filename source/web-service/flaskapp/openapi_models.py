@@ -7,45 +7,69 @@ Each model defines a single path parameter matching a Flask URL rule converter
 (e.g. ``<path:entity_id>`` -> ``entity_id: str``, ``<int:pagenum>`` -> ``pagenum: int``).
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from datetime import datetime
+from uuid import UUID
 
 
+# 1. Base Models with validation constraints applied via Field
 class EntityIdPath(BaseModel):
-    entity_id: str
+    entity_id: str = Field(
+        ...,
+        description="The relative identifier for a JSON object held in the LOD Gateway.",
+    )
 
 
 class IdPath(BaseModel):
-    id: str
+    id: str = Field(
+        ...,
+        description="The relative identifier for a JSON object held in the LOD Gateway.",
+    )
 
 
 class PagenumPath(BaseModel):
-    pagenum: int
-
-
-class PagenumStrPath(BaseModel):
-    pagenum: str
+    pagenum: int = Field(
+        ..., ge=1, description="The page number. Starts at 1 with no upper bound."
+    )
 
 
 class UuidPath(BaseModel):
-    uuid: str
+    # Using Pydantic's native UUID type auto-validates format and updates Swagger UI
+    uuid: UUID = Field(..., description="A valid Universally Unique Identifier (UUID).")
 
 
 class EntityTypePath(BaseModel):
-    entity_type: str
+    entity_type: str = Field(
+        ..., max_length=200, description="The type designation string of the entity."
+    )
 
 
 class TargetDatetimePath(BaseModel):
-    target_datetime: str
+    # If the endpoint expects an ISO string, using native datetime parses it
+    # correctly. If it must remain a raw string, use str with a datetime format description.
+    target_datetime: datetime = Field(
+        ..., description="The target timestamp (ISO 8601 format)."
+    )
 
 
+# 2. Composite Models combining the validated parameters
 class EntityTypePagenumPath(BaseModel):
-    entity_type: str
-    pagenum: str
+    entity_type: str = Field(
+        ..., max_length=200, description="The type designation string of the entity."
+    )
+    pagenum: int = Field(
+        ..., ge=1, description="The page number. Starts at 1 with no upper bound."
+    )
 
 
 class EntityIdActivityStreamPagenumPath(BaseModel):
-    entity_id: str
-    pagenum: int
+    entity_id: str = Field(
+        ...,
+        description="The relative identifier for a JSON object held in the LOD Gateway.",
+    )
+    pagenum: int = Field(
+        ..., ge=1, description="The page number. Starts at 1 with no upper bound."
+    )
 
 
 # OpenAPI decorator kwargs that should be stripped before passing to Flask's add_url_rule

@@ -1104,7 +1104,7 @@ def entity_record(path: EntityIdPath):
 
 # 'DELETE' method.
 @records.delete(
-    "/<path:id>",
+    "/<path:entity_id>",
     tags=[records_tag],
     summary="Delete record",
     description="Permanently delete a record by entity ID. Requires Bearer token authentication.",
@@ -1115,7 +1115,7 @@ def entity_record(path: EntityIdPath):
         404: {"description": "Not found"},
     },
 )
-def delete(path: IdPath):
+def delete(path: EntityIdPath):
     # Authentication
     status = authenticate_bearer(request, current_app)
     if status != status_ok:

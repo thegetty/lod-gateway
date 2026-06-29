@@ -367,10 +367,12 @@ def container_record(container_id, page=None):
         401: {"description": "Unauthorized"},
         409: {"description": "Conflict"},
     },
+    strict_slashes=False
 )
 @records.post(
     "/",
     defaults={"entity_id": "/"},
+    strict_slashes=False
 )
 def container_post_item(entity_id):
     # Could be a resource or a container being POSTed to a target URI which has to be an existing container

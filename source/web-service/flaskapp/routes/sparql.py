@@ -12,6 +12,7 @@ from flaskapp.errors import (
 )
 
 from flaskapp.openapi import sparql_tag
+from flaskapp.openapi_models import _strip_openapi_kwargs
 
 from flaskapp.utilities import (
     authenticate_bearer,
@@ -21,33 +22,7 @@ from flaskapp.utilities import (
 
 # Create a new "sparql" route blueprint
 sparql = APIBlueprint("sparql", __name__)
-
-_OPENAPI_KWARGS = frozenset(
-    [
-        "tags",
-        "summary",
-        "responses",
-        "description",
-        "security",
-        "deprecated",
-        "external_docs",
-        "servers",
-        "operation_id",
-        "openapi_extensions",
-    ]
-)
-
-
-_original_sparql_add_url_rule = sparql.add_url_rule
-
-
-def _sparql_add_url_rule(*args, **kwargs):
-    for key in _OPENAPI_KWARGS:
-        kwargs.pop(key, None)
-    _original_sparql_add_url_rule(*args, **kwargs)
-
-
-sparql.add_url_rule = _sparql_add_url_rule
+_strip_openapi_kwargs(sparql)
 
 
 # ### ROUTES ###

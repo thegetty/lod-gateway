@@ -26,37 +26,12 @@ from flaskapp.storage_utilities.container import (
 from flaskapp.conneg import determine_requested_format_and_profile, reformat_rdf
 from flaskapp.utilities import wants_html
 from flaskapp.openapi import home_tag
+from flaskapp.openapi_models import _strip_openapi_kwargs
 from flaskapp.errors import construct_error_response, status_container_not_found
 
 # Create home page
 home_page = APIBlueprint("home_page", __name__)
-
-_OPENAPI_KWARGS = frozenset(
-    [
-        "tags",
-        "summary",
-        "responses",
-        "description",
-        "security",
-        "deprecated",
-        "external_docs",
-        "servers",
-        "operation_id",
-        "openapi_extensions",
-    ]
-)
-
-
-_original_home_page_add_url_rule = home_page.add_url_rule
-
-
-def _home_page_add_url_rule(*args, **kwargs):
-    for key in _OPENAPI_KWARGS:
-        kwargs.pop(key, None)
-    _original_home_page_add_url_rule(*args, **kwargs)
-
-
-home_page.add_url_rule = _home_page_add_url_rule
+_strip_openapi_kwargs(home_page)
 
 
 @home_page.get(

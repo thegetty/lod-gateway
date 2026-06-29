@@ -12,36 +12,11 @@ from flaskapp.errors import (
     status_record_not_found,
 )
 from flaskapp.openapi import timegate_tag
+from flaskapp.openapi_models import EntityIdPath, _strip_openapi_kwargs
 
 # Create a new "sparql" route blueprint
 timegate = APIBlueprint("timegate", __name__)
-
-_OPENAPI_KWARGS = frozenset(
-    [
-        "tags",
-        "summary",
-        "responses",
-        "description",
-        "security",
-        "deprecated",
-        "external_docs",
-        "servers",
-        "operation_id",
-        "openapi_extensions",
-    ]
-)
-
-
-_original_timegate_add_url_rule = timegate.add_url_rule
-
-
-def _timegate_add_url_rule(*args, **kwargs):
-    for key in _OPENAPI_KWARGS:
-        kwargs.pop(key, None)
-    _original_timegate_add_url_rule(*args, **kwargs)
-
-
-timegate.add_url_rule = _timegate_add_url_rule
+_strip_openapi_kwargs(timegate)
 
 
 def json_to_linkformat(d):
@@ -54,6 +29,7 @@ def json_to_linkformat(d):
     "/-tm-/<path:entity_id>",
     tags=[timegate_tag],
     summary="Get timemap (Memento)",
+    path=EntityIdPath,
     responses={
         200: {"description": "Timemap in requested format"},
         404: {"description": "Entity not found"},

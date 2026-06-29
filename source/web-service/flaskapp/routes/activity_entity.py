@@ -14,36 +14,15 @@ from flaskapp.errors import (
     status_page_not_found,
 )
 from flaskapp.openapi import activity_tag
+from flaskapp.openapi_models import (
+    EntityTypePath,
+    EntityTypePagenumPath,
+    _strip_openapi_kwargs,
+)
 
 # Create a new "activity" route blueprint
 activity_entity = APIBlueprint("activity_entity", __name__)
-
-_OPENAPI_KWARGS = frozenset(
-    [
-        "tags",
-        "summary",
-        "responses",
-        "description",
-        "security",
-        "deprecated",
-        "external_docs",
-        "servers",
-        "operation_id",
-        "openapi_extensions",
-    ]
-)
-
-
-_original_activity_entity_add_url_rule = activity_entity.add_url_rule
-
-
-def _activity_entity_add_url_rule(*args, **kwargs):
-    for key in _OPENAPI_KWARGS:
-        kwargs.pop(key, None)
-    _original_activity_entity_add_url_rule(*args, **kwargs)
-
-
-activity_entity.add_url_rule = _activity_entity_add_url_rule
+_strip_openapi_kwargs(activity_entity)
 
 # Make the list of entity types global to populate it only once
 lod_entity_types = []
@@ -56,6 +35,7 @@ lod_entity_types = []
     "/activity-stream/type/<string:entity_type>",
     tags=[activity_tag],
     summary="Activity Stream by entity type",
+    path=EntityTypePath,
     responses={
         200: {"description": "Filtered activity collection"},
         404: {"description": "Entity type not found"},
@@ -79,14 +59,13 @@ def activity_stream_entity_collection(entity_type):
     "/activity-stream/type/<string:entity_type>/page/<string:pagenum>",
     tags=[activity_tag],
     summary="Activity Stream by type, paginated",
+    path=EntityTypePagenumPath,
     responses={
         200: {"description": "Paginated activity items"},
         404: {"description": "Not found"},
     },
 )
-@activity_entity.get(
-    "/activity-stream/type/<string:entity_type>/page/<string:pagenum>"
-)
+@activity_entity.get("/activity-stream/type/<string:entity_type>/page/<string:pagenum>")
 def activity_stream_entity_page(entity_type, pagenum):
     entity_type = entity_type.lower()
     data = create_page_data(pagenum, entity_type)

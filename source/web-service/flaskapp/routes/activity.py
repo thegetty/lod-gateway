@@ -20,36 +20,16 @@ from flaskapp.errors import (
     status_page_not_found,
 )
 from flaskapp.openapi import activity_tag
+from flaskapp.openapi_models import (
+    TargetDatetimePath,
+    PagenumPath,
+    UuidPath,
+    _strip_openapi_kwargs,
+)
 
 # Create a new "activity" route blueprint
 activity = APIBlueprint("activity", __name__)
-
-_OPENAPI_KWARGS = frozenset(
-    [
-        "tags",
-        "summary",
-        "responses",
-        "description",
-        "security",
-        "deprecated",
-        "external_docs",
-        "servers",
-        "operation_id",
-        "openapi_extensions",
-    ]
-)
-
-
-_original_activity_add_url_rule = activity.add_url_rule
-
-
-def _activity_add_url_rule(*args, **kwargs):
-    for key in _OPENAPI_KWARGS:
-        kwargs.pop(key, None)
-    _original_activity_add_url_rule(*args, **kwargs)
-
-
-activity.add_url_rule = _activity_add_url_rule
+_strip_openapi_kwargs(activity)
 
 
 @activity.get(
@@ -175,6 +155,7 @@ def activity_stream_wrong_page_format(pagenum):
     "/activity-stream/page/<int:pagenum>",
     tags=[activity_tag],
     summary="Activity Stream page",
+    path=PagenumPath,
     responses={
         200: {"description": "Paginated activity items"},
         404: {"description": "Page out of bounds"},
@@ -238,6 +219,7 @@ def activity_stream_page(pagenum):
     "/activity-stream/<string:uuid>",
     tags=[activity_tag],
     summary="Activity Stream item",
+    path=UuidPath,
     responses={
         200: {"description": "Activity item"},
         404: {"description": "Not found"},

@@ -2,37 +2,12 @@ from flask_openapi3 import APIBlueprint
 from flask import current_app, abort, request
 from flaskapp.errors import status_nt, construct_error_response, status_ok
 from flaskapp.openapi import sparql_tag
+from flaskapp.openapi_models import _strip_openapi_kwargs
 from flaskapp.utilities import authenticate_bearer
 
 # Create a new "yasgui" route blueprint
 yasgui = APIBlueprint("yasgui", __name__)
-
-_OPENAPI_KWARGS = frozenset(
-    [
-        "tags",
-        "summary",
-        "responses",
-        "description",
-        "security",
-        "deprecated",
-        "external_docs",
-        "servers",
-        "operation_id",
-        "openapi_extensions",
-    ]
-)
-
-
-_original_yasgui_add_url_rule = yasgui.add_url_rule
-
-
-def _yasgui_add_url_rule(*args, **kwargs):
-    for key in _OPENAPI_KWARGS:
-        kwargs.pop(key, None)
-    _original_yasgui_add_url_rule(*args, **kwargs)
-
-
-yasgui.add_url_rule = _yasgui_add_url_rule
+_strip_openapi_kwargs(yasgui)
 
 
 # ### ROUTES ###

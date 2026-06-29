@@ -63,6 +63,12 @@ from flaskapp.errors import (
 from flaskapp.utilities import checksum_json, authenticate_bearer, squish_dict
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
 from flaskapp.openapi import records_tag, ldp_tag, timegate_tag, activity_tag
+from flaskapp.openapi_models import (
+    EntityIdPath,
+    IdPath,
+    EntityIdActivityStreamPagenumPath,
+    _strip_openapi_kwargs,
+)
 
 # RDF format translations
 from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
@@ -79,33 +85,7 @@ from pyld import jsonld
 
 # Create a new "records" route blueprint
 records = APIBlueprint("records", __name__)
-
-_OPENAPI_KWARGS = frozenset(
-    [
-        "tags",
-        "summary",
-        "responses",
-        "description",
-        "security",
-        "deprecated",
-        "external_docs",
-        "servers",
-        "operation_id",
-        "openapi_extensions",
-    ]
-)
-
-
-_original_records_add_url_rule = records.add_url_rule
-
-
-def _records_add_url_rule(*args, **kwargs):
-    for key in _OPENAPI_KWARGS:
-        kwargs.pop(key, None)
-    _original_records_add_url_rule(*args, **kwargs)
-
-
-records.add_url_rule = _records_add_url_rule
+_strip_openapi_kwargs(records)
 
 trueset = {"true", "t", "y"}
 
@@ -361,19 +341,16 @@ def container_record(container_id, page=None):
     "/<path:entity_id>/",
     tags=[ldp_tag, records_tag],
     summary="Create resource (LDP)",
+    path=EntityIdPath,
     responses={
         201: {"description": "Resource created"},
         400: {"description": "Bad request"},
         401: {"description": "Unauthorized"},
         409: {"description": "Conflict"},
     },
-    strict_slashes=False
+    strict_slashes=False,
 )
-@records.post(
-    "/",
-    defaults={"entity_id": "/"},
-    strict_slashes=False
-)
+@records.post("/", defaults={"entity_id": "/"}, strict_slashes=False)
 def container_post_item(entity_id):
     # Could be a resource or a container being POSTed to a target URI which has to be an existing container
     # Behavior will be as LDP states:
@@ -632,6 +609,7 @@ def container_post_item(entity_id):
     "/<path:entity_id>",
     tags=[records_tag],
     summary="Get record",
+    path=EntityIdPath,
     responses={
         200: {"description": "Record data in requested format"},
         304: {"description": "Not Modified (ETag match)"},
@@ -1124,6 +1102,7 @@ def entity_record(entity_id):
     "/<path:id>",
     tags=[records_tag],
     summary="Delete record",
+    path=IdPath,
     responses={
         200: {"description": "Deleted successfully"},
         401: {"description": "Unauthorized"},
@@ -1235,6 +1214,7 @@ def delete(id):
     "/-VERSION-/<path:entity_id>",
     tags=[timegate_tag, records_tag],
     summary="Get record version",
+    path=EntityIdPath,
     responses={
         200: {"description": "Version data"},
         304: {"description": "Not Modified"},
@@ -1440,6 +1420,7 @@ def entity_version(entity_id):
     "/-VERSION-/<path:entity_id>",
     tags=[timegate_tag],
     summary="Delete record version",
+    path=EntityIdPath,
     responses={
         200: {"description": "Version deleted"},
         404: {"description": "Not found"},
@@ -1485,6 +1466,7 @@ def delete_entity_version(entity_id):
     "/<path:entity_id>/activity-stream",
     tags=[activity_tag],
     summary="Record activity stream",
+    path=EntityIdPath,
     responses={
         200: {"description": "Activity stream"},
         404: {"description": "No activity stream for this record"},
@@ -1526,6 +1508,7 @@ def entity_record_activity_stream(entity_id):
     "/<path:entity_id>/activity-stream",
     tags=[activity_tag],
     summary="Truncate record activity stream",
+    path=EntityIdPath,
     responses={
         200: {"description": "Events removed"},
         400: {"description": "Bad request"},
@@ -1617,6 +1600,7 @@ def truncate_activity_stream_of_entity_id(entity_id):
     "/<path:entity_id>/activity-stream/page/<string:pagenum>",
     tags=[activity_tag],
     summary="Record activity stream page",
+    path=EntityIdActivityStreamPagenumPath,
     responses={
         200: {"description": "Paginated activity items"},
         404: {"description": "Page out of bounds"},

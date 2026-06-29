@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 from typing import Optional
 
-
 # Example of a query model for GET parameters:
 # class EntityFiltersQuery(BaseModel):
 #     # Optional parameter with a default fallback value

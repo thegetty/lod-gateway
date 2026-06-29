@@ -98,10 +98,18 @@ def create_app():
     scaffold._validate_request = _patched_validate_request
 
     lod_desc = environ.get("LOD_AS_DESC", "LOD Gateway")
+
+    # Get the subpath at which this is being served:
+    subpath = environ["APPLICATION_NAMESPACE"] or ""
+
+    if subpath == "/":
+        subpath = ""
+
     app = OpenAPI(
         __name__,
         info=Info(title=lod_desc, version="1.0.0"),
         doc_ui=True,
+        doc_prefix=f"/{subpath}/openapi",
     )
 
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
@@ -429,9 +437,9 @@ def create_app():
         # Needs the app context and the db to be initialized:
         if basegraph := environ.get("RDF_BASE_GRAPH"):
             app.config["RDF_BASE_GRAPH"] = basegraph
-            app.config["FULL_BASE_GRAPH"] = (
-                f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
-            )
+            app.config[
+                "FULL_BASE_GRAPH"
+            ] = f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
 
             app.config["RDF_FILTER_SET"] = base_graph_filter(
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]

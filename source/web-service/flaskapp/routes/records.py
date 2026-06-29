@@ -78,7 +78,6 @@ from flaskapp.conneg import (
 # For path typing
 from flaskapp.openapi_models import (
     EntityIdPath,
-    IdPath,
     EntityIdActivityStreamPagenumPath,
     _strip_openapi_kwargs,
 )
@@ -1125,7 +1124,7 @@ def delete(path: EntityIdPath):
     current_app.logger.debug("Authentication checked - DELETE request allowed.")
 
     # Get record from DB
-    db_resp = get_record(path.id)
+    db_resp = get_record(path.entity_id)
 
     # No such record or a stub record
     match db_resp:
@@ -1137,14 +1136,18 @@ def delete(path: EntityIdPath):
             # Process DELETE
             with db.session.no_autoflush:
                 try:
-                    current_app.logger.debug(f"Starting delete process on {path.id}")
+                    current_app.logger.debug(
+                        f"Starting delete process on {path.entity_id}"
+                    )
 
                     process_activity(db_rec.id, Event.Delete)
                     record_delete(db_rec, None)
 
                     # Process RDF if applicable
                     if current_app.config["PROCESS_RDF"] is True:
-                        full_uri = f"{current_app.config['RDFidPrefix']}/{path.id}"
+                        full_uri = (
+                            f"{current_app.config['RDFidPrefix']}/{path.entity_id}"
+                        )
                         current_app.logger.debug(
                             f"Attempting to delete {full_uri} from graphstore"
                         )
@@ -1171,7 +1174,7 @@ def delete(path: EntityIdPath):
                 except exc.OperationalError as e:
                     current_app.logger.error(e)
                     current_app.logger.critical(
-                        f"DB Failure when attempting to delete {path.id}"
+                        f"DB Failure when attempting to delete {path.entity_id}"
                     )
                     db.session.rollback()
                     abort(construct_error_response(status_db_save_error))
@@ -1210,7 +1213,7 @@ def delete(path: EntityIdPath):
                     )
                     abort(response)
         case None:
-            current_app.logger.error(f"No such resource at {id}")
+            current_app.logger.error(f"No such resource at {path.entity_id}")
             response = construct_error_response(status_record_not_found)
             abort(response)
 

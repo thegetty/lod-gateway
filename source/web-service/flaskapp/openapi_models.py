@@ -44,13 +44,6 @@ class EntityIdPath(BaseModel):
     )
 
 
-class IdPath(BaseModel):
-    id: str = Field(
-        ...,
-        description="The relative identifier for a JSON object held in the LOD Gateway.",
-    )
-
-
 class PagenumPath(BaseModel):
     pagenum: int = Field(
         ..., ge=1, description="The page number. Starts at 1 with no upper bound."

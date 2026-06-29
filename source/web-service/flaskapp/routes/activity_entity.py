@@ -35,14 +35,14 @@ lod_entity_types = []
     "/activity-stream/type/<string:entity_type>",
     tags=[activity_tag],
     summary="Activity Stream by entity type",
-    path=EntityTypePath,
     responses={
         200: {"description": "Filtered activity collection"},
         404: {"description": "Entity type not found"},
     },
 )
 @activity_entity.get("/activity-stream/type/<string:entity_type>")
-def activity_stream_entity_collection(entity_type):
+def activity_stream_entity_collection(path: EntityTypePath):
+    entity_type = path.entity_type
     entity_type = entity_type.lower()
     global lod_entity_types
     if len(lod_entity_types) == 0:
@@ -66,9 +66,9 @@ def activity_stream_entity_collection(entity_type):
     },
 )
 @activity_entity.get("/activity-stream/type/<string:entity_type>/page/<string:pagenum>")
-def activity_stream_entity_page(entity_type, pagenum):
-    entity_type = entity_type.lower()
-    data = create_page_data(pagenum, entity_type)
+def activity_stream_entity_page(path: EntityTypePagenumPath):
+    entity_type = path.entity_type.lower()
+    data = create_page_data(path.pagenum, entity_type)
     return current_app.make_response(data)
 
 

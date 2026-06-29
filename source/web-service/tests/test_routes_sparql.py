@@ -31,6 +31,31 @@ class TestSparqlSuccess:
         assert response.status_code == 200
         assert b"results" in response.data
 
+    def test_sparql_get_auth(self, client, namespace, auth_token, test_db):
+        original_value = client.application.config.get("SPARQL_QUERY_AUTHENTICATION")
+
+        try:
+            # Apply the temporary test config
+            client.application.config["SPARQL_QUERY_AUTHENTICATION"] = True
+            response = client.get(
+                f"/{namespace}/sparql" + "?query=SELECT+*+%7B%3Fs+%3Fp+%3Fo%7D+LIMIT+1",
+            )
+            # Should be blocked with HTTP 401
+            assert response.status_code == 401
+
+            response = client.get(
+                f"/{namespace}/sparql",
+                data={"query": "SELECT * {?s ?p ?o} LIMIT 1"},
+                headers={
+                    "Authorization": "Bearer " + auth_token,
+                    "Accept": "application/json",
+                },
+            )
+            assert response.status_code == 200
+        finally:
+            # Revert back to avoid breaking other tests
+            client.application.config["SPARQL_QUERY_AUTHENTICATION"] = original_value
+
     def test_sparql_post(self, client, namespace, auth_token, test_db):
         response = client.post(
             f"/{namespace}/sparql",

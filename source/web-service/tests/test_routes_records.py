@@ -16,6 +16,11 @@ class TestObtainRecord:
         assert "LOD Gateway" in response.headers["Server"]
         assert json.loads(response.data) == sample_data["record"].data
 
+    def test_typical_OPTIONS_on_asset(self, sample_data, client, namespace):
+        response = client.options(f"/{namespace}/{sample_data['record'].entity_id}")
+        assert response.status_code == 200
+        assert "LOD Gateway" in response.headers["Server"]
+
     def test_missing_record(self, sample_data, client, namespace):
         response = client.get(f"/{namespace}/object/no-record")
         assert response.status_code == 404

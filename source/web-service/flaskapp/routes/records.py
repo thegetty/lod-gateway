@@ -1303,7 +1303,6 @@ def entity_version(entity_id):
                     request.values.get("relativeid", "").lower() in trueset
                     or prefixRecordIDs == "NONE"
                 ):  # when "NONE", record "id" field prefixing is not enabled
-
                     # Don't allow format rewriting if the URIs are relative (ntriples, etc break):
                     allow_format_rewriting = False
                 else:  # otherwise, record "id" field prefixing is enabled, as configured

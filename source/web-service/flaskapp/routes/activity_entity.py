@@ -1,6 +1,7 @@
 import math
 
-from flask import Blueprint, current_app, abort
+from flask_openapi3 import APIBlueprint
+from flask import current_app, abort
 from sqlalchemy import func
 
 from flaskapp.models import db
@@ -12,9 +13,37 @@ from flaskapp.errors import (
     status_record_not_found,
     status_page_not_found,
 )
+from flaskapp.openapi import activity_tag
 
 # Create a new "activity" route blueprint
-activity_entity = Blueprint("activity_entity", __name__)
+activity_entity = APIBlueprint("activity_entity", __name__)
+
+_OPENAPI_KWARGS = frozenset(
+    [
+        "tags",
+        "summary",
+        "responses",
+        "description",
+        "security",
+        "deprecated",
+        "external_docs",
+        "servers",
+        "operation_id",
+        "openapi_extensions",
+    ]
+)
+
+
+_original_activity_entity_add_url_rule = activity_entity.add_url_rule
+
+
+def _activity_entity_add_url_rule(*args, **kwargs):
+    for key in _OPENAPI_KWARGS:
+        kwargs.pop(key, None)
+    _original_activity_entity_add_url_rule(*args, **kwargs)
+
+
+activity_entity.add_url_rule = _activity_entity_add_url_rule
 
 # Make the list of entity types global to populate it only once
 lod_entity_types = []
@@ -23,7 +52,16 @@ lod_entity_types = []
 ### Activity Stream Entity Routes ###
 
 
-@activity_entity.route("/activity-stream/type/<string:entity_type>")
+@activity_entity.get(
+    "/activity-stream/type/<string:entity_type>",
+    tags=[activity_tag],
+    summary="Activity Stream by entity type",
+    responses={
+        200: {"description": "Filtered activity collection"},
+        404: {"description": "Entity type not found"},
+    },
+)
+@activity_entity.get("/activity-stream/type/<string:entity_type>")
 def activity_stream_entity_collection(entity_type):
     entity_type = entity_type.lower()
     global lod_entity_types
@@ -37,7 +75,16 @@ def activity_stream_entity_collection(entity_type):
     return current_app.make_response(data)
 
 
-@activity_entity.route(
+@activity_entity.get(
+    "/activity-stream/type/<string:entity_type>/page/<string:pagenum>",
+    tags=[activity_tag],
+    summary="Activity Stream by type, paginated",
+    responses={
+        200: {"description": "Paginated activity items"},
+        404: {"description": "Not found"},
+    },
+)
+@activity_entity.get(
     "/activity-stream/type/<string:entity_type>/page/<string:pagenum>"
 )
 def activity_stream_entity_page(entity_type, pagenum):

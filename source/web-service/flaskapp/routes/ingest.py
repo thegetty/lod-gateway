@@ -8,7 +8,8 @@ from random import random
 
 import requests
 
-from flask import Blueprint, current_app, request, abort, jsonify
+from flask_openapi3 import APIBlueprint
+from flask import current_app, request, abort, jsonify
 from sqlalchemy import exc
 
 from flaskapp.models import db
@@ -48,20 +49,63 @@ from flaskapp.utilities import (
     authenticate_bearer,
 )
 from flaskapp.base_graph_utils import base_graph_filter
+from flaskapp.openapi import ingest_tag
 
 # Create a new "ingest" route blueprint
-ingest = Blueprint("ingest", __name__)
+ingest = APIBlueprint("ingest", __name__)
+
+_OPENAPI_KWARGS = frozenset(
+    [
+        "tags",
+        "summary",
+        "responses",
+        "description",
+        "security",
+        "deprecated",
+        "external_docs",
+        "servers",
+        "operation_id",
+        "openapi_extensions",
+    ]
+)
+
+
+_original_ingest_add_url_rule = ingest.add_url_rule
+
+
+def _ingest_add_url_rule(*args, **kwargs):
+    for key in _OPENAPI_KWARGS:
+        kwargs.pop(key, None)
+    _original_ingest_add_url_rule(*args, **kwargs)
+
+
+ingest.add_url_rule = _ingest_add_url_rule
 
 
 # ### ROUTES ###
 # 'GET' method is forbidden. Abort with 405
-@ingest.route("/ingest", methods=["GET"])
+@ingest.get(
+    "/ingest",
+    tags=[ingest_tag],
+    summary="Ingest (GET — forbidden)",
+    responses={405: {"description": "Method not allowed"}},
+)
 def ingest_get():
     response = construct_error_response(status_GET_not_allowed)
     return abort(response)
 
 
-@ingest.route("/ingest", methods=["POST"])
+@ingest.post(
+    "/ingest",
+    tags=[ingest_tag],
+    summary="Batch ingest records",
+    responses={
+        200: {"description": "Ingestion results"},
+        400: {"description": "Validation error"},
+        401: {"description": "Unauthorized"},
+        503: {"description": "Database error"},
+    },
+)
 def ingest_post():
     # Authentication. If fails, abort with 401
     status = authenticate_bearer(request, current_app)

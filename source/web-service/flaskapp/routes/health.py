@@ -1,4 +1,5 @@
-from flask import Blueprint, current_app, abort, request
+from flask_openapi3 import APIBlueprint
+from flask import current_app, abort, request
 
 from flaskapp.models import db
 from flaskapp.routes import ingest
@@ -12,13 +13,49 @@ from flaskapp.errors import (
 from sqlalchemy import text
 
 from flaskapp.utilities import authenticate_bearer
+from flaskapp.openapi import health_tag
 
 # Create a new "health_check" route blueprint
-health = Blueprint("health", __name__)
+health = APIBlueprint("health", __name__)
+
+_OPENAPI_KWARGS = frozenset(
+    [
+        "tags",
+        "summary",
+        "responses",
+        "description",
+        "security",
+        "deprecated",
+        "external_docs",
+        "servers",
+        "operation_id",
+        "openapi_extensions",
+    ]
+)
+
+
+_original_health_add_url_rule = health.add_url_rule
+
+
+def _health_add_url_rule(*args, **kwargs):
+    for key in _OPENAPI_KWARGS:
+        kwargs.pop(key, None)
+    _original_health_add_url_rule(*args, **kwargs)
+
+
+health.add_url_rule = _health_add_url_rule
 
 
 # Checks DB Connectivity ONLY
-@health.route("/health", methods=["GET"])
+@health.get(
+    "/health",
+    tags=[health_tag],
+    summary="Health check",
+    responses={
+        200: {"description": "OK"},
+        503: {"description": "Database unavailable"},
+    },
+)
 def healthcheck_get():
     if health_db():
         return "OK"
@@ -28,7 +65,18 @@ def healthcheck_get():
 
 
 # Checks DB Connectivity ONLY
-@health.route("/authhealth", methods=["GET"])
+@health.get(
+    "/authhealth",
+    tags=[health_tag],
+    summary="Authenticated health check",
+    description="Same as /health but requires a valid bearer token.",
+    security=[{"bearerAuth": []}],
+    responses={
+        200: {"description": "OK"},
+        401: {"description": "Unauthorized"},
+        503: {"description": "Database unavailable"},
+    },
+)
 def authd_healthcheck_get():
     # same as the normal healthcheck, but requires authentication. This will be a cheap
     # way for a client to make sure that its authentication token is correct.
@@ -47,7 +95,16 @@ def authd_healthcheck_get():
 
 
 # Checks DB Connectivity AND SPARQL endpoint status
-@health.route("/rdfhealth", methods=["GET"])
+@health.get(
+    "/rdfhealth",
+    tags=[health_tag],
+    summary="RDF health check",
+    description="Checks database connectivity AND (when RDF processing is enabled) the SPARQL endpoint status.",
+    responses={
+        200: {"description": "OK"},
+        503: {"description": "Database or SPARQL endpoint unavailable"},
+    },
+)
 def rdf_healthcheck_get():
     # same as the normal healthcheck, but also checks the RDF SPARQL endpoint access
 

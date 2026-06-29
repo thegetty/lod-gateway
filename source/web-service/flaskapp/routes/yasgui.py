@@ -1,12 +1,49 @@
-from flask import Blueprint, current_app, abort
+from flask_openapi3 import APIBlueprint
+from flask import current_app, abort
 from flaskapp.errors import status_nt, construct_error_response
+from flaskapp.openapi import sparql_tag
 
 # Create a new "yasgui" route blueprint
-yasgui = Blueprint("yasgui", __name__)
+yasgui = APIBlueprint("yasgui", __name__)
+
+_OPENAPI_KWARGS = frozenset(
+    [
+        "tags",
+        "summary",
+        "responses",
+        "description",
+        "security",
+        "deprecated",
+        "external_docs",
+        "servers",
+        "operation_id",
+        "openapi_extensions",
+    ]
+)
+
+
+_original_yasgui_add_url_rule = yasgui.add_url_rule
+
+
+def _yasgui_add_url_rule(*args, **kwargs):
+    for key in _OPENAPI_KWARGS:
+        kwargs.pop(key, None)
+    _original_yasgui_add_url_rule(*args, **kwargs)
+
+
+yasgui.add_url_rule = _yasgui_add_url_rule
 
 
 # ### ROUTES ###
-@yasgui.route("/sparql-ui", methods=["GET"])
+@yasgui.get(
+    "/sparql-ui",
+    tags=[sparql_tag],
+    summary="SPARQL UI page",
+    responses={
+        200: {"description": "HTML page"},
+        501: {"description": "RDF not enabled"},
+    },
+)
 def get_yasgui():
     if current_app.config["PROCESS_RDF"] is not True:
         response = construct_error_response(

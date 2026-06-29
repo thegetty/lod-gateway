@@ -1,14 +1,8 @@
 import time
 import requests
 
-from flask import (
-    Blueprint,
-    current_app,
-    request,
-    abort,
-    Response,
-    make_response,
-)
+from flask_openapi3 import APIBlueprint
+from flask import current_app, request, abort, Response, make_response
 
 from flaskapp.errors import (
     status_nt,
@@ -17,13 +11,62 @@ from flaskapp.errors import (
 )
 
 from flaskapp.utilities import execute_sparql_query_post, execute_sparql_query
+from flaskapp.openapi import sparql_tag
 
 # Create a new "sparql" route blueprint
-sparql = Blueprint("sparql", __name__)
+sparql = APIBlueprint("sparql", __name__)
+
+_OPENAPI_KWARGS = frozenset(
+    [
+        "tags",
+        "summary",
+        "responses",
+        "description",
+        "security",
+        "deprecated",
+        "external_docs",
+        "servers",
+        "operation_id",
+        "openapi_extensions",
+    ]
+)
+
+
+_original_sparql_add_url_rule = sparql.add_url_rule
+
+
+def _sparql_add_url_rule(*args, **kwargs):
+    for key in _OPENAPI_KWARGS:
+        kwargs.pop(key, None)
+    _original_sparql_add_url_rule(*args, **kwargs)
+
+
+sparql.add_url_rule = _sparql_add_url_rule
 
 
 # ### ROUTES ###
-@sparql.route("/sparql", methods=["GET", "POST"])
+@sparql.get(
+    "/sparql",
+    tags=[sparql_tag],
+    summary="SPARQL query endpoint",
+    responses={
+        200: {"description": "SPARQL results"},
+        400: {"description": "Bad request"},
+        501: {"description": "RDF not enabled"},
+        504: {"description": "Query timeout"},
+    },
+)
+@sparql.post(
+    "/sparql",
+    tags=[sparql_tag],
+    summary="SPARQL query endpoint",
+    responses={
+        200: {"description": "SPARQL results"},
+        400: {"description": "Bad request"},
+        501: {"description": "RDF not enabled"},
+        504: {"description": "Query timeout"},
+    },
+)
 def query_entrypoint():
     if current_app.config["PROCESS_RDF"] is not True:
         response = construct_error_response(

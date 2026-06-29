@@ -8,8 +8,33 @@ Each model defines a single path parameter matching a Flask URL rule converter
 """
 
 from pydantic import BaseModel, Field
-from datetime import datetime
 from uuid import UUID
+from typing import Optional
+
+
+# Example of a query model for GET parameters:
+# class EntityFiltersQuery(BaseModel):
+#     # Optional parameter with a default fallback value
+#     limit: int = Field(
+#         default=10,
+#         ge=1,
+#         le=100,
+#         description="Number of results to return per page."
+#     )
+
+#     # Optional parameter that defaults to None if not provided
+#     status: Optional[str] = Field(
+#         default=None,
+#         max_length=50,
+#         description="Filter entities by their operational status."
+#     )
+
+#     # Optional parameter with character length constraints
+#     search_term: Optional[str] = Field(
+#         default=None,
+#         min_length=3,
+#         description="Text search query against entity names."
+#     )
 
 
 # 1. Base Models with validation constraints applied via Field
@@ -47,8 +72,21 @@ class EntityTypePath(BaseModel):
 class TargetDatetimePath(BaseModel):
     # If the endpoint expects an ISO string, using native datetime parses it
     # correctly. If it must remain a raw string, use str with a datetime format description.
-    target_datetime: datetime = Field(
+    target_datetime: str = Field(
         ..., description="The target timestamp (ISO 8601 format)."
+    )
+
+
+class OptionalTargetDatetimePath(BaseModel):
+    target_datetime: Optional[str] = Field(
+        ..., description="The target timestamp (ISO 8601 format)."
+    )
+
+
+class OptionalTargetDatetimeQuery(BaseModel):
+    datetime: Optional[str] = Field(
+        ...,
+        description="The target timestamp (ISO 8601 format) from a '?datetime=' parameter",
     )
 
 

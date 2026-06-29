@@ -9,6 +9,8 @@ from datetime import datetime
 import sqlite3
 
 from flask import Flask, Response
+from flask_openapi3.openapi import OpenAPI
+from flask_openapi3 import Info
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_compress import Compress
@@ -80,12 +82,24 @@ def create_app():
     from flask_openapi3.scaffold import _validate_request as original_validate_request
 
     def _patched_validate_request(
-        header=None, cookie=None, path=None, query=None, form=None, body=None,
-        raw=None, path_kwargs=None,
+        header=None,
+        cookie=None,
+        path=None,
+        query=None,
+        form=None,
+        body=None,
+        raw=None,
+        path_kwargs=None,
     ):
         func_kwargs = original_validate_request(
-            header=header, cookie=cookie, path=path,
-            query=query, form=form, body=body, raw=raw, path_kwargs=path_kwargs,
+            header=header,
+            cookie=cookie,
+            path=path,
+            query=query,
+            form=form,
+            body=body,
+            raw=raw,
+            path_kwargs=path_kwargs,
         )
         if not path and path_kwargs:
             func_kwargs.update(path_kwargs)
@@ -93,7 +107,12 @@ def create_app():
 
     scaffold._validate_request = _patched_validate_request
 
-    app = Flask(__name__)
+    lod_desc = environ.get("LOD_AS_DESC", "LOD Gateway")
+    app = OpenAPI(
+        __name__,
+        info=Info(title=lod_desc, version="1.0.0"),
+        doc_ui=True,
+    )
 
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
     app.config["FLASK_ENV"] = getenv("FLASK_ENV", "production")
@@ -461,15 +480,15 @@ def create_app():
             f"LOD Gateway will serve from a base of '{app.config['idPrefix']}"
         )
 
-        app.register_blueprint(home_page, url_prefix=f"/{ns}")
-        app.register_blueprint(activity, url_prefix=f"/{ns}")
-        app.register_blueprint(activity_entity, url_prefix=f"/{ns}")
-        app.register_blueprint(records, url_prefix=f"/{ns}")
-        app.register_blueprint(ingest, url_prefix=f"/{ns}")
-        app.register_blueprint(sparql, url_prefix=f"/{ns}")
-        app.register_blueprint(yasgui, url_prefix=f"/{ns}")
-        app.register_blueprint(timegate, url_prefix=f"/{ns}")
-        app.register_blueprint(health, url_prefix=f"/{ns}")
+        app.register_api(home_page, url_prefix=f"/{ns}")
+        app.register_api(activity, url_prefix=f"/{ns}")
+        app.register_api(activity_entity, url_prefix=f"/{ns}")
+        app.register_api(records, url_prefix=f"/{ns}")
+        app.register_api(ingest, url_prefix=f"/{ns}")
+        app.register_api(sparql, url_prefix=f"/{ns}")
+        app.register_api(yasgui, url_prefix=f"/{ns}")
+        app.register_api(timegate, url_prefix=f"/{ns}")
+        app.register_api(health, url_prefix=f"/{ns}")
 
         app.logger.info("LOD Gateway configured and ready for use")
 

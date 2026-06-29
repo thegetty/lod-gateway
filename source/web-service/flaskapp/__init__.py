@@ -64,20 +64,10 @@ logging.config.dictConfig(
 
 
 def create_app():
-    # Monkey-patch flask-openapi3's _validate_request to pass path_kwargs through
-    # when there's no path model. This fixes @bp.get() losing path parameters.
-    #
-    # Flask-OpenAPI3 4.x expects path parameters to be declared as a pydantic
-    # BaseModel annotated with `path: Type[BaseModel]`. When such a model is present,
-    # _validate_request() validates URL path parameters against the model and passes
-    # the validated object to the function. However, when no path model is provided
-    # (which is the common case for simple Flask-style routes like def route(entity_id)),
-    # _validate_request() returns an empty func_kwargs dict, discarding the path
-    # parameters that Flask correctly extracted from the URL rule.
-    #
-    # This gap means @bp.get("/<entity_id>") silently drops the entity_id argument.
-    # The patch bridges this by merging path_kwargs into func_kwargs when no path
-    # model is defined, preserving Flask's native parameter passing behavior.
+    # Monkey-patch flask-openapi3's _validate_request to pass path_kwargs through.
+    # Flask-OpenAPI3 returns the validated path model as {'path': Model(...)} which
+    # doesn't unpack into individual route params. Passing path_kwargs ensures the
+    # route function receives actual parameters like entity_id, version, etc.
     from flask_openapi3 import scaffold
     from flask_openapi3.scaffold import _validate_request as original_validate_request
 
@@ -101,7 +91,7 @@ def create_app():
             raw=raw,
             path_kwargs=path_kwargs,
         )
-        if not path and path_kwargs:
+        if path_kwargs:
             func_kwargs.update(path_kwargs)
         return func_kwargs
 

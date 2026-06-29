@@ -45,7 +45,7 @@ class EntityTypePagenumPath(BaseModel):
 
 class EntityIdActivityStreamPagenumPath(BaseModel):
     entity_id: str
-    pagenum: str
+    pagenum: int
 
 
 # OpenAPI decorator kwargs that should be stripped before passing to Flask's add_url_rule

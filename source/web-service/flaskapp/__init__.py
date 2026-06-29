@@ -8,6 +8,8 @@ import requests
 from datetime import datetime
 import sqlite3
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 from flask import Flask, Response
 from flask_cors import CORS
 from flask_migrate import Migrate
@@ -59,6 +61,17 @@ ENABLE_ACCESS_JSON = getenv("ACCESS_JSON_LOGGING", "true").lower() == "true"
 logging.config.dictConfig(
     get_logging_config(LOG_LEVEL, json=ENABLE_JSON, json_access=ENABLE_ACCESS_JSON)
 )
+
+
+def proxy_fix_wrap(app, x_for, x_host, x_prefix, x_proto=1):
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_proto=1,  # Ensures url_for() generates https:// instead of http:// if the original is https
+        x_host=x_host,  # Preserves the external domain name
+        x_for=x_for,  # 0 - Keeps internal IPs from polluting your logs, 1 - keep IPs passed from the proxy
+        x_prefix=x_prefix,  # DISABLED: Unnecessary since internal and external paths match
+        #    (eg external is ...edu/vocab/ and local is also served at /vocab/).
+    )
 
 
 def create_app():
@@ -138,6 +151,13 @@ def create_app():
         # for Flask 2.3+
         app.config["JSON_SORT_KEYS"] = True
         app.json.sort_keys = True
+
+    # Strict Slashes - default to True as Werkzeug does
+    app.config["FLASK_STRICT_SLASHES"] = True
+    if "false" in environ.get("FLASK_STRICT_SLASHES", "true").lower():
+        app.config["FLASK_STRICT_SLASHES"] = False
+
+    app.url_map.strict_slashes = app.config["FLASK_STRICT_SLASHES"]
 
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
@@ -461,4 +481,36 @@ def create_app():
 
             return response
 
+        if environ.get("WERKZEUG_PROXY_FIX", "false").lower() in ["true", "t", "1"]:
+            # Documentation: https://werkzeug.palletsprojects.com/en/stable/middleware/proxy_fix/
+
+            # NGINX-Ingress can be set to cluster or local (externalTrafficPolicy)
+            # If set to cluster, the IP address it passes along is the internal IP, not the client's one.
+            # If set to local (or using the use-proxy-protocol: "true" which might have unintended consequences, I don't know), client IPs should be passed on.
+
+            # X_FOR - 0 discard X-Forwarded-For and keep the NGINX/load balancer IP as the one to use, 1 - keep and use X-Forwarded-For
+            # If IP addresses are not passed on (cluster), either 0 or 1 produces the same behavior.
+
+            # Default: 1
+            X_FOR = 1
+            if environ.get("WERKZEUG_X_FOR", "0").lower() in ["0", 0, "n", "false"]:
+                X_FOR = 0
+
+            # X_PREFIX x_prefix=1 tells Werkzeug to look for the X-Forwarded-Prefix header
+            #    and use it to temporarily rewrite the application's root path (SCRIPT_NAME).
+
+            # Set to 0 to not do anything to the path before processing it.
+            X_PREFIX = 0
+            if environ.get("WERKZEUG_X_PREFIX", "0").lower() in ["1", 1, "y", "true"]:
+                X_PREFIX = 1
+
+            # Preserves the external domain name, 0 to not preserve it.
+            # Default: 1
+            X_HOST = 1
+            if environ.get("WERKZEUG_X_HOST", "0").lower() in ["0", 0, "n", "false"]:
+                X_HOST = 0
+
+            print("Applying Werkzeug Proxy Fixes")
+
+            proxy_fix_wrap(app, X_FOR, X_HOST, X_PREFIX, 1)
         return app

@@ -73,7 +73,7 @@ workflows:
           name: "Deploy to Staging (Getty)"
           context: GETTY
           tag: *imageTag
-          service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-provenance-l2,lod-gateway-annotations-l2,lod-gateway-tms-l1,lod-gateway-consonance-l1,lod-gateway-thesaurus-l2
+          service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-thesaurus-l2,lod-gateway-annotations-l2,lod-gateway-tms-l1,lod-gateway-consonance-l1,lod-gateway-publications-l2,lod-gateway-provenance-l2
           requires:
             - build
             - "Publish to Getty ECR"
@@ -87,7 +87,7 @@ workflows:
           name: "Deploy to Prod (Getty)"
           context: GETTY
           tag: *imageTag
-          service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-thesaurus-l2,lod-gateway-annotations-l2,lod-gateway-tms-l1,lod-gateway-consonance-l1
+          service: lod-gateway-archivesspace-l1,lod-gateway-media-l2,lod-gateway-museum-collection-l2,lod-gateway-otmm-l1,lod-gateway-rcv-l2,lod-gateway-rosetta-l1,lod-gateway-vocab-l2,lod-gateway-thesaurus-l2,lod-gateway-annotations-l2,lod-gateway-tms-l1,lod-gateway-consonance-l1,lod-gateway-publications-l2,lod-gateway-provenance-l2
           environment: prd
           filters:
             branches:

@@ -63,7 +63,7 @@ from flaskapp.utilities import checksum_json, authenticate_bearer, squish_dict
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
+from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS, QUAD_ENABLED
 from flaskapp.conneg import (
     desired_rdf_format,
     determine_requested_format_and_profile,
@@ -1271,67 +1271,56 @@ def entity_version(entity_id):
                 and data
             ):
                 # rdfformat:
-                desired = desired_rdf_format(
-                    request.headers.get("accept"), request.values.get("format")
-                )
+                desired = determine_requested_format_and_profile(request)
+                ident = data.get("id") or data.get("@id")
+
                 if desired is not None:
-                    # wants a particular format
-                    if desired[1] != "json-ld":
-                        # Set the mimetype:
+                    if not (
+                        (
+                            desired.get("preferred_mimetype", "").startswith(
+                                "application/ld+json"
+                            )
+                            or desired.get("preferred_mimetype", "").startswith(
+                                "application/json"
+                            )
+                        )
+                    ):
                         current_app.logger.debug(
                             f"VERSION {entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
                         )
-                        content_type = desired[0]
-                        if "force-plain-text" in request.values:
-                            # Browsers typically don't handle ntriples/turtle
-                            content_type = "text/plain;charset=UTF-8"
-
-                        if (
+                        content_type, q, shortformat = desired["accepted_mimetypes"][0]
+                        use_pyld = (
                             current_app.config["USE_PYLD_REFORMAT"] is True
                             and "rdflib" not in request.values
-                        ):
+                        )
+                        if use_pyld:
                             current_app.logger.debug(
-                                f"VERSION {entity_id} - using PyLD to parse JSON-LD"
+                                f"{entity_id} - using PyLD to parse JSON-LD"
                             )
-                            # Use the PyLD library to parse into nquads, and rdflib to convert
-                            # rdflib's json-ld import has not been tested on our data, so not relying on it
-                            proc = jsonld.JsonLdProcessor()
-                            serialized_rdf = proc.to_rdf(
+                            data = reformat_rdf(
                                 data,
-                                {
-                                    "format": "application/n-quads",
-                                    "documentLoader": current_app.config[
-                                        "RDF_DOCLOADER"
-                                    ],
-                                },
+                                shortformat=shortformat,
+                                use_pyld=use_pyld,
+                                rdf_docloader=current_app.config["RDF_DOCLOADER"],
                             )
-
-                            ident = data.get("id") or data.get("@id")
-
-                            # rdflib to load and format the nquads
-                            # forcing it, because of pyld's awful nquad export
-                            g = get_bound_graph(identifier=ident)
-
-                            # May not be nquads, even though we requested it:
-                            serialized_rdf = triples_to_quads(serialized_rdf, ident)
-
-                            g.parse(data=serialized_rdf, format="nquads")
-                            data = g.serialize(format=desired[1])
                         else:
                             current_app.logger.debug(
                                 f"{entity_id} - using RDFLIB to parse JSON-LD"
                             )
-                            ident = data.get("id") or data.get("@id")
-
-                            # using rdflib to both parse and re-serialize the RDF:
-                            g = get_bound_graph(identifier=ident)
-
-                            g.parse(data=json.dumps(data), format="json-ld")
-                            data = g.serialize(format=desired[1])
+                            data = reformat_rdf(
+                                data,
+                                shortformat=shortformat,
+                                use_pyld=False,
+                                rdf_docloader=current_app.config["RDF_DOCLOADER"],
+                            )
 
                         current_app.logger.debug(
                             f"VERSION {entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"
                         )
+
+            if "force-plain-text" in request.values:
+                # Browsers typically don't handle ntriples/turtle
+                content_type = "text/plain;charset=UTF-8"
 
             response = current_app.make_response(data or "")
             response.headers["Content-Type"] = content_type

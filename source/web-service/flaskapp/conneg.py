@@ -17,6 +17,7 @@ from .graph_prefix_bindings import (
     get_bound_graph,
     get_frame,
     BASE_FRAME_CONTEXT,
+    QUAD_ENABLED,
 )
 from .utilities import triples_to_quads
 
@@ -167,6 +168,10 @@ def reformat_rdf(data, shortformat="turtle", use_pyld=True, rdf_docloader=None):
     if shortformat == "json-ld":
         # Assume data is *already* JSON-LD
         return data
+
+    # TODO: Switch to a smarter way to get the main identifier from doc
+    ident = data.get("id") or data.get("@id")
+
     if use_pyld is True:
         # Use the PyLD library to parse into nquads, and rdflib to convert
         # rdflib's json-ld import has not been tested on our data, so not relying on it
@@ -179,27 +184,36 @@ def reformat_rdf(data, shortformat="turtle", use_pyld=True, rdf_docloader=None):
             },
         )
 
-        ident = data.get("id") or data.get("@id")
-
         # rdflib to load and format the nquads
         # forcing it, because of pyld's awful nquad export
-        g = get_bound_graph(identifier=ident)
+        ds, g = get_bound_graph(identifier=ident)
 
         # May not be nquads, even though we requested it:
         serialized_rdf = triples_to_quads(serialized_rdf, ident)
 
-        g.parse(data=serialized_rdf, format="nquads")
-        data = g.serialize(format=shortformat)
+        ds.parse(data=serialized_rdf, format="nquads")
+
+        if shortformat in QUAD_ENABLED:
+            # formats allow quads
+            data = ds.serialize(format=shortformat)
+        else:
+            # Triple-focussed output:
+            data = g.serialize(format=shortformat)
+
         return data
     else:
-        ident = data.get("id") or data.get("@id")
-
         # using rdflib to both parse and re-serialize the RDF:
-        g = get_bound_graph(identifier=ident)
+        ds, g = get_bound_graph(identifier=ident)
 
-        g.parse(data=json.dumps(data), format="json-ld")
-        data = g.serialize(format=shortformat)
-        # blank out the etag for now
+        if shortformat in QUAD_ENABLED:
+            # formats allow quads
+            ds.parse(data=json.dumps(data), format="json-ld")
+            data = ds.serialize(format=shortformat)
+        else:
+            # Triple-focussed output:
+            g.parse(data=json.dumps(data), format="json-ld")
+            data = g.serialize(format=shortformat)
+
         return data
 
 
@@ -217,11 +231,12 @@ def reformat_to_jsonld(data, incoming_format, target_base=None, top_level_id=Non
         )
 
     # using rdflib to both parse and re-serialize the RDF:
-    g = get_bound_graph(identifier=top_level_id)
-    g.parse(data=data, format=incoming_format)
+    ds, g = get_bound_graph(identifier=top_level_id)
+
+    ds.parse(data=data, format=incoming_format)
 
     # data = g.serialize(format="json-ld", base=target_base, compact=True)
-    data = g.serialize(format="json-ld", compact=True)
+    data = ds.serialize(format="json-ld", compact=True)
 
     # load it as JSON
     return json.loads(data)

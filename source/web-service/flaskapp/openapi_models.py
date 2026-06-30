@@ -166,6 +166,13 @@ class OptionalTargetDatetimeQuery(BaseModel):
     )
 
 
+class OptionalSlugQuery(BaseModel):
+    slug: Optional[str] = Field(
+        default=None,
+        description="The slug you intend this item to get when it is uploaded",
+    )
+
+
 # Composite Models combining the validated parameters
 class EntityTypePagenumPath(BaseModel):
     entity_type: str = Field(

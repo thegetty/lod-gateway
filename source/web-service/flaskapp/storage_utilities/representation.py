@@ -244,13 +244,19 @@ class Representation:
                         self._description = _get_value(v)
 
 
-def parse_representation(server_root, relative_container, request, entitybody):
+def parse_representation(
+    server_root, relative_container, request, entitybody, query_params
+):
     # check for valid JSON-LD
     # rebase, and return Representation
     # capture the Slug header if present, even though the rebase does not take that into account yet.
     if request.headers["Content-Type"] == "application/ld+json":
         # Slug?
         slug = request.headers.get("Slug") or None
+
+        if query_params and query_params.slug:
+            slug = query_params.slug
+
         r = Representation(
             server_root=server_root, relative_container=relative_container, slug=slug
         )

@@ -70,6 +70,7 @@ from flaskapp.openapi_models import (
     EntityIdPath,
     EntityBody,
     PlainBody,
+    OptionalSlugQuery,
     EntityIdActivityStreamPagenumPath,
     _strip_openapi_kwargs,
 )
@@ -357,7 +358,9 @@ def container_record(container_id, page=None):
     strict_slashes=False,
 )
 @records.post("/", defaults={"entity_id": "/"}, strict_slashes=False)
-def container_post_item(path: EntityIdPath, body: PlainBody):
+def container_post_item(
+    path: EntityIdPath, body: PlainBody, query: OptionalSlugQuery = None
+):
     # Could be a resource or a container being POSTed to a target URI which has to be an existing container
     # Behavior will be as LDP states:
     # - if the target is a Container, and the POSTed item is a valid Resource or Container:
@@ -406,6 +409,7 @@ def container_post_item(path: EntityIdPath, body: PlainBody):
             container_breadcrumbs[-1].strip("/"),
             request,
             body,
+            query,
         )
         current_app.logger.info(
             f"POSTed JSON parsed as JSON-LD and rebased to: {posted_representation.has_top_level_id()}"

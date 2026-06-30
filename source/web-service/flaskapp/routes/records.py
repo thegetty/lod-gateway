@@ -328,8 +328,8 @@ def container_record(container_id, page=None):
         )
 
 
-@records.route("/<path:entity_id>/", methods=["POST"])
-@records.route("/", methods=["POST"], defaults={"entity_id": "/"})
+@records.route("/<path:entity_id>/", methods=["POST"], strict_slashes=False)
+@records.route("/", methods=["POST"], defaults={"entity_id": "/"}, strict_slashes=False)
 def container_post_item(entity_id):
     # Could be a resource or a container being POSTed to a target URI which has to be an existing container
     # Behavior will be as LDP states:
@@ -1234,7 +1234,6 @@ def entity_version(entity_id):
                     request.values.get("relativeid", "").lower() in trueset
                     or prefixRecordIDs == "NONE"
                 ):  # when "NONE", record "id" field prefixing is not enabled
-
                     # Don't allow format rewriting if the URIs are relative (ntriples, etc break):
                     allow_format_rewriting = False
                 else:  # otherwise, record "id" field prefixing is enabled, as configured

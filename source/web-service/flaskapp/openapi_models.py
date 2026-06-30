@@ -50,6 +50,12 @@ class EntityBody(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
+# Body payloads
+class PlainBody(BaseModel):
+    type: str = Field(..., description="Entity Type")
+    model_config = ConfigDict(extra="allow")
+
+
 JSONL_examples = {
     "Single record ingest": {
         "summary": "Example of how to ingest a single record. Add the whole document, with a newline",

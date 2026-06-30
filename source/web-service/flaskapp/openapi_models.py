@@ -135,6 +135,13 @@ class EntityIdPath(BaseModel):
     )
 
 
+class ContainerIdPath(BaseModel):
+    container_id: str = Field(
+        ...,
+        description="The relative path for an LDP Container.",
+    )
+
+
 class PagenumPath(BaseModel):
     pagenum: int = Field(
         ..., ge=1, description="The page number. Starts at 1 with no upper bound."

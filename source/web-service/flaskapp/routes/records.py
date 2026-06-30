@@ -68,7 +68,7 @@ from flaskapp.openapi import records_tag, ldp_tag, timegate_tag, activity_tag
 # For path typing
 from flaskapp.openapi_models import (
     EntityIdPath,
-    EntityBody,
+    ContainerIdPath,
     PlainBody,
     OptionalSlugQuery,
     EntityIdActivityStreamPagenumPath,
@@ -344,7 +344,7 @@ def container_record(container_id, page=None):
 
 
 @records.post(
-    "/<path:entity_id>/",
+    "/<path:container_id>/",
     tags=[ldp_tag, records_tag],
     summary="Create resource (LDP)",
     description="Create a new resource or container by POSTing to an LDP container. Requires Bearer token authentication.",
@@ -357,9 +357,9 @@ def container_record(container_id, page=None):
     },
     strict_slashes=False,
 )
-@records.post("/", defaults={"entity_id": "/"}, strict_slashes=False)
+@records.post("/", defaults={"container_id": "/"}, strict_slashes=False)
 def container_post_item(
-    path: EntityIdPath, body: PlainBody, query: OptionalSlugQuery = None
+    path: ContainerIdPath, body: PlainBody, query: OptionalSlugQuery = None
 ):
     # Could be a resource or a container being POSTed to a target URI which has to be an existing container
     # Behavior will be as LDP states:
@@ -397,10 +397,10 @@ def container_post_item(
         "Authentication checked - POST LDP resource request allowed."
     )
 
-    # Get the implied container-hierarchy from the entity_id:
+    # Get the implied container-hierarchy from the container_id:
     # eg "/object/1234" --> ["/", "/object/", "/object/1234"]
-    # Will always contain "/" as first item, unless the entity_id is "/"
-    container_breadcrumbs = segment_entity_id(path.entity_id)
+    # Will always contain "/" as first item, unless the container_id is "/"
+    container_breadcrumbs = segment_entity_id(path.container_id)
 
     # Valid JSON-LD? Fail if not with a HTTP 422 Wrong Syntax
     try:
@@ -439,11 +439,11 @@ def container_post_item(
 
     # Is there a record here?
     current_app.logger.debug(
-        f"Looking up resource {path.entity_id} in case it is a record not a container"
+        f"Looking up resource {path.container_id} in case it is a record not a container"
     )
     record = (
         db.session.query(Record)
-        .filter(Record.entity_id == path.entity_id)
+        .filter(Record.entity_id == path.container_id)
         .options(defer(Record.data))
         .limit(1)
         .one_or_none()
@@ -610,7 +610,7 @@ def container_post_item(
             status_nt(
                 404,
                 "No Resource Found",
-                f"Must POST a resource to a valid ldp:BasicContainer. {path.entity_id} is not a container",
+                f"Must POST a resource to a valid ldp:BasicContainer. {path.container_id} is not a container",
             )
         )
         abort(response)

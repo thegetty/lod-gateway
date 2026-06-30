@@ -1,5 +1,4 @@
 import click
-from typing import Optional
 import math
 import json
 
@@ -620,8 +619,90 @@ def container_post_item(
     "/<path:entity_id>",
     tags=[records_tag],
     summary="Get record",
+    description="Retrieve a record by entity ID. Supports RDF content negotiation via Accept header or 'format' query parameter. Returns the record in the requested format (JSON-LD, Turtle, N-Triples, N-Quads, N3, or TRIG).",
     responses={
-        200: {"description": "Record data in requested format"},
+        200: {
+            "description": "Record data in requested format",
+            "content": {
+                "application/ld+json": {
+                    "schema": {
+                        "type": "object",
+                        "description": "JSON-LD representation of the record with expanded context and prefixed URIs.",
+                    },
+                    "examples": {
+                        "json-ld": {
+                            "summary": "JSON-LD format",
+                            "value": {
+                                "@context": "https://www.w3.org/ns/ontology-web-syntax",
+                                "@id": "https://example.org/entity/123",
+                                "type": "Thing",
+                                "name": "Example Entity",
+                            },
+                        }
+                    },
+                },
+                "application/n-triples": {
+                    "schema": {
+                        "type": "string",
+                        "description": "N-Triples format - a simple line-based RDF serialization with one triple per line.",
+                    },
+                    "examples": {
+                        "nt": {
+                            "summary": "N-Triples format",
+                            "value": "<https://example.org/entity/123> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2000/01/rdf-schema#Thing> .\n",
+                        }
+                    },
+                },
+                "text/turtle": {
+                    "schema": {
+                        "type": "string",
+                        "description": "Turtle format - a more compact RDF serialization that groups triples by subject.",
+                    },
+                    "examples": {
+                        "turtle": {
+                            "summary": "Turtle format",
+                            "value": "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix ex: <https://example.org/entity/123> .\nex: a rdf:Thing .\n",
+                        }
+                    },
+                },
+                "application/n-quads": {
+                    "schema": {
+                        "type": "string",
+                        "description": "N-Quads format - N-Triples with an additional quad graph name per line.",
+                    },
+                    "examples": {
+                        "nquads": {
+                            "summary": "N-Quads format",
+                            "value": "<https://example.org/entity/123> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2000/01/rdf-schema#Thing> <https://example.org/graph> .\n",
+                        }
+                    },
+                },
+                "text/n3": {
+                    "schema": {
+                        "type": "string",
+                        "description": "N3 format - a more expressive RDF serialization with support for named graphs and negation.",
+                    },
+                    "examples": {
+                        "n3": {
+                            "summary": "N3 format",
+                            "value": "@prefix ex: <https://example.org/entity/123> .\n@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\nex: a rdf:Thing .\n",
+                        }
+                    },
+                },
+                "application/trig": {
+                    "schema": {
+                        "type": "string",
+                        "description": "TRIG format - Turtle with support for named graphs.",
+                    },
+                    "examples": {
+                        "trig": {
+                            "summary": "TRIG format",
+                            "value": "@prefix ex: <https://example.org/entity/123> .\n@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n{\n  ex: a rdf:Thing .\n} .\n",
+                        }
+                    },
+                },
+            },
+        },
         304: {"description": "Not Modified (ETag match)"},
         404: {"description": "Record not found"},
     },

@@ -2,7 +2,7 @@
 
 This repository contains the source code for the LOD Gateway – a fast and reliable Linked Open Data (LOD) document store with integrated graph expansion and associated graph storage and graph query features.
 
-** [Product Tour](documentation/product_tour.md) **
+**[Product Tour](documentation/product_tour.md)**
 
 The LOD Gateway offers the following key functionality:
 

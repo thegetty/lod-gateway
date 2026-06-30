@@ -1,6 +1,7 @@
 import math
 
-from flask import Blueprint, current_app, abort, request, redirect, jsonify, url_for
+from flask_openapi3 import APIBlueprint
+from flask import current_app, abort, redirect, jsonify, url_for
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.functions import coalesce, max
 from sqlalchemy import func
@@ -18,17 +19,50 @@ from flaskapp.errors import (
     status_pagenum_not_integer,
     status_page_not_found,
 )
+from flaskapp.openapi import activity_tag
+from flaskapp.openapi_models import (
+    TargetDatetimePath,
+    OptionalTargetDatetimeQuery,
+    PagenumPath,
+    UuidPath,
+    _strip_openapi_kwargs,
+)
 
 # Create a new "activity" route blueprint
-activity = Blueprint("activity", __name__)
+activity = APIBlueprint("activity", __name__)
+_strip_openapi_kwargs(activity)
 
 
-@activity.route("/activity-stream/skip-to-datetime")
-@activity.route("/activity-stream/skip-to-datetime/<string:target_datetime>")
-def redirect_to_page_using_datetime(target_datetime=None):
-    if "datetime" in request.args:
-        target_datetime = request.args["datetime"]
+# GET param method:
+@activity.get(
+    "/activity-stream/skip-to-datetime",
+    tags=[activity_tag],
+    summary="Skip to activity page by datetime",
+    responses={
+        200: {"description": "Redirect or results"},
+        400: {"description": "Bad datetime"},
+        404: {"description": "No activity found for date"},
+    },
+)
+def get_param_redirect_to_page(query: OptionalTargetDatetimeQuery):
+    return _redirect_to_page_using_datetime(query.datetime)
 
+
+@activity.get(
+    "/activity-stream/skip-to-datetime/<string:target_datetime>",
+    tags=[activity_tag],
+    summary="Skip to activity page by datetime",
+    responses={
+        200: {"description": "Redirect or results"},
+        400: {"description": "Bad datetime"},
+        404: {"description": "No activity found for date"},
+    },
+)
+def path_datetime_redirect_to_page(path: TargetDatetimePath):
+    return _redirect_to_page_using_datetime(path.target_datetime)
+
+
+def _redirect_to_page_using_datetime(target_datetime=None):
     if not target_datetime:
         # response - bad request
         return (
@@ -86,8 +120,13 @@ def redirect_to_page_using_datetime(target_datetime=None):
         )
 
 
-@activity.route("/activity-stream")
-@activity.route("/activity-stream/")
+@activity.get(
+    "/activity-stream",
+    tags=[activity_tag],
+    summary="Activity Stream root",
+    responses={200: {"description": "Activity Stream collection"}},
+)
+@activity.get("/activity-stream/")
 def activity_stream_collection():
     """Generate the root OrderedCollection for the stream
 
@@ -121,15 +160,17 @@ def activity_stream_collection():
     return current_app.make_response(data)
 
 
-# Abort if 'pagenum' is not integer
-@activity.route("/activity-stream/page/<string:pagenum>")
-def activity_stream_wrong_page_format(pagenum):
-    response = construct_error_response(status_pagenum_not_integer)
-    return abort(response)
-
-
-@activity.route("/activity-stream/page/<int:pagenum>")
-def activity_stream_page(pagenum):
+@activity.get(
+    "/activity-stream/page/<int:pagenum>",
+    tags=[activity_tag],
+    summary="Activity Stream page",
+    responses={
+        200: {"description": "Paginated activity items"},
+        404: {"description": "Page out of bounds"},
+    },
+)
+@activity.get("/activity-stream/page/<int:pagenum>")
+def activity_stream_page(path: PagenumPath):
     """Generate an OrderedCollectionPage of Activity Stream items.
 
     Args:
@@ -138,6 +179,13 @@ def activity_stream_page(pagenum):
     Returns:
         TYPE: Response: a JSON-encoded OrderedCollectionPage
     """
+
+    pagenum = None
+    if path and path.pagenum:
+        pagenum = path.pagenum
+
+    if not pagenum:
+        pagenum = 1
 
     limit = current_app.config["ITEMS_PER_PAGE"]
     offset = (pagenum - 1) * limit
@@ -173,7 +221,6 @@ def activity_stream_page(pagenum):
         .filter(Activity.id > offset, Activity.id <= offset + limit)
         .order_by("id")
     ):
-
         items = [generate_item(a) for a in activities]
         data["orderedItems"] = items
     else:
@@ -182,8 +229,17 @@ def activity_stream_page(pagenum):
     return current_app.make_response(data)
 
 
-@activity.route("/activity-stream/<string:uuid>")
-def activity_stream_item(uuid):
+@activity.get(
+    "/activity-stream/<string:uuid>",
+    tags=[activity_tag],
+    summary="Activity Stream item",
+    responses={
+        200: {"description": "Activity item"},
+        404: {"description": "Not found"},
+    },
+)
+@activity.get("/activity-stream/<string:uuid>")
+def activity_stream_item(path: UuidPath):
     """Generate an ActivityStreams Create Response
 
     Args:
@@ -195,7 +251,7 @@ def activity_stream_item(uuid):
 
     activity = (
         Activity.query.options(joinedload(Activity.record, innerjoin=True))
-        .filter(Activity.uuid == uuid)
+        .filter(Activity.uuid == path.uuid)
         .one_or_none()
     )
 

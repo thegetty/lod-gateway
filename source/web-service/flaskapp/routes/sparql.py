@@ -1,14 +1,8 @@
 import time
 import requests
 
-from flask import (
-    Blueprint,
-    current_app,
-    request,
-    abort,
-    Response,
-    make_response,
-)
+from flask_openapi3 import APIBlueprint
+from flask import current_app, request, abort, Response, make_response
 
 from flaskapp.errors import (
     status_nt,
@@ -17,18 +11,47 @@ from flaskapp.errors import (
     status_graphstore_timeout,
 )
 
+from flaskapp.openapi import sparql_tag
+from flaskapp.openapi_models import _strip_openapi_kwargs
+
 from flaskapp.utilities import (
-    execute_sparql_query_post,
-    execute_sparql_query,
     authenticate_bearer,
+    execute_sparql_query,
+    execute_sparql_query_post,
 )
 
 # Create a new "sparql" route blueprint
-sparql = Blueprint("sparql", __name__)
+sparql = APIBlueprint("sparql", __name__)
+_strip_openapi_kwargs(sparql)
 
 
 # ### ROUTES ###
-@sparql.route("/sparql", methods=["GET", "POST"])
+@sparql.get(
+    "/sparql",
+    tags=[sparql_tag],
+    summary="SPARQL query endpoint",
+    description="Execute a SPARQL query. Authentication is required if SPARQL_QUERY_AUTHENTICATION is set to true (default: false).",
+    security=[{"bearerAuth": []}, {}],
+    responses={
+        200: {"description": "SPARQL results"},
+        400: {"description": "Bad request"},
+        501: {"description": "RDF not enabled"},
+        504: {"description": "Query timeout"},
+    },
+)
+@sparql.post(
+    "/sparql",
+    tags=[sparql_tag],
+    summary="SPARQL query endpoint",
+    description="Execute a SPARQL query (POST variant). Authentication is required if SPARQL_QUERY_AUTHENTICATION is set to true (default: false).",
+    security=[{"bearerAuth": []}, {}],
+    responses={
+        200: {"description": "SPARQL results"},
+        400: {"description": "Bad request"},
+        501: {"description": "RDF not enabled"},
+        504: {"description": "Query timeout"},
+    },
+)
 def query_entrypoint():
     if current_app.config["PROCESS_RDF"] is not True:
         response = construct_error_response(

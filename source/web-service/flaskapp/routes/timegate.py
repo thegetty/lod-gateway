@@ -1,6 +1,7 @@
 from email.utils import formatdate
 
-from flask import Blueprint, current_app, abort, request, jsonify, url_for
+from flask_openapi3 import APIBlueprint
+from flask import current_app, abort, request, jsonify, url_for
 from sqlalchemy.orm import load_only
 
 from flaskapp.models import db
@@ -10,9 +11,12 @@ from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
 )
+from flaskapp.openapi import timegate_tag
+from flaskapp.openapi_models import EntityIdPath, _strip_openapi_kwargs
 
 # Create a new "sparql" route blueprint
-timegate = Blueprint("timegate", __name__)
+timegate = APIBlueprint("timegate", __name__)
+_strip_openapi_kwargs(timegate)
 
 
 def json_to_linkformat(d):
@@ -21,7 +25,16 @@ def json_to_linkformat(d):
     return ";".join(lf)
 
 
-@timegate.route("/-tm-/<path:entity_id>")
+@timegate.get(
+    "/-tm-/<path:entity_id>",
+    tags=[timegate_tag],
+    summary="Get timemap (Memento)",
+    path=EntityIdPath,
+    responses={
+        200: {"description": "Timemap in requested format"},
+        404: {"description": "Entity not found"},
+    },
+)
 def get_timemap(entity_id):
     # Get the timemap for the given entity_id, if one exists
     idPrefix = current_app.config["BASE_URL"]

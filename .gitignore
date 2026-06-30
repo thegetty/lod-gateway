@@ -16,6 +16,7 @@ _*
 !.dockerignore
 !.editorconfig
 !.env.example
+!.env.standalonetest
 *.pyc
 
 # Config files

@@ -244,7 +244,7 @@ class Representation:
                         self._description = _get_value(v)
 
 
-def parse_representation(server_root, relative_container, request):
+def parse_representation(server_root, relative_container, request, entitybody):
     # check for valid JSON-LD
     # rebase, and return Representation
     # capture the Slug header if present, even though the rebase does not take that into account yet.
@@ -254,7 +254,8 @@ def parse_representation(server_root, relative_container, request):
         r = Representation(
             server_root=server_root, relative_container=relative_container, slug=slug
         )
-        r.json_ld = request.get_json()
+        r.json_ld = entitybody.model_dump()
+
         return r
     else:
         raise ResourceValidationError(

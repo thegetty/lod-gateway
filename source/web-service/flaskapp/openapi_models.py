@@ -7,7 +7,7 @@ Each model defines a single path parameter matching a Flask URL rule converter
 (e.g. ``<path:entity_id>`` -> ``entity_id: str``, ``<int:pagenum>`` -> ``pagenum: int``).
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, RootModel
 
 # from uuid import UUID
 from typing import Optional
@@ -37,7 +37,91 @@ from typing import Optional
 #     )
 
 
-# 1. Base Models with validation constraints applied via Field
+# Body payloads
+class EntityBody(BaseModel):
+    # This dictates to flask-openapi3-swagger that 'id' is required
+    id: Optional[str] = Field(default=None, description="Standard unique identifier")
+    at_id: Optional[str] = Field(
+        default=None, alias="@id", description="Alternative semantic identifier"
+    )
+    type: str = Field(..., description="Entity Type")
+
+    # Correct Pydantic v2 configuration for version 4.x+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+
+JSONL_examples = {
+    "Single record ingest": {
+        "summary": "Example of how to ingest a single record. Add the whole document, with a newline",
+        "value": '{"id": "---relative-identifier---", "type": "....", "etc": {...}, ... }\n',
+    },
+    "Multiple record ingest": {
+        "summary": "Multiple records. Split their JSON-encoded text with newlines",
+        "value": '{"id": "qfewf", "... }\n{"id": "qfewf2", "... }\n{"id": "qfewf3", "... }\n',
+    },
+    "Refresh a record": {
+        "summary": "Example of how to reload a single record into the graphstore (requires RDF processing) and LDP container index (if LDP_BACKEND is on)",
+        "value": '{"id": "---relative-identifier---", "_refresh": true}\n',
+    },
+    "Delete record(s)": {
+        "summary": "Example of how to delete a record.",
+        "value": '{"id": "...", "_delete": "true"}\n',
+    },
+}
+
+
+# Shared schema component to avoid writing the example each time
+class JSONLSchema(RootModel[str]):
+    root: str = Field(
+        description="Newline-delimited JSON records. One JSON object per line.",
+        examples=JSONL_examples,
+    )
+
+
+# Define multiple content types inside the 'content' object
+# eg @api.post('/upload-jsonl', extra_body=JSONLBody)
+JSONLBody = {
+    "description": "Upload structural records via raw text JSONL stream.",
+    "required": True,
+    "content": {
+        "text/plain": {  # To allow the swagger UI to work properly
+            "schema": {
+                "type": "string",
+            },
+            "examples": JSONL_examples,
+        },
+        "application/x-ndjson": {
+            "schema": {
+                "type": "string",
+            },
+            "examples": JSONL_examples,
+        },
+        "text/jsonl": {
+            "schema": {
+                "type": "string",
+            },
+            "examples": JSONL_examples,
+        },  # secondary allowed content-type
+        "application/json": {
+            "schema": {
+                "type": "string",
+            },
+            "examples": JSONL_examples,
+        },  # Fallback type
+    },
+}
+
+
+def patch_ingest_route(app, ns=None):
+    route_path = "/ingest"
+    if ns and ns != "/":
+        route_path = f"/{ns}/ingest"
+
+    if route_path in app.api_doc["paths"]:
+        app.api_doc["paths"][route_path]["post"]["requestBody"] = JSONLBody
+
+
+# Base Models with validation constraints applied via Field
 class EntityIdPath(BaseModel):
     entity_id: str = Field(
         ...,
@@ -64,27 +148,19 @@ class EntityTypePath(BaseModel):
 
 
 class TargetDatetimePath(BaseModel):
-    # If the endpoint expects an ISO string, using native datetime parses it
-    # correctly. If it must remain a raw string, use str with a datetime format description.
     target_datetime: str = Field(
-        ..., description="The target timestamp (ISO 8601 format)."
-    )
-
-
-class OptionalTargetDatetimePath(BaseModel):
-    target_datetime: Optional[str] = Field(
-        ..., description="The target timestamp (ISO 8601 format)."
+        ..., description="The target date time (11/10/2025, May 10th 2026, etc)."
     )
 
 
 class OptionalTargetDatetimeQuery(BaseModel):
     datetime: Optional[str] = Field(
         ...,
-        description="The target timestamp (ISO 8601 format) from a '?datetime=' parameter",
+        description="The target date time (11/10/2025, May 10th 2026, etc) from a '?datetime=' parameter",
     )
 
 
-# 2. Composite Models combining the validated parameters
+# Composite Models combining the validated parameters
 class EntityTypePagenumPath(BaseModel):
     entity_type: str = Field(
         ..., max_length=200, description="The type designation string of the entity."

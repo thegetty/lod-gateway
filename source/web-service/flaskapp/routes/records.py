@@ -64,7 +64,14 @@ from flaskapp.errors import (
 from flaskapp.utilities import checksum_json, authenticate_bearer, squish_dict
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
 from flaskapp.openapi import records_tag, ldp_tag, timegate_tag, activity_tag
-from flaskapp.openapi_models import _strip_openapi_kwargs
+
+# For path typing
+from flaskapp.openapi_models import (
+    EntityIdPath,
+    EntityBody,
+    EntityIdActivityStreamPagenumPath,
+    _strip_openapi_kwargs,
+)
 
 # RDF format translations
 from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
@@ -73,13 +80,6 @@ from flaskapp.conneg import (
     determine_requested_format_and_profile,
     get_data_using_profile_query,
     reformat_rdf,
-)
-
-# For path typing
-from flaskapp.openapi_models import (
-    EntityIdPath,
-    EntityIdActivityStreamPagenumPath,
-    _strip_openapi_kwargs,
 )
 
 
@@ -356,7 +356,7 @@ def container_record(container_id, page=None):
     strict_slashes=False,
 )
 @records.post("/", defaults={"entity_id": "/"}, strict_slashes=False)
-def container_post_item(path: EntityIdPath):
+def container_post_item(path: EntityIdPath, body: EntityBody):
     # Could be a resource or a container being POSTed to a target URI which has to be an existing container
     # Behavior will be as LDP states:
     # - if the target is a Container, and the POSTed item is a valid Resource or Container:
@@ -404,6 +404,7 @@ def container_post_item(path: EntityIdPath):
             f'{current_app.config["idPrefix"]}/',
             container_breadcrumbs[-1].strip("/"),
             request,
+            EntityBody,
         )
         current_app.logger.info(
             f"POSTed JSON parsed as JSON-LD and rebased to: {posted_representation.has_top_level_id()}"

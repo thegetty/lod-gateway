@@ -51,6 +51,8 @@ from flaskapp.utilities import (
 from flaskapp.base_graph_utils import base_graph_filter
 from flaskapp.openapi import ingest_tag
 
+# For path typing
+
 # Create a new "ingest" route blueprint
 ingest = APIBlueprint("ingest", __name__)
 
@@ -66,9 +68,9 @@ _OPENAPI_KWARGS = frozenset(
         "servers",
         "operation_id",
         "openapi_extensions",
+        "extra_body",
     ]
 )
-
 
 _original_ingest_add_url_rule = ingest.add_url_rule
 

@@ -21,7 +21,7 @@ from flaskapp.errors import (
 )
 from flaskapp.openapi import activity_tag
 from flaskapp.openapi_models import (
-    OptionalTargetDatetimePath,
+    TargetDatetimePath,
     OptionalTargetDatetimeQuery,
     PagenumPath,
     UuidPath,
@@ -33,6 +33,7 @@ activity = APIBlueprint("activity", __name__)
 _strip_openapi_kwargs(activity)
 
 
+# GET param method:
 @activity.get(
     "/activity-stream/skip-to-datetime",
     tags=[activity_tag],
@@ -43,17 +44,25 @@ _strip_openapi_kwargs(activity)
         404: {"description": "No activity found for date"},
     },
 )
-@activity.get("/activity-stream/skip-to-datetime/<string:target_datetime>")
-def redirect_to_page_using_datetime(
-    path: OptionalTargetDatetimePath, query: OptionalTargetDatetimeQuery
-):
-    target_datetime = None
+def get_param_redirect_to_page(query: OptionalTargetDatetimeQuery):
+    return _redirect_to_page_using_datetime(query.datetime)
 
-    if path and path.target_datetime is not None:
-        target_datetime = path.target_datetime
-    elif query and query.datetime is not None:
-        target_datetime = query.datetime
 
+@activity.get(
+    "/activity-stream/skip-to-datetime/<string:target_datetime>",
+    tags=[activity_tag],
+    summary="Skip to activity page by datetime",
+    responses={
+        200: {"description": "Redirect or results"},
+        400: {"description": "Bad datetime"},
+        404: {"description": "No activity found for date"},
+    },
+)
+def path_datetime_redirect_to_page(path: TargetDatetimePath):
+    return _redirect_to_page_using_datetime(path.target_datetime)
+
+
+def _redirect_to_page_using_datetime(target_datetime=None):
     if not target_datetime:
         # response - bad request
         return (

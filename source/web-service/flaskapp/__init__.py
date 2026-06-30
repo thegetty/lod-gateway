@@ -11,6 +11,10 @@ import sqlite3
 from flask import Flask, Response
 from flask_openapi3.openapi import OpenAPI
 from flask_openapi3 import Info
+from flask_openapi3.models import SecurityScheme
+
+from flaskapp.openapi_models import patch_ingest_route
+
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_compress import Compress
@@ -105,11 +109,19 @@ def create_app():
     if subpath == "/":
         subpath = ""
 
+    # Define security configuration:
+    bearer_scheme = SecurityScheme(
+        type="http", scheme="bearer", bearerFormat="Opaque"  # just a plain token
+    )
+
+    security_schemes = {"bearerAuth": bearer_scheme}
+
     app = OpenAPI(
         __name__,
         info=Info(title=lod_desc, version="1.0.0"),
         doc_ui=True,
         doc_prefix=f"/{subpath}/openapi",
+        security_schemes=security_schemes,
     )
 
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
@@ -487,6 +499,9 @@ def create_app():
         app.register_api(yasgui, url_prefix=f"/{ns}")
         app.register_api(timegate, url_prefix=f"/{ns}")
         app.register_api(health, url_prefix=f"/{ns}")
+
+        # Non-JSON formatted payload patch for the OpenAPI
+        patch_ingest_route(app, ns)
 
         app.logger.info("LOD Gateway configured and ready for use")
 

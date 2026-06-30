@@ -6,6 +6,7 @@ import os
 import re
 import requests
 import urllib.parse
+import types
 
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -22,6 +23,7 @@ from flaskapp.storage_utilities.record import (
     record_create,
     process_activity,
 )
+from flaskapp.storage_utilities.mock_sparql import MockSPARQLService
 
 
 from dataclasses import dataclass
@@ -385,153 +387,227 @@ def ldp_sample_containers(test_db, namespace):
     test_db.session.commit()
 
 
-@pytest.fixture(autouse=True)
-def requests_mocker(requests_mock):
-    """The `requests_mocker()` method supports mocking requests to the graph store, which is inaccessible
-    from within CircleCI. The `requests_mocker()` method provides support for mocking successful
-    HTTP requests to the graph store, and providing appropriate responses for the limited set of queries
-    performed by the /ingest endpoint's `process_graphstore_record_set()` method, as well as support
-    for generating failed requests to mimic networking issues or connection time-outs.
-    """
+@pytest.fixture
+def mock_sparql_service():
+    return MockSPARQLService()
 
-    def mocker_text_callback(request, context):
-        print(f"MOCKED REQUEST, begin handling -: {request.url}")
 
-        if request.path_url.endswith("/status"):
-            context.status_code = 200
-            return json.dumps(
-                {
-                    "status": "healthy",
-                }
-            )
-        elif request.path_url.endswith("/sparql") or request.path_url.endswith(
-            "/update"
-        ):  # TODO: this is not portable
-            sparql = None
-            print("MOCKED REQUEST -: Treating as SPARQL query")
-            if request.body.startswith("query=") or request.body.startswith("update="):
-                params = urllib.parse.parse_qsl(request.body)
-                if params:
-                    for param in params:
-                        if param[0] == "query" or param[0] == "update":
-                            sparql = param[1]
-                            break
+# Mock JSON-LD context responses for tests that reference remote contexts.
+# Minimal linked.art context with properties needed by tests.
+_MOCK_CONTEXTS: Dict[str, Dict[str, Any]] = {
+    "https://linked.art/ns/v1/linked-art.json": {
+        "@context": {
+            "cidoc": "http://www.cidoc-crm.org/cidoc-crm#",
+            "crm": "http://www.cidoc-crm.org/cidoc-crm/",
+            "crmeps": "http://ermitage-digital.ru/crmeps#",
+            "dc": "http://purl.org/dc/elements/1.1/",
+            "dcterms": "http://purl.org/dc/terms/",
+            "dctype": "http://purl.org/dc/dcmitype/",
+            "key": "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+            "lido": "http://www.cidoc-crm.org/lido/",
+            "oa": "http://www.w3.org/ns/oa#",
+            "orv": "http://purl.org/stuff/ord#/",
+            "ps": "http://purl.org/net/property-set#",
+            "rdaGr2": "http://rdvocab.info/GrantsAwards/",
+            "schema": "http://schema.org/",
+            "skos": "http://www.w3.org/2004/02/skos/core#",
+            "time": "http://www.w3.org/2006/time#",
+            "unit": "http://qudt.org/vocab/unit/",
+            "vcard": "http://www.w3.org/2006/vcard/ns#",
+            "xyz": "http://example.org/xyz/",
+            "id": "@id",
+            "type": "@type",
+            "_label": {"@id": "rdfs:label"},
+            "classified_as": {
+                "@id": "crm:P2_has_type",
+                "@type": "@id",
+                "@container": "@set",
+            },
+            "identified_by": {
+                "@id": "crm:P1_is_identified_by",
+                "@type": "@id",
+                "@container": "@set",
+            },
+            "part_of": {
+                "@id": "crm:P106i_forms_part_of",
+                "@type": "@id",
+                "@container": "@set",
+            },
+            "content": {"@id": "crm:P190_has_symbolic_content"},
+            "Name": {"@id": "crm:E41_Appellation"},
+            "LinguisticObject": {"@id": "crm:E33_Linguistic_Object"},
+            "Type": {"@id": "crm:E55_Type"},
+            "Identifier": {"@id": "crm:E42_Identifier"},
+            "PhysicalThing": {"@id": "crm:E19_Physical_Object"},
+            "Concept": {"@id": "skos:Concept"},
+        }
+    },
+    "https://www.w3.org/ns/anno.jsonld": {
+        "@context": {
+            "oa": "http://www.w3.org/ns/oa#",
+            "dc": "http://purl.org/dc/elements/1.1/",
+            "dcterms": "http://purl.org/dc/terms/",
+            "dctypes": "http://purl.org/dc/dcmitype/",
+            "foaf": "http://xmlns.com/foaf/0.1/",
+            "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+            "skos": "http://www.w3.org/2004/02/skos/core#",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
+            "iana": "http://www.iana.org/assignments/relation/",
+            "owl": "http://www.w3.org/2002/07/owl#",
+            "as": "http://www.w3.org/ns/activitystreams#",
+            "schema": "http://schema.org/",
+            "id": {"@type": "@id", "@id": "@id"},
+            "type": {"@type": "@id", "@id": "@type"},
+            "Annotation": "oa:Annotation",
+            "TextualBody": "oa:TextualBody",
+            "SpecificResource": "oa:SpecificResource",
+            "FragmentSelector": "oa:FragmentSelector",
+            "CssSelector": "oa:CssSelector",
+            "XPathSelector": "oa:XPathSelector",
+            "TextQuoteSelector": "oa:TextQuoteSelector",
+            "TextPositionSelector": "oa:TextPositionSelector",
+            "SvgSelector": "oa:SvgSelector",
+            "RangeSelector": "oa:RangeSelector",
+            "Choice": "oa:Choice",
+            "Person": "foaf:Person",
+            "Organization": "foaf:Organization",
+            "AnnotationCollection": "as:OrderedCollection",
+            "AnnotationPage": "as:OrderedCollectionPage",
+            "Motivation": "oa:Motivation",
+            "bookmarking": "oa:bookmarking",
+            "classifying": "oa:classifying",
+            "commenting": "oa:commenting",
+            "describing": "oa:describing",
+            "highlighting": "oa:highlighting",
+            "identifying": "oa:identifying",
+            "linking": "oa:linking",
+            "questioning": "oa:questioning",
+            "replying": "oa:replying",
+            "reviewing": "oa:reviewing",
+            "assessing": "oa:assessing",
+            "tagging": "oa:tagging",
+            "body": {"@type": "@id", "@id": "oa:hasBody"},
+            "target": {"@type": "@id", "@id": "oa:hasTarget"},
+            "selector": {"@type": "@id", "@id": "oa:hasSelector"},
+            "refinedBy": {"@type": "@id", "@id": "oa:refinedBy"},
+            "creator": {"@type": "@id", "@id": "dcterms:creator"},
+            "generator": {"@type": "@id", "@id": "as:generator"},
+            "items": {"@type": "@id", "@id": "as:items", "@container": "@list"},
+            "partOf": {"@type": "@id", "@id": "as:partOf"},
+            "first": {"@type": "@id", "@id": "as:first"},
+            "last": {"@type": "@id", "@id": "as:last"},
+            "next": {"@type": "@id", "@id": "as:next"},
+            "prev": {"@type": "@id", "@id": "as:prev"},
+            "motivation": {"@type": "@vocab", "@id": "oa:motivatedBy"},
+            "bodyValue": "oa:bodyValue",
+            "format": "dc:format",
+            "value": "oa:content",
+            "language": "dc:language",
+            "source": {"@type": "@id", "@id": "oa:hasSource"},
+            "on": {"@type": "@id", "@id": "oa:hasTarget"},
+            "hasBody": {"@type": "@id", "@id": "oa:hasBody"},
+            "hasTarget": {"@type": "@id", "@id": "oa:hasTarget"},
+            "hasSelector": {"@type": "@id", "@id": "oa:hasSelector"},
+            "motivatedBy": {"@type": "@vocab", "@id": "oa:motivatedBy"},
+            "within": {"@type": "@id", "@id": "oa:hasTarget"},
+            "start": "oa:starts",
+            "end": "oa:end",
+            "source_format": "dcterms:format",
+        }
+    },
+}
 
-            if sparql:
-                print(f"MOCKED REQUEST -: SPARQL detected: {sparql}")
-                if sparql.startswith("SELECT"):
-                    context.status_code = 200
-                    return json.dumps(
-                        {
-                            "results": {
-                                "bindings": [
-                                    {
-                                        "count": {
-                                            "value": 0,
-                                        }
-                                    }
-                                ],
-                            },
-                        }
-                    )
-                elif sparql.startswith("INSERT DATA"):
-                    context.status_code = 200
-                    return None
-                elif sparql.startswith("DELETE {GRAPH <"):
-                    if "failure_uri_503" in sparql:
-                        context.status_code = 503
-                        context.headers["Retry-After"] = 5
-                    else:
-                        # Graph replace SPARQL update
-                        context.status_code = 200
-                    return None
-                elif sparql.startswith("DROP SILENT GRAPH"):
-                    context.status_code = 200
-                    return None
-                elif sparql.startswith("DROP GRAPH"):
-                    if "failure_upon_deletion" in sparql:
-                        context.status_code = 500
-                    else:
-                        context.status_code = 200
-                    return None
-                elif (
-                    sparql.startswith(
-                        "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>"
-                    )
-                    and "document/2" in sparql
-                ):
-                    print("HIT MOCKED document 2 response")
-                    context.status_code = 200
-                    context.headers = {"Content-Type": "text/turtle"}
-                    # real world response from fuseki
-                    return b'@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix crm:   <http://www.cidoc-crm.org/cidoc-crm/> .\n@prefix dc:    <http://purl.org/dc/elements/1.1/> .\n\n<http://localhost:5100/document/2>\n        dc:description  "test document 2" ;\n        dc:title        "test document 2" ;\n        dc:type         "Subject Heading - Topical" ;\n        dc:type         <https://data.getty.edu/local/thesaurus/aspace-subject-topical> .\n'.decode(
-                        "utf-8"
-                    )
 
-        else:
-            print(f"*** unhandled mock request: {request.path_url}")
-
-        context.status_code = 400
+def _mock_context_response(url: str) -> Optional[Dict[str, Any]]:
+    """Return a mock context document for the given URL, or None if not mocked."""
+    ctx = _MOCK_CONTEXTS.get(url)
+    if ctx is None:
         return None
+    return {
+        "status_code": 200,
+        "headers": {"Content-Type": "application/ld+json"},
+        "body": json.dumps(ctx),
+    }
 
-    query_endpoint = os.getenv("SPARQL_QUERY_ENDPOINT")
-    update_endpoint = os.getenv("SPARQL_UPDATE_ENDPOINT")
 
-    # Configure the default mock handlers; these rely on the `mocker_text_callback()` method defined above
-    query_pattern = re.compile(query_endpoint.replace("/sparql", "/(.*)"))
-    update_pattern = re.compile(
-        update_endpoint.replace("/update", "/(.*)")
-    )  # TODO: this is not portable
+@pytest.fixture(autouse=True)
+def requests_mocker(monkeypatch, mock_sparql_service):
+    """Intercept requests to SPARQL endpoints and route them through an
+    in-memory RDFLib-based graph store via ``MockSPARQLService``.
 
-    for pattern in (query_pattern, update_pattern):
-        requests_mock.options(pattern, text=mocker_text_callback)
-        requests_mock.head(pattern, text=mocker_text_callback)
-        requests_mock.get(pattern, text=mocker_text_callback)
-        requests_mock.post(pattern, text=mocker_text_callback)
+    - ``mock-fail://`` URLs raise ``ConnectionError`` to simulate outages.
+    - ``mock-pass://`` and ``http://`` URLs go through to the RDFLib graph.
+    """
+    original_post = requests.post
+    original_get = requests.get
 
-    # Configure the good mock handlers; these rely on the `mocker_text_callback()` method defined above
-    query_pattern = re.compile(
-        query_endpoint.replace("http://", "mock-pass://").replace("/sparql", "/(.*)")
-    )
-    update_pattern = re.compile(
-        update_endpoint.replace("http://", "mock-pass://").replace(
-            "/update", "/(.*)"
-        )  # TODO: this is not portable
-    )
+    def _build_response(result: Dict[str, Any]) -> requests.Response:
+        resp = requests.Response()
+        resp.status_code = result["status_code"]
+        resp.headers.update(result.get("headers", {}))
+        raw = result.get("body")
+        if raw is not None and not isinstance(raw, bytes):
+            raw = raw.encode("utf-8")
+        resp._content = raw or b""
+        return resp
 
-    for pattern in (query_pattern, update_pattern):
-        requests_mock.options(pattern, text=mocker_text_callback)
-        requests_mock.head(pattern, text=mocker_text_callback)
-        requests_mock.get(pattern, text=mocker_text_callback)
-        requests_mock.post(pattern, text=mocker_text_callback)
+    def _patched_post(url, data=None, headers=None, **kwargs):
+        if _is_mock_fail(url):
+            raise requests.exceptions.ConnectionError("mock connection error")
+        if not _is_sparql_url(url):
+            return original_post(url, data=data, headers=headers, **kwargs)
 
-    # Configure the fail mock handlers; these rely on the mocker to throw the configured exception
-    query_pattern = re.compile(
-        query_endpoint.replace("http://", "mock-fail://").replace("/sparql", "/(.*)")
-    )
-    update_pattern = re.compile(
-        update_endpoint.replace("http://", "mock-fail://").replace(
-            "/update", "/(.*)"
-        )  # TODO: this is not portable
-    )
+        body_str = None
+        if isinstance(data, dict):
+            body_str = urllib.parse.urlencode(data)
+        elif isinstance(data, (str, bytes)):
+            body_str = data.decode() if isinstance(data, bytes) else data
 
-    for pattern in (query_pattern, update_pattern):
-        requests_mock.options(pattern, exc=requests.exceptions.ConnectionError)
-        requests_mock.head(pattern, exc=requests.exceptions.ConnectionError)
-        requests_mock.get(pattern, exc=requests.exceptions.ConnectionError)
-        requests_mock.post(pattern, exc=requests.exceptions.ConnectionError)
+        result = mock_sparql_service.handle_request(
+            _extract_path(url), body_str, headers
+        )
+        return _build_response(result)
 
-    # Allow all other non-matched URL patterns to be routed to real HTTP requests
-    pattern = re.compile("http(s)://(.*)")
-    requests_mock.options(pattern, real_http=True)
-    requests_mock.head(pattern, real_http=True)
-    requests_mock.get(pattern, real_http=True)
-    requests_mock.post(pattern, real_http=True)
-    requests_mock.put(pattern, real_http=True)
-    requests_mock.patch(pattern, real_http=True)
-    requests_mock.delete(pattern, real_http=True)
+    def _patched_get(url, headers=None, **kwargs):
+        if _is_mock_fail(url):
+            raise requests.exceptions.ConnectionError("mock connection error")
 
-    yield requests_mock
+        ctx_result = _mock_context_response(url)
+        if ctx_result is not None:
+            return _build_response(ctx_result)
+
+        if not _is_sparql_url(url):
+            return original_get(url, headers=headers, **kwargs)
+
+        result = mock_sparql_service.handle_request(_extract_path(url), None, headers)
+        return _build_response(result)
+
+    monkeypatch.setattr(requests, "post", _patched_post)
+    monkeypatch.setattr(requests, "get", _patched_get)
+
+    yield mock_sparql_service
+
+
+def _is_mock_fail(url: str) -> bool:
+    return "mock-fail://" in url
+
+
+def _is_sparql_url(url: str) -> bool:
+    """Return True if the url targets a SPARQL endpoint path."""
+    for scheme in ("http://", "https://", "mock-pass://", "mock-fail://"):
+        if url.startswith(scheme):
+            path = url[len(scheme) :]
+            return True
+    return False
+
+
+def _extract_path(url: str) -> str:
+    """Strip scheme+host from the url, leaving just the path."""
+    for scheme in ("http://", "https://", "mock-pass://", "mock-fail://"):
+        if url.startswith(scheme):
+            return "/" + url[len(scheme) :]
+    return "/" + url
 
 
 @pytest.fixture

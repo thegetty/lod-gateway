@@ -490,18 +490,21 @@ def create_app():
             f"LOD Gateway will serve from a base of '{app.config['idPrefix']}"
         )
 
-        app.register_api(home_page, url_prefix=f"/{ns}")
-        app.register_api(activity, url_prefix=f"/{ns}")
-        app.register_api(activity_entity, url_prefix=f"/{ns}")
-        app.register_api(records, url_prefix=f"/{ns}")
-        app.register_api(ingest, url_prefix=f"/{ns}")
-        app.register_api(sparql, url_prefix=f"/{ns}")
-        app.register_api(yasgui, url_prefix=f"/{ns}")
-        app.register_api(timegate, url_prefix=f"/{ns}")
-        app.register_api(health, url_prefix=f"/{ns}")
+        nsprefix = f"/{ns}"
+        if nsprefix == "//":
+            nsprefix = "/"
+        app.register_api(home_page, url_prefix=nsprefix)
+        app.register_api(activity, url_prefix=nsprefix)
+        app.register_api(activity_entity, url_prefix=nsprefix)
+        app.register_api(records, url_prefix=nsprefix)
+        app.register_api(ingest, url_prefix=nsprefix)
+        app.register_api(sparql, url_prefix=nsprefix)
+        app.register_api(yasgui, url_prefix=nsprefix)
+        app.register_api(timegate, url_prefix=nsprefix)
+        app.register_api(health, url_prefix=nsprefix)
 
         # Non-JSON formatted payload patch for the OpenAPI
-        patch_ingest_route(app, ns)
+        patch_ingest_route(app, nsprefix)
 
         app.logger.info("LOD Gateway configured and ready for use")
 

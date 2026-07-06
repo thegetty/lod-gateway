@@ -418,18 +418,29 @@ def container_post_item(entity_id):
     )
 
     if record:
-        # Cannot POST things to a Record
-        current_app.logger.error(
-            "Request failed - Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer"
-        )
-        response = construct_error_response(
-            status_nt(
-                400,
-                "Bad Request",
-                "Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer",
+        # Check if the record is deleted (data is None and datetime_deleted is set)
+        if record.data is None and record.datetime_deleted is not None:
+            # Record is deleted - treat the path as available for new resource creation
+            current_app.logger.info(
+                f"Found deleted record at {entity_id}, removing it and proceeding with POST"
             )
-        )
-        abort(response)
+            # Delete the deleted record from the database
+            db.session.delete(record)
+            db.session.flush()
+            # Continue with normal POST flow - the path is now available
+        else:
+            # Cannot POST things to an active Record
+            current_app.logger.error(
+                "Request failed - Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer"
+            )
+            response = construct_error_response(
+                status_nt(
+                    400,
+                    "Bad Request",
+                    "Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer",
+                )
+            )
+            abort(response)
 
     # See if the entity_id is actually an existing container:
     cid = container_breadcrumbs[-1]
@@ -582,6 +593,194 @@ def container_post_item(entity_id):
             )
         )
         abort(response)
+
+
+@records.route("/<path:entity_id>", methods=["PUT"])
+def container_put_item(entity_id):
+    """PUT a resource to a specific URI. Requires LDP_API=True.
+
+    Validates:
+    - Request body is valid JSON
+    - Request body is valid JSON-LD
+    - id/@id in body matches destination URI
+
+    Returns:
+    - 201 Created if new record
+    - 200 OK if existing record updated
+    - 422 Unprocessable Entity if validation fails
+    """
+    if not current_app.config["LDP_API"] or not current_app.config["LDP_BACKEND"]:
+        response = construct_error_response(status_not_implemented)
+        abort(response)
+
+    # Authentication
+    status = authenticate_bearer(request, current_app)
+    if status != status_ok:
+        response = construct_error_response(status)
+        abort(response)
+
+    current_app.logger.debug(
+        f"Authentication checked - PUT LDP resource request allowed."
+    )
+
+    # Get the implied container-hierarchy from the entity_id
+    container_breadcrumbs = segment_entity_id(entity_id)
+
+    # Validate JSON
+    try:
+        body_json = request.get_json(force=True)
+    except Exception as e:
+        current_app.logger.error(f"Invalid JSON in PUT request: {str(e)}")
+        response = construct_error_response(
+            status_nt(422, "Invalid JSON", f"Could not parse JSON: {str(e)}")
+        )
+        abort(response)
+
+    # Validate JSON-LD
+    try:
+        posted_representation = parse_representation(
+            f'{current_app.config["idPrefix"]}/',
+            container_breadcrumbs[-1].strip("/"),
+            request,
+        )
+        current_app.logger.info(
+            f"PUT JSON parsed as JSON-LD and rebased to: {posted_representation.has_top_level_id()}"
+        )
+    except ResourceValidationError as e:
+        current_app.logger.error(f"Invalid JSON-LD in PUT request: {str(e)}")
+        response = construct_error_response(
+            status_nt(422, "Invalid JSON-LD", f"Could not parse JSON-LD: {str(e)}")
+        )
+        abort(response)
+
+    # Validate ID match
+    id_attr = "@id" if "@id" in posted_representation.json_ld else "id"
+    body_id = posted_representation.json_ld.get(id_attr)
+    if body_id is None:
+        current_app.logger.error(f"PUT request missing {id_attr} field in body")
+        response = construct_error_response(
+            status_nt(422, "Invalid JSON-LD", f"Missing {id_attr} field in body")
+        )
+        abort(response)
+
+    # Compare body ID with destination URI
+    # The destination URI should be the entity_id with the idPrefix prepended
+    expected_id = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
+    if body_id != expected_id:
+        current_app.logger.error(
+            f"ID mismatch in PUT request: body has '{body_id}', expected '{expected_id}'"
+        )
+        response = construct_error_response(
+            status_nt(
+                422,
+                "ID Mismatch",
+                f"The {id_attr} in the body ({body_id}) does not match the destination URI ({expected_id})",
+            )
+        )
+        abort(response)
+
+    # Check if record exists
+    record = (
+        db.session.query(Record)
+        .filter(Record.entity_id == entity_id)
+        .options(defer(Record.data))
+        .limit(1)
+        .one_or_none()
+    )
+
+    # Get parent container
+    if len(container_breadcrumbs) == 1:
+        parent = get_container("/", optimistic=True)
+    else:
+        parent = get_container(container_breadcrumbs[-2], optimistic=True)
+
+    if not parent and not current_app.config["LDP_AUTOCREATE_CONTAINERS"]:
+        current_app.logger.error(
+            "Request failed - no parent container available, and LDP_AUTOCREATE_CONTAINERS flag is False"
+        )
+        response = construct_error_response(status_not_implemented)
+        abort(response)
+
+    # Process the PUT
+    with db.session.no_autoflush:
+        try:
+            if record:
+                # Record exists - update it
+                current_app.logger.info(f"Updating existing record {entity_id}")
+                record_id = record.id
+                record_update(
+                    record,
+                    posted_representation.json_ld,
+                    commit=False,
+                    process_the_activity=True,
+                )
+            else:
+                # Record doesn't exist - create it
+                current_app.logger.info(f"Creating new record {entity_id}")
+                record_id = record_create(
+                    posted_representation.json_ld,
+                    commit=False,
+                    process_the_activity=True,
+                )
+
+            # Process RDF if applicable
+            if current_app.config["PROCESS_RDF"] is True:
+                prefixed_jsonld = inflate_relative_uris(
+                    posted_representation.json_ld, posted_representation.id_attr
+                )
+
+                if expanded := graph_expand(prefixed_jsonld):
+                    graph_uri = prefixed_jsonld[posted_representation.id_attr]
+                    updated_graph = graph_replace(
+                        graph_uri,
+                        expanded,
+                        current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                        current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+                    )
+                    if updated_graph is False:
+                        # Failed to process this as a graph - rollback
+                        db.session.rollback()
+                        current_app.logger.error(
+                            f"Graph expansion error for {graph_uri}"
+                        )
+                        response = construct_error_response(
+                            status_nt(
+                                422,
+                                "Graph expansion error",
+                                f"Could not convert JSON-LD to RDF, id {graph_uri}",
+                            )
+                        )
+                        abort(response)
+                else:
+                    db.session.rollback()
+                    current_app.logger.error("Could not expand JSON-LD to RDF")
+                    response = construct_error_response(
+                        status_nt(
+                            422,
+                            "Graph expansion error",
+                            "Could not expand JSON-LD to RDF",
+                        )
+                    )
+                    abort(response)
+
+            db.session.commit()
+
+            # Return success response
+            ldpheaders = {
+                "Location": urljoin(
+                    current_app.config["idPrefix"].rstrip("/") + "/",
+                    entity_id,
+                ),
+                "Content-Type": "application/ld+json",
+            }
+            status_code = 200 if record else 201
+            return jsonify(posted_representation.json_ld), status_code, ldpheaders
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database error during PUT: {str(e)}")
+            response = construct_error_response(status_db_save_error)
+            abort(response)
 
 
 @records.route("/<path:entity_id>", methods=["GET", "HEAD", "OPTIONS"])

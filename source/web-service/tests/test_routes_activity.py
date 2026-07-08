@@ -338,7 +338,7 @@ class TestPageRoute:
     def test_page_zero(self, client, test_db, namespace):
         url = f"/{namespace}/activity-stream/page/0"
         response = client.get(url)
-        assert response.status_code == 404
+        assert response.status_code == 422
 
     def test_format_datetime(self):
         dt = datetime(2019, 11, 22, 13, 2, 53)

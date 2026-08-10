@@ -23,7 +23,13 @@ DCTERMS = Namespace("http://purl.org/dc/terms/")
 
 
 def _make_payload(base: dict) -> dict:
-    """Add @context to payload for PyLD RDF conversion."""
+    """Add @context to payload for PyLD RDF conversion.
+
+    Working tests use:
+        "@context": {"dcterms": str(DCTERMS), "type": "@type"},
+        "type": "http://www.w3.org/ns/ldp#RDFSource",
+        "dcterms:title": "...",
+    """
     return {
         "@context": {"dcterms": str(DCTERMS), "type": "@type"},
         **base,
@@ -103,7 +109,7 @@ class TestPostToDeletedRecords:
             {
                 "@id": entity_id,
                 "type": "Object",
-                "name": "Original",
+                "dcterms:title": "Original",
             }
         )
 
@@ -136,7 +142,7 @@ class TestPostToDeletedRecords:
             {
                 "@id": entity_id,
                 "type": "Object",
-                "name": "New Resource",
+                "dcterms:title": "New Resource",
                 "description": "This should replace the deleted record",
             }
         )
@@ -181,7 +187,7 @@ class TestPostToDeletedRecords:
             {
                 "@id": entity_id,
                 "type": "Object",
-                "name": "Original",
+                "dcterms:title": "Original",
             }
         )
 
@@ -207,7 +213,7 @@ class TestPostToDeletedRecords:
                 {
                     "@id": entity_id,
                     "type": "Object",
-                    "name": "Duplicate",
+                    "dcterms:title": "Duplicate",
                 }
             )
 
@@ -235,7 +241,7 @@ class TestPostToDeletedRecords:
             {
                 "@id": entity_id,
                 "type": "Object",
-                "name": "Brand New Resource",
+                "dcterms:title": "Brand New Resource",
             }
         )
 
@@ -274,7 +280,7 @@ class TestPostToDeletedRecords:
                 {
                     "@id": eid,
                     "type": "Object",
-                    "name": f"Resource {eid[:8]}",
+                    "dcterms:title": f"Resource {eid[:8]}",
                 }
             )
             response = _post_jsonld(
@@ -304,7 +310,7 @@ class TestPostToDeletedRecords:
             {
                 "@id": new_entity_id,
                 "type": "Object",
-                "name": "Replacement Resource",
+                "dcterms:title": "Replacement Resource",
             }
         )
 
@@ -344,7 +350,7 @@ class TestPostToDeletedRecords:
             {
                 "@id": entity_id,
                 "type": "Object",
-                "name": "Original",
+                "dcterms:title": "Original",
             }
         )
 
@@ -371,7 +377,7 @@ class TestPostToDeletedRecords:
             new_data = {
                 "@id": entity_id,
                 "type": "Object",
-                "name": "New Resource",
+                "dcterms:title": "New Resource",
             }
 
             response = _post_jsonld(
@@ -409,7 +415,7 @@ class TestPutEndpoint:
             {
                 "id": "object/foo",
                 "type": "Object",
-                "name": "Resource with correct id",
+                "dcterms:title": "Resource with correct id",
             }
         )
 
@@ -446,7 +452,7 @@ class TestPutEndpoint:
             {
                 "@id": "object/bar",
                 "type": "Object",
-                "name": "Resource with correct @id",
+                "dcterms:title": "Resource with correct @id",
             }
         )
 
@@ -481,7 +487,7 @@ class TestPutEndpoint:
             {
                 "id": "bar",
                 "type": "Object",
-                "name": "Resource with remappable relative id",
+                "dcterms:title": "Resource with remappable relative id",
             }
         )
 
@@ -516,7 +522,7 @@ class TestPutEndpoint:
             {
                 "@id": "baz",
                 "type": "Object",
-                "name": "Resource with remappable relative @id",
+                "dcterms:title": "Resource with remappable relative @id",
             }
         )
 
@@ -550,7 +556,7 @@ class TestPutEndpoint:
         valid_data = _make_payload(
             {
                 "type": "Object",
-                "name": "Resource without id",
+                "dcterms:title": "Resource without id",
             }
         )
 
@@ -586,7 +592,7 @@ class TestPutEndpoint:
             {
                 "@id": "wrong/entity/id",
                 "type": "Object",
-                "name": "Test",
+                "dcterms:title": "Test",
             }
         )
 
@@ -630,7 +636,7 @@ class TestPutEndpoint:
             {
                 "@id": entity_id,
                 "type": "Object",
-                "name": "Original Name",
+                "dcterms:title": "Original Name",
             }
         )
 
@@ -648,7 +654,7 @@ class TestPutEndpoint:
             {
                 "@id": entity_id,
                 "type": "Object",
-                "name": "Updated Name",
+                "dcterms:title": "Updated Name",
             }
         )
 
@@ -682,7 +688,11 @@ class TestPutEndpoint:
             auth_token,
             "object/test-headers",
             _make_payload(
-                {"@id": "object/test-headers", "type": "Object", "name": "Test"}
+                {
+                    "@id": "object/test-headers",
+                    "type": "Object",
+                    "dcterms:title": "Test",
+                }
             ),
         )
 

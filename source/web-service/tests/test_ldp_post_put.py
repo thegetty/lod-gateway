@@ -23,7 +23,7 @@ class TestPostToDeletedRecords:
         self, client_ldpapi, test_db, namespace, auth_token
     ):
         """POST to a path where a deleted record exists should succeed.
-        
+
         The deleted record should be removed and a new resource created.
         Expected: 201 Created
         """
@@ -75,7 +75,9 @@ class TestPostToDeletedRecords:
         print(f"=== DEBUG: POST Response Headers: {dict(response.headers)}\n")
 
         # Should succeed with 201 Created
-        assert response.status_code == 201, f"Expected 201, got {response.status_code}. Response data: {response.data}"
+        assert (
+            response.status_code == 201
+        ), f"Expected 201, got {response.status_code}. Response data: {response.data}"
         assert "Location" in response.headers
         assert "application/ld+json" in response.headers.get("Content-Type", "")
 
@@ -90,7 +92,7 @@ class TestPostToDeletedRecords:
         self, client_ldpapi, test_db, namespace
     ):
         """POST to a path where an active record exists should fail with 409 Conflict.
-        
+
         This ensures we don't accidentally overwrite active records.
         Expected: 409 Conflict
         """
@@ -130,7 +132,7 @@ class TestPostToDeletedRecords:
         self, client_ldpapi, test_db, namespace
     ):
         """POST to a deleted record path should remove the deleted record from parent container.
-        
+
         The new resource should be added to the parent container.
         """
         # Create a record in a container and then delete it
@@ -168,9 +170,11 @@ class TestPostToDeletedRecords:
         assert response.status_code == 201
 
         # Verify new record is in parent container
-        parent_container = test_db.session.query(Record).filter(
-            Record.entity_id == f"/{parent_container_id}/"
-        ).one_or_none()
+        parent_container = (
+            test_db.session.query(Record)
+            .filter(Record.entity_id == f"/{parent_container_id}/")
+            .one_or_none()
+        )
         assert parent_container is not None
 
         # Check container membership
@@ -178,11 +182,9 @@ class TestPostToDeletedRecords:
         assert "members" in parent_data
         assert len(parent_data["members"]) > 0
 
-    def test_post_to_nonexistent_path_succeeds(
-        self, client_ldpapi, test_db, namespace
-    ):
+    def test_post_to_nonexistent_path_succeeds(self, client_ldpapi, test_db, namespace):
         """POST to a path where no record exists should succeed with 201.
-        
+
         This is the normal case for creating new resources.
         Expected: 201 Created
         """
@@ -203,9 +205,11 @@ class TestPostToDeletedRecords:
         assert "Location" in response.headers
 
         # Verify record was created
-        new_record = test_db.session.query(Record).filter(
-            Record.entity_id == new_entity_id
-        ).one_or_none()
+        new_record = (
+            test_db.session.query(Record)
+            .filter(Record.entity_id == new_entity_id)
+            .one_or_none()
+        )
         assert new_record is not None
         assert new_record.data is not None
         assert new_record.datetime_deleted is None
@@ -214,7 +218,7 @@ class TestPostToDeletedRecords:
         self, client_ldpapi, test_db, namespace
     ):
         """Test that pagination works correctly after POST to deleted record.
-        
+
         The container should show the new resource, not the deleted one.
         """
         # Create multiple records, delete some
@@ -230,9 +234,11 @@ class TestPostToDeletedRecords:
             test_db.session.add(record)
 
         # Delete records at index 1 and 3
-        records = test_db.session.query(Record).filter(
-            Record.entity_id.like("object/%")
-        ).all()
+        records = (
+            test_db.session.query(Record)
+            .filter(Record.entity_id.like("object/%"))
+            .all()
+        )
         for record in records:
             if record.data.get("index") in [1, 3]:
                 record.data = None
@@ -241,9 +247,9 @@ class TestPostToDeletedRecords:
         test_db.session.commit()
 
         # POST to one of the deleted record paths
-        deleted_record = test_db.session.query(Record).filter(
-            Record.data is None
-        ).first()
+        deleted_record = (
+            test_db.session.query(Record).filter(Record.data is None).first()
+        )
         new_data = {
             "id": f"{namespace}/{deleted_record.entity_id}",
             "type": "Object",
@@ -269,7 +275,7 @@ class TestPostToDeletedRecords:
         self, client_ldpapi, test_db, namespace
     ):
         """Test that activity stream is updated when POST to deleted record.
-        
+
         Should create a new Activity for the new resource.
         """
         from flaskapp.models.activity import Activity
@@ -308,9 +314,11 @@ class TestPostToDeletedRecords:
         assert response.status_code == 201
 
         # Verify activity was created
-        activity = test_db.session.query(Activity).filter(
-            Activity.record_id == original_record.id
-        ).first()
+        activity = (
+            test_db.session.query(Activity)
+            .filter(Activity.record_id == original_record.id)
+            .first()
+        )
         assert activity is not None
         assert activity.event == Event.Create.name
 
@@ -318,9 +326,11 @@ class TestPostToDeletedRecords:
 class TestPutEndpoint:
     """Tests for Issue 2: PUT mechanism for creating/updating records."""
 
-    def test_put_with_valid_data_creates_new_record(self, client_ldpapi, test_db, namespace):
+    def test_put_with_valid_data_creates_new_record(
+        self, client_ldpapi, test_db, namespace
+    ):
         """PUT with valid JSON, valid JSON-LD, and matching ID should create new record.
-        
+
         Expected: 201 Created
         """
         new_entity_id = str(uuid4())
@@ -342,15 +352,19 @@ class TestPutEndpoint:
         assert "application/ld+json" in response.headers.get("Content-Type", "")
 
         # Verify record was created
-        new_record = test_db.session.query(Record).filter(
-            Record.entity_id == new_entity_id
-        ).one_or_none()
+        new_record = (
+            test_db.session.query(Record)
+            .filter(Record.entity_id == new_entity_id)
+            .one_or_none()
+        )
         assert new_record is not None
         assert new_record.data.get("name") == "New Resource via PUT"
 
-    def test_put_with_valid_data_updates_existing_record(self, client_ldpapi, test_db, namespace):
+    def test_put_with_valid_data_updates_existing_record(
+        self, client_ldpapi, test_db, namespace
+    ):
         """PUT with valid data to existing record should update it.
-        
+
         Expected: 200 OK
         """
         # Create an existing record
@@ -386,16 +400,18 @@ class TestPutEndpoint:
         assert response.status_code == 200
 
         # Verify record was updated
-        updated_record = test_db.session.query(Record).filter(
-            Record.entity_id == existing_entity_id
-        ).one_or_none()
+        updated_record = (
+            test_db.session.query(Record)
+            .filter(Record.entity_id == existing_entity_id)
+            .one_or_none()
+        )
         assert updated_record is not None
         assert updated_record.data.get("name") == "Updated Name"
         assert updated_record.data.get("description") == "Updated via PUT"
 
     def test_put_with_invalid_json_returns_422(self, client_ldpapi, test_db, namespace):
         """PUT with invalid JSON should return 422 Unprocessable Entity.
-        
+
         Expected: 422 with error message about invalid JSON
         """
         entity_id = str(uuid4())
@@ -411,18 +427,18 @@ class TestPutEndpoint:
         assert "error" in response_data
         assert "Invalid JSON" in response_data.get("error", "")
 
-    def test_put_with_invalid_jsonld_returns_422(self, client_ldpapi, test_db, namespace):
+    def test_put_with_invalid_jsonld_returns_422(
+        self, client_ldpapi, test_db, namespace
+    ):
         """PUT with invalid JSON-LD should return 422 Unprocessable Entity.
-        
+
         Expected: 422 with error message about invalid JSON-LD
         """
         entity_id = str(uuid4())
         invalid_jsonld = {
             "name": "Test",
             # Missing @id or id field
-            "nested": {
-                "invalid": {"@type": "SomeTypeThatDoesNotExist"}
-            }
+            "nested": {"invalid": {"@type": "SomeTypeThatDoesNotExist"}},
         }
 
         response = client_ldpapi.put(
@@ -436,9 +452,11 @@ class TestPutEndpoint:
         assert "error" in response_data
         assert "Invalid JSON-LD" in response_data.get("error", "")
 
-    def test_put_with_mismatched_id_returns_422(self, client_ldpapi, test_db, namespace):
+    def test_put_with_mismatched_id_returns_422(
+        self, client_ldpapi, test_db, namespace
+    ):
         """PUT with ID that doesn't match destination URI should return 422.
-        
+
         Expected: 422 with error message about ID mismatch
         """
         entity_id = str(uuid4())
@@ -460,9 +478,11 @@ class TestPutEndpoint:
         assert "ID" in response_data.get("error", "")
         assert "mismatch" in response_data.get("error", "").lower()
 
-    def test_put_with_missing_id_field_returns_422(self, client_ldpapi, test_db, namespace):
+    def test_put_with_missing_id_field_returns_422(
+        self, client_ldpapi, test_db, namespace
+    ):
         """PUT with missing @id/id field should return 422.
-        
+
         Expected: 422 with error message about missing ID field
         """
         entity_id = str(uuid4())
@@ -486,7 +506,7 @@ class TestPutEndpoint:
 
     def test_put_to_deleted_record_reactivates(self, client_ldpapi, test_db, namespace):
         """PUT to a deleted record path should reactivate it.
-        
+
         The deleted record should be reactivated with new data.
         Expected: 200 OK (since record exists, even if deleted)
         """
@@ -507,9 +527,9 @@ class TestPutEndpoint:
         assert post_response.status_code == 201
 
         # Delete the record
-        record = test_db.session.query(Record).filter(
-            Record.entity_id == entity_id
-        ).one()
+        record = (
+            test_db.session.query(Record).filter(Record.entity_id == entity_id).one()
+        )
         record.data = None
         record.datetime_deleted = datetime.now(timezone.utc)
         test_db.session.add(record)
@@ -536,16 +556,18 @@ class TestPutEndpoint:
         assert response.status_code == 200
 
         # Verify record was reactivated
-        updated_record = test_db.session.query(Record).filter(
-            Record.entity_id == entity_id
-        ).one()
+        updated_record = (
+            test_db.session.query(Record).filter(Record.entity_id == entity_id).one()
+        )
         assert updated_record.data is not None
         assert updated_record.datetime_deleted is None
         assert updated_record.data.get("name") == "Reactivated"
 
-    def test_put_with_authentication_required(self, client_ldpapi, test_db, namespace, auth_token):
+    def test_put_with_authentication_required(
+        self, client_ldpapi, test_db, namespace, auth_token
+    ):
         """PUT should require authentication.
-        
+
         Expected: 401 or 403 without valid token
         """
         entity_id = str(uuid4())
@@ -577,7 +599,7 @@ class TestPutEndpoint:
 
     def test_put_returns_correct_headers(self, client_ldpapi, test_db, namespace):
         """PUT should return correct HTTP headers.
-        
+
         Expected: Location, Content-Type headers
         """
         entity_id = str(uuid4())
@@ -601,9 +623,11 @@ class TestPutEndpoint:
         expected_location = f"{namespace}/{entity_id}"
         assert response.headers["Location"] == expected_location
 
-    def test_put_with_id_field_instead_of_at_id(self, client_ldpapi, test_db, namespace):
+    def test_put_with_id_field_instead_of_at_id(
+        self, client_ldpapi, test_db, namespace
+    ):
         """PUT should accept 'id' field as well as '@id'.
-        
+
         Some JSON-LD documents use 'id' instead of '@id'.
         """
         entity_id = str(uuid4())
@@ -622,15 +646,17 @@ class TestPutEndpoint:
         assert response.status_code == 201
 
         # Verify record was created
-        new_record = test_db.session.query(Record).filter(
-            Record.entity_id == entity_id
-        ).one_or_none()
+        new_record = (
+            test_db.session.query(Record)
+            .filter(Record.entity_id == entity_id)
+            .one_or_none()
+        )
         assert new_record is not None
         assert new_record.data.get("name") == "Test with id field"
 
     def test_put_with_nested_jsonld(self, client_ldpapi, test_db, namespace):
         """PUT with nested JSON-LD structures should work correctly.
-        
+
         Tests complex JSON-LD with nested objects and arrays.
         """
         entity_id = str(uuid4())
@@ -643,19 +669,19 @@ class TestPutEndpoint:
                 {
                     "@id": f"{namespace}/person/1",
                     "name": "Person One",
-                    "type": "Person"
+                    "type": "Person",
                 },
                 {
                     "@id": f"{namespace}/person/2",
                     "name": "Person Two",
-                    "type": "Person"
-                }
+                    "type": "Person",
+                },
             ],
             "affiliation": {
                 "@id": f"{namespace}/org/1",
                 "name": "Organization One",
-                "type": "Organization"
-            }
+                "type": "Organization",
+            },
         }
 
         response = client_ldpapi.put(
@@ -667,17 +693,21 @@ class TestPutEndpoint:
         assert response.status_code == 201
 
         # Verify record was created with nested data
-        new_record = test_db.session.query(Record).filter(
-            Record.entity_id == entity_id
-        ).one_or_none()
+        new_record = (
+            test_db.session.query(Record)
+            .filter(Record.entity_id == entity_id)
+            .one_or_none()
+        )
         assert new_record is not None
         assert "knows" in new_record.data
         assert len(new_record.data["knows"]) == 2
         assert "affiliation" in new_record.data
 
-    def test_put_rollback_on_database_error(self, client_ldpapi, test_db, namespace, mocker):
+    def test_put_rollback_on_database_error(
+        self, client_ldpapi, test_db, namespace, mocker
+    ):
         """PUT should rollback on database error.
-        
+
         Tests that if database operation fails, the transaction is rolled back.
         """
         entity_id = str(uuid4())
@@ -703,14 +733,18 @@ class TestPutEndpoint:
         assert response.status_code >= 400
 
         # Verify record was not created (rollback)
-        new_record = test_db.session.query(Record).filter(
-            Record.entity_id == entity_id
-        ).one_or_none()
+        new_record = (
+            test_db.session.query(Record)
+            .filter(Record.entity_id == entity_id)
+            .one_or_none()
+        )
         assert new_record is None
 
-    def test_put_with_ldp_api_disabled_returns_not_implemented(self, client, test_db, namespace):
+    def test_put_with_ldp_api_disabled_returns_not_implemented(
+        self, client, test_db, namespace
+    ):
         """PUT should return 501 Not Implemented when LDP_API is False.
-        
+
         This is the default behavior when LDP features are disabled.
         """
         entity_id = str(uuid4())
@@ -729,9 +763,11 @@ class TestPutEndpoint:
         # Should return 501 Not Implemented
         assert response.status_code == 501
 
-    def test_put_with_ldp_backend_disabled_returns_not_implemented(self, client_ldpapi, test_db, namespace):
+    def test_put_with_ldp_backend_disabled_returns_not_implemented(
+        self, client_ldpapi, test_db, namespace
+    ):
         """PUT should return 501 Not Implemented when LDP_BACKEND is False.
-        
+
         Tests that both LDP_API and LDP_BACKEND must be True.
         """
         # Temporarily disable LDP_BACKEND
@@ -760,7 +796,7 @@ class TestPutEndpoint:
         self, client_ldpapi, test_db, namespace
     ):
         """PUT should fail when parent container doesn't exist and LDP_AUTOCREATE_CONTAINERS is False.
-        
+
         Expected: 501 Not Implemented
         """
         # Disable autocreate containers
@@ -787,7 +823,7 @@ class TestPutEndpoint:
 
     def test_put_activity_stream_updated(self, client_ldpapi, test_db, namespace):
         """PUT should create/update Activity in activity stream.
-        
+
         Expected: Activity object created with Update event for existing records,
                   Create event for new records.
         """
@@ -825,17 +861,23 @@ class TestPutEndpoint:
         assert response.status_code == 200
 
         # Verify activity was created
-        activity = test_db.session.query(Activity).filter(
-            Activity.record_id == test_db.session.query(Record).filter(
-                Record.entity_id == entity_id
-            ).one().id
-        ).first()
+        activity = (
+            test_db.session.query(Activity)
+            .filter(
+                Activity.record_id
+                == test_db.session.query(Record)
+                .filter(Record.entity_id == entity_id)
+                .one()
+                .id
+            )
+            .first()
+        )
         assert activity is not None
         assert activity.event == Event.Update.name
 
     def test_put_with_datetime_preserved(self, client_ldpapi, test_db, namespace):
         """PUT should preserve datetime_created and update datetime_updated.
-        
+
         Tests that the record's timestamps are handled correctly.
         """
         entity_id = str(uuid4())
@@ -854,16 +896,16 @@ class TestPutEndpoint:
         assert response.status_code == 201
 
         # Verify timestamps
-        new_record = test_db.session.query(Record).filter(
-            Record.entity_id == entity_id
-        ).one()
+        new_record = (
+            test_db.session.query(Record).filter(Record.entity_id == entity_id).one()
+        )
         assert new_record.datetime_created is not None
         assert new_record.datetime_updated is not None
         assert new_record.datetime_updated >= new_record.datetime_created
 
     def test_put_with_checksum_updated(self, client_ldpapi, test_db, namespace):
         """PUT should update the record's checksum.
-        
+
         Tests that the checksum is recalculated for the new data.
         """
         entity_id = str(uuid4())
@@ -882,8 +924,8 @@ class TestPutEndpoint:
         assert response.status_code == 201
 
         # Verify checksum was updated
-        new_record = test_db.session.query(Record).filter(
-            Record.entity_id == entity_id
-        ).one()
+        new_record = (
+            test_db.session.query(Record).filter(Record.entity_id == entity_id).one()
+        )
         assert new_record.checksum is not None
         assert new_record.checksum != ""

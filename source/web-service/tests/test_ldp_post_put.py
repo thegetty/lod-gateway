@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from flaskapp.models import db
 from flaskapp.models.record import Record
+from flaskapp.models.container import LDPContainer
 from flaskapp.utilities import checksum_json
 
 
@@ -27,22 +28,13 @@ class TestPostToDeletedRecords:
         The deleted record should be removed and a new resource created.
         Expected: 201 Created
         """
-        # Create a parent container first
+        # Create a parent container using LDPContainer model
         parent_container_id = f"object/{uuid4()}"
-        parent_container = Record(
-            entity_id=f"/{parent_container_id}/",
-            entity_type="Container",
-            datetime_created=datetime.now(timezone.utc),
-            datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps(
-                {
-                    "@type": "sc:Collection",
-                    "members": [],
-                    "total": 0,
-                    "paging": {"page": 1},
-                }
-            ),
-            checksum=checksum_json({"members": [], "total": 0}),
+        parent_container = LDPContainer(
+            container_identifier=f"/{parent_container_id}/",
+            is_root=False,
+            dctitle="Test Container",
+            dcdescription="Test container for POST to deleted record",
         )
         test_db.session.add(parent_container)
         test_db.session.commit()
@@ -147,22 +139,13 @@ class TestPostToDeletedRecords:
 
         The new resource should be added to the parent container.
         """
-        # Create parent container first
+        # Create parent container using LDPContainer model
         parent_container_id = f"object/{uuid4()}"
-        parent_container = Record(
-            entity_id=f"/{parent_container_id}/",
-            entity_type="Container",
-            datetime_created=datetime.now(timezone.utc),
-            datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps(
-                {
-                    "@type": "sc:Collection",
-                    "members": [],
-                    "total": 0,
-                    "paging": {"page": 1},
-                }
-            ),
-            checksum=checksum_json({"members": [], "total": 0}),
+        parent_container = LDPContainer(
+            container_identifier=f"/{parent_container_id}/",
+            is_root=False,
+            dctitle="Test Container",
+            dcdescription="Test container for POST to deleted record",
         )
         test_db.session.add(parent_container)
         test_db.session.commit()
@@ -256,22 +239,13 @@ class TestPostToDeletedRecords:
 
         The container should show the new resource, not the deleted one.
         """
-        # Create parent container first
+        # Create parent container using LDPContainer model
         parent_container_id = f"object/{uuid4()}"
-        parent_container = Record(
-            entity_id=f"/{parent_container_id}/",
-            entity_type="Container",
-            datetime_created=datetime.now(timezone.utc),
-            datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps(
-                {
-                    "@type": "sc:Collection",
-                    "members": [],
-                    "total": 0,
-                    "paging": {"page": 1},
-                }
-            ),
-            checksum=checksum_json({"members": [], "total": 0}),
+        parent_container = LDPContainer(
+            container_identifier=f"/{parent_container_id}/",
+            is_root=False,
+            dctitle="Test Container",
+            dcdescription="Test container for pagination test",
         )
         test_db.session.add(parent_container)
         test_db.session.commit()
@@ -337,22 +311,13 @@ class TestPostToDeletedRecords:
         from flaskapp.models.activity import Activity
         from flaskapp.utilities import Event
 
-        # Create parent container first
+        # Create parent container using LDPContainer model
         parent_container_id = f"object/{uuid4()}"
-        parent_container = Record(
-            entity_id=f"/{parent_container_id}/",
-            entity_type="Container",
-            datetime_created=datetime.now(timezone.utc),
-            datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps(
-                {
-                    "@type": "sc:Collection",
-                    "members": [],
-                    "total": 0,
-                    "paging": {"page": 1},
-                }
-            ),
-            checksum=checksum_json({"members": [], "total": 0}),
+        parent_container = LDPContainer(
+            container_identifier=f"/{parent_container_id}/",
+            is_root=False,
+            dctitle="Test Container",
+            dcdescription="Test container for activity stream test",
         )
         test_db.session.add(parent_container)
         test_db.session.commit()
@@ -586,22 +551,13 @@ class TestPutEndpoint:
         The deleted record should be reactivated with new data.
         Expected: 200 OK (since record exists, even if deleted)
         """
-        # Create parent container first
+        # Create parent container using LDPContainer model
         parent_container_id = f"object/{uuid4()}"
-        parent_container = Record(
-            entity_id=f"/{parent_container_id}/",
-            entity_type="Container",
-            datetime_created=datetime.now(timezone.utc),
-            datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps(
-                {
-                    "@type": "sc:Collection",
-                    "members": [],
-                    "total": 0,
-                    "paging": {"page": 1},
-                }
-            ),
-            checksum=checksum_json({"members": [], "total": 0}),
+        parent_container = LDPContainer(
+            container_identifier=f"/{parent_container_id}/",
+            is_root=False,
+            dctitle="Test Container",
+            dcdescription="Test container for PUT reactivation test",
         )
         test_db.session.add(parent_container)
         test_db.session.commit()

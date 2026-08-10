@@ -123,19 +123,12 @@ class TestPostToDeletedRecords:
         )
         assert post_response.status_code == 201
 
-        # Find the record and delete it
-        record = (
-            test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+        # Delete the record using the DELETE endpoint
+        delete_response = client_ldpapi.delete(
+            f"{namespace}/{entity_id}",
+            headers={"Authorization": f"Bearer {auth_token}"},
         )
-        if record:
-            record.data = None
-            record.datetime_deleted = datetime.now(timezone.utc)
-            test_db.session.add(record)
-            test_db.session.commit()
-
-            # Verify record is deleted
-            assert record.data is None
-            assert record.datetime_deleted is not None
+        assert delete_response.status_code == 200
 
         # POST to the same container again with new data
         new_data = _make_payload(
@@ -171,7 +164,7 @@ class TestPostToDeletedRecords:
         assert new_record is not None
         assert new_record.data is not None
         assert new_record.datetime_deleted is None
-        assert new_record.data.get("name") == "New Resource"
+        assert new_record.data.get("dcterms:title") == "New Resource"
 
     def test_post_to_active_record_fails_with_409(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
@@ -295,14 +288,11 @@ class TestPostToDeletedRecords:
         # Delete some records (index 1 and 3)
         deleted_ids = [entity_ids[1], entity_ids[3]]
         for eid in deleted_ids:
-            record = (
-                test_db.session.query(Record).filter_by(entity_id=eid).one_or_none()
+            delete_response = client_ldpapi.delete(
+                f"{namespace}/{eid}",
+                headers={"Authorization": f"Bearer {auth_token}"},
             )
-            if record:
-                record.data = None
-                record.datetime_deleted = datetime.now(timezone.utc)
-                test_db.session.add(record)
-        test_db.session.commit()
+            assert delete_response.status_code == 200
 
         # POST to the same container with a new ID
         new_entity_id = str(uuid4())
@@ -364,16 +354,13 @@ class TestPostToDeletedRecords:
         assert post_response.status_code == 201
 
         # Delete the record
-        record = (
-            test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+        delete_response = client_ldpapi.delete(
+            f"{namespace}/{entity_id}",
+            headers={"Authorization": f"Bearer {auth_token}"},
         )
-        if record:
-            record.data = None
-            record.datetime_deleted = datetime.now(timezone.utc)
-            test_db.session.add(record)
-            test_db.session.commit()
+        assert delete_response.status_code == 200
 
-            # POST again to the same container
+        # POST again to the same container
             new_data = {
                 "@id": entity_id,
                 "type": "Object",
@@ -438,7 +425,7 @@ class TestPutEndpoint:
         )
         assert new_record is not None
         assert new_record.data is not None
-        assert new_record.data.get("name") == "Resource with correct id"
+        assert new_record.data.get("dcterms:title") == "Resource with correct id"
 
     def test_put_with_correct_at_id_field(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
@@ -473,7 +460,7 @@ class TestPutEndpoint:
             .one_or_none()
         )
         assert new_record is not None
-        assert new_record.data.get("name") == "Resource with correct @id"
+        assert new_record.data.get("dcterms:title") == "Resource with correct @id"
 
     def test_put_with_remappable_relative_id(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
@@ -508,7 +495,7 @@ class TestPutEndpoint:
             .one_or_none()
         )
         assert new_record is not None
-        assert new_record.data.get("name") == "Resource with remappable relative id"
+        assert new_record.data.get("dcterms:title") == "Resource with remappable relative id"
 
     def test_put_with_remappable_relative_at_id(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
@@ -543,7 +530,7 @@ class TestPutEndpoint:
             .one_or_none()
         )
         assert new_record is not None
-        assert new_record.data.get("name") == "Resource with remappable relative @id"
+        assert new_record.data.get("dcterms:title") == "Resource with remappable relative @id"
 
     def test_put_without_id_injects_destination_uri(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
@@ -577,7 +564,7 @@ class TestPutEndpoint:
             .one_or_none()
         )
         assert new_record is not None
-        assert new_record.data.get("name") == "Resource without id"
+        assert new_record.data.get("dcterms:title") == "Resource without id"
         # Verify the injected @id
         assert "@id" in new_record.data or "id" in new_record.data
 
@@ -662,7 +649,7 @@ class TestPutEndpoint:
             namespace,
             client_ldpapi,
             auth_token,
-            entity_id,
+            f"object/{entity_id}",
             updated_data,
         )
 
@@ -673,7 +660,7 @@ class TestPutEndpoint:
             test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
         )
         assert updated_record is not None
-        assert updated_record.data.get("name") == "Updated Name"
+        assert updated_record.data.get("dcterms:title") == "Updated Name"
 
     def test_put_returns_correct_headers(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db

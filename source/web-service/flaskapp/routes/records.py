@@ -738,13 +738,11 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     id_attr = "@id" if "@id" in posted_representation.json_ld else "id"
     body_id = posted_representation.json_ld.get(id_attr)
     if body_id is None:
-        # No ID in body - inject the destination URI
+        # No ID in body - inject the destination URI (relative path)
         current_app.logger.info(
             f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"
         )
-        posted_representation.json_ld[id_attr] = (
-            f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
-        )
+        posted_representation.json_ld[id_attr] = entity_id
         body_id = posted_representation.json_ld[id_attr]
 
     # Relaxed ID matching: normalize both IDs to compare them

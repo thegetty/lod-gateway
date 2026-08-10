@@ -551,7 +551,19 @@ def container_post_item(
                 .limit(1)
                 .one_or_none()
             )
-            if existing:
+            if existing and existing.datetime_deleted is None:
+                # Only reject if the record is not deleted
+                current_app.logger.error(
+                    f"Request failed - Cannot create a new resource with this identifier {identifier}, as it already exists"
+                )
+                response = construct_error_response(
+                    status_nt(
+                        409,
+                        "Conflict Error",
+                        f"Cannot create a new resource with this identifier {identifier}, as it already exists",
+                    )
+                )
+                abort(response)
                 current_app.logger.error(
                     f"Request failed - Cannot create a new resource with this identifier {identifier}, as it already exists"
                 )
@@ -864,6 +876,17 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
 
             db.session.commit()
 
+            # Reload the record to get the updated datetime_updated
+            if record:
+                db.session.expunge(record)
+                record = (
+                    db.session.query(Record)
+                    .filter(Record.entity_id == entity_id)
+                    .options(defer(Record.data))
+                    .limit(1)
+                    .first()
+                )
+
             # Return the record representation equivalent to a GET on the entity
             # This includes id remapping and other transformations
             hostPrefix = current_app.config["BASE_URL"]
@@ -919,9 +942,8 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             response = current_app.make_response(jsonify(data))
             response.status_code = status_code
             response.headers["Content-Type"] = content_type
-            response.headers["Last-Modified"] = format_datetime(
-                datetime.now(timezone.utc)
-            )
+            if record and record.datetime_updated:
+                response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
             if etag:
                 response.headers["ETag"] = etag
             response.headers["Link"] = link_headers

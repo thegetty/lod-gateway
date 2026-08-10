@@ -454,7 +454,7 @@ def container_post_item(
         if record.data is None and record.datetime_deleted is not None:
             # Record is deleted - treat the path as available for new resource creation
             current_app.logger.info(
-                f"Found deleted record at {entity_id}, removing it and proceeding with POST"
+                f"Found deleted record at {record.entity_id}, removing it and proceeding with POST"
             )
             # Delete the deleted record from the database
             db.session.delete(record)
@@ -467,9 +467,9 @@ def container_post_item(
             )
             response = construct_error_response(
                 status_nt(
-                    400,
-                    "Bad Request",
-                    "Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer",
+                    409,
+                    "Conflict Error",
+                    f"Cannot POST a resource to a LOD Gateway resource. {path.container_id} is already a record, not a container.",
                 )
             )
             abort(response)

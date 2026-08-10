@@ -645,7 +645,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     Validates:
     - Request body is valid JSON
     - Request body is valid JSON-LD
-    - id/@id in body matches destination URI
+    - id/@id in body matches destination URI (or is injected from destination if missing)
 
     Returns:
     - 201 Created if new record
@@ -674,6 +674,8 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     # Validate JSON
     try:
         body_json = request.get_json(force=True)
+        if body_json is None:
+            raise ValueError("Empty JSON body")
     except Exception as e:
         current_app.logger.error(f"Invalid JSON in PUT request: {str(e)}")
         response = construct_error_response(
@@ -682,12 +684,13 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         abort(response)
 
     # Validate JSON-LD (parse_representation handles both JSON and JSON-LD validation)
+    # Pass the parsed JSON body, not the raw body
     try:
         posted_representation = parse_representation(
             f'{current_app.config["idPrefix"]}/',
             container_breadcrumbs[-1].strip("/"),
             request,
-            body,
+            body_json,
             None,
         )
         current_app.logger.info(
@@ -700,22 +703,39 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         )
         abort(response)
 
-    # Validate ID match
+    # Handle missing ID: inject destination URI if no @id/id present
     id_attr = "@id" if "@id" in posted_representation.json_ld else "id"
     body_id = posted_representation.json_ld.get(id_attr)
     if body_id is None:
-        current_app.logger.error(f"PUT request missing {id_attr} field in body")
-        response = construct_error_response(
-            status_nt(422, "Invalid JSON-LD", f"Missing {id_attr} field in body")
+        # No ID in body - inject the destination URI
+        current_app.logger.info(
+            f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"
         )
-        abort(response)
+        posted_representation.json_ld[id_attr] = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
+        body_id = posted_representation.json_ld[id_attr]
 
-    # Compare body ID with destination URI
+    # Relaxed ID matching: normalize both IDs to compare them
     # The destination URI should be the entity_id with the idPrefix prepended
     expected_id = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
-    if body_id != expected_id:
+
+    # Normalize IDs for comparison (handle relative vs absolute, different base URLs)
+    def normalize_id(id_str):
+        """Normalize an ID for comparison: remove idPrefix, strip leading slashes."""
+        if id_str is None:
+            return ""
+        # Remove idPrefix if present
+        if id_str.startswith(current_app.config["idPrefix"] + "/"):
+            id_str = id_str[len(current_app.config["idPrefix"]) + 1:]
+        # Remove leading slash
+        id_str = id_str.lstrip("/")
+        return id_str
+
+    normalized_body_id = normalize_id(body_id)
+    normalized_expected_id = normalize_id(expected_id)
+
+    if normalized_body_id != normalized_expected_id:
         current_app.logger.error(
-            f"ID mismatch in PUT request: body has '{body_id}', expected '{expected_id}'"
+            f"ID mismatch in PUT request: body has '{body_id}' (normalized: '{normalized_body_id}'), expected '{expected_id}' (normalized: '{normalized_expected_id}')"
         )
         response = construct_error_response(
             status_nt(
@@ -745,7 +765,8 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         current_app.logger.error(
             "Request failed - no parent container available, and LDP_AUTOCREATE_CONTAINERS flag is False"
         )
-        response = construct_error_response(status_not_implemented)
+        # Changed from status_not_implemented (501) to 422
+        response = construct_error_response(status_nt(422, "Container not found", "Parent container does not exist and LDP_AUTOCREATE_CONTAINERS is False"))
         abort(response)
 
     # Process the PUT
@@ -812,16 +833,66 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
 
             db.session.commit()
 
-            # Return success response
-            ldpheaders = {
-                "Location": urljoin(
-                    current_app.config["idPrefix"].rstrip("/") + "/",
-                    entity_id,
-                ),
-                "Content-Type": "application/ld+json",
-            }
+            # Return the record representation equivalent to a GET on the entity
+            # This includes id remapping and other transformations
+            hostPrefix = current_app.config["BASE_URL"]
+            idPrefix = current_app.config["idPrefix"]
+
+            # Get the record data with prefixed IDs (same as GET handler)
+            attr = "@id" if "@id" in posted_representation.json_ld else "id"
+            data = posted_representation.json_ld
+
+            # Prefix record IDs
+            prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
+            if prefixRecordIDs != "NONE":
+                data = containerRecursiveCallback(
+                    data=data,
+                    attr=attr,
+                    callback=idPrefixer,
+                    prefix=idPrefix,
+                    recursive=True,
+                    urlprefixes=None,
+                )
+
+                # Remove @base if present
+                if context := data.get("@context"):
+                    if isinstance(context, dict):
+                        if "@base" in context:
+                            del context["@base"]
+                    elif isinstance(context, list):
+                        for x in context:
+                            if isinstance(x, dict) and "@base" in x:
+                                del x["@base"]
+
+            # Build response headers (similar to GET handler)
+            content_type = "application/ld+json;charset=UTF-8"
+            etag = None
+
+            # Link headers
+            link_headers = (
+                f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=entity_id) }>; rel="timemap"; type="application/link-format" , '
+                + f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=entity_id) }>; rel="timemap"; type="application/json" , '
+                + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=entity_id) }>; rel="original timegate" , '
+                + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=entity_id, _mediatype="application/ld+json") }>; rel="canonical"; type="application/ld+json"'
+            )
+
+            # Add LDP Resource link header
+            if current_app.config["LDP_API"]:
+                link_headers = link_headers + ', <http://www.w3.org/ns/ldp#Resource>; rel="type"'
+
             status_code = 200 if record else 201
-            return jsonify(posted_representation.json_ld), status_code, ldpheaders
+
+            # Build response
+            response = current_app.make_response(jsonify(data))
+            response.status_code = status_code
+            response.headers["Content-Type"] = content_type
+            response.headers["Last-Modified"] = format_datetime(datetime.now(timezone.utc))
+            if etag:
+                response.headers["ETag"] = etag
+            response.headers["Link"] = link_headers
+            response.headers["Location"] = f"{idPrefix}/{entity_id}"
+
+            return response
 
         except SQLAlchemyError as e:
             db.session.rollback()

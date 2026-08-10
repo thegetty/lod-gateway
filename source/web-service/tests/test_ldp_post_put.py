@@ -34,12 +34,14 @@ class TestPostToDeletedRecords:
             entity_type="Container",
             datetime_created=datetime.now(timezone.utc),
             datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps({
-                "@type": "sc:Collection",
-                "members": [],
-                "total": 0,
-                "paging": {"page": 1}
-            }),
+            data=json.dumps(
+                {
+                    "@type": "sc:Collection",
+                    "members": [],
+                    "total": 0,
+                    "paging": {"page": 1},
+                }
+            ),
             checksum=checksum_json({"members": [], "total": 0}),
         )
         test_db.session.add(parent_container)
@@ -84,7 +86,9 @@ class TestPostToDeletedRecords:
         )
 
         # Should succeed with 201 Created
-        assert response.status_code == 201, f"Expected 201, got {response.status_code}. Response data: {response.data}"
+        assert (
+            response.status_code == 201
+        ), f"Expected 201, got {response.status_code}. Response data: {response.data}"
         assert "Location" in response.headers
         assert "application/ld+json" in response.headers.get("Content-Type", "")
 
@@ -150,12 +154,14 @@ class TestPostToDeletedRecords:
             entity_type="Container",
             datetime_created=datetime.now(timezone.utc),
             datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps({
-                "@type": "sc:Collection",
-                "members": [],
-                "total": 0,
-                "paging": {"page": 1}
-            }),
+            data=json.dumps(
+                {
+                    "@type": "sc:Collection",
+                    "members": [],
+                    "total": 0,
+                    "paging": {"page": 1},
+                }
+            ),
             checksum=checksum_json({"members": [], "total": 0}),
         )
         test_db.session.add(parent_container)
@@ -208,7 +214,9 @@ class TestPostToDeletedRecords:
         assert "members" in parent_data
         assert len(parent_data["members"]) > 0
 
-    def test_post_to_nonexistent_path_succeeds(self, client_ldpapi, test_db, namespace, auth_token):
+    def test_post_to_nonexistent_path_succeeds(
+        self, client_ldpapi, test_db, namespace, auth_token
+    ):
         """POST to a path where no record exists should succeed with 201.
 
         This is the normal case for creating new resources.
@@ -255,12 +263,14 @@ class TestPostToDeletedRecords:
             entity_type="Container",
             datetime_created=datetime.now(timezone.utc),
             datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps({
-                "@type": "sc:Collection",
-                "members": [],
-                "total": 0,
-                "paging": {"page": 1}
-            }),
+            data=json.dumps(
+                {
+                    "@type": "sc:Collection",
+                    "members": [],
+                    "total": 0,
+                    "paging": {"page": 1},
+                }
+            ),
             checksum=checksum_json({"members": [], "total": 0}),
         )
         test_db.session.add(parent_container)
@@ -334,12 +344,14 @@ class TestPostToDeletedRecords:
             entity_type="Container",
             datetime_created=datetime.now(timezone.utc),
             datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps({
-                "@type": "sc:Collection",
-                "members": [],
-                "total": 0,
-                "paging": {"page": 1}
-            }),
+            data=json.dumps(
+                {
+                    "@type": "sc:Collection",
+                    "members": [],
+                    "total": 0,
+                    "paging": {"page": 1},
+                }
+            ),
             checksum=checksum_json({"members": [], "total": 0}),
         )
         test_db.session.add(parent_container)
@@ -384,6 +396,7 @@ class TestPostToDeletedRecords:
 
         # Check activity stream
         from flaskapp.routes import activity_stream
+
         stream_response = client_ldpapi.get(f"{namespace}/activity-stream")
         assert stream_response.status_code == 200
         stream_data = stream_response.get_json()
@@ -490,9 +503,14 @@ class TestPutEndpoint:
             content_type="application/ld+json",
         )
 
-        assert response.status_code in [400, 422]  # Could be either depending on implementation
+        assert response.status_code in [
+            400,
+            422,
+        ]  # Could be either depending on implementation
 
-    def test_put_with_invalid_jsonld_returns_422(self, client_ldpapi, test_db, namespace, auth_token):
+    def test_put_with_invalid_jsonld_returns_422(
+        self, client_ldpapi, test_db, namespace, auth_token
+    ):
         """PUT with invalid JSON-LD should return 422 Unprocessable Entity.
 
         Expected: 422 with error message about invalid JSON-LD
@@ -560,7 +578,9 @@ class TestPutEndpoint:
 
         assert response.status_code in [400, 422]  # Could be either
 
-    def test_put_to_deleted_record_reactivates(self, client_ldpapi, test_db, namespace, auth_token):
+    def test_put_to_deleted_record_reactivates(
+        self, client_ldpapi, test_db, namespace, auth_token
+    ):
         """PUT to a deleted record path should reactivate it.
 
         The deleted record should be reactivated with new data.
@@ -573,12 +593,14 @@ class TestPutEndpoint:
             entity_type="Container",
             datetime_created=datetime.now(timezone.utc),
             datetime_updated=datetime.now(timezone.utc),
-            data=json.dumps({
-                "@type": "sc:Collection",
-                "members": [],
-                "total": 0,
-                "paging": {"page": 1}
-            }),
+            data=json.dumps(
+                {
+                    "@type": "sc:Collection",
+                    "members": [],
+                    "total": 0,
+                    "paging": {"page": 1},
+                }
+            ),
             checksum=checksum_json({"members": [], "total": 0}),
         )
         test_db.session.add(parent_container)
@@ -602,7 +624,9 @@ class TestPutEndpoint:
         assert post_response.status_code == 201
 
         # Delete the record
-        deleted_record = test_db.session.query(Record).filter(Record.entity_id == entity_id).first()
+        deleted_record = (
+            test_db.session.query(Record).filter(Record.entity_id == entity_id).first()
+        )
         deleted_record.data = None
         deleted_record.datetime_deleted = datetime.now(timezone.utc)
         test_db.session.commit()
@@ -624,7 +648,9 @@ class TestPutEndpoint:
         assert put_response.status_code == 200
 
         # Verify reactivated
-        reactivated_record = test_db.session.query(Record).filter(Record.entity_id == entity_id).first()
+        reactivated_record = (
+            test_db.session.query(Record).filter(Record.entity_id == entity_id).first()
+        )
         assert reactivated_record.data is not None
         assert reactivated_record.datetime_deleted is None
         assert reactivated_record.data.get("name") == "Reactivated"
@@ -663,7 +689,9 @@ class TestPutEndpoint:
 
         assert response_with_auth.status_code == 201
 
-    def test_put_returns_correct_headers(self, client_ldpapi, test_db, namespace, auth_token):
+    def test_put_returns_correct_headers(
+        self, client_ldpapi, test_db, namespace, auth_token
+    ):
         """PUT should return correct HTTP headers.
 
         Expected: Location, Content-Type headers
@@ -720,7 +748,9 @@ class TestPutEndpoint:
         assert new_record is not None
         assert new_record.data.get("name") == "Test with id field"
 
-    def test_put_with_nested_jsonld(self, client_ldpapi, test_db, namespace, auth_token):
+    def test_put_with_nested_jsonld(
+        self, client_ldpapi, test_db, namespace, auth_token
+    ):
         """PUT with nested JSON-LD structures should work correctly.
 
         Tests complex JSON-LD with nested objects and arrays.
@@ -823,7 +853,9 @@ class TestPutEndpoint:
         # Restore original config
         app_ldpapi.config["LDP_AUTOCREATE_CONTAINERS"] = original_autocreate
 
-    def test_put_activity_stream_updated(self, client_ldpapi, test_db, namespace, auth_token):
+    def test_put_activity_stream_updated(
+        self, client_ldpapi, test_db, namespace, auth_token
+    ):
         """PUT should create/update Activity in activity stream.
 
         Expected: Activity object created with Update event for existing records,
@@ -871,7 +903,9 @@ class TestPutEndpoint:
         activities_after = test_db.session.query(Activity).count()
         assert activities_after > activities_before
 
-    def test_put_with_database_error_rolls_back(self, client_ldpapi, test_db, namespace, auth_token, mocker):
+    def test_put_with_database_error_rolls_back(
+        self, client_ldpapi, test_db, namespace, auth_token, mocker
+    ):
         """PUT should rollback on database error.
 
         If the database fails during PUT, the transaction should be rolled back.
@@ -887,7 +921,10 @@ class TestPutEndpoint:
         }
 
         # Mock database commit to raise an error
-        with patch('flaskapp.routes.records.db.session.commit', side_effect=IntegrityError("test", {}, None)):
+        with patch(
+            "flaskapp.routes.records.db.session.commit",
+            side_effect=IntegrityError("test", {}, None),
+        ):
             response = client_ldpapi.put(
                 f"{namespace}/{entity_id}",
                 json=data,

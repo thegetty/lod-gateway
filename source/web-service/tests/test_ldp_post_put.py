@@ -14,6 +14,66 @@ from uuid import uuid4
 from flaskapp.models import db
 from flaskapp.models.record import Record
 
+# Reuse helpers from test_ldp_api.py
+BASE_URL = "http://localhost:5100/"
+JSONLD_CT = "application/ld+json"
+
+
+def to_abs(namespace, url: str) -> str:
+    import urllib.parse as urlparse
+
+    base = BASE_URL
+    if namespace:
+        base = urlparse.urljoin(BASE_URL, namespace).rstrip("/") + "/"
+    return urlparse.urljoin(base, url.lstrip("/"))
+
+
+def to_relative(url: str) -> str:
+    rel = url.split(BASE_URL, 1)[-1]
+    return rel
+
+
+def _post_jsonld(
+    namespace,
+    client_ldpapi,
+    auth_token,
+    container_url: str,
+    body: dict,
+    slug: str = None,
+):
+    """POST with auth, using helpers from test_ldp_api.py."""
+    import urllib.parse as urlparse
+
+    headers = {"Content-Type": JSONLD_CT, "Authorization": "Bearer " + auth_token}
+    if slug:
+        headers["Slug"] = slug
+
+    if not (
+        container_url.startswith(f"/{namespace}/")
+        or container_url.startswith(f"{namespace}/")
+    ):
+        container_url = f"/{namespace}/{container_url}"
+
+    container_url = container_url.rstrip("/") + "/"
+
+    response = client_ldpapi.post(container_url, json=body, headers=headers)
+
+    return response
+
+
+def _put_jsonld(namespace, client_ldpapi, auth_token, url: str, body: dict):
+    """PUT with auth, using helpers from test_ldp_api.py."""
+    import urllib.parse as urlparse
+
+    headers = {"Content-Type": JSONLD_CT, "Authorization": "Bearer " + auth_token}
+
+    if not (url.startswith(f"/{namespace}/") or url.startswith(f"{namespace}/")):
+        url = f"/{namespace}/{url}"
+
+    response = client_ldpapi.put(url, json=body, headers=headers)
+
+    return response
+
 
 class TestPostToDeletedRecords:
     """Tests for Issue 1: POST to container paths that match deleted records."""
@@ -35,11 +95,12 @@ class TestPostToDeletedRecords:
         }
 
         # Create record via POST to container
-        post_response = client_ldpapi.post(
+        post_response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/",
-            json=original_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            original_data,
         )
         assert post_response.status_code == 201
 
@@ -65,11 +126,12 @@ class TestPostToDeletedRecords:
             "description": "This should replace the deleted record",
         }
 
-        response = client_ldpapi.post(
+        response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/",
-            json=new_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            new_data,
         )
 
         # Should succeed with 201 Created
@@ -106,11 +168,12 @@ class TestPostToDeletedRecords:
             "name": "Original",
         }
 
-        post_response = client_ldpapi.post(
+        post_response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/",
-            json=original_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            original_data,
         )
         assert post_response.status_code == 201
 
@@ -129,11 +192,12 @@ class TestPostToDeletedRecords:
                 "name": "Duplicate",
             }
 
-            response = client_ldpapi.post(
+            response = _post_jsonld(
+                namespace,
+                client_ldpapi,
+                auth_token,
                 "object/",
-                json=new_data,
-                content_type="application/ld+json",
-                headers={"Authorization": f"Bearer {auth_token}"},
+                new_data,
             )
 
             # Should fail with 409 Conflict
@@ -154,11 +218,12 @@ class TestPostToDeletedRecords:
             "name": "Brand New Resource",
         }
 
-        response = client_ldpapi.post(
+        response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/",
-            json=new_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            new_data,
         )
 
         assert response.status_code == 201
@@ -189,11 +254,12 @@ class TestPostToDeletedRecords:
                 "type": "Object",
                 "name": f"Resource {eid[:8]}",
             }
-            response = client_ldpapi.post(
+            response = _post_jsonld(
+                namespace,
+                client_ldpapi,
+                auth_token,
                 "object/",
-                json=data,
-                content_type="application/ld+json",
-                headers={"Authorization": f"Bearer {auth_token}"},
+                data,
             )
             assert response.status_code == 201
 
@@ -217,17 +283,22 @@ class TestPostToDeletedRecords:
             "name": "Replacement Resource",
         }
 
-        response = client_ldpapi.post(
+        response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/",
-            json=new_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            new_data,
         )
 
         assert response.status_code == 201
 
         # Check container pagination
-        container_response = client_ldpapi.get("object/")
+        container_url = to_abs(namespace, "object/")
+        container_response = client_ldpapi.get(
+            to_relative(container_url),
+            headers={"Accept": JSONLD_CT},
+        )
         assert container_response.status_code == 200
         container_data = container_response.get_json()
         assert "total" in container_data
@@ -250,11 +321,12 @@ class TestPostToDeletedRecords:
             "name": "Original",
         }
 
-        post_response = client_ldpapi.post(
+        post_response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/",
-            json=original_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            original_data,
         )
         assert post_response.status_code == 201
 
@@ -275,11 +347,12 @@ class TestPostToDeletedRecords:
                 "name": "New Resource",
             }
 
-            response = client_ldpapi.post(
+            response = _post_jsonld(
+                namespace,
+                client_ldpapi,
+                auth_token,
                 "object/",
-                json=new_data,
-                content_type="application/ld+json",
-                headers={"Authorization": f"Bearer {auth_token}"},
+                new_data,
             )
 
             assert response.status_code == 201
@@ -311,11 +384,12 @@ class TestPutEndpoint:
             "name": "Resource with correct id",
         }
 
-        response = client_ldpapi.put(
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/foo",
-            json=valid_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            valid_data,
         )
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
@@ -345,11 +419,12 @@ class TestPutEndpoint:
             "name": "Resource with correct @id",
         }
 
-        response = client_ldpapi.put(
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/bar",
-            json=valid_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            valid_data,
         )
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
@@ -377,11 +452,12 @@ class TestPutEndpoint:
             "name": "Resource with remappable relative id",
         }
 
-        response = client_ldpapi.put(
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/bar",
-            json=valid_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            valid_data,
         )
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
@@ -409,11 +485,12 @@ class TestPutEndpoint:
             "name": "Resource with remappable relative @id",
         }
 
-        response = client_ldpapi.put(
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/baz",
-            json=valid_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            valid_data,
         )
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
@@ -440,11 +517,12 @@ class TestPutEndpoint:
             "name": "Resource without id",
         }
 
-        response = client_ldpapi.put(
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/foobar",
-            json=valid_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            valid_data,
         )
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
@@ -473,11 +551,12 @@ class TestPutEndpoint:
             "name": "Test",
         }
 
-        response = client_ldpapi.put(
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/foo",
-            json=data_with_wrong_id,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            data_with_wrong_id,
         )
 
         assert response.status_code == 422
@@ -489,8 +568,9 @@ class TestPutEndpoint:
 
         Expected: 422
         """
+        url = to_abs(namespace, "object/foo")
         response = client_ldpapi.put(
-            "object/foo",
+            to_relative(url),
             data="not valid json {{{",
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -513,11 +593,12 @@ class TestPutEndpoint:
             "name": "Original Name",
         }
 
-        post_response = client_ldpapi.post(
+        post_response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/",
-            json=original_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            original_data,
         )
         assert post_response.status_code == 201
 
@@ -528,11 +609,12 @@ class TestPutEndpoint:
             "name": "Updated Name",
         }
 
-        put_response = client_ldpapi.put(
+        put_response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             entity_id,
-            json=updated_data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            updated_data,
         )
 
         assert put_response.status_code == 200
@@ -551,11 +633,12 @@ class TestPutEndpoint:
 
         Expected: Location, Content-Type headers
         """
-        response = client_ldpapi.put(
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
             "object/test-headers",
-            json={"@id": "object/test-headers", "type": "Object", "name": "Test"},
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            {"@id": "object/test-headers", "type": "Object", "name": "Test"},
         )
 
         assert response.status_code == 201

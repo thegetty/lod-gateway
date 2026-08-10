@@ -29,14 +29,14 @@ class TestPostToDeletedRecords:
         # Create a record first via POST to a container
         entity_id = str(uuid4())
         original_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Original",
         }
 
         # Create record via POST to container
         post_response = client_ldpapi.post(
-            f"{namespace}/object/",
+            "object/",
             json=original_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -59,14 +59,14 @@ class TestPostToDeletedRecords:
 
         # POST to the same container again with new data
         new_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "New Resource",
             "description": "This should replace the deleted record",
         }
 
         response = client_ldpapi.post(
-            f"{namespace}/object/",
+            "object/",
             json=new_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -101,13 +101,13 @@ class TestPostToDeletedRecords:
         # Create an active record via POST
         entity_id = str(uuid4())
         original_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Original",
         }
 
         post_response = client_ldpapi.post(
-            f"{namespace}/object/",
+            "object/",
             json=original_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -124,13 +124,13 @@ class TestPostToDeletedRecords:
 
             # POST to the same container again with same ID (should fail with 409)
             new_data = {
-                "@id": f"{namespace}/{entity_id}",
+                "@id": entity_id,
                 "type": "Object",
                 "name": "Duplicate",
             }
 
             response = client_ldpapi.post(
-                f"{namespace}/object/",
+                "object/",
                 json=new_data,
                 content_type="application/ld+json",
                 headers={"Authorization": f"Bearer {auth_token}"},
@@ -149,13 +149,13 @@ class TestPostToDeletedRecords:
         """
         entity_id = str(uuid4())
         new_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Brand New Resource",
         }
 
         response = client_ldpapi.post(
-            f"{namespace}/object/",
+            "object/",
             json=new_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -185,12 +185,12 @@ class TestPostToDeletedRecords:
         entity_ids = [str(uuid4()) for _ in range(5)]
         for eid in entity_ids:
             data = {
-                "@id": f"{namespace}/{eid}",
+                "@id": eid,
                 "type": "Object",
                 "name": f"Resource {eid[:8]}",
             }
             response = client_ldpapi.post(
-                f"{namespace}/object/",
+                "object/",
                 json=data,
                 content_type="application/ld+json",
                 headers={"Authorization": f"Bearer {auth_token}"},
@@ -212,13 +212,13 @@ class TestPostToDeletedRecords:
         # POST to the same container with a new ID
         new_entity_id = str(uuid4())
         new_data = {
-            "@id": f"{namespace}/{new_entity_id}",
+            "@id": new_entity_id,
             "type": "Object",
             "name": "Replacement Resource",
         }
 
         response = client_ldpapi.post(
-            f"{namespace}/object/",
+            "object/",
             json=new_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -227,7 +227,7 @@ class TestPostToDeletedRecords:
         assert response.status_code == 201
 
         # Check container pagination
-        container_response = client_ldpapi.get(f"{namespace}/object/")
+        container_response = client_ldpapi.get("object/")
         assert container_response.status_code == 200
         container_data = container_response.get_json()
         assert "total" in container_data
@@ -245,13 +245,13 @@ class TestPostToDeletedRecords:
         # Create a record via POST
         entity_id = str(uuid4())
         original_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Original",
         }
 
         post_response = client_ldpapi.post(
-            f"{namespace}/object/",
+            "object/",
             json=original_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -270,13 +270,13 @@ class TestPostToDeletedRecords:
 
             # POST again to the same container
             new_data = {
-                "@id": f"{namespace}/{entity_id}",
+                "@id": entity_id,
                 "type": "Object",
                 "name": "New Resource",
             }
 
             response = client_ldpapi.post(
-                f"{namespace}/object/",
+                "object/",
                 json=new_data,
                 content_type="application/ld+json",
                 headers={"Authorization": f"Bearer {auth_token}"},
@@ -301,14 +301,14 @@ class TestPutEndpoint:
         """
         entity_id = str(uuid4())
         valid_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "New Resource via PUT",
             "description": "Created using PUT method",
         }
 
         response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=valid_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -337,13 +337,13 @@ class TestPutEndpoint:
         # Create an existing record via POST
         entity_id = str(uuid4())
         original_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Original Name",
         }
 
         post_response = client_ldpapi.post(
-            f"{namespace}/object/",
+            "object/",
             json=original_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -352,13 +352,13 @@ class TestPutEndpoint:
 
         # Now PUT to update
         updated_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Updated Name",
         }
 
         put_response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=updated_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -381,12 +381,12 @@ class TestPutEndpoint:
 
         # Create initial record
         data1 = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "First",
         }
         response1 = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=data1,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -395,12 +395,12 @@ class TestPutEndpoint:
 
         # PUT again to same URI should update (200), not conflict (409)
         data2 = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Updated",
         }
         response2 = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=data2,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -424,7 +424,7 @@ class TestPutEndpoint:
         entity_id = str(uuid4())
 
         response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             data="not valid json {{{",
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -441,13 +441,13 @@ class TestPutEndpoint:
         """
         entity_id = str(uuid4())
         data_with_wrong_id = {
-            "@id": f"{namespace}/wrong/entity/id",
+            "@id": "wrong/entity/id",
             "type": "Object",
             "name": "Test",
         }
 
         response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=data_with_wrong_id,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -466,13 +466,13 @@ class TestPutEndpoint:
         # Create a record via POST
         entity_id = str(uuid4())
         original_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Original",
         }
 
         post_response = client_ldpapi.post(
-            f"{namespace}/object/",
+            "object/",
             json=original_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -491,13 +491,13 @@ class TestPutEndpoint:
 
             # PUT to reactivate
             reactivated_data = {
-                "@id": f"{namespace}/{entity_id}",
+                "@id": entity_id,
                 "type": "Object",
                 "name": "Reactivated",
             }
 
             put_response = client_ldpapi.put(
-                f"{namespace}/{entity_id}",
+                entity_id,
                 json=reactivated_data,
                 content_type="application/ld+json",
                 headers={"Authorization": f"Bearer {auth_token}"},
@@ -525,13 +525,13 @@ class TestPutEndpoint:
         """
         entity_id = str(uuid4())
         data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Test",
         }
 
         response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -548,13 +548,13 @@ class TestPutEndpoint:
         """PUT should accept 'id' field as well as '@id'."""
         entity_id = str(uuid4())
         data_with_id_field = {
-            "id": f"{namespace}/{entity_id}",
+            "id": entity_id,
             "type": "Object",
             "name": "Test with id field",
         }
 
         response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=data_with_id_field,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -578,13 +578,13 @@ class TestPutEndpoint:
         # Create an existing record
         entity_id = str(uuid4())
         original_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Original",
         }
 
         post_response = client_ldpapi.post(
-            f"{namespace}/object/",
+            "object/",
             json=original_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -596,13 +596,13 @@ class TestPutEndpoint:
 
         # PUT to update
         updated_data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Updated",
         }
 
         put_response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=updated_data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -625,7 +625,7 @@ class TestPutEndpoint:
         }
 
         response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=data_without_id,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -649,13 +649,13 @@ class TestPutEndpoint:
         """PUT with 'id' field (not '@id') should work correctly."""
         entity_id = str(uuid4())
         data_with_id_field = {
-            "id": f"{namespace}/{entity_id}",
+            "id": entity_id,
             "type": "Object",
             "name": "Resource with id field",
         }
 
         response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=data_with_id_field,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -680,13 +680,13 @@ class TestPutEndpoint:
         """PUT to a URI that has a known container (e.g., /object/RESOURCE) should succeed."""
         entity_id = str(uuid4())
         data = {
-            "@id": f"{namespace}/{entity_id}",
+            "@id": entity_id,
             "type": "Object",
             "name": "Resource in existing container",
         }
 
         response = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
+            entity_id,
             json=data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -708,13 +708,13 @@ class TestPutEndpoint:
         entity_id = str(uuid4())
         # This URI would require creating /object/foo/ container
         data = {
-            "@id": f"{namespace}/object/foo/{entity_id}",
+            "@id": f"object/foo/{entity_id}",
             "type": "Object",
             "name": "Resource in auto-created container",
         }
 
         response = client_ldpapi.put(
-            f"{namespace}/object/foo/{entity_id}",
+            f"object/foo/{entity_id}",
             json=data,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},

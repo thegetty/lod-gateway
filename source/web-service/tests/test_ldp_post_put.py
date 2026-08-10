@@ -373,6 +373,47 @@ class TestPutEndpoint:
         assert updated_record is not None
         assert updated_record.data.get("name") == "Updated Name"
 
+    def test_put_with_valid_data_updates_existing_record_returns_200(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """PUT to an existing record should return 200 OK (not 409 conflict)."""
+        entity_id = str(uuid4())
+
+        # Create initial record
+        data1 = {
+            "@id": f"{namespace}/{entity_id}",
+            "type": "Object",
+            "name": "First",
+        }
+        response1 = client_ldpapi.put(
+            f"{namespace}/{entity_id}",
+            json=data1,
+            content_type="application/ld+json",
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+        assert response1.status_code == 201
+
+        # PUT again to same URI should update (200), not conflict (409)
+        data2 = {
+            "@id": f"{namespace}/{entity_id}",
+            "type": "Object",
+            "name": "Updated",
+        }
+        response2 = client_ldpapi.put(
+            f"{namespace}/{entity_id}",
+            json=data2,
+            content_type="application/ld+json",
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+        assert response2.status_code == 200
+
+        # Verify the record was updated
+        record = (
+            test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+        )
+        assert record is not None
+        assert record.data.get("name") == "Updated"
+
     def test_put_with_invalid_json_returns_error(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -573,58 +614,75 @@ class TestPutEndpoint:
         activities_after = test_db.session.query(Activity).count()
         assert activities_after > activities_before
 
-    def test_put_with_duplicate_id_returns_conflict(
+    def test_put_without_id_injects_destination_uri(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
-        """PUT with ID that already exists should return 409 Conflict.
-
-        Prevents accidental overwrites of existing records.
-        """
+        """PUT without @id/id should inject destination URI as the ID."""
         entity_id = str(uuid4())
-        data = {
-            "@id": f"{namespace}/{entity_id}",
+        data_without_id = {
             "type": "Object",
-            "name": "First",
+            "name": "Resource without ID",
         }
 
-        # Create first record
-        response1 = client_ldpapi.put(
+        response = client_ldpapi.put(
             f"{namespace}/{entity_id}",
-            json=data,
-            content_type="application/ld+json",
-            headers={"Authorization": f"Bearer {auth_token}"},
-        )
-        assert response1.status_code == 201
-
-        # Try to PUT with same ID again
-        data2 = {
-            "@id": f"{namespace}/{entity_id}",
-            "type": "Object",
-            "name": "Duplicate",
-        }
-
-        response2 = client_ldpapi.put(
-            f"{namespace}/{entity_id}",
-            json=data2,
+            json=data_without_id,
             content_type="application/ld+json",
             headers={"Authorization": f"Bearer {auth_token}"},
         )
 
-        # Should return conflict
-        assert response2.status_code == 409
+        assert response.status_code == 201
 
-    def test_put_with_container_type_returns_conflict(
+        # Verify record was created with correct entity_id
+        new_record = (
+            test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+        )
+        assert new_record is not None
+        assert new_record.data is not None
+        # The injected ID should be in the record data
+        id_attr = "@id" if "@id" in new_record.data else "id"
+        assert id_attr in new_record.data
+
+    def test_put_with_id_field_works_correctly(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
-        """PUT with ldp:BasicContainer type should return 409 Conflict.
+        """PUT with 'id' field (not '@id') should work correctly."""
+        entity_id = str(uuid4())
+        data_with_id_field = {
+            "id": f"{namespace}/{entity_id}",
+            "type": "Object",
+            "name": "Resource with id field",
+        }
 
-        Containers require PATCH, not PUT.
-        """
+        response = client_ldpapi.put(
+            f"{namespace}/{entity_id}",
+            json=data_with_id_field,
+            content_type="application/ld+json",
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+
+        assert response.status_code == 201
+
+        # Verify record was created with correct entity_id
+        new_record = (
+            test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+        )
+        assert new_record is not None
+        assert new_record.data is not None
+        # The ID should be in the record data (as 'id' field)
+        id_attr = "id" if "id" in new_record.data else "@id"
+        assert id_attr in new_record.data
+        assert new_record.data.get("name") == "Resource with id field"
+
+    def test_put_to_uri_with_existing_container(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """PUT to a URI that has a known container (e.g., /object/RESOURCE) should succeed."""
         entity_id = str(uuid4())
         data = {
             "@id": f"{namespace}/{entity_id}",
-            "@type": "ldp:BasicContainer",
-            "name": "Container",
+            "type": "Object",
+            "name": "Resource in existing container",
         }
 
         response = client_ldpapi.put(
@@ -634,5 +692,40 @@ class TestPutEndpoint:
             headers={"Authorization": f"Bearer {auth_token}"},
         )
 
-        # Should return conflict
-        assert response.status_code == 409
+        assert response.status_code == 201
+
+        # Verify record was created
+        new_record = (
+            test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+        )
+        assert new_record is not None
+        assert new_record.data is not None
+
+    def test_put_to_uri_requires_autocreate_container(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """PUT to a URI that requires LDP_AUTOCREATE_CONTAINER should succeed if enabled."""
+        entity_id = str(uuid4())
+        # This URI would require creating /object/foo/ container
+        data = {
+            "@id": f"{namespace}/object/foo/{entity_id}",
+            "type": "Object",
+            "name": "Resource in auto-created container",
+        }
+
+        response = client_ldpapi.put(
+            f"{namespace}/object/foo/{entity_id}",
+            json=data,
+            content_type="application/ld+json",
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+
+        # Should succeed (201) if LDP_AUTOCREATE_CONTAINERS is enabled
+        assert response.status_code == 201
+
+        # Verify record was created
+        new_record = (
+            test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+        )
+        assert new_record is not None
+        assert new_record.data is not None

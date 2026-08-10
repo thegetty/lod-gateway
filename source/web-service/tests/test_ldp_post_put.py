@@ -361,21 +361,21 @@ class TestPostToDeletedRecords:
         assert delete_response.status_code == 200
 
         # POST again to the same container
-            new_data = {
-                "@id": entity_id,
-                "type": "Object",
-                "dcterms:title": "New Resource",
-            }
+        new_data = {
+            "@id": entity_id,
+            "type": "Object",
+            "dcterms:title": "New Resource",
+        }
 
-            response = _post_jsonld(
-                namespace,
-                client_ldpapi,
-                auth_token,
-                "object/",
-                new_data,
-            )
+        response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
+            "object/",
+            new_data,
+        )
 
-            assert response.status_code == 201
+        assert response.status_code == 201
 
         # Verify Activity was created
         activities = test_db.session.query(Activity).all()

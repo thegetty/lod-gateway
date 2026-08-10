@@ -96,12 +96,13 @@ class TestPostToDeletedRecords:
         """
         # Create a record first via POST to a container
         entity_id = str(uuid4())
-        original_data = {
-            "@context": {"dcterms": str(DCTERMS), "type": "@type"},
-            "@id": entity_id,
-            "type": "Object",
-            "name": "Original",
-        }
+        original_data = _make_payload(
+            {
+                "@id": entity_id,
+                "type": "Object",
+                "name": "Original",
+            }
+        )
 
         # Create record via POST to container
         post_response = _post_jsonld(
@@ -128,12 +129,14 @@ class TestPostToDeletedRecords:
             assert record.datetime_deleted is not None
 
         # POST to the same container again with new data
-        new_data = _make_payload({
-            "@id": entity_id,
-            "type": "Object",
-            "name": "New Resource",
-            "description": "This should replace the deleted record",
-        })
+        new_data = _make_payload(
+            {
+                "@id": entity_id,
+                "type": "Object",
+                "name": "New Resource",
+                "description": "This should replace the deleted record",
+            }
+        )
 
         response = _post_jsonld(
             namespace,
@@ -146,37 +149,38 @@ class TestPostToDeletedRecords:
         # Should succeed with 201 Created
         assert (
             response.status_code == 201
-        ), f"Expected 201, got {response.status_code}. Response data: {response), f"Expected 201, got {response.status_code}. Response data: {response.data}" = _make_payload({
-        ), f"Expected 201, got {response.status_code}. Response data: {response    assert "Location" in response.headers
-        ), f"Expected 201, got {response.status_code}. Response data: {response    assert "application/ld+json" in response.headers.get("Content-Type", "")
+        ), f"Expected 201, got {response.status_code}. Response data: {response.data}"
+        assert "Location" in response.headers
+        assert "application/ld+json" in response.headers.get("Content-Type", "")
 
-        ), f"Expected 201, got {response.status_code}. Response data: {response    # Verify new record was created
-        ), f"Expected 201, got {response.status_code}. Response data: {response    new_record = (
-        ), f"Expected 201, got {response.status_code}. Response data: {response    test_db.session.query(Record)
-        ), f"Expected 201, got {response.status_code}. Response data: {response    .filter(Record.entity_id == entity_id)
-        ), f"Expected 201, got {response.status_code}. Response data: {response    .one_or_none()
-        ), f"Expected 201, got {response.status_code}. Response data: {response    )
-        ), f"Expected 201, got {response.status_code}. Response data: {response    assert new_record is not None
-        ), f"Expected 201, got {response.status_code}. Response data: {response    assert new_record.data is not None
-        ), f"Expected 201, got {response.status_code}. Response data: {response    assert new_record.datetime_deleted is None
-        ), f"Expected 201, got {response.status_code}. Response data: {response    assert new_record.data.get("name") == "New Resource"
+        # Verify new record was created
+        new_record = (
+            test_db.session.query(Record)
+            .filter(Record.entity_id == entity_id)
+            .one_or_none()
+        )
+        assert new_record is not None
+        assert new_record.data is not None
+        assert new_record.datetime_deleted is None
+        assert new_record.data.get("name") == "New Resource"
 
-        ), f"Expected 201, got {response.status_code}. Response data: {response    def test_post_to_active_record_fails_with_409(
-        ), f"Expected 201, got {response.status_code}. Response data: {response    self, namespace, client_ldpapi, ldp_fixture_app, auth_token
-        ), f"Expected 201, got {response.status_code}. Response data: {response    ):
-        ), f"Expected 201, got {response.status_code}. Response data: {response    """POST to a container where an active record with the same ID exists should fail with 409 Conflict.
+    def test_post_to_active_record_fails_with_409(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """POST to a container where an active record with the same ID exists should fail with 409 Conflict.
 
-        ), f"Expected 201, got {response.status_code}. Response data: {response    This ensures we don't accidentally overwrite active records.
-        ), f"Expected 201, got {response.status_code}. Response data: {response    Expected: 409 Conflict
-        ), f"Expected 201, got {response.status_code}. Response data: {response    """
-        ), f"Expected 201, got {response.status_code}. Response data: {response    # Create an active record via POST
-        ), f"Expected 201, got {response.status_code}. Response data: {response    entity_id = str(uuid4())
-        ), f"Expected 201, got {response.status_code}. Response data: {response    original_data = {
-        ), f"Expected 201, got {response.status_code}. Response data: {response})
-            "@id": entity_id,
-            "type": "Object",
-            "name": "Original",
-        }
+        This ensures we don't accidentally overwrite active records.
+        Expected: 409 Conflict
+        """
+        # Create an active record via POST
+        entity_id = str(uuid4())
+        original_data = _make_payload(
+            {
+                "@id": entity_id,
+                "type": "Object",
+                "name": "Original",
+            }
+        )
 
         post_response = _post_jsonld(
             namespace,
@@ -196,11 +200,13 @@ class TestPostToDeletedRecords:
             assert record.datetime_deleted is None
 
             # POST to the same container again with same ID (should fail with 409)
-            new_data = {
-                "@id": entity_id,
-                "type": "Object",
-                "name": "Duplicate",
-            }
+            new_data = _make_payload(
+                {
+                    "@id": entity_id,
+                    "type": "Object",
+                    "name": "Duplicate",
+                }
+            )
 
             response = _post_jsonld(
                 namespace,
@@ -222,12 +228,13 @@ class TestPostToDeletedRecords:
         Expected: 201 Created
         """
         entity_id = str(uuid4())
-        new_dnew_data = _make_payload({
-        new_d})
-            "@id": entity_id,
-            "type": "Object",
-            "name": "Brand New Resource",
-        }
+        new_data = _make_payload(
+            {
+                "@id": entity_id,
+                "type": "Object",
+                "name": "Brand New Resource",
+            }
+        )
 
         response = _post_jsonld(
             namespace,
@@ -260,11 +267,13 @@ class TestPostToDeletedRecords:
         # Create multiple records via POST to container
         entity_ids = [str(uuid4()) for _ in range(5)]
         for eid in entity_ids:
-            data = {
-                "@id": eid,
-                "type": "Object",
-                "name": f"Resource {eid[:8]}",
-            }
+            data = _make_payload(
+                {
+                    "@id": eid,
+                    "type": "Object",
+                    "name": f"Resource {eid[:8]}",
+                }
+            )
             response = _post_jsonld(
                 namespace,
                 client_ldpapi,
@@ -288,11 +297,13 @@ class TestPostToDeletedRecords:
 
         # POST to the same container with a new ID
         new_entity_id = str(uuid4())
-        new_data = {
-            "@id": new_entity_id,
-            "type": "Object",
-            "name": "Replacement Resource",
-        }
+        new_data = _make_payload(
+            {
+                "@id": new_entity_id,
+                "type": "Object",
+                "name": "Replacement Resource",
+            }
+        )
 
         response = _post_jsonld(
             namespace,
@@ -326,11 +337,13 @@ class TestPostToDeletedRecords:
 
         # Create a record via POST
         entity_id = str(uuid4())
-        original_data = {
-            "@id": entity_id,
-            "type": "Object",
-            "name": "Original",
-        }
+        original_data = _make_payload(
+            {
+                "@id": entity_id,
+                "type": "Object",
+                "name": "Original",
+            }
+        )
 
         post_response = _post_jsonld(
             namespace,
@@ -389,11 +402,13 @@ class TestPutEndpoint:
         The 'id' field must match the destination URI.
         Expected: 201 Created
         """
-        valid_data = {
-            "id": "object/foo",
-            "type": "Object",
-            "name": "Resource with correct id",
-        }
+        valid_data = _make_payload(
+            {
+                "id": "object/foo",
+                "type": "Object",
+                "name": "Resource with correct id",
+            }
+        )
 
         response = _put_jsonld(
             namespace,
@@ -424,11 +439,13 @@ class TestPutEndpoint:
         The '@id' field must match the destination URI.
         Expected: 201 Created
         """
-        valid_data = {
-            "@id": "object/bar",
-            "type": "Object",
-            "name": "Resource with correct @id",
-        }
+        valid_data = _make_payload(
+            {
+                "@id": "object/bar",
+                "type": "Object",
+                "name": "Resource with correct @id",
+            }
+        )
 
         response = _put_jsonld(
             namespace,
@@ -457,11 +474,13 @@ class TestPutEndpoint:
         The relative 'id' should be remapped to match the destination URI.
         Expected: 201 Created
         """
-        valid_data = {
-            "id": "bar",
-            "type": "Object",
-            "name": "Resource with remappable relative id",
-        }
+        valid_data = _make_payload(
+            {
+                "id": "bar",
+                "type": "Object",
+                "name": "Resource with remappable relative id",
+            }
+        )
 
         response = _put_jsonld(
             namespace,
@@ -490,11 +509,13 @@ class TestPutEndpoint:
         The relative '@id' should be remapped to match the destination URI.
         Expected: 201 Created
         """
-        valid_data = {
-            "@id": "baz",
-            "type": "Object",
-            "name": "Resource with remappable relative @id",
-        }
+        valid_data = _make_payload(
+            {
+                "@id": "baz",
+                "type": "Object",
+                "name": "Resource with remappable relative @id",
+            }
+        )
 
         response = _put_jsonld(
             namespace,
@@ -523,10 +544,12 @@ class TestPutEndpoint:
         The destination URI should be injected as '@id': 'foobar'.
         Expected: 201 Created
         """
-        valid_data = {
-            "type": "Object",
-            "name": "Resource without id",
-        }
+        valid_data = _make_payload(
+            {
+                "type": "Object",
+                "name": "Resource without id",
+            }
+        )
 
         response = _put_jsonld(
             namespace,
@@ -556,11 +579,13 @@ class TestPutEndpoint:
 
         Expected: 422
         """
-        data_with_wrong_id = {
-            "@id": "wrong/entity/id",
-            "type": "Object",
-            "name": "Test",
-        }
+        data_with_wrong_id = _make_payload(
+            {
+                "@id": "wrong/entity/id",
+                "type": "Object",
+                "name": "Test",
+            }
+        )
 
         response = _put_jsonld(
             namespace,
@@ -598,11 +623,13 @@ class TestPutEndpoint:
         """
         # Create an existing record via POST
         entity_id = str(uuid4())
-        original_data = {
-            "@id": entity_id,
-            "type": "Object",
-            "name": "Original Name",
-        }
+        original_data = _make_payload(
+            {
+                "@id": entity_id,
+                "type": "Object",
+                "name": "Original Name",
+            }
+        )
 
         post_response = _post_jsonld(
             namespace,
@@ -614,11 +641,13 @@ class TestPutEndpoint:
         assert post_response.status_code == 201
 
         # Now PUT to update
-        updated_data = {
-            "@id": entity_id,
-            "type": "Object",
-            "name": "Updated Name",
-        }
+        updated_data = _make_payload(
+            {
+                "@id": entity_id,
+                "type": "Object",
+                "name": "Updated Name",
+            }
+        )
 
         put_response = _put_jsonld(
             namespace,
@@ -649,7 +678,9 @@ class TestPutEndpoint:
             client_ldpapi,
             auth_token,
             "object/test-headers",
-            {"@id": "object/test-headers", "type": "Object", "name": "Test"},
+            _make_payload(
+                {"@id": "object/test-headers", "type": "Object", "name": "Test"}
+            ),
         )
 
         assert response.status_code == 201

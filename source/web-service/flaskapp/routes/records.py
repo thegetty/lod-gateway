@@ -565,18 +565,31 @@ def container_post_item(
                 abort(response)
             else:
                 with db.session.no_autoflush:
+                    current_app.logger.debug(
+                        f"Creating record in DB for identifier: {identifier}"
+                    )
                     record_id = record_create(
                         posted_representation.json_ld,
                         commit=False,
                         process_the_activity=True,
                     )
+                    current_app.logger.debug(
+                        f"Record created with ID: {record_id}"
+                    )
 
                     prefixed_jsonld = inflate_relative_uris(
                         posted_representation.json_ld, posted_representation.id_attr
                     )
+                    current_app.logger.debug(
+                        f"Prefixed JSON-LD for graph expand: {json.dumps(prefixed_jsonld, indent=2)[:500]}"
+                    )
 
+                    current_app.logger.debug(f"Calling graph_expand for: {prefixed_jsonld.get(posted_representation.id_attr, 'NO ID')}")
                     if expanded := graph_expand(prefixed_jsonld):
                         graph_uri = prefixed_jsonld[posted_representation.id_attr]
+                        current_app.logger.debug(
+                            f"Graph expanded successfully: {len(expanded)} bytes, graph URI: {graph_uri}"
+                        )
                         updated_graph = graph_replace(
                             graph_uri,
                             expanded,
@@ -586,6 +599,9 @@ def container_post_item(
                         if updated_graph is False:
                             # Failed to process this as a graph:
                             db.session.rollback()
+                            current_app.logger.error(
+                                f"graph_replace failed for URI: {graph_uri}"
+                            )
                             response = construct_error_response(
                                 status_nt(
                                     422,
@@ -610,6 +626,9 @@ def container_post_item(
                         return jsonify(posted_representation.json_ld), 201, ldpheaders
                     else:
                         db.session.rollback()
+                        current_app.logger.error(
+                            f"graph_expand returned False for URI: {prefixed_jsonld.get(posted_representation.id_attr, 'UNKNOWN')}"
+                        )
                         response = construct_error_response(
                             status_nt(
                                 422,
@@ -677,26 +696,14 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     # Get the implied container-hierarchy from the entity_id
     container_breadcrumbs = segment_entity_id(entity_id)
 
-    # Validate JSON
-    try:
-        body_json = request.get_json(force=True)
-        if body_json is None:
-            raise ValueError("Empty JSON body")
-    except Exception as e:
-        current_app.logger.error(f"Invalid JSON in PUT request: {str(e)}")
-        response = construct_error_response(
-            status_nt(422, "Invalid JSON", f"Could not parse JSON: {str(e)}")
-        )
-        abort(response)
-
     # Validate JSON-LD (parse_representation handles both JSON and JSON-LD validation)
-    # Pass the parsed JSON body, not the raw body
+    # Pass the pydantic body model, not the raw dict
     try:
         posted_representation = parse_representation(
             f'{current_app.config["idPrefix"]}/',
             container_breadcrumbs[-1].strip("/"),
             request,
-            body_json,
+            body,
             None,
         )
         current_app.logger.info(

@@ -11,6 +11,12 @@ import sqlite3
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from flask import Flask, Response
+from flask_openapi3.openapi import OpenAPI
+from flask_openapi3 import Info
+from flask_openapi3.models import SecurityScheme
+
+from flaskapp.openapi_models import patch_ingest_route
+
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_compress import Compress
@@ -75,7 +81,61 @@ def proxy_fix_wrap(app, x_for, x_host, x_prefix, x_proto=1):
 
 
 def create_app():
-    app = Flask(__name__)
+    # Monkey-patch flask-openapi3's _validate_request to pass path_kwargs through.
+    # Flask-OpenAPI3 returns the validated path model as {'path': Model(...)} which
+    # doesn't unpack into individual route params. Passing path_kwargs ensures the
+    # route function receives actual parameters like entity_id, version, etc.
+    from flask_openapi3 import scaffold
+    from flask_openapi3.scaffold import _validate_request as original_validate_request
+
+    def _patched_validate_request(
+        header=None,
+        cookie=None,
+        path=None,
+        query=None,
+        form=None,
+        body=None,
+        raw=None,
+        path_kwargs=None,
+    ):
+        func_kwargs = original_validate_request(
+            header=header,
+            cookie=cookie,
+            path=path,
+            query=query,
+            form=form,
+            body=body,
+            raw=raw,
+            path_kwargs=path_kwargs,
+        )
+        if path_kwargs:
+            func_kwargs.update(path_kwargs)
+        return func_kwargs
+
+    scaffold._validate_request = _patched_validate_request
+
+    lod_desc = environ.get("LOD_AS_DESC", "LOD Gateway")
+
+    # Get the subpath at which this is being served:
+    subpath = environ["APPLICATION_NAMESPACE"] or ""
+
+    if subpath == "/":
+        subpath = ""
+
+    # Define security configuration:
+    bearer_scheme = SecurityScheme(
+        type="http", scheme="bearer", bearerFormat="Opaque"  # just a plain token
+    )
+
+    security_schemes = {"bearerAuth": bearer_scheme}
+
+    app = OpenAPI(
+        __name__,
+        info=Info(title=lod_desc, version="1.0.0"),
+        doc_ui=True,
+        doc_prefix=f"/{subpath}/openapi",
+        security_schemes=security_schemes,
+    )
 
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
     app.config["FLASK_ENV"] = getenv("FLASK_ENV", "production")
@@ -450,15 +510,21 @@ def create_app():
             f"LOD Gateway will serve from a base of '{app.config['idPrefix']}"
         )
 
-        app.register_blueprint(home_page, url_prefix=f"/{ns}")
-        app.register_blueprint(activity, url_prefix=f"/{ns}")
-        app.register_blueprint(activity_entity, url_prefix=f"/{ns}")
-        app.register_blueprint(records, url_prefix=f"/{ns}")
-        app.register_blueprint(ingest, url_prefix=f"/{ns}")
-        app.register_blueprint(sparql, url_prefix=f"/{ns}")
-        app.register_blueprint(yasgui, url_prefix=f"/{ns}")
-        app.register_blueprint(timegate, url_prefix=f"/{ns}")
-        app.register_blueprint(health, url_prefix=f"/{ns}")
+        nsprefix = f"/{ns}"
+        if nsprefix == "//":
+            nsprefix = "/"
+        app.register_api(home_page, url_prefix=nsprefix)
+        app.register_api(activity, url_prefix=nsprefix)
+        app.register_api(activity_entity, url_prefix=nsprefix)
+        app.register_api(records, url_prefix=nsprefix)
+        app.register_api(ingest, url_prefix=nsprefix)
+        app.register_api(sparql, url_prefix=nsprefix)
+        app.register_api(yasgui, url_prefix=nsprefix)
+        app.register_api(timegate, url_prefix=nsprefix)
+        app.register_api(health, url_prefix=nsprefix)
+
+        # Non-JSON formatted payload patch for the OpenAPI
+        patch_ingest_route(app, nsprefix)
 
         app.logger.info("LOD Gateway configured and ready for use")
 

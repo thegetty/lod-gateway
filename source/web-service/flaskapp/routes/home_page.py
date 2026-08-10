@@ -1,5 +1,5 @@
+from flask_openapi3 import APIBlueprint
 from flask import (
-    Blueprint,
     render_template,
     current_app,
     request,
@@ -25,13 +25,24 @@ from flaskapp.storage_utilities.container import (
 )
 from flaskapp.conneg import determine_requested_format_and_profile, reformat_rdf
 from flaskapp.utilities import wants_html
+from flaskapp.openapi import home_tag
+from flaskapp.openapi_models import _strip_openapi_kwargs
 from flaskapp.errors import construct_error_response, status_container_not_found
 
 # Create home page
-home_page = Blueprint("home_page", __name__)
+home_page = APIBlueprint("home_page", __name__)
+_strip_openapi_kwargs(home_page)
 
 
-@home_page.route("/", methods=["GET"])
+@home_page.get(
+    "/",
+    tags=[home_tag],
+    summary="Root container / LDP container root",
+    responses={
+        200: {"description": "LDP container listing"},
+        303: {"description": "Redirect to dashboard"},
+    },
+)
 def root_container():
     if wants_html(request) or current_app.config["LDP_API"] is False:
         # Send them to the dashboard instead:
@@ -97,7 +108,14 @@ def root_container():
         )
 
 
-@home_page.route("/dashboard", methods=["GET"])
+@home_page.get(
+    "/dashboard",
+    tags=[home_tag],
+    summary="Dashboard",
+    responses={
+        200: {"description": "Dashboard data or HTML"},
+    },
+)
 def get_home_page():
     if not wants_html(request):
         return (

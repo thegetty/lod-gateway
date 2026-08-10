@@ -1,13 +1,27 @@
-from flask import Blueprint, current_app, abort, request
+from flask_openapi3 import APIBlueprint
+from flask import current_app, abort, request
 from flaskapp.errors import status_nt, construct_error_response, status_ok
+from flaskapp.openapi import sparql_tag
+from flaskapp.openapi_models import _strip_openapi_kwargs
 from flaskapp.utilities import authenticate_bearer
 
 # Create a new "yasgui" route blueprint
-yasgui = Blueprint("yasgui", __name__)
+yasgui = APIBlueprint("yasgui", __name__)
+_strip_openapi_kwargs(yasgui)
 
 
 # ### ROUTES ###
-@yasgui.route("/sparql-ui", methods=["GET"])
+@yasgui.get(
+    "/sparql-ui",
+    tags=[sparql_tag],
+    summary="SPARQL UI page",
+    description="Serve the YASGUI SPARQL query interface. Authentication is required if SPARQL_QUERY_AUTHENTICATION is set to true (default: false).",
+    security=[{"bearerAuth": []}, {}],
+    responses={
+        200: {"description": "HTML page"},
+        501: {"description": "RDF not enabled"},
+    },
+)
 def get_yasgui():
     if current_app.config["PROCESS_RDF"] is not True:
         response = construct_error_response(

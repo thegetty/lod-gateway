@@ -586,11 +586,14 @@ def container_post_item(
                         if updated_graph is False:
                             # Failed to process this as a graph:
                             db.session.rollback()
-                            status_nt(
-                                422,
-                                "Graph expansion error",
-                                "Could not convert JSON-LD to RDF, id " + graph_uri,
+                            response = construct_error_response(
+                                status_nt(
+                                    422,
+                                    "Graph expansion error",
+                                    "Could not convert JSON-LD to RDF, id " + graph_uri,
+                                )
                             )
+                            abort(response)
 
                         db.session.commit()
                         current_app.logger.info(
@@ -607,11 +610,14 @@ def container_post_item(
                         return jsonify(posted_representation.json_ld), 201, ldpheaders
                     else:
                         db.session.rollback()
-                        status_nt(
-                            422,
-                            "Graph expansion error",
-                            "Could not expand JSON-LD to RDF",
+                        response = construct_error_response(
+                            status_nt(
+                                422,
+                                "Graph expansion error",
+                                "Could not expand JSON-LD to RDF",
+                            )
                         )
+                        abort(response)
 
     else:
         current_app.logger.error(

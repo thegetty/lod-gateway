@@ -733,6 +733,10 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     # The destination URI should be the entity_id with the idPrefix prepended
     expected_id = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
 
+    current_app.logger.info(
+        f"PUT ID check: body_id='{body_id}', expected_id='{expected_id}', entity_id='{entity_id}'"
+    )
+
     # Normalize IDs for comparison (handle relative vs absolute, different base URLs)
     def normalize_id(id_str):
         """Normalize an ID for comparison: remove idPrefix, strip leading slashes."""

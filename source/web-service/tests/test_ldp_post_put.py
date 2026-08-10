@@ -96,7 +96,7 @@ class TestPostToDeletedRecords:
     """Tests for Issue 1: POST to container paths that match deleted records."""
 
     def test_post_to_deleted_record_path_succeeds(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """POST to a container where a deleted record exists should succeed.
 
@@ -174,7 +174,7 @@ class TestPostToDeletedRecords:
         assert new_record.data.get("name") == "New Resource"
 
     def test_post_to_active_record_fails_with_409(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """POST to a container where an active record with the same ID exists should fail with 409 Conflict.
 
@@ -229,7 +229,7 @@ class TestPostToDeletedRecords:
             assert response.status_code == 409
 
     def test_post_to_nonexistent_path_succeeds(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """POST to a container where no record exists should succeed with 201.
 
@@ -267,7 +267,7 @@ class TestPostToDeletedRecords:
         assert new_record.datetime_deleted is None
 
     def test_post_to_deleted_record_with_pagination(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """Test that pagination works correctly after POST to container.
 
@@ -336,7 +336,7 @@ class TestPostToDeletedRecords:
         assert container_data["total"] > 0
 
     def test_post_to_deleted_record_preserves_activity_stream(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """Test that activity stream is updated when POST to container.
 
@@ -404,7 +404,7 @@ class TestPutEndpoint:
     """
 
     def test_put_with_correct_id_field(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """PUT /ns/object/foo with 'id': 'object/foo' at top level.
 
@@ -441,7 +441,7 @@ class TestPutEndpoint:
         assert new_record.data.get("name") == "Resource with correct id"
 
     def test_put_with_correct_at_id_field(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """PUT /ns/object/bar with '@id': 'object/bar' at top level.
 
@@ -476,7 +476,7 @@ class TestPutEndpoint:
         assert new_record.data.get("name") == "Resource with correct @id"
 
     def test_put_with_remappable_relative_id(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """PUT /ns/object/bar with 'id': 'bar' at top level.
 
@@ -511,7 +511,7 @@ class TestPutEndpoint:
         assert new_record.data.get("name") == "Resource with remappable relative id"
 
     def test_put_with_remappable_relative_at_id(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """PUT /ns/object/baz with '@id': 'baz' at top level.
 
@@ -546,7 +546,7 @@ class TestPutEndpoint:
         assert new_record.data.get("name") == "Resource with remappable relative @id"
 
     def test_put_without_id_injects_destination_uri(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """PUT /ns/object/foobar without top-level 'id' or '@id'.
 
@@ -624,7 +624,7 @@ class TestPutEndpoint:
         assert response.status_code == 422
 
     def test_put_with_valid_data_updates_existing_record(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """PUT with valid data to existing record should update it.
 
@@ -676,7 +676,7 @@ class TestPutEndpoint:
         assert updated_record.data.get("name") == "Updated Name"
 
     def test_put_returns_correct_headers(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
     ):
         """PUT should return correct HTTP headers.
 

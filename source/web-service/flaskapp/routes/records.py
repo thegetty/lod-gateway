@@ -696,12 +696,18 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     # Get the implied container-hierarchy from the entity_id
     container_breadcrumbs = segment_entity_id(entity_id)
 
+    # The parent container is the second-to-last breadcrumb (last is the entity itself)
+    if len(container_breadcrumbs) < 2:
+        relative_container = container_breadcrumbs[0].strip("/")
+    else:
+        relative_container = container_breadcrumbs[-2].strip("/")
+
     # Validate JSON-LD (parse_representation handles both JSON and JSON-LD validation)
     # Pass the pydantic body model, not the raw dict
     try:
         posted_representation = parse_representation(
             f'{current_app.config["idPrefix"]}/',
-            container_breadcrumbs[-1].strip("/"),
+            relative_container,
             request,
             body,
             None,

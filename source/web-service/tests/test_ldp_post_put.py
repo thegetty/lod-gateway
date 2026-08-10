@@ -11,12 +11,15 @@ import pytest
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from rdflib import Namespace
+
 from flaskapp.models import db
 from flaskapp.models.record import Record
 
 # Reuse helpers from test_ldp_api.py
 BASE_URL = "http://localhost:5100/"
 JSONLD_CT = "application/ld+json"
+DCTERMS = Namespace("http://purl.org/dc/terms/")
 
 
 def _make_payload(base: dict) -> dict:

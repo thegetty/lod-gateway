@@ -16,6 +16,7 @@ from flaskapp.utilities import Event
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
+from flaskapp.models.container import LDPContainer, LDPContainerContents
 
 from flaskapp.storage_utilities.container import get_container
 from flaskapp.storage_utilities.record import (

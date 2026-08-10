@@ -4,9 +4,9 @@
 =================================== FAILURES ===================================
 ______ TestPostToDeletedRecords.test_post_to_deleted_record_path_succeeds ______
 
-self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f9f5bd6d6d0>
+self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f4f1b1b96d0>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_post_to_deleted_record_path_succeeds(
@@ -41,31 +41,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:118: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:18,536] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:18,536] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:18,536] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:18,536] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:18,536] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:18,536] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:18,537] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:18,537] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:18,537] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:18,537] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:18,538] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:18,564] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:18,583] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:18,583] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:18,583] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:18,583] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:18,583] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:18,583] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:18,583] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:18,584] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:18,584] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:18,584] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:18,584] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:18,610] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:18,620] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:35,876] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:35,876] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:35,877] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:35,877] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:35,877] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:35,877] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:35,877] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:35,877] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:35,877] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:35,877] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:35,878] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:35,904] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:35,922] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:35,922] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:35,922] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:35,922] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:35,922] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:35,922] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:35,923] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:35,923] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:35,923] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:35,923] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:35,923] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:35,949] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:35,959] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -93,26 +93,26 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:19,869] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/8457c058-e3de-4642-af0e-957a12249500
-[2026-08-11 23:08:19,872] INFO in records: Checking if '/object/' is a valid container to POST to
-[2026-08-11 23:08:19,873] INFO in records: Found object/8457c058-e3de-4642-af0e-957a12249500 identifier for POSTed JSON-LD to /object/
-[2026-08-11 23:08:19,877] INFO in graph: http://localhost:5100/ns/object/8457c058-e3de-4642-af0e-957a12249500 - expanding using PyLD
-[2026-08-11 23:08:19,877] INFO in graph: Graph http://localhost:5100/ns/object/8457c058-e3de-4642-af0e-957a12249500 expanded in 0.000495s
-[2026-08-11 23:08:19,878] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/8457c058-e3de-4642-af0e-957a12249500
+[2026-08-11 23:16:37,158] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/65b14602-1e82-4384-836f-7240997d676d
+[2026-08-11 23:16:37,160] INFO in records: Checking if '/object/' is a valid container to POST to
+[2026-08-11 23:16:37,161] INFO in records: Found object/65b14602-1e82-4384-836f-7240997d676d identifier for POSTed JSON-LD to /object/
+[2026-08-11 23:16:37,165] INFO in graph: http://localhost:5100/ns/object/65b14602-1e82-4384-836f-7240997d676d - expanding using PyLD
+[2026-08-11 23:16:37,165] INFO in graph: Graph http://localhost:5100/ns/object/65b14602-1e82-4384-836f-7240997d676d expanded in 0.000454s
+[2026-08-11 23:16:37,165] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/65b14602-1e82-4384-836f-7240997d676d
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:19,878] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/8457c058-e3de-4642-af0e-957a12249500
+[2026-08-11 23:16:37,165] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/65b14602-1e82-4384-836f-7240997d676d
 ------------------------------ Captured log call -------------------------------
-INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/8457c058-e3de-4642-af0e-957a12249500
+INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/65b14602-1e82-4384-836f-7240997d676d
 INFO     flaskapp:records.py:482 Checking if '/object/' is a valid container to POST to
-INFO     flaskapp:records.py:498 Found object/8457c058-e3de-4642-af0e-957a12249500 identifier for POSTed JSON-LD to /object/
-INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/8457c058-e3de-4642-af0e-957a12249500 - expanding using PyLD
-INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/8457c058-e3de-4642-af0e-957a12249500 expanded in 0.000495s
-ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/8457c058-e3de-4642-af0e-957a12249500
+INFO     flaskapp:records.py:498 Found object/65b14602-1e82-4384-836f-7240997d676d identifier for POSTed JSON-LD to /object/
+INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/65b14602-1e82-4384-836f-7240997d676d - expanding using PyLD
+INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/65b14602-1e82-4384-836f-7240997d676d expanded in 0.000454s
+ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/65b14602-1e82-4384-836f-7240997d676d
 ______ TestPostToDeletedRecords.test_post_to_active_record_fails_with_409 ______
 
-self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f9f5bd6c7d0>
+self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f4f1b1b87d0>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_post_to_active_record_fails_with_409(
@@ -146,31 +146,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:195: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:19,940] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:19,940] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:19,940] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:19,940] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:19,941] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:19,941] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:19,941] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:19,941] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:19,941] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:19,941] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:19,942] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:19,968] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:19,985] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:19,986] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:19,986] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:19,986] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:19,986] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:19,986] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:19,986] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:19,986] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:19,987] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:19,987] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:19,987] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:20,016] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:20,026] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:37,227] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:37,227] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:37,227] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:37,227] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:37,227] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:37,227] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:37,228] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:37,228] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:37,228] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:37,228] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:37,229] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:37,254] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:37,272] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:37,272] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:37,272] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:37,272] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:37,272] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:37,272] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:37,272] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:37,273] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:37,273] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:37,273] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:37,273] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:37,302] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:37,313] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -198,26 +198,26 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:21,281] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/b6636ddd-60fa-46a4-9f24-4c20592ecac3
-[2026-08-11 23:08:21,284] INFO in records: Checking if '/object/' is a valid container to POST to
-[2026-08-11 23:08:21,285] INFO in records: Found object/b6636ddd-60fa-46a4-9f24-4c20592ecac3 identifier for POSTed JSON-LD to /object/
-[2026-08-11 23:08:21,288] INFO in graph: http://localhost:5100/ns/object/b6636ddd-60fa-46a4-9f24-4c20592ecac3 - expanding using PyLD
-[2026-08-11 23:08:21,289] INFO in graph: Graph http://localhost:5100/ns/object/b6636ddd-60fa-46a4-9f24-4c20592ecac3 expanded in 0.000465s
-[2026-08-11 23:08:21,289] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/b6636ddd-60fa-46a4-9f24-4c20592ecac3
+[2026-08-11 23:16:38,511] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/e9b4fee3-d24b-485c-b733-54e959fa2945
+[2026-08-11 23:16:38,514] INFO in records: Checking if '/object/' is a valid container to POST to
+[2026-08-11 23:16:38,515] INFO in records: Found object/e9b4fee3-d24b-485c-b733-54e959fa2945 identifier for POSTed JSON-LD to /object/
+[2026-08-11 23:16:38,519] INFO in graph: http://localhost:5100/ns/object/e9b4fee3-d24b-485c-b733-54e959fa2945 - expanding using PyLD
+[2026-08-11 23:16:38,519] INFO in graph: Graph http://localhost:5100/ns/object/e9b4fee3-d24b-485c-b733-54e959fa2945 expanded in 0.000502s
+[2026-08-11 23:16:38,520] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/e9b4fee3-d24b-485c-b733-54e959fa2945
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:21,289] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/b6636ddd-60fa-46a4-9f24-4c20592ecac3
+[2026-08-11 23:16:38,520] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/e9b4fee3-d24b-485c-b733-54e959fa2945
 ------------------------------ Captured log call -------------------------------
-INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/b6636ddd-60fa-46a4-9f24-4c20592ecac3
+INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/e9b4fee3-d24b-485c-b733-54e959fa2945
 INFO     flaskapp:records.py:482 Checking if '/object/' is a valid container to POST to
-INFO     flaskapp:records.py:498 Found object/b6636ddd-60fa-46a4-9f24-4c20592ecac3 identifier for POSTed JSON-LD to /object/
-INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/b6636ddd-60fa-46a4-9f24-4c20592ecac3 - expanding using PyLD
-INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/b6636ddd-60fa-46a4-9f24-4c20592ecac3 expanded in 0.000465s
-ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/b6636ddd-60fa-46a4-9f24-4c20592ecac3
+INFO     flaskapp:records.py:498 Found object/e9b4fee3-d24b-485c-b733-54e959fa2945 identifier for POSTed JSON-LD to /object/
+INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/e9b4fee3-d24b-485c-b733-54e959fa2945 - expanding using PyLD
+INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/e9b4fee3-d24b-485c-b733-54e959fa2945 expanded in 0.000502s
+ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/e9b4fee3-d24b-485c-b733-54e959fa2945
 _______ TestPostToDeletedRecords.test_post_to_nonexistent_path_succeeds ________
 
-self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f9f5bda0c30>
+self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f4f1b1ecc30>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_post_to_nonexistent_path_succeeds(
@@ -251,31 +251,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:250: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:21,322] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:21,322] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:21,322] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:21,322] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:21,322] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:21,322] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:21,322] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:21,323] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:21,323] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:21,323] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:21,323] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:21,349] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:21,367] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:21,367] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:21,367] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:21,367] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:21,367] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:21,367] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:21,367] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:21,367] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:21,368] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:21,368] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:21,369] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:21,394] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:21,404] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:38,553] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:38,553] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:38,553] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:38,553] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:38,553] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:38,554] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:38,554] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:38,554] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:38,554] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:38,554] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:38,555] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:38,580] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:38,598] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:38,598] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:38,598] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:38,598] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:38,598] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:38,598] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:38,599] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:38,599] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:38,599] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:38,599] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:38,600] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:38,625] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:38,635] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -303,26 +303,26 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:22,648] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/681bcf47-795a-4ac1-8919-693bf4af7a02
-[2026-08-11 23:08:22,650] INFO in records: Checking if '/object/' is a valid container to POST to
-[2026-08-11 23:08:22,651] INFO in records: Found object/681bcf47-795a-4ac1-8919-693bf4af7a02 identifier for POSTed JSON-LD to /object/
-[2026-08-11 23:08:22,655] INFO in graph: http://localhost:5100/ns/object/681bcf47-795a-4ac1-8919-693bf4af7a02 - expanding using PyLD
-[2026-08-11 23:08:22,655] INFO in graph: Graph http://localhost:5100/ns/object/681bcf47-795a-4ac1-8919-693bf4af7a02 expanded in 0.000472s
-[2026-08-11 23:08:22,656] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/681bcf47-795a-4ac1-8919-693bf4af7a02
+[2026-08-11 23:16:39,824] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/a288b69d-1096-40ce-8801-6a0963ee3113
+[2026-08-11 23:16:39,827] INFO in records: Checking if '/object/' is a valid container to POST to
+[2026-08-11 23:16:39,828] INFO in records: Found object/a288b69d-1096-40ce-8801-6a0963ee3113 identifier for POSTed JSON-LD to /object/
+[2026-08-11 23:16:39,831] INFO in graph: http://localhost:5100/ns/object/a288b69d-1096-40ce-8801-6a0963ee3113 - expanding using PyLD
+[2026-08-11 23:16:39,832] INFO in graph: Graph http://localhost:5100/ns/object/a288b69d-1096-40ce-8801-6a0963ee3113 expanded in 0.000449s
+[2026-08-11 23:16:39,832] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/a288b69d-1096-40ce-8801-6a0963ee3113
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:22,656] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/681bcf47-795a-4ac1-8919-693bf4af7a02
+[2026-08-11 23:16:39,832] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/a288b69d-1096-40ce-8801-6a0963ee3113
 ------------------------------ Captured log call -------------------------------
-INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/681bcf47-795a-4ac1-8919-693bf4af7a02
+INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/a288b69d-1096-40ce-8801-6a0963ee3113
 INFO     flaskapp:records.py:482 Checking if '/object/' is a valid container to POST to
-INFO     flaskapp:records.py:498 Found object/681bcf47-795a-4ac1-8919-693bf4af7a02 identifier for POSTed JSON-LD to /object/
-INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/681bcf47-795a-4ac1-8919-693bf4af7a02 - expanding using PyLD
-INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/681bcf47-795a-4ac1-8919-693bf4af7a02 expanded in 0.000472s
-ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/681bcf47-795a-4ac1-8919-693bf4af7a02
+INFO     flaskapp:records.py:498 Found object/a288b69d-1096-40ce-8801-6a0963ee3113 identifier for POSTed JSON-LD to /object/
+INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/a288b69d-1096-40ce-8801-6a0963ee3113 - expanding using PyLD
+INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/a288b69d-1096-40ce-8801-6a0963ee3113 expanded in 0.000449s
+ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/a288b69d-1096-40ce-8801-6a0963ee3113
 _____ TestPostToDeletedRecords.test_post_to_deleted_record_with_pagination _____
 
-self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f9f5bda09d0>
+self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f4f1b1ec9d0>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_post_to_deleted_record_with_pagination(
@@ -355,31 +355,31 @@ E            +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENT
 
 tests/test_ldp_post_put.py:287: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:22,691] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:22,691] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:22,691] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:22,691] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:22,692] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:22,692] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:22,692] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:22,692] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:22,692] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:22,692] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:22,693] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:22,719] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:22,737] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:22,737] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:22,737] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:22,737] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:22,737] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:22,737] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:22,738] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:22,738] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:22,738] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:22,738] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:22,739] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:22,765] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:22,775] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:39,866] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:39,866] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:39,866] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:39,866] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:39,867] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:39,867] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:39,867] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:39,867] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:39,867] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:39,867] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:39,868] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:39,893] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:39,911] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:39,911] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:39,911] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:39,911] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:39,911] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:39,911] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:39,911] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:39,912] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:39,912] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:39,912] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:39,912] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:39,938] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:39,948] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -407,26 +407,26 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:24,028] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/eb9bcc39-9ae9-417d-acd9-6373286d750e
-[2026-08-11 23:08:24,031] INFO in records: Checking if '/object/' is a valid container to POST to
-[2026-08-11 23:08:24,032] INFO in records: Found object/eb9bcc39-9ae9-417d-acd9-6373286d750e identifier for POSTed JSON-LD to /object/
-[2026-08-11 23:08:24,036] INFO in graph: http://localhost:5100/ns/object/eb9bcc39-9ae9-417d-acd9-6373286d750e - expanding using PyLD
-[2026-08-11 23:08:24,036] INFO in graph: Graph http://localhost:5100/ns/object/eb9bcc39-9ae9-417d-acd9-6373286d750e expanded in 0.000496s
-[2026-08-11 23:08:24,036] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/eb9bcc39-9ae9-417d-acd9-6373286d750e
+[2026-08-11 23:16:41,138] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3
+[2026-08-11 23:16:41,141] INFO in records: Checking if '/object/' is a valid container to POST to
+[2026-08-11 23:16:41,141] INFO in records: Found object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3 identifier for POSTed JSON-LD to /object/
+[2026-08-11 23:16:41,145] INFO in graph: http://localhost:5100/ns/object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3 - expanding using PyLD
+[2026-08-11 23:16:41,145] INFO in graph: Graph http://localhost:5100/ns/object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3 expanded in 0.000441s
+[2026-08-11 23:16:41,146] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:24,036] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/eb9bcc39-9ae9-417d-acd9-6373286d750e
+[2026-08-11 23:16:41,146] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3
 ------------------------------ Captured log call -------------------------------
-INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/eb9bcc39-9ae9-417d-acd9-6373286d750e
+INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3
 INFO     flaskapp:records.py:482 Checking if '/object/' is a valid container to POST to
-INFO     flaskapp:records.py:498 Found object/eb9bcc39-9ae9-417d-acd9-6373286d750e identifier for POSTed JSON-LD to /object/
-INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/eb9bcc39-9ae9-417d-acd9-6373286d750e - expanding using PyLD
-INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/eb9bcc39-9ae9-417d-acd9-6373286d750e expanded in 0.000496s
-ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/eb9bcc39-9ae9-417d-acd9-6373286d750e
+INFO     flaskapp:records.py:498 Found object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3 identifier for POSTed JSON-LD to /object/
+INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3 - expanding using PyLD
+INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3 expanded in 0.000441s
+ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/4bfbddf9-1a00-4f06-b5dd-9cfa4da725d3
 _ TestPostToDeletedRecords.test_post_to_deleted_record_preserves_activity_stream _
 
-self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f9f5bdd1c70>
+self = <test_ldp_post_put.TestPostToDeletedRecords object at 0x7f4f1b221c70>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_post_to_deleted_record_preserves_activity_stream(
@@ -461,31 +461,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:358: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:24,070] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:24,070] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:24,070] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:24,070] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:24,070] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:24,071] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:24,071] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:24,071] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:24,071] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:24,071] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:24,072] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:24,098] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:24,115] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:24,115] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:24,115] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:24,115] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:24,115] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:24,115] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:24,116] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:24,116] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:24,116] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:24,116] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:24,117] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:24,142] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:24,152] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:41,178] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:41,178] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:41,178] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:41,178] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:41,178] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:41,178] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:41,179] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:41,179] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:41,179] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:41,179] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:41,180] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:41,205] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:41,222] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:41,222] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:41,223] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:41,223] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:41,223] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:41,223] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:41,223] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:41,223] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:41,223] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:41,223] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:41,224] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:41,250] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:41,259] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -513,26 +513,26 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:25,418] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4
-[2026-08-11 23:08:25,421] INFO in records: Checking if '/object/' is a valid container to POST to
-[2026-08-11 23:08:25,422] INFO in records: Found object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4 identifier for POSTed JSON-LD to /object/
-[2026-08-11 23:08:25,426] INFO in graph: http://localhost:5100/ns/object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4 - expanding using PyLD
-[2026-08-11 23:08:25,426] INFO in graph: Graph http://localhost:5100/ns/object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4 expanded in 0.000526s
-[2026-08-11 23:08:25,427] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4
+[2026-08-11 23:16:42,462] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/37754b4e-c531-45e2-adbb-f5639a936289
+[2026-08-11 23:16:42,465] INFO in records: Checking if '/object/' is a valid container to POST to
+[2026-08-11 23:16:42,466] INFO in records: Found object/37754b4e-c531-45e2-adbb-f5639a936289 identifier for POSTed JSON-LD to /object/
+[2026-08-11 23:16:42,469] INFO in graph: http://localhost:5100/ns/object/37754b4e-c531-45e2-adbb-f5639a936289 - expanding using PyLD
+[2026-08-11 23:16:42,470] INFO in graph: Graph http://localhost:5100/ns/object/37754b4e-c531-45e2-adbb-f5639a936289 expanded in 0.000456s
+[2026-08-11 23:16:42,470] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/37754b4e-c531-45e2-adbb-f5639a936289
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:25,427] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4
+[2026-08-11 23:16:42,470] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/37754b4e-c531-45e2-adbb-f5639a936289
 ------------------------------ Captured log call -------------------------------
-INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4
+INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/37754b4e-c531-45e2-adbb-f5639a936289
 INFO     flaskapp:records.py:482 Checking if '/object/' is a valid container to POST to
-INFO     flaskapp:records.py:498 Found object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4 identifier for POSTed JSON-LD to /object/
-INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4 - expanding using PyLD
-INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4 expanded in 0.000526s
-ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/fd52219a-2d9e-4d89-ab85-c56016c2ffa4
+INFO     flaskapp:records.py:498 Found object/37754b4e-c531-45e2-adbb-f5639a936289 identifier for POSTed JSON-LD to /object/
+INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/37754b4e-c531-45e2-adbb-f5639a936289 - expanding using PyLD
+INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/37754b4e-c531-45e2-adbb-f5639a936289 expanded in 0.000456s
+ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/37754b4e-c531-45e2-adbb-f5639a936289
 ________________ TestPutEndpoint.test_put_with_correct_id_field ________________
 
-self = <test_ldp_post_put.TestPutEndpoint object at 0x7f9f5bd6d950>
+self = <test_ldp_post_put.TestPutEndpoint object at 0x7f4f1b1b9950>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_put_with_correct_id_field(
@@ -566,31 +566,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:424: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:25,460] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:25,460] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:25,460] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:25,460] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:25,460] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:25,460] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:25,461] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:25,461] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:25,461] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:25,461] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:25,462] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:25,487] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:25,505] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:25,505] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:25,505] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:25,505] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:25,506] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:25,506] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:25,506] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:25,506] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:25,506] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:25,506] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:25,507] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:25,533] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:25,543] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:42,502] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:42,503] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:42,503] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:42,503] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:42,503] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:42,503] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:42,503] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:42,503] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:42,503] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:42,503] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:42,504] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:42,530] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:42,547] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:42,547] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:42,547] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:42,547] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:42,547] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:42,548] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:42,548] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:42,548] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:42,548] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:42,548] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:42,549] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:42,574] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:42,584] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -618,24 +618,24 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:26,795] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/foo
-[2026-08-11 23:08:26,798] INFO in records: Creating new record object/foo
-[2026-08-11 23:08:26,801] INFO in graph: http://localhost:5100/ns/object/foo - expanding using PyLD
-[2026-08-11 23:08:26,801] INFO in graph: Graph http://localhost:5100/ns/object/foo expanded in 0.000473s
-[2026-08-11 23:08:26,802] ERROR in records: Could not expand JSON-LD to RDF
+[2026-08-11 23:16:43,770] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/foo
+[2026-08-11 23:16:43,772] INFO in records: Creating new record object/foo
+[2026-08-11 23:16:43,775] INFO in graph: http://localhost:5100/ns/object/foo - expanding using PyLD
+[2026-08-11 23:16:43,776] INFO in graph: Graph http://localhost:5100/ns/object/foo expanded in 0.000482s
+[2026-08-11 23:16:43,776] ERROR in records: Could not expand JSON-LD to RDF
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:26,802] ERROR in records: Could not expand JSON-LD to RDF
+[2026-08-11 23:16:43,776] ERROR in records: Could not expand JSON-LD to RDF
 ------------------------------ Captured log call -------------------------------
 INFO     flaskapp:records.py:709 PUT JSON parsed as JSON-LD and rebased to: object/foo
 INFO     flaskapp:records.py:808 Creating new record object/foo
 INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/foo - expanding using PyLD
-INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/foo expanded in 0.000473s
+INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/foo expanded in 0.000482s
 ERROR    flaskapp:records.py:845 Could not expand JSON-LD to RDF
 ______________ TestPutEndpoint.test_put_with_correct_at_id_field _______________
 
-self = <test_ldp_post_put.TestPutEndpoint object at 0x7f9f5bd6da90>
+self = <test_ldp_post_put.TestPutEndpoint object at 0x7f4f1b1b9a90>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_put_with_correct_at_id_field(
@@ -669,31 +669,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:461: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:26,834] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:26,834] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:26,835] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:26,835] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:26,835] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:26,835] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:26,835] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:26,835] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:26,835] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:26,835] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:26,836] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:26,862] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:26,879] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:26,879] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:26,879] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:26,879] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:26,879] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:26,880] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:26,880] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:26,880] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:26,880] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:26,880] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:26,881] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:26,909] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:26,919] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:43,808] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:43,808] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:43,808] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:43,809] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:43,809] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:43,809] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:43,809] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:43,809] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:43,809] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:43,809] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:43,810] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:43,835] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:43,852] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:43,852] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:43,853] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:43,853] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:43,853] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:43,853] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:43,853] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:43,853] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:43,853] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:43,853] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:43,854] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:43,882] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:43,892] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -721,24 +721,24 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:28,177] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/bar
-[2026-08-11 23:08:28,180] INFO in records: Creating new record object/bar
-[2026-08-11 23:08:28,183] INFO in graph: http://localhost:5100/ns/object/bar - expanding using PyLD
-[2026-08-11 23:08:28,183] INFO in graph: Graph http://localhost:5100/ns/object/bar expanded in 0.000499s
-[2026-08-11 23:08:28,184] ERROR in records: Could not expand JSON-LD to RDF
+[2026-08-11 23:16:45,089] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/bar
+[2026-08-11 23:16:45,092] INFO in records: Creating new record object/bar
+[2026-08-11 23:16:45,095] INFO in graph: http://localhost:5100/ns/object/bar - expanding using PyLD
+[2026-08-11 23:16:45,095] INFO in graph: Graph http://localhost:5100/ns/object/bar expanded in 0.000519s
+[2026-08-11 23:16:45,096] ERROR in records: Could not expand JSON-LD to RDF
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:28,184] ERROR in records: Could not expand JSON-LD to RDF
+[2026-08-11 23:16:45,096] ERROR in records: Could not expand JSON-LD to RDF
 ------------------------------ Captured log call -------------------------------
 INFO     flaskapp:records.py:709 PUT JSON parsed as JSON-LD and rebased to: object/bar
 INFO     flaskapp:records.py:808 Creating new record object/bar
 INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/bar - expanding using PyLD
-INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/bar expanded in 0.000499s
+INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/bar expanded in 0.000519s
 ERROR    flaskapp:records.py:845 Could not expand JSON-LD to RDF
 _____________ TestPutEndpoint.test_put_with_remappable_relative_id _____________
 
-self = <test_ldp_post_put.TestPutEndpoint object at 0x7f9f5bda10f0>
+self = <test_ldp_post_put.TestPutEndpoint object at 0x7f4f1b1ed0f0>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_put_with_remappable_relative_id(
@@ -772,31 +772,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:496: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:28,217] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:28,217] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:28,217] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:28,217] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:28,218] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:28,218] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:28,218] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:28,218] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:28,218] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:28,218] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:28,219] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:28,245] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:28,262] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:28,262] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:28,262] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:28,262] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:28,263] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:28,263] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:28,263] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:28,263] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:28,263] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:28,263] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:28,264] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:28,289] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:28,299] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:45,128] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:45,129] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:45,129] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:45,129] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:45,129] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:45,129] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:45,129] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:45,129] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:45,129] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:45,129] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:45,130] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:45,156] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:45,173] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:45,173] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:45,173] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:45,173] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:45,173] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:45,174] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:45,174] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:45,174] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:45,174] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:45,174] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:45,175] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:45,200] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:45,210] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -824,18 +824,18 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:29,554] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/bar/bar
-[2026-08-11 23:08:29,554] ERROR in records: ID mismatch in PUT request: body has 'object/bar/bar' (normalized: 'object/bar/bar'), expected 'http://localhost:5100/ns/object/bar' (normalized: 'object/bar')
+[2026-08-11 23:16:46,397] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/bar/bar
+[2026-08-11 23:16:46,397] ERROR in records: ID mismatch in PUT request: body has 'object/bar/bar' (normalized: 'object/bar/bar'), expected 'http://localhost:5100/ns/object/bar' (normalized: 'object/bar')
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:29,554] ERROR in records: ID mismatch in PUT request: body has 'object/bar/bar' (normalized: 'object/bar/bar'), expected 'http://localhost:5100/ns/object/bar' (normalized: 'object/bar')
+[2026-08-11 23:16:46,397] ERROR in records: ID mismatch in PUT request: body has 'object/bar/bar' (normalized: 'object/bar/bar'), expected 'http://localhost:5100/ns/object/bar' (normalized: 'object/bar')
 ------------------------------ Captured log call -------------------------------
 INFO     flaskapp:records.py:709 PUT JSON parsed as JSON-LD and rebased to: object/bar/bar
 ERROR    flaskapp:records.py:752 ID mismatch in PUT request: body has 'object/bar/bar' (normalized: 'object/bar/bar'), expected 'http://localhost:5100/ns/object/bar' (normalized: 'object/bar')
 ___________ TestPutEndpoint.test_put_with_remappable_relative_at_id ____________
 
-self = <test_ldp_post_put.TestPutEndpoint object at 0x7f9f5bda1220>
+self = <test_ldp_post_put.TestPutEndpoint object at 0x7f4f1b1ed220>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_put_with_remappable_relative_at_id(
@@ -869,31 +869,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:531: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:29,587] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:29,587] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:29,588] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:29,588] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:29,588] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:29,588] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:29,588] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:29,588] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:29,588] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:29,588] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:29,589] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:29,617] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:29,634] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:29,635] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:29,635] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:29,635] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:29,635] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:29,635] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:29,635] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:29,635] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:29,635] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:29,635] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:29,636] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:29,662] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:29,672] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:46,429] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:46,429] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:46,429] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:46,429] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:46,430] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:46,430] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:46,430] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:46,430] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:46,430] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:46,430] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:46,431] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:46,458] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:46,474] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:46,475] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:46,475] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:46,475] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:46,475] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:46,475] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:46,475] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:46,475] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:46,476] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:46,476] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:46,476] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:46,502] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:46,512] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -921,18 +921,18 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:30,920] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/baz/baz
-[2026-08-11 23:08:30,920] ERROR in records: ID mismatch in PUT request: body has 'object/baz/baz' (normalized: 'object/baz/baz'), expected 'http://localhost:5100/ns/object/baz' (normalized: 'object/baz')
+[2026-08-11 23:16:47,696] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/baz/baz
+[2026-08-11 23:16:47,696] ERROR in records: ID mismatch in PUT request: body has 'object/baz/baz' (normalized: 'object/baz/baz'), expected 'http://localhost:5100/ns/object/baz' (normalized: 'object/baz')
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:30,920] ERROR in records: ID mismatch in PUT request: body has 'object/baz/baz' (normalized: 'object/baz/baz'), expected 'http://localhost:5100/ns/object/baz' (normalized: 'object/baz')
+[2026-08-11 23:16:47,696] ERROR in records: ID mismatch in PUT request: body has 'object/baz/baz' (normalized: 'object/baz/baz'), expected 'http://localhost:5100/ns/object/baz' (normalized: 'object/baz')
 ------------------------------ Captured log call -------------------------------
 INFO     flaskapp:records.py:709 PUT JSON parsed as JSON-LD and rebased to: object/baz/baz
 ERROR    flaskapp:records.py:752 ID mismatch in PUT request: body has 'object/baz/baz' (normalized: 'object/baz/baz'), expected 'http://localhost:5100/ns/object/baz' (normalized: 'object/baz')
 _________ TestPutEndpoint.test_put_without_id_injects_destination_uri __________
 
-self = <test_ldp_post_put.TestPutEndpoint object at 0x7f9f5bdd29f0>
+self = <test_ldp_post_put.TestPutEndpoint object at 0x7f4f1b2229f0>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_put_without_id_injects_destination_uri(
@@ -965,31 +965,31 @@ E        +  where 503 = <WrapperTestResponse streamed [503 SERVICE UNAVAILABLE]>
 
 tests/test_ldp_post_put.py:565: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:30,953] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:30,953] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:30,953] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:30,953] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:30,953] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:30,954] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:30,954] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:30,954] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:30,954] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:30,954] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:30,955] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:30,981] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:30,998] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:30,999] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:30,999] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:30,999] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:30,999] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:30,999] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:30,999] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:30,999] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:30,999] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:31,000] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:31,000] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:31,026] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:31,037] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:47,727] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:47,728] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:47,728] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:47,728] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:47,728] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:47,728] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:47,728] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:47,728] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:47,729] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:47,729] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:47,729] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:47,755] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:47,772] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:47,772] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:47,772] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:47,772] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:47,772] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:47,772] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:47,772] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:47,772] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:47,773] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:47,773] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:47,773] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:47,799] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:47,808] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -1017,19 +1017,19 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:32,299] INFO in records: PUT JSON parsed as JSON-LD and rebased to: False
-[2026-08-11 23:08:32,299] INFO in records: PUT request missing id field, injecting destination URI: object/foobar
-[2026-08-11 23:08:32,302] INFO in records: Creating new record object/foobar
-[2026-08-11 23:08:32,303] INFO in container: Autogenerating LDP container '/http:/'
-[2026-08-11 23:08:32,305] INFO in container: Autogenerating LDP container '/http:/localhost:5100/'
-[2026-08-11 23:08:32,307] INFO in container: Autogenerating LDP container '/http:/localhost:5100/ns/'
-[2026-08-11 23:08:32,308] INFO in container: Autogenerating LDP container '/http:/localhost:5100/ns/object/'
-[2026-08-11 23:08:32,314] ERROR in records: Database error during PUT: (sqlite3.IntegrityError) NOT NULL constraint failed: entity_list.container_id
+[2026-08-11 23:16:48,993] INFO in records: PUT JSON parsed as JSON-LD and rebased to: False
+[2026-08-11 23:16:48,993] INFO in records: PUT request missing id field, injecting destination URI: object/foobar
+[2026-08-11 23:16:48,996] INFO in records: Creating new record object/foobar
+[2026-08-11 23:16:48,997] INFO in container: Autogenerating LDP container '/http:/'
+[2026-08-11 23:16:48,999] INFO in container: Autogenerating LDP container '/http:/localhost:5100/'
+[2026-08-11 23:16:49,001] INFO in container: Autogenerating LDP container '/http:/localhost:5100/ns/'
+[2026-08-11 23:16:49,002] INFO in container: Autogenerating LDP container '/http:/localhost:5100/ns/object/'
+[2026-08-11 23:16:49,008] ERROR in records: Database error during PUT: (sqlite3.IntegrityError) NOT NULL constraint failed: entity_list.container_id
 [SQL: INSERT INTO entity_list (entity_id, entity_type, is_container, container_id) VALUES (?, ?, ?, ?) RETURNING id, date_added]
 [parameters: ('/http:/localhost:5100/', 'ldp:BasicContainer', 1, None)]
 (Background on this error at: https://sqlalche.me/e/20/gkpj)
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:32,314] ERROR in records: Database error during PUT: (sqlite3.IntegrityError) NOT NULL constraint failed: entity_list.container_id
+[2026-08-11 23:16:49,008] ERROR in records: Database error during PUT: (sqlite3.IntegrityError) NOT NULL constraint failed: entity_list.container_id
 [SQL: INSERT INTO entity_list (entity_id, entity_type, is_container, container_id) VALUES (?, ?, ?, ?) RETURNING id, date_added]
 [parameters: ('/http:/localhost:5100/', 'ldp:BasicContainer', 1, None)]
 (Background on this error at: https://sqlalche.me/e/20/gkpj)
@@ -1047,9 +1047,9 @@ ERROR    flaskapp:records.py:924 Database error during PUT: (sqlite3.IntegrityEr
 (Background on this error at: https://sqlalche.me/e/20/gkpj)
 _______ TestPutEndpoint.test_put_with_valid_data_updates_existing_record _______
 
-self = <test_ldp_post_put.TestPutEndpoint object at 0x7f9f5bd4e850>
+self = <test_ldp_post_put.TestPutEndpoint object at 0x7f4f1b192850>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_put_with_valid_data_updates_existing_record(
@@ -1082,31 +1082,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:644: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:35,064] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:35,064] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:35,064] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:35,064] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:35,064] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:35,064] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:35,065] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:35,065] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:35,065] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:35,065] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:35,066] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:35,091] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:35,109] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:35,109] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:35,109] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:35,109] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:35,109] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:35,109] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:35,110] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:35,110] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:35,110] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:35,110] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:35,111] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:35,137] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:35,147] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:51,630] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:51,631] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:51,631] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:51,631] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:51,631] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:51,631] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:51,631] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:51,631] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:51,631] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:51,632] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:51,632] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:51,658] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:51,675] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:51,675] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:51,675] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:51,675] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:51,676] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:51,676] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:51,676] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:51,676] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:51,676] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:51,676] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:51,677] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:51,703] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:51,713] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -1134,26 +1134,26 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:36,418] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec
-[2026-08-11 23:08:36,421] INFO in records: Checking if '/object/' is a valid container to POST to
-[2026-08-11 23:08:36,422] INFO in records: Found object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec identifier for POSTed JSON-LD to /object/
-[2026-08-11 23:08:36,425] INFO in graph: http://localhost:5100/ns/object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec - expanding using PyLD
-[2026-08-11 23:08:36,426] INFO in graph: Graph http://localhost:5100/ns/object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec expanded in 0.000513s
-[2026-08-11 23:08:36,426] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec
+[2026-08-11 23:16:52,907] INFO in records: POSTed JSON parsed as JSON-LD and rebased to: object/79726af8-453e-44bb-a173-e69740cc1297
+[2026-08-11 23:16:52,910] INFO in records: Checking if '/object/' is a valid container to POST to
+[2026-08-11 23:16:52,911] INFO in records: Found object/79726af8-453e-44bb-a173-e69740cc1297 identifier for POSTed JSON-LD to /object/
+[2026-08-11 23:16:52,914] INFO in graph: http://localhost:5100/ns/object/79726af8-453e-44bb-a173-e69740cc1297 - expanding using PyLD
+[2026-08-11 23:16:52,915] INFO in graph: Graph http://localhost:5100/ns/object/79726af8-453e-44bb-a173-e69740cc1297 expanded in 0.000448s
+[2026-08-11 23:16:52,915] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/79726af8-453e-44bb-a173-e69740cc1297
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:36,426] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec
+[2026-08-11 23:16:52,915] ERROR in records: graph_expand returned False for URI: http://localhost:5100/ns/object/79726af8-453e-44bb-a173-e69740cc1297
 ------------------------------ Captured log call -------------------------------
-INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec
+INFO     flaskapp:records.py:414 POSTed JSON parsed as JSON-LD and rebased to: object/79726af8-453e-44bb-a173-e69740cc1297
 INFO     flaskapp:records.py:482 Checking if '/object/' is a valid container to POST to
-INFO     flaskapp:records.py:498 Found object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec identifier for POSTed JSON-LD to /object/
-INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec - expanding using PyLD
-INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec expanded in 0.000513s
-ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/4bb7d11a-781b-4477-ae55-72fdf2ea8dec
+INFO     flaskapp:records.py:498 Found object/79726af8-453e-44bb-a173-e69740cc1297 identifier for POSTed JSON-LD to /object/
+INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/79726af8-453e-44bb-a173-e69740cc1297 - expanding using PyLD
+INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/79726af8-453e-44bb-a173-e69740cc1297 expanded in 0.000448s
+ERROR    flaskapp:records.py:629 graph_expand returned False for URI: http://localhost:5100/ns/object/79726af8-453e-44bb-a173-e69740cc1297
 _______________ TestPutEndpoint.test_put_returns_correct_headers _______________
 
-self = <test_ldp_post_put.TestPutEndpoint object at 0x7f9f5bd4ea50>
+self = <test_ldp_post_put.TestPutEndpoint object at 0x7f4f1b192a50>
 namespace = 'ns', client_ldpapi = <FlaskClient <OpenAPI 'flaskapp'>>
-ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f9f5be06f20>)>
+ldp_fixture_app = <pytest_fixture(<function current_app at 0x7f4f1b39ef20>)>
 auth_token = 'AuthToken'
 
     def test_put_returns_correct_headers(
@@ -1179,31 +1179,31 @@ E        +  where 422 = <WrapperTestResponse streamed [422 UNPROCESSABLE ENTITY]
 
 tests/test_ldp_post_put.py:689: AssertionError
 ---------------------------- Captured stdout setup -----------------------------
-[2026-08-11 23:08:36,459] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:36,459] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:36,459] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:36,459] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:36,459] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:36,459] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:36,460] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:36,460] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:36,460] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:36,460] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:36,461] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:36,487] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:36,504] INFO in __init__: LOD Gateway logging INFO at level INFO
-[2026-08-11 23:08:36,504] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
-[2026-08-11 23:08:36,504] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
-[2026-08-11 23:08:36,504] INFO in __init__: RDF processing is enabled
-[2026-08-11 23:08:36,505] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
-[2026-08-11 23:08:36,505] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
-[2026-08-11 23:08:36,505] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
-[2026-08-11 23:08:36,505] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
-[2026-08-11 23:08:36,505] INFO in __init__: Versioning support is enabled
-[2026-08-11 23:08:36,505] INFO in __init__: Subaddressing support is enabled
-[2026-08-11 23:08:36,506] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
-[2026-08-11 23:08:36,532] INFO in __init__: LOD Gateway configured and ready for use
-[2026-08-11 23:08:36,543] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
+[2026-08-11 23:16:52,947] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:52,947] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:52,947] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:52,947] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:52,947] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:52,948] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:52,948] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:52,948] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:52,948] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:52,948] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:52,949] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:52,974] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:52,991] INFO in __init__: LOD Gateway logging INFO at level INFO
+[2026-08-11 23:16:52,991] INFO in __init__: Caching RDF prefixes from contexts for: 43200s
+[2026-08-11 23:16:52,992] INFO in __init__: Setting the timelimit for external HTTP calls to be 45 seconds
+[2026-08-11 23:16:52,992] INFO in __init__: RDF processing is enabled
+[2026-08-11 23:16:52,992] INFO in __init__: LDP Support: Backend active? True, LDP API active? False, Autocreate Containers on /ingest? True, Container page size 200
+[2026-08-11 23:16:52,992] INFO in __init__: Attempting to load content profiles from JSON-encoded configuration
+[2026-08-11 23:16:52,992] INFO in __init__: Found urn:getty:dublincore support for ['InformationObject'] objects
+[2026-08-11 23:16:52,992] INFO in __init__: Found urn:getty:dublincore support for ['LinguisticObject'] objects
+[2026-08-11 23:16:52,992] INFO in __init__: Versioning support is enabled
+[2026-08-11 23:16:52,992] INFO in __init__: Subaddressing support is enabled
+[2026-08-11 23:16:52,993] INFO in __init__: LOD Gateway will serve from a base of 'http://localhost:5100/ns
+[2026-08-11 23:16:53,018] INFO in __init__: LOD Gateway configured and ready for use
+[2026-08-11 23:16:53,028] INFO in container: NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ------------------------------ Captured log setup ------------------------------
 INFO     flaskapp:__init__.py:144 LOD Gateway logging INFO at level INFO
 INFO     flaskapp:__init__.py:180 Caching RDF prefixes from contexts for: 43200s
@@ -1231,18 +1231,18 @@ INFO     flaskapp:__init__.py:509 LOD Gateway will serve from a base of 'http://
 INFO     flaskapp:__init__.py:529 LOD Gateway configured and ready for use
 INFO     flaskapp:container.py:26 NO ROOT LDP Container found, creating: 'Getty Activity Stream (Example)'
 ----------------------------- Captured stdout call -----------------------------
-[2026-08-11 23:08:37,819] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/test-headers
-[2026-08-11 23:08:37,822] INFO in records: Creating new record object/test-headers
-[2026-08-11 23:08:37,825] INFO in graph: http://localhost:5100/ns/object/test-headers - expanding using PyLD
-[2026-08-11 23:08:37,826] INFO in graph: Graph http://localhost:5100/ns/object/test-headers expanded in 0.000486s
-[2026-08-11 23:08:37,826] ERROR in records: Could not expand JSON-LD to RDF
+[2026-08-11 23:16:54,232] INFO in records: PUT JSON parsed as JSON-LD and rebased to: object/test-headers
+[2026-08-11 23:16:54,235] INFO in records: Creating new record object/test-headers
+[2026-08-11 23:16:54,238] INFO in graph: http://localhost:5100/ns/object/test-headers - expanding using PyLD
+[2026-08-11 23:16:54,238] INFO in graph: Graph http://localhost:5100/ns/object/test-headers expanded in 0.000471s
+[2026-08-11 23:16:54,239] ERROR in records: Could not expand JSON-LD to RDF
 ----------------------------- Captured stderr call -----------------------------
-[2026-08-11 23:08:37,826] ERROR in records: Could not expand JSON-LD to RDF
+[2026-08-11 23:16:54,239] ERROR in records: Could not expand JSON-LD to RDF
 ------------------------------ Captured log call -------------------------------
 INFO     flaskapp:records.py:709 PUT JSON parsed as JSON-LD and rebased to: object/test-headers
 INFO     flaskapp:records.py:808 Creating new record object/test-headers
 INFO     flaskapp:graph.py:108 http://localhost:5100/ns/object/test-headers - expanding using PyLD
-INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/test-headers expanded in 0.000486s
+INFO     flaskapp:graph.py:166 Graph http://localhost:5100/ns/object/test-headers expanded in 0.000471s
 ERROR    flaskapp:records.py:845 Could not expand JSON-LD to RDF
 =============================== warnings summary ===============================
 ../usr/local/lib/python3.13/site-packages/pytest_cov/plugin.py:256
@@ -1277,4 +1277,4 @@ FAILED tests/test_ldp_post_put.py::TestPutEndpoint::test_put_with_remappable_rel
 FAILED tests/test_ldp_post_put.py::TestPutEndpoint::test_put_without_id_injects_destination_uri
 FAILED tests/test_ldp_post_put.py::TestPutEndpoint::test_put_with_valid_data_updates_existing_record
 FAILED tests/test_ldp_post_put.py::TestPutEndpoint::test_put_returns_correct_headers
-12 failed, 168 passed, 2 warnings in 52.60s
+12 failed, 168 passed, 2 warnings in 50.47s

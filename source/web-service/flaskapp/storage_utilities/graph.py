@@ -166,7 +166,7 @@ def graph_expand(data, proc=None):
         current_app.logger.info(
             f"Graph {data[id_attr]} expanded in {time.perf_counter() - tictoc:05f}s"
         )
-        current_app.logger.debug(
+        current_app.logger.info(
             f"graph_expand returning: type={type(serialized_nt)}, value={repr(serialized_nt)[:200]}"
         )
         return serialized_nt

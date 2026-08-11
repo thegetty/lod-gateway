@@ -573,9 +573,7 @@ def container_post_item(
                         commit=False,
                         process_the_activity=True,
                     )
-                    current_app.logger.debug(
-                        f"Record created with ID: {record_id}"
-                    )
+                    current_app.logger.debug(f"Record created with ID: {record_id}")
 
                     prefixed_jsonld = inflate_relative_uris(
                         posted_representation.json_ld, posted_representation.id_attr
@@ -584,7 +582,9 @@ def container_post_item(
                         f"Prefixed JSON-LD for graph expand: {json.dumps(prefixed_jsonld, indent=2)[:500]}"
                     )
 
-                    current_app.logger.debug(f"Calling graph_expand for: {prefixed_jsonld.get(posted_representation.id_attr, 'NO ID')}")
+                    current_app.logger.debug(
+                        f"Calling graph_expand for: {prefixed_jsonld.get(posted_representation.id_attr, 'NO ID')}"
+                    )
                     if expanded := graph_expand(prefixed_jsonld):
                         graph_uri = prefixed_jsonld[posted_representation.id_attr]
                         current_app.logger.debug(

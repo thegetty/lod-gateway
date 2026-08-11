@@ -711,9 +711,9 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         current_app.logger.info(
             f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"
         )
-        posted_representation.json_ld[
-            id_attr
-        ] = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
+        posted_representation.json_ld[id_attr] = (
+            f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
+        )
         body_id = posted_representation.json_ld[id_attr]
 
     # Relaxed ID matching: normalize both IDs to compare them

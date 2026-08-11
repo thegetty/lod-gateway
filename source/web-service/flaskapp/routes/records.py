@@ -743,6 +743,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"
         )
         posted_representation.json_ld[id_attr] = entity_id
+        posted_representation.id_attr = id_attr
         body_id = posted_representation.json_ld[id_attr]
 
     # Relaxed ID matching: normalize both IDs to compare them

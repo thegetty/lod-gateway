@@ -18,6 +18,8 @@ from flaskapp.models.record import Record
 
 # Reuse helpers from test_ldp_api.py
 BASE_URL = "http://localhost:5100/"
+
+from tests.test_ldp_api import delete_resource
 JSONLD_CT = "application/ld+json"
 DCTERMS = Namespace("http://purl.org/dc/terms/")
 
@@ -124,9 +126,8 @@ class TestPostToDeletedRecords:
         assert post_response.status_code == 201
 
         # Delete the record using the DELETE endpoint
-        delete_response = client_ldpapi.delete(
-            f"{namespace}/{entity_id}",
-            headers={"Authorization": f"Bearer {auth_token}"},
+        delete_response = delete_resource(
+            namespace, client_ldpapi, auth_token, f"object/{entity_id}"
         )
         assert delete_response.status_code == 200
 
@@ -288,9 +289,8 @@ class TestPostToDeletedRecords:
         # Delete some records (index 1 and 3)
         deleted_ids = [entity_ids[1], entity_ids[3]]
         for eid in deleted_ids:
-            delete_response = client_ldpapi.delete(
-                f"{namespace}/{eid}",
-                headers={"Authorization": f"Bearer {auth_token}"},
+            delete_response = delete_resource(
+                namespace, client_ldpapi, auth_token, f"object/{eid}"
             )
             assert delete_response.status_code == 200
 
@@ -354,9 +354,8 @@ class TestPostToDeletedRecords:
         assert post_response.status_code == 201
 
         # Delete the record
-        delete_response = client_ldpapi.delete(
-            f"{namespace}/{entity_id}",
-            headers={"Authorization": f"Bearer {auth_token}"},
+        delete_response = delete_resource(
+            namespace, client_ldpapi, auth_token, f"object/{entity_id}"
         )
         assert delete_response.status_code == 200
 

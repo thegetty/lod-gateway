@@ -711,7 +711,9 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         current_app.logger.info(
             f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"
         )
-        posted_representation.json_ld[id_attr] = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
+        posted_representation.json_ld[
+            id_attr
+        ] = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
         body_id = posted_representation.json_ld[id_attr]
 
     # Relaxed ID matching: normalize both IDs to compare them
@@ -725,7 +727,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             return ""
         # Remove idPrefix if present
         if id_str.startswith(current_app.config["idPrefix"] + "/"):
-            id_str = id_str[len(current_app.config["idPrefix"]) + 1:]
+            id_str = id_str[len(current_app.config["idPrefix"]) + 1 :]
         # Remove leading slash
         id_str = id_str.lstrip("/")
         return id_str
@@ -766,7 +768,13 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             "Request failed - no parent container available, and LDP_AUTOCREATE_CONTAINERS flag is False"
         )
         # Changed from status_not_implemented (501) to 422
-        response = construct_error_response(status_nt(422, "Container not found", "Parent container does not exist and LDP_AUTOCREATE_CONTAINERS is False"))
+        response = construct_error_response(
+            status_nt(
+                422,
+                "Container not found",
+                "Parent container does not exist and LDP_AUTOCREATE_CONTAINERS is False",
+            )
+        )
         abort(response)
 
     # Process the PUT
@@ -878,7 +886,9 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
 
             # Add LDP Resource link header
             if current_app.config["LDP_API"]:
-                link_headers = link_headers + ', <http://www.w3.org/ns/ldp#Resource>; rel="type"'
+                link_headers = (
+                    link_headers + ', <http://www.w3.org/ns/ldp#Resource>; rel="type"'
+                )
 
             status_code = 200 if record else 201
 
@@ -886,7 +896,9 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             response = current_app.make_response(jsonify(data))
             response.status_code = status_code
             response.headers["Content-Type"] = content_type
-            response.headers["Last-Modified"] = format_datetime(datetime.now(timezone.utc))
+            response.headers["Last-Modified"] = format_datetime(
+                datetime.now(timezone.utc)
+            )
             if etag:
                 response.headers["ETag"] = etag
             response.headers["Link"] = link_headers

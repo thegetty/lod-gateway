@@ -763,6 +763,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         jsonld = posted_representation.json_ld
         jsonld[id_attr] = entity_id
         posted_representation.jsonld = jsonld
+        body_id = entity_id
 
     # Relaxed ID matching: normalize both IDs to compare them
     # The destination URI should be the entity_id with the idPrefix prepended

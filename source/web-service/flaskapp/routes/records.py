@@ -580,12 +580,25 @@ def container_post_item(
                     current_app.logger.debug(
                         f"Creating record in DB for identifier: {identifier}"
                     )
-                    record_id = record_create(
-                        posted_representation.json_ld,
-                        commit=False,
-                        process_the_activity=True,
-                    )
-                    current_app.logger.debug(f"Record created with ID: {record_id}")
+
+                    if existing and existing.datetime_deleted is not None:
+                        # Need to update existing but previously deleted record
+                        record_id = existing.id
+                        record_update(
+                            existing,
+                            posted_representation.json_ld,
+                            commit=False,
+                            process_the_activity=True,
+                        )
+                    else:
+                        record_id = record_create(
+                            posted_representation.json_ld,
+                            commit=False,
+                            process_the_activity=True,
+                        )
+                        current_app.logger.debug(
+                            f"New Record created with ID: {record_id}"
+                        )
 
                     prefixed_jsonld = inflate_relative_uris(
                         posted_representation.json_ld, posted_representation.id_attr
@@ -689,7 +702,6 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     - 200 OK if existing record updated
     - 422 Unprocessable Entity if validation fails
     """
-    entity_id = path.entity_id
 
     if not current_app.config["LDP_API"] or not current_app.config["LDP_BACKEND"]:
         response = construct_error_response(status_not_implemented)
@@ -705,14 +717,19 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         f"Authentication checked - PUT LDP resource request allowed."
     )
 
+    # CRUCIAL identifier
+    entity_id = path.entity_id
+
     # Get the implied container-hierarchy from the entity_id
     container_breadcrumbs = segment_entity_id(entity_id)
 
+    if len(container_breadcrumbs) == 1:
+        # Cannot PUT to /
+        response = construct_error_response(status_not_implemented)
+        abort(response)
+
     # The parent container is the second-to-last breadcrumb (last is the entity itself)
-    if len(container_breadcrumbs) < 2:
-        relative_container = container_breadcrumbs[0].strip("/")
-    else:
-        relative_container = container_breadcrumbs[-2].strip("/")
+    relative_container = container_breadcrumbs[-2].strip("/")
 
     # Validate JSON-LD (parse_representation handles both JSON and JSON-LD validation)
     # Pass the pydantic body model, not the raw dict
@@ -737,47 +754,35 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     # Handle missing ID: inject destination URI if no @id/id present
     id_attr = "@id" if "@id" in posted_representation.json_ld else "id"
     body_id = posted_representation.json_ld.get(id_attr)
-    if body_id is None:
+    if body_id:
         # No ID in body - inject the destination URI (relative path)
         current_app.logger.info(
             f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"
         )
-        posted_representation.json_ld[id_attr] = entity_id
-        posted_representation.id_attr = id_attr
-        body_id = posted_representation.json_ld[id_attr]
+        # Remake the JSON-LD with the proper id and using 'id' or '@id' if body_id = ""
+        jsonld = posted_representation.json_ld
+        jsonld[id_attr] = entity_id
+        posted_representation.jsonld = jsonld
 
     # Relaxed ID matching: normalize both IDs to compare them
     # The destination URI should be the entity_id with the idPrefix prepended
-    expected_id = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
+    fqdn_id = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
 
     current_app.logger.info(
-        f"PUT ID check: body_id='{body_id}', expected_id='{expected_id}', entity_id='{entity_id}'"
+        f"PUT ID check: body_id='{body_id}', fqdn_id='{fqdn_id}', entity_id='{entity_id}'"
     )
 
-    # Normalize IDs for comparison (handle relative vs absolute, different base URLs)
-    def normalize_id(id_str):
-        """Normalize an ID for comparison: remove idPrefix, strip leading slashes."""
-        if id_str is None:
-            return ""
-        # Remove idPrefix if present
-        if id_str.startswith(current_app.config["idPrefix"] + "/"):
-            id_str = id_str[len(current_app.config["idPrefix"]) + 1 :]
-        # Remove leading slash
-        id_str = id_str.lstrip("/")
-        return id_str
-
-    normalized_body_id = normalize_id(body_id)
-    normalized_expected_id = normalize_id(expected_id)
-
-    if normalized_body_id != normalized_expected_id:
+    # Check - does the body_id match the entity_id? Note that part of the POINT of the
+    # Representation parsing is to rebase the JSON-LD into a relative_id form
+    if body_id != entity_id:
         current_app.logger.error(
-            f"ID mismatch in PUT request: body has '{body_id}' (normalized: '{normalized_body_id}'), expected '{expected_id}' (normalized: '{normalized_expected_id}')"
+            f"ID mismatch in PUT request: body has '{body_id}' (normalized: '{entity_id}')"
         )
         response = construct_error_response(
             status_nt(
                 422,
                 "ID Mismatch",
-                f"The {id_attr} in the body ({body_id}) does not match the destination URI ({expected_id})",
+                f"The {id_attr} in the body ({body_id}) does not match the destination URI ({entity_id})",
             )
         )
         abort(response)
@@ -812,6 +817,8 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         abort(response)
 
     # Process the PUT
+
+    status_code = 200
     with db.session.no_autoflush:
         try:
             if record:
@@ -832,6 +839,8 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
                     commit=False,
                     process_the_activity=True,
                 )
+                # Created
+                status_code = 201
 
             # Process RDF if applicable
             if current_app.config["PROCESS_RDF"] is True:
@@ -876,15 +885,13 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             db.session.commit()
 
             # Reload the record to get the updated datetime_updated
-            if record:
-                db.session.expunge(record)
-                record = (
-                    db.session.query(Record)
-                    .filter(Record.entity_id == entity_id)
-                    .options(defer(Record.data))
-                    .limit(1)
-                    .first()
-                )
+            record = (
+                db.session.query(Record)
+                .filter(Record.entity_id == entity_id)
+                .options(defer(Record.data))
+                .limit(1)
+                .first()
+            )
 
             # Return the record representation equivalent to a GET on the entity
             # This includes id remapping and other transformations
@@ -895,6 +902,10 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             attr = "@id" if "@id" in posted_representation.json_ld else "id"
             data = posted_representation.json_ld
 
+            urlprefixes = None
+            if current_app.config["PROCESS_RDF"] is True and "@context" in data:
+                urlprefixes = get_url_prefixes_from_context(data["@context"])
+
             # Prefix record IDs
             prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
             if prefixRecordIDs != "NONE":
@@ -904,7 +915,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
                     callback=idPrefixer,
                     prefix=idPrefix,
                     recursive=True,
-                    urlprefixes=None,
+                    urlprefixes=urlprefixes,
                 )
 
                 # Remove @base if present
@@ -919,7 +930,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
 
             # Build response headers (similar to GET handler)
             content_type = "application/ld+json;charset=UTF-8"
-            etag = None
+            etag = f'"{record.checksum}"'
 
             # Link headers
             link_headers = (
@@ -934,8 +945,6 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
                 link_headers = (
                     link_headers + ', <http://www.w3.org/ns/ldp#Resource>; rel="type"'
                 )
-
-            status_code = 200 if record else 201
 
             # Build response
             response = current_app.make_response(jsonify(data))

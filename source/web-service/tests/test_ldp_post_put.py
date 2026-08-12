@@ -6,41 +6,40 @@ This test file covers:
 2. Issue 2: PUT mechanism for creating/updating records with full validation
 """
 
-import json
 import pytest
-from datetime import datetime, timezone
 from uuid import uuid4
+
+import urllib.parse as urlparse
 
 from rdflib import Namespace
 
-from flaskapp.models import db
 from flaskapp.models.record import Record
 
-# Reuse helpers from test_ldp_api.py
-BASE_URL = "http://localhost:5100/"
-
 from tests.test_ldp_api import delete_resource
-JSONLD_CT = "application/ld+json"
+
+# LDP & common namespaces
+LDP = Namespace("http://www.w3.org/ns/ldp#")
 DCTERMS = Namespace("http://purl.org/dc/terms/")
+FOAF = Namespace("http://xmlns.com/foaf/0.1/")
+
+BASE_URL = "http://localhost:5100/"
+JSONLD_CT = "application/ld+json"
 
 
-def _make_payload(base: dict) -> dict:
-    """Add @context to payload for PyLD RDF conversion.
-
-    Working tests use:
-        "@context": {"dcterms": str(DCTERMS), "type": "@type"},
-        "type": "http://www.w3.org/ns/ldp#RDFSource",
-        "dcterms:title": "...",
-    """
+def create_basic_text_annotation(target, text_content, mimeformat="text/plain"):
     return {
-        "@context": {"dcterms": str(DCTERMS), "type": "@type"},
-        **base,
+        "@context": "https://www.w3.org/ns/anno.jsonld",
+        "type": "Annotation",
+        "body": {
+            "type": "TextualBody",
+            "value": text_content,
+            "format": mimeformat,
+        },
+        "target": target,
     }
 
 
 def to_abs(namespace, url: str) -> str:
-    import urllib.parse as urlparse
-
     base = BASE_URL
     if namespace:
         base = urlparse.urljoin(BASE_URL, namespace).rstrip("/") + "/"
@@ -61,8 +60,6 @@ def _post_jsonld(
     slug: str = None,
 ):
     """POST with auth, using helpers from test_ldp_api.py."""
-    import urllib.parse as urlparse
-
     headers = {"Content-Type": JSONLD_CT, "Authorization": "Bearer " + auth_token}
     if slug:
         headers["Slug"] = slug
@@ -82,8 +79,6 @@ def _post_jsonld(
 
 def _put_jsonld(namespace, client_ldpapi, auth_token, url: str, body: dict):
     """PUT with auth, using helpers from test_ldp_api.py."""
-    import urllib.parse as urlparse
-
     headers = {"Content-Type": JSONLD_CT, "Authorization": "Bearer " + auth_token}
 
     if not (url.startswith(f"/{namespace}/") or url.startswith(f"{namespace}/")):
@@ -107,13 +102,12 @@ class TestPostToDeletedRecords:
         """
         # Create a record first via POST to a container
         entity_id = str(uuid4())
-        original_data = _make_payload(
-            {
-                "@id": entity_id,
-                "type": "Object",
-                "dcterms:title": "Original",
-            }
-        )
+        original_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": entity_id,
+            "type": "Object",
+            "dcterms:title": "Original",
+        }
 
         # Create record via POST to container
         post_response = _post_jsonld(
@@ -132,14 +126,12 @@ class TestPostToDeletedRecords:
         assert delete_response.status_code == 200
 
         # POST to the same container again with new data
-        new_data = _make_payload(
-            {
-                "@id": entity_id,
-                "type": "Object",
-                "dcterms:title": "New Resource",
-                "description": "This should replace the deleted record",
-            }
-        )
+        new_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": entity_id,
+            "type": "Object",
+            "dcterms:title": "Fixed",
+        }
 
         response = _post_jsonld(
             namespace,

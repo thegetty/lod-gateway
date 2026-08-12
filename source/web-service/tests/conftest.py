@@ -99,7 +99,7 @@ def ldp_fixture_app(app_ldpapi, ldp_db, ldp_sample_containers):
             options=options,
         )
         record_create(doc, process_the_activity=True)
-    test_db.session.commit()
+    ldp_db.session.commit()
 
     yield current_app
 

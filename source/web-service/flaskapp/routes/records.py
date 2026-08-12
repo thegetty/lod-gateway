@@ -943,7 +943,9 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             response.status_code = status_code
             response.headers["Content-Type"] = content_type
             if record and record.datetime_updated:
-                response.headers["Last-Modified"] = format_datetime(record.datetime_updated)
+                response.headers["Last-Modified"] = format_datetime(
+                    record.datetime_updated
+                )
             if etag:
                 response.headers["ETag"] = etag
             response.headers["Link"] = link_headers

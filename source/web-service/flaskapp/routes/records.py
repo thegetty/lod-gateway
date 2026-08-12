@@ -761,7 +761,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         )
         # Remake the JSON-LD with the proper id and using 'id' or '@id' if body_id = ""
         jsonld = posted_representation.json_ld
-        jsonld[id_attr] = entity_id
+        jsonld["@id"] = entity_id  # always '@id' to match posted_representation.id_attr
         posted_representation.jsonld = jsonld
         body_id = entity_id
 

@@ -13,9 +13,6 @@ import urllib.parse as urlparse
 
 from rdflib import Graph, Namespace, URIRef
 
-from flaskapp.models import db
-from flaskapp.models.record import Record
-
 # LDP & common namespaces
 LDP = Namespace("http://www.w3.org/ns/ldp#")
 DCTERMS = Namespace("http://purl.org/dc/terms/")
@@ -217,14 +214,15 @@ class TestPostToDeletedRecords:
             created_ref,
         ) in g_after_second_post, "BasicContainer did not re-add ldp:contains."
 
-        # Verify new record was created
-        new_record = (
-            db.session.query(Record).filter(Record.entity_id == entity_id).one_or_none()
+        # Verify new record was created via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, f"object/{entity_id}"),
+            headers={"Authorization": "Bearer " + auth_token},
         )
-        assert new_record is not None
-        assert new_record.data is not None
-        assert new_record.datetime_deleted is None
-        assert new_record.data.get("dcterms:title") == "New Resource"
+        assert get_response.status_code == 200
+        record_data = get_response.get_json()
+        assert record_data is not None
+        assert record_data.get("dcterms:title") == "New Resource"
 
     def test_post_to_active_record_fails_with_409(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -252,30 +250,33 @@ class TestPostToDeletedRecords:
         )
         assert post_response.status_code == 201
 
-        # Verify record is active
-        record = db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
-        if record:
-            assert record.data is not None
-            assert record.datetime_deleted is None
+        # Verify record is active via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, f"object/{entity_id}"),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert get_response.status_code == 200
+        record_data = get_response.get_json()
+        assert record_data.get("dcterms:title") == "Original"
 
-            # POST to the same container again with same ID (should fail with 409)
-            new_data = {
-                "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
-                "@id": entity_id,
-                "type": "Object",
-                "dcterms:title": "Duplicate",
-            }
+        # POST to the same container again with same ID (should fail with 409)
+        new_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": entity_id,
+            "type": "Object",
+            "dcterms:title": "Duplicate",
+        }
 
-            response = _post_jsonld(
-                namespace,
-                client_ldpapi,
-                auth_token,
-                "object/",
-                new_data,
-            )
+        response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
+            "object/",
+            new_data,
+        )
 
-            # Should fail with 409 Conflict
-            assert response.status_code == 409
+        # Should fail with 409 Conflict
+        assert response.status_code == 409
 
     def test_post_to_nonexistent_path_succeeds(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -304,13 +305,14 @@ class TestPostToDeletedRecords:
         assert response.status_code == 201
         assert "Location" in response.headers
 
-        # Verify record was created
-        new_record = (
-            db.session.query(Record).filter(Record.entity_id == entity_id).one_or_none()
+        # Verify record was created via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, f"object/{entity_id}"),
+            headers={"Authorization": "Bearer " + auth_token},
         )
-        assert new_record is not None
-        assert new_record.data is not None
-        assert new_record.datetime_deleted is None
+        assert get_response.status_code == 200
+        record_data = get_response.get_json()
+        assert record_data.get("dcterms:title") == "Brand New Resource"
 
     def test_post_to_deleted_record_with_pagination(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -383,8 +385,6 @@ class TestPostToDeletedRecords:
 
         Should create a new Activity for the new resource.
         """
-        from flaskapp.models.activity import Activity
-
         # Create a record via POST
         entity_id = str(uuid4())
         original_data = {
@@ -402,6 +402,16 @@ class TestPostToDeletedRecords:
             original_data,
         )
         assert post_response.status_code == 201
+
+        # Get activity stream count after first POST (404 means totalItems == 0)
+        activity_before = client_ldpapi.get(
+            to_abs(namespace, f"object/{entity_id}/activity-stream"),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        if activity_before.status_code == 200:
+            count_before = activity_before.get_json().get("totalItems", 0)
+        else:
+            count_before = 0
 
         # Delete the record
         delete_response = delete_resource(
@@ -426,9 +436,14 @@ class TestPostToDeletedRecords:
 
         assert response.status_code == 201
 
-        # Verify Activity was created
-        activities = db.session.query(Activity).all()
-        assert len(activities) > 0
+        # Verify activity stream grew (new activity entries created)
+        activity_after = client_ldpapi.get(
+            to_abs(namespace, f"object/{entity_id}/activity-stream"),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert activity_after.status_code == 200
+        count_after = activity_after.get_json().get("totalItems", 0)
+        assert count_after > count_before
 
 
 class TestPutEndpoint:
@@ -465,15 +480,15 @@ class TestPutEndpoint:
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
         assert "Location" in response.headers
 
-        # Verify record was created
-        new_record = (
-            db.session.query(Record)
-            .filter(Record.entity_id == "object/foo")
-            .one_or_none()
+        # Verify record was created via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, "object/foo"),
+            headers={"Authorization": "Bearer " + auth_token},
         )
-        assert new_record is not None
-        assert new_record.data is not None
-        assert new_record.data.get("dcterms:title") == "Resource with correct id"
+        assert get_response.status_code == 200
+        assert (
+            get_response.get_json().get("dcterms:title") == "Resource with correct id"
+        )
 
     def test_put_with_correct_at_id_field(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -500,14 +515,15 @@ class TestPutEndpoint:
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
-        # Verify record was created
-        new_record = (
-            db.session.query(Record)
-            .filter(Record.entity_id == "object/bar")
-            .one_or_none()
+        # Verify record was created via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, "object/bar"),
+            headers={"Authorization": "Bearer " + auth_token},
         )
-        assert new_record is not None
-        assert new_record.data.get("dcterms:title") == "Resource with correct @id"
+        assert get_response.status_code == 200
+        assert (
+            get_response.get_json().get("dcterms:title") == "Resource with correct @id"
+        )
 
     def test_put_with_remappable_relative_id(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -541,15 +557,14 @@ class TestPutEndpoint:
         )
         assert "@id" in returned_data
 
-        # Verify record was created with correct entity_id
-        new_record = (
-            db.session.query(Record)
-            .filter(Record.entity_id == "object/bar")
-            .one_or_none()
+        # Verify record was created with correct entity_id via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, "object/bar"),
+            headers={"Authorization": "Bearer " + auth_token},
         )
-        assert new_record is not None
+        assert get_response.status_code == 200
         assert (
-            new_record.data.get("dcterms:title")
+            get_response.get_json().get("dcterms:title")
             == "Resource with remappable relative id"
         )
 
@@ -578,15 +593,14 @@ class TestPutEndpoint:
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
-        # Verify record was created with correct entity_id
-        new_record = (
-            db.session.query(Record)
-            .filter(Record.entity_id == "object/baz")
-            .one_or_none()
+        # Verify record was created with correct entity_id via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, "object/baz"),
+            headers={"Authorization": "Bearer " + auth_token},
         )
-        assert new_record is not None
+        assert get_response.status_code == 200
         assert (
-            new_record.data.get("dcterms:title")
+            get_response.get_json().get("dcterms:title")
             == "Resource with remappable relative id"
         )
 
@@ -614,16 +628,16 @@ class TestPutEndpoint:
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
-        # Verify record was created with correct entity_id
-        new_record = (
-            db.session.query(Record)
-            .filter(Record.entity_id == "object/foobar")
-            .one_or_none()
+        # Verify record was created with correct entity_id via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, "object/foobar"),
+            headers={"Authorization": "Bearer " + auth_token},
         )
-        assert new_record is not None
-        assert new_record.data.get("dcterms:title") == "Resource without id"
+        assert get_response.status_code == 200
+        record_data = get_response.get_json()
+        assert record_data.get("dcterms:title") == "Resource without id"
         # Verify the injected @id
-        assert "@id" in new_record.data or "id" in new_record.data
+        assert "@id" in record_data or "id" in record_data
 
     def test_put_with_mismatched_id_returns_error(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -710,12 +724,13 @@ class TestPutEndpoint:
 
         assert put_response.status_code == 200
 
-        # Verify update
-        updated_record = (
-            db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+        # Verify update via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, f"object/{entity_id}"),
+            headers={"Authorization": "Bearer " + auth_token},
         )
-        assert updated_record is not None
-        assert updated_record.data.get("dcterms:title") == "UPDATED Name"
+        assert get_response.status_code == 200
+        assert get_response.get_json().get("dcterms:title") == "UPDATED Name"
 
     def test_put_returns_correct_headers(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token

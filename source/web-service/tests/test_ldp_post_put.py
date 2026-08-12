@@ -495,7 +495,10 @@ class TestPutEndpoint:
             .one_or_none()
         )
         assert new_record is not None
-        assert new_record.data.get("dcterms:title") == "Resource with remappable relative id"
+        assert (
+            new_record.data.get("dcterms:title")
+            == "Resource with remappable relative id"
+        )
 
     def test_put_with_remappable_relative_at_id(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
@@ -530,7 +533,10 @@ class TestPutEndpoint:
             .one_or_none()
         )
         assert new_record is not None
-        assert new_record.data.get("dcterms:title") == "Resource with remappable relative @id"
+        assert (
+            new_record.data.get("dcterms:title")
+            == "Resource with remappable relative @id"
+        )
 
     def test_put_without_id_injects_destination_uri(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db

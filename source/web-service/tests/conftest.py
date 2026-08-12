@@ -132,7 +132,6 @@ def client(app):
 
 @pytest.fixture
 def client_no_rdf(app_no_rdf):
-
     testing_client = app_no_rdf.test_client()
 
     ctx = app_no_rdf.app_context()
@@ -143,6 +142,20 @@ def client_no_rdf(app_no_rdf):
 
 @pytest.fixture
 def test_db(current_app):
+    # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
+    if ".amazonaws.com" in current_app.config["SQLALCHEMY_DATABASE_URI"]:
+        pytest.exit(
+            ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
+        )
+    db.drop_all()
+    db.create_all()
+    # get or create-and-get the root container to ensure it always is in the test db
+    _ = get_container("/")
+    return db
+
+
+@pytest.fixture
+def ldp_db(app_ldpapi):
     # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
     if ".amazonaws.com" in current_app.config["SQLALCHEMY_DATABASE_URI"]:
         pytest.exit(
@@ -189,7 +202,6 @@ def sample_record(test_db):
 @pytest.fixture
 def sample_activity(test_db, sample_record):
     def _sample_activity(record_id):
-
         if not db.session.get(Record, record_id):
             record = sample_record()
             record_id = record.id
@@ -319,7 +331,6 @@ def sample_jsonldrecord_with_id(test_db, linguisticobject):
 @pytest.fixture
 def sample_activity_with_ids(test_db, sample_record_with_ids):
     def _sample_activity(record_id):
-
         if not db.session.get(Record, record_id):
             record = sample_record_with_ids()
             record_id = record.id

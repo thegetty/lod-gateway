@@ -11,7 +11,7 @@ from uuid import uuid4
 
 import urllib.parse as urlparse
 
-from rdflib import Namespace
+from rdflib import Graph, Namespace, URIRef
 
 from flaskapp.models.record import Record
 
@@ -104,11 +104,31 @@ def _put_jsonld(namespace, client_ldpapi, auth_token, url: str, body: dict):
     return response
 
 
+def get_graph(namespace, client_ldpapi, url: str) -> Graph:
+    """GET URL with Accept: application/ld+json and parse into RDFLib graph."""
+    # Make relative if necessary
+    if url.startswith("http"):
+        url = to_relative(url)
+
+    # add namespace if not present
+    if not (url.startswith(f"/{namespace}/") or url.startswith(f"{namespace}/")):
+        url = f"/{namespace}/{url}"
+
+    r = client_ldpapi.get(url, follow_redirects=True, headers={"Accept": JSONLD_CT})
+    assert r.status_code == 200
+    assert JSONLD_CT in r.headers.get(
+        "Content-Type", ""
+    ), f"Expected Content-Type {JSONLD_CT}, got {r.headers.get('Content-Type')}"
+    g = Graph()
+    g.parse(data=r.text, format="json-ld")
+    return g, r  # return response for header checks, too
+
+
 class TestPostToDeletedRecords:
     """Tests for Issue 1: POST to container paths that match deleted records."""
 
     def test_post_to_deleted_record_path_succeeds(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """POST to a container where a deleted record exists should succeed.
 
@@ -134,11 +154,36 @@ class TestPostToDeletedRecords:
         )
         assert post_response.status_code == 201
 
+        # Check resource is part of graph:
+        created_res = post_response.headers["Location"]
+        created_ref = URIRef(created_res)
+        url = to_abs(namespace, "object/")
+        c_subj = URIRef(url)
+        g_after_post, _ = get_graph(namespace, client_ldpapi, "object")
+
+        assert (
+            c_subj,
+            LDP.contains,
+            created_ref,
+        ) in g_after_post, (
+            "BasicContainer did not add ldp:contains for the newly created resource."
+        )
+
         # Delete the record using the DELETE endpoint
         delete_response = delete_resource(
             namespace, client_ldpapi, auth_token, f"object/{entity_id}"
         )
         assert delete_response.status_code == 200
+
+        g_after_delete, _ = get_graph(namespace, client_ldpapi, "object")
+
+        assert (
+            c_subj,
+            LDP.contains,
+            created_ref,
+        ) not in g_after_delete, (
+            "BasicContainer did not remove ldp:contains for the newly deleted resource."
+        )
 
         # POST to the same container again with new data
         new_data = {
@@ -163,9 +208,17 @@ class TestPostToDeletedRecords:
         assert "Location" in response.headers
         assert "application/ld+json" in response.headers.get("Content-Type", "")
 
+        g_after_second_post, _ = get_graph(namespace, client_ldpapi, "object")
+
+        assert (
+            c_subj,
+            LDP.contains,
+            created_ref,
+        ) in g_after_second_post, "BasicContainer did not re-add ldp:contains."
+
         # Verify new record was created
         new_record = (
-            test_db.session.query(Record)
+            ldp_db.session.query(Record)
             .filter(Record.entity_id == entity_id)
             .one_or_none()
         )
@@ -175,7 +228,7 @@ class TestPostToDeletedRecords:
         assert new_record.data.get("dcterms:title") == "New Resource"
 
     def test_post_to_active_record_fails_with_409(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """POST to a container where an active record with the same ID exists should fail with 409 Conflict.
 
@@ -184,13 +237,12 @@ class TestPostToDeletedRecords:
         """
         # Create an active record via POST
         entity_id = str(uuid4())
-        original_data = _make_payload(
-            {
-                "@id": entity_id,
-                "type": "Object",
-                "dcterms:title": "Original",
-            }
-        )
+        original_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": entity_id,
+            "type": "Object",
+            "dcterms:title": "Original",
+        }
 
         post_response = _post_jsonld(
             namespace,
@@ -203,20 +255,19 @@ class TestPostToDeletedRecords:
 
         # Verify record is active
         record = (
-            test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+            ldp_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
         )
         if record:
             assert record.data is not None
             assert record.datetime_deleted is None
 
             # POST to the same container again with same ID (should fail with 409)
-            new_data = _make_payload(
-                {
-                    "@id": entity_id,
-                    "type": "Object",
-                    "dcterms:title": "Duplicate",
-                }
-            )
+            new_data = {
+                "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+                "@id": entity_id,
+                "type": "Object",
+                "dcterms:title": "Duplicate",
+            }
 
             response = _post_jsonld(
                 namespace,
@@ -230,7 +281,7 @@ class TestPostToDeletedRecords:
             assert response.status_code == 409
 
     def test_post_to_nonexistent_path_succeeds(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """POST to a container where no record exists should succeed with 201.
 
@@ -238,13 +289,12 @@ class TestPostToDeletedRecords:
         Expected: 201 Created
         """
         entity_id = str(uuid4())
-        new_data = _make_payload(
-            {
-                "@id": entity_id,
-                "type": "Object",
-                "dcterms:title": "Brand New Resource",
-            }
-        )
+        new_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": entity_id,
+            "type": "Object",
+            "dcterms:title": "Brand New Resource",
+        }
 
         response = _post_jsonld(
             namespace,
@@ -259,7 +309,7 @@ class TestPostToDeletedRecords:
 
         # Verify record was created
         new_record = (
-            test_db.session.query(Record)
+            ldp_db.session.query(Record)
             .filter(Record.entity_id == entity_id)
             .one_or_none()
         )
@@ -268,7 +318,7 @@ class TestPostToDeletedRecords:
         assert new_record.datetime_deleted is None
 
     def test_post_to_deleted_record_with_pagination(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """Test that pagination works correctly after POST to container.
 
@@ -277,13 +327,12 @@ class TestPostToDeletedRecords:
         # Create multiple records via POST to container
         entity_ids = [str(uuid4()) for _ in range(5)]
         for eid in entity_ids:
-            data = _make_payload(
-                {
-                    "@id": eid,
-                    "type": "Object",
-                    "dcterms:title": f"Resource {eid[:8]}",
-                }
-            )
+            data = {
+                "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+                "@id": eid,
+                "type": "Object",
+                "dcterms:title": "One of many",
+            }
             response = _post_jsonld(
                 namespace,
                 client_ldpapi,
@@ -303,13 +352,12 @@ class TestPostToDeletedRecords:
 
         # POST to the same container with a new ID
         new_entity_id = str(uuid4())
-        new_data = _make_payload(
-            {
-                "@id": new_entity_id,
-                "type": "Object",
-                "dcterms:title": "Replacement Resource",
-            }
-        )
+        new_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": new_entity_id,
+            "type": "Object",
+            "dcterms:title": "Entirely new data",
+        }
 
         response = _post_jsonld(
             namespace,
@@ -333,7 +381,7 @@ class TestPostToDeletedRecords:
         assert container_data["total"] > 0
 
     def test_post_to_deleted_record_preserves_activity_stream(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """Test that activity stream is updated when POST to container.
 
@@ -343,13 +391,12 @@ class TestPostToDeletedRecords:
 
         # Create a record via POST
         entity_id = str(uuid4())
-        original_data = _make_payload(
-            {
-                "@id": entity_id,
-                "type": "Object",
-                "dcterms:title": "Original",
-            }
-        )
+        original_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": entity_id,
+            "type": "Object",
+            "dcterms:title": "post to deleted record",
+        }
 
         post_response = _post_jsonld(
             namespace,
@@ -384,7 +431,7 @@ class TestPostToDeletedRecords:
         assert response.status_code == 201
 
         # Verify Activity was created
-        activities = test_db.session.query(Activity).all()
+        activities = ldp_db.session.query(Activity).all()
         assert len(activities) > 0
 
 
@@ -397,20 +444,19 @@ class TestPutEndpoint:
     """
 
     def test_put_with_correct_id_field(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """PUT /ns/object/foo with 'id': 'object/foo' at top level.
 
         The 'id' field must match the destination URI.
         Expected: 201 Created
         """
-        valid_data = _make_payload(
-            {
-                "id": "object/foo",
-                "type": "Object",
-                "dcterms:title": "Resource with correct id",
-            }
-        )
+        valid_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "id": "object/foo",
+            "type": "Object",
+            "dcterms:title": "Resource with correct id",
+        }
 
         response = _put_jsonld(
             namespace,
@@ -425,7 +471,7 @@ class TestPutEndpoint:
 
         # Verify record was created
         new_record = (
-            test_db.session.query(Record)
+            ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/foo")
             .one_or_none()
         )
@@ -434,20 +480,19 @@ class TestPutEndpoint:
         assert new_record.data.get("dcterms:title") == "Resource with correct id"
 
     def test_put_with_correct_at_id_field(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """PUT /ns/object/bar with '@id': 'object/bar' at top level.
 
         The '@id' field must match the destination URI.
         Expected: 201 Created
         """
-        valid_data = _make_payload(
-            {
-                "@id": "object/bar",
-                "type": "Object",
-                "dcterms:title": "Resource with correct @id",
-            }
-        )
+        valid_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": "object/foo",
+            "type": "Object",
+            "dcterms:title": "Resource with correct @id",
+        }
 
         response = _put_jsonld(
             namespace,
@@ -461,7 +506,7 @@ class TestPutEndpoint:
 
         # Verify record was created
         new_record = (
-            test_db.session.query(Record)
+            ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/bar")
             .one_or_none()
         )
@@ -469,20 +514,19 @@ class TestPutEndpoint:
         assert new_record.data.get("dcterms:title") == "Resource with correct @id"
 
     def test_put_with_remappable_relative_id(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """PUT /ns/object/bar with 'id': 'bar' at top level.
 
         The relative 'id' should be remapped to match the destination URI.
         Expected: 201 Created
         """
-        valid_data = _make_payload(
-            {
-                "id": "bar",
-                "type": "Object",
-                "dcterms:title": "Resource with remappable relative id",
-            }
-        )
+
+        valid_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "type": "Object",
+            "dcterms:title": "Resource with remappable relative id",
+        }
 
         response = _put_jsonld(
             namespace,
@@ -494,9 +538,16 @@ class TestPutEndpoint:
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
+        returned_data = response.json()
+
+        assert (
+            returned_data.get("dcterms:title") == "Resource with remappable relative id"
+        )
+        assert "@id" in returned_data
+
         # Verify record was created with correct entity_id
         new_record = (
-            test_db.session.query(Record)
+            ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/bar")
             .one_or_none()
         )
@@ -507,20 +558,19 @@ class TestPutEndpoint:
         )
 
     def test_put_with_remappable_relative_at_id(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """PUT /ns/object/baz with '@id': 'baz' at top level.
 
         The relative '@id' should be remapped to match the destination URI.
         Expected: 201 Created
         """
-        valid_data = _make_payload(
-            {
-                "@id": "baz",
-                "type": "Object",
-                "dcterms:title": "Resource with remappable relative @id",
-            }
-        )
+        valid_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": "baz",
+            "type": "Object",
+            "dcterms:title": "Resource with remappable relative id",
+        }
 
         response = _put_jsonld(
             namespace,
@@ -534,7 +584,7 @@ class TestPutEndpoint:
 
         # Verify record was created with correct entity_id
         new_record = (
-            test_db.session.query(Record)
+            ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/baz")
             .one_or_none()
         )
@@ -545,19 +595,18 @@ class TestPutEndpoint:
         )
 
     def test_put_without_id_injects_destination_uri(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """PUT /ns/object/foobar without top-level 'id' or '@id'.
 
         The destination URI should be injected as '@id': 'foobar'.
         Expected: 201 Created
         """
-        valid_data = _make_payload(
-            {
-                "type": "Object",
-                "dcterms:title": "Resource without id",
-            }
-        )
+        valid_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "type": "Object",
+            "dcterms:title": "Resource without id",
+        }
 
         response = _put_jsonld(
             namespace,
@@ -571,7 +620,7 @@ class TestPutEndpoint:
 
         # Verify record was created with correct entity_id
         new_record = (
-            test_db.session.query(Record)
+            ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/foobar")
             .one_or_none()
         )
@@ -587,13 +636,12 @@ class TestPutEndpoint:
 
         Expected: 422
         """
-        data_with_wrong_id = _make_payload(
-            {
-                "@id": "wrong/entity/id",
-                "type": "Object",
-                "dcterms:title": "Test",
-            }
-        )
+        data_with_wrong_id = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "type": "Object",
+            "@id": "wrong/entity/id",
+            "dcterms:title": "Test",
+        }
 
         response = _put_jsonld(
             namespace,
@@ -623,7 +671,7 @@ class TestPutEndpoint:
         assert response.status_code == 422
 
     def test_put_with_valid_data_updates_existing_record(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """PUT with valid data to existing record should update it.
 
@@ -631,13 +679,13 @@ class TestPutEndpoint:
         """
         # Create an existing record via POST
         entity_id = str(uuid4())
-        original_data = _make_payload(
-            {
-                "@id": entity_id,
-                "type": "Object",
-                "dcterms:title": "Original Name",
-            }
-        )
+
+        original_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": entity_id,
+            "type": "Object",
+            "dcterms:title": "Original Name",
+        }
 
         post_response = _post_jsonld(
             namespace,
@@ -649,13 +697,12 @@ class TestPutEndpoint:
         assert post_response.status_code == 201
 
         # Now PUT to update
-        updated_data = _make_payload(
-            {
-                "@id": entity_id,
-                "type": "Object",
-                "dcterms:title": "Updated Name",
-            }
-        )
+        updated_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": entity_id,
+            "type": "Object",
+            "dcterms:title": "UPDATED Name",
+        }
 
         put_response = _put_jsonld(
             namespace,
@@ -669,30 +716,32 @@ class TestPutEndpoint:
 
         # Verify update
         updated_record = (
-            test_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+            ldp_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
         )
         assert updated_record is not None
-        assert updated_record.data.get("dcterms:title") == "Updated Name"
+        assert updated_record.data.get("dcterms:title") == "UPDATED Name"
 
     def test_put_returns_correct_headers(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, test_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
     ):
         """PUT should return correct HTTP headers.
 
         Expected: Location, Content-Type headers
         """
+
+        headers_test_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": "object/test-headers",
+            "type": "Object",
+            "dcterms:title": "Test",
+        }
+
         response = _put_jsonld(
             namespace,
             client_ldpapi,
             auth_token,
             "object/test-headers",
-            _make_payload(
-                {
-                    "@id": "object/test-headers",
-                    "type": "Object",
-                    "dcterms:title": "Test",
-                }
-            ),
+            headers_test_data,
         )
 
         assert response.status_code == 201

@@ -159,7 +159,7 @@ class TestPostToDeletedRecords:
         created_ref = URIRef(created_res)
         url = to_abs(namespace, "object/")
         c_subj = URIRef(url)
-        g_after_post, _ = get_graph(namespace, client_ldpapi, "object")
+        g_after_post, _ = get_graph(namespace, client_ldpapi, "object/")
 
         assert (
             c_subj,
@@ -175,7 +175,7 @@ class TestPostToDeletedRecords:
         )
         assert delete_response.status_code == 200
 
-        g_after_delete, _ = get_graph(namespace, client_ldpapi, "object")
+        g_after_delete, _ = get_graph(namespace, client_ldpapi, "object/")
 
         assert (
             c_subj,
@@ -208,7 +208,7 @@ class TestPostToDeletedRecords:
         assert "Location" in response.headers
         assert "application/ld+json" in response.headers.get("Content-Type", "")
 
-        g_after_second_post, _ = get_graph(namespace, client_ldpapi, "object")
+        g_after_second_post, _ = get_graph(namespace, client_ldpapi, "object/")
 
         assert (
             c_subj,
@@ -374,6 +374,7 @@ class TestPostToDeletedRecords:
         container_response = client_ldpapi.get(
             to_relative(container_url),
             headers={"Accept": JSONLD_CT},
+            follow_redirects=True,
         )
         assert container_response.status_code == 200
         container_data = container_response.get_json()

@@ -74,15 +74,25 @@ def current_app_no_rdf(app_no_rdf):
 
 @pytest.fixture
 def client_ldpapi(app_ldpapi):
-    testing_client = app_ldpapi.test_client()
+    # Setup DB within the same context that the test client uses,
+    # so that API requests and test queries share the same SQLAlchemy session.
     ctx = app_ldpapi.app_context()
     ctx.push()
+    if ".amazonaws.com" in app_ldpapi.config["SQLALCHEMY_DATABASE_URI"]:
+        pytest.exit(
+            ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
+        )
+    db.drop_all()
+    db.create_all()
+    _ = get_container("/")
+    db.session.commit()
+    testing_client = app_ldpapi.test_client()
     yield testing_client  # this is where the testing happens!
     ctx.pop()
 
 
 @pytest.fixture
-def ldp_fixture_app(app_ldpapi, ldp_db, ldp_sample_containers):
+def ldp_fixture_app(app_ldpapi, client_ldpapi, ldp_sample_containers):
     # Add some basic objects. One for the basic containers, and all the annotations into /annotations/ml-test/
     # for pagination testing.
     options = AnnotationOptions()
@@ -99,7 +109,7 @@ def ldp_fixture_app(app_ldpapi, ldp_db, ldp_sample_containers):
             options=options,
         )
         record_create(doc, process_the_activity=True)
-    ldp_db.session.commit()
+    db.session.commit()
 
     yield current_app
 
@@ -152,23 +162,6 @@ def test_db(current_app):
     # get or create-and-get the root container to ensure it always is in the test db
     _ = get_container("/")
     return db
-
-
-@pytest.fixture
-def ldp_db(app_ldpapi):
-    # `SQLALCHEMY_DATABASE_URI` maps to the `DATABASE` environment variable through Flask's create_app() setup
-    if ".amazonaws.com" in app_ldpapi.config["SQLALCHEMY_DATABASE_URI"]:
-        pytest.exit(
-            ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
-        )
-    ctx = app_ldpapi.app_context()
-    ctx.push()
-    db.drop_all()
-    db.create_all()
-    # get or create-and-get the root container to ensure it always is in the test db
-    _ = get_container("/")
-    yield db
-    ctx.pop()
 
 
 @pytest.fixture
@@ -359,7 +352,7 @@ def sample_data_with_ids(sample_record_with_ids, sample_activity_with_ids):
 
 
 @pytest.fixture
-def ldp_sample_containers(ldp_db, namespace):
+def ldp_sample_containers(app_ldpapi, namespace):
     parent = get_container("/")
 
     for title, desc, ident in [
@@ -387,7 +380,7 @@ def ldp_sample_containers(ldp_db, namespace):
             db_dialect="base",
         )
 
-    ldp_db.session.commit()
+    db.session.commit()
 
     # Setup /annotations/ml-test/ as an example
     anno = get_container("/annotations/")
@@ -397,7 +390,7 @@ def ldp_sample_containers(ldp_db, namespace):
         dcdescription="Annotation collections in this container are for test purposes and not ready for public consumption",
         db_dialect="base",
     )
-    ldp_db.session.commit()
+    db.session.commit()
 
 
 @pytest.fixture(autouse=True)

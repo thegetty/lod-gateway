@@ -13,6 +13,7 @@ import urllib.parse as urlparse
 
 from rdflib import Graph, Namespace, URIRef
 
+from flaskapp.models import db
 from flaskapp.models.record import Record
 
 # LDP & common namespaces
@@ -128,7 +129,7 @@ class TestPostToDeletedRecords:
     """Tests for Issue 1: POST to container paths that match deleted records."""
 
     def test_post_to_deleted_record_path_succeeds(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """POST to a container where a deleted record exists should succeed.
 
@@ -217,11 +218,8 @@ class TestPostToDeletedRecords:
         ) in g_after_second_post, "BasicContainer did not re-add ldp:contains."
 
         # Verify new record was created
-        ldp_db.session.expire_all()
         new_record = (
-            ldp_db.session.query(Record)
-            .filter(Record.entity_id == entity_id)
-            .one_or_none()
+            db.session.query(Record).filter(Record.entity_id == entity_id).one_or_none()
         )
         assert new_record is not None
         assert new_record.data is not None
@@ -229,7 +227,7 @@ class TestPostToDeletedRecords:
         assert new_record.data.get("dcterms:title") == "New Resource"
 
     def test_post_to_active_record_fails_with_409(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """POST to a container where an active record with the same ID exists should fail with 409 Conflict.
 
@@ -255,10 +253,7 @@ class TestPostToDeletedRecords:
         assert post_response.status_code == 201
 
         # Verify record is active
-        ldp_db.session.expire_all()
-        record = (
-            ldp_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
-        )
+        record = db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
         if record:
             assert record.data is not None
             assert record.datetime_deleted is None
@@ -283,7 +278,7 @@ class TestPostToDeletedRecords:
             assert response.status_code == 409
 
     def test_post_to_nonexistent_path_succeeds(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """POST to a container where no record exists should succeed with 201.
 
@@ -310,18 +305,15 @@ class TestPostToDeletedRecords:
         assert "Location" in response.headers
 
         # Verify record was created
-        ldp_db.session.expire_all()
         new_record = (
-            ldp_db.session.query(Record)
-            .filter(Record.entity_id == entity_id)
-            .one_or_none()
+            db.session.query(Record).filter(Record.entity_id == entity_id).one_or_none()
         )
         assert new_record is not None
         assert new_record.data is not None
         assert new_record.datetime_deleted is None
 
     def test_post_to_deleted_record_with_pagination(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """Test that pagination works correctly after POST to container.
 
@@ -385,7 +377,7 @@ class TestPostToDeletedRecords:
         assert container_data["totalItems"] > 0
 
     def test_post_to_deleted_record_preserves_activity_stream(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """Test that activity stream is updated when POST to container.
 
@@ -435,8 +427,7 @@ class TestPostToDeletedRecords:
         assert response.status_code == 201
 
         # Verify Activity was created
-        ldp_db.session.expire_all()
-        activities = ldp_db.session.query(Activity).all()
+        activities = db.session.query(Activity).all()
         assert len(activities) > 0
 
 
@@ -449,7 +440,7 @@ class TestPutEndpoint:
     """
 
     def test_put_with_correct_id_field(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """PUT /ns/object/foo with 'id': 'object/foo' at top level.
 
@@ -475,9 +466,8 @@ class TestPutEndpoint:
         assert "Location" in response.headers
 
         # Verify record was created
-        ldp_db.session.expire_all()
         new_record = (
-            ldp_db.session.query(Record)
+            db.session.query(Record)
             .filter(Record.entity_id == "object/foo")
             .one_or_none()
         )
@@ -486,7 +476,7 @@ class TestPutEndpoint:
         assert new_record.data.get("dcterms:title") == "Resource with correct id"
 
     def test_put_with_correct_at_id_field(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """PUT /ns/object/bar with '@id': 'object/bar' at top level.
 
@@ -511,9 +501,8 @@ class TestPutEndpoint:
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
         # Verify record was created
-        ldp_db.session.expire_all()
         new_record = (
-            ldp_db.session.query(Record)
+            db.session.query(Record)
             .filter(Record.entity_id == "object/bar")
             .one_or_none()
         )
@@ -521,7 +510,7 @@ class TestPutEndpoint:
         assert new_record.data.get("dcterms:title") == "Resource with correct @id"
 
     def test_put_with_remappable_relative_id(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """PUT /ns/object/bar with 'id': 'bar' at top level.
 
@@ -553,9 +542,8 @@ class TestPutEndpoint:
         assert "@id" in returned_data
 
         # Verify record was created with correct entity_id
-        ldp_db.session.expire_all()
         new_record = (
-            ldp_db.session.query(Record)
+            db.session.query(Record)
             .filter(Record.entity_id == "object/bar")
             .one_or_none()
         )
@@ -566,7 +554,7 @@ class TestPutEndpoint:
         )
 
     def test_put_with_remappable_relative_at_id(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """PUT /ns/object/baz with '@id': 'baz' at top level.
 
@@ -591,9 +579,8 @@ class TestPutEndpoint:
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
         # Verify record was created with correct entity_id
-        ldp_db.session.expire_all()
         new_record = (
-            ldp_db.session.query(Record)
+            db.session.query(Record)
             .filter(Record.entity_id == "object/baz")
             .one_or_none()
         )
@@ -604,7 +591,7 @@ class TestPutEndpoint:
         )
 
     def test_put_without_id_injects_destination_uri(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """PUT /ns/object/foobar without top-level 'id' or '@id'.
 
@@ -628,9 +615,8 @@ class TestPutEndpoint:
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
         # Verify record was created with correct entity_id
-        ldp_db.session.expire_all()
         new_record = (
-            ldp_db.session.query(Record)
+            db.session.query(Record)
             .filter(Record.entity_id == "object/foobar")
             .one_or_none()
         )
@@ -681,7 +667,7 @@ class TestPutEndpoint:
         assert response.status_code == 422
 
     def test_put_with_valid_data_updates_existing_record(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """PUT with valid data to existing record should update it.
 
@@ -725,15 +711,14 @@ class TestPutEndpoint:
         assert put_response.status_code == 200
 
         # Verify update
-        ldp_db.session.expire_all()
         updated_record = (
-            ldp_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
+            db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
         )
         assert updated_record is not None
         assert updated_record.data.get("dcterms:title") == "UPDATED Name"
 
     def test_put_returns_correct_headers(
-        self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
         """PUT should return correct HTTP headers.
 

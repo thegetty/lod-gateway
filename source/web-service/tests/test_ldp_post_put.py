@@ -217,6 +217,7 @@ class TestPostToDeletedRecords:
         ) in g_after_second_post, "BasicContainer did not re-add ldp:contains."
 
         # Verify new record was created
+        ldp_db.session.expire_all()
         new_record = (
             ldp_db.session.query(Record)
             .filter(Record.entity_id == entity_id)
@@ -254,6 +255,7 @@ class TestPostToDeletedRecords:
         assert post_response.status_code == 201
 
         # Verify record is active
+        ldp_db.session.expire_all()
         record = (
             ldp_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
         )
@@ -308,6 +310,7 @@ class TestPostToDeletedRecords:
         assert "Location" in response.headers
 
         # Verify record was created
+        ldp_db.session.expire_all()
         new_record = (
             ldp_db.session.query(Record)
             .filter(Record.entity_id == entity_id)
@@ -378,8 +381,8 @@ class TestPostToDeletedRecords:
         )
         assert container_response.status_code == 200
         container_data = container_response.get_json()
-        assert "total" in container_data
-        assert container_data["total"] > 0
+        assert "totalItems" in container_data
+        assert container_data["totalItems"] > 0
 
     def test_post_to_deleted_record_preserves_activity_stream(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token, ldp_db
@@ -432,6 +435,7 @@ class TestPostToDeletedRecords:
         assert response.status_code == 201
 
         # Verify Activity was created
+        ldp_db.session.expire_all()
         activities = ldp_db.session.query(Activity).all()
         assert len(activities) > 0
 
@@ -471,6 +475,7 @@ class TestPutEndpoint:
         assert "Location" in response.headers
 
         # Verify record was created
+        ldp_db.session.expire_all()
         new_record = (
             ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/foo")
@@ -490,7 +495,7 @@ class TestPutEndpoint:
         """
         valid_data = {
             "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
-            "@id": "object/foo",
+            "@id": "object/bar",
             "type": "Object",
             "dcterms:title": "Resource with correct @id",
         }
@@ -506,6 +511,7 @@ class TestPutEndpoint:
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
         # Verify record was created
+        ldp_db.session.expire_all()
         new_record = (
             ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/bar")
@@ -547,6 +553,7 @@ class TestPutEndpoint:
         assert "@id" in returned_data
 
         # Verify record was created with correct entity_id
+        ldp_db.session.expire_all()
         new_record = (
             ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/bar")
@@ -584,6 +591,7 @@ class TestPutEndpoint:
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
         # Verify record was created with correct entity_id
+        ldp_db.session.expire_all()
         new_record = (
             ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/baz")
@@ -592,7 +600,7 @@ class TestPutEndpoint:
         assert new_record is not None
         assert (
             new_record.data.get("dcterms:title")
-            == "Resource with remappable relative @id"
+            == "Resource with remappable relative id"
         )
 
     def test_put_without_id_injects_destination_uri(
@@ -620,6 +628,7 @@ class TestPutEndpoint:
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
         # Verify record was created with correct entity_id
+        ldp_db.session.expire_all()
         new_record = (
             ldp_db.session.query(Record)
             .filter(Record.entity_id == "object/foobar")
@@ -716,6 +725,7 @@ class TestPutEndpoint:
         assert put_response.status_code == 200
 
         # Verify update
+        ldp_db.session.expire_all()
         updated_record = (
             ldp_db.session.query(Record).filter_by(entity_id=entity_id).one_or_none()
         )

@@ -754,7 +754,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     # Handle missing ID: inject destination URI if no @id/id present
     id_attr = "@id" if "@id" in posted_representation.json_ld else "id"
     body_id = posted_representation.json_ld.get(id_attr)
-    if body_id:
+    if not body_id:
         # No ID in body - inject the destination URI (relative path)
         current_app.logger.info(
             f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"

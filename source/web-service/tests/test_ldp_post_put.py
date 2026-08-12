@@ -15,8 +15,6 @@ from rdflib import Namespace
 
 from flaskapp.models.record import Record
 
-from tests.test_ldp_api import delete_resource
-
 # LDP & common namespaces
 LDP = Namespace("http://www.w3.org/ns/ldp#")
 DCTERMS = Namespace("http://purl.org/dc/terms/")
@@ -24,6 +22,23 @@ FOAF = Namespace("http://xmlns.com/foaf/0.1/")
 
 BASE_URL = "http://localhost:5100/"
 JSONLD_CT = "application/ld+json"
+
+
+def delete_resource(namespace, client_ldpapi, auth_token, url: str):
+    """DELETE with auth."""
+    if not (url.startswith(f"/{namespace}/") or url.startswith(f"{namespace}/")):
+        url = f"/{namespace}/{url}"
+
+    # delete resources, not containers here
+    url = url.rstrip("/")
+
+    response = client_ldpapi.delete(
+        url,
+        headers={"Authorization": "Bearer " + auth_token},
+    )
+    print(response.text, response.headers, response.status_code)
+    assert response.status_code == 200
+    return response
 
 
 def create_basic_text_annotation(target, text_content, mimeformat="text/plain"):

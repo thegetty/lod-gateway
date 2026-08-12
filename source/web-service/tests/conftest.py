@@ -82,7 +82,7 @@ def client_ldpapi(app_ldpapi):
 
 
 @pytest.fixture
-def ldp_fixture_app(app_ldpapi, test_db, ldp_sample_containers):
+def ldp_fixture_app(app_ldpapi, ldp_db, ldp_sample_containers):
     # Add some basic objects. One for the basic containers, and all the annotations into /annotations/ml-test/
     # for pagination testing.
     options = AnnotationOptions()
@@ -161,11 +161,14 @@ def ldp_db(app_ldpapi):
         pytest.exit(
             ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
         )
+    ctx = app_ldpapi.app_context()
+    ctx.push()
     db.drop_all()
     db.create_all()
     # get or create-and-get the root container to ensure it always is in the test db
     _ = get_container("/")
-    return db
+    yield db
+    ctx.pop()
 
 
 @pytest.fixture
@@ -356,7 +359,7 @@ def sample_data_with_ids(sample_record_with_ids, sample_activity_with_ids):
 
 
 @pytest.fixture
-def ldp_sample_containers(test_db, namespace):
+def ldp_sample_containers(ldp_db, namespace):
     parent = get_container("/")
 
     for title, desc, ident in [
@@ -384,7 +387,7 @@ def ldp_sample_containers(test_db, namespace):
             db_dialect="base",
         )
 
-    test_db.session.commit()
+    ldp_db.session.commit()
 
     # Setup /annotations/ml-test/ as an example
     anno = get_container("/annotations/")
@@ -394,7 +397,7 @@ def ldp_sample_containers(test_db, namespace):
         dcdescription="Annotation collections in this container are for test purposes and not ready for public consumption",
         db_dialect="base",
     )
-    test_db.session.commit()
+    ldp_db.session.commit()
 
 
 @pytest.fixture(autouse=True)

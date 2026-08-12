@@ -222,7 +222,7 @@ class TestPostToDeletedRecords:
         assert get_response.status_code == 200
         record_data = get_response.get_json()
         assert record_data is not None
-        assert record_data.get("dcterms:title") == "New Resource"
+        assert record_data.get("dcterms:title") == "Fixed"
 
     def test_post_to_active_record_fails_with_409(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token

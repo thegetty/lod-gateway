@@ -550,7 +550,7 @@ class TestPutEndpoint:
 
         assert response.status_code == 201, f"Expected 201, got {response.status_code}"
 
-        returned_data = response.json()
+        returned_data = response.get_json()
 
         assert (
             returned_data.get("dcterms:title") == "Resource with remappable relative id"

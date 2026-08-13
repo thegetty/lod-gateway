@@ -1,117 +1,208 @@
 # Content Negotiation
-([back to ToC](/README.md))
+
+([back to README](/README.md))
+
 ## Overview
 
-The LOD Gateway when configured to support RDF Processing provides support for both standard HTTP Content Negotiation of mimetype as well as data-specific support for [Content Negotiation by Profile from the W3C](https://www.w3.org/TR/dx-prof-onneg/) (aka CNBP).
+When RDF processing is enabled, the LOD Gateway supports two forms of content negotiation:
 
-The content negotiation supports requests using the HTTP Headers `Accept`, and `Accept-Profile`, as well as URL Query String Arguments (QSA) `_profile`, `_mediatype` (or `format`). The `Accept` header is handled as standard. The `Accept-Profile` header are handled as specified in [this section](https://www.w3.org/TR/dx-prof-conneg/#getresourcebyprofile) and use of the QSA [is outlined here](https://www.w3.org/TR/dx-prof-conneg/#qsa).
+- **Standard HTTP content negotiation** -- request an alternate RDF serialization (Turtle, N-Triples, etc.) via the `Accept` header or the `format` / `_mediatype` query parameters.
+- **Content Negotiation by Profile (CNBP)** -- request a transformed view of a resource using a SPARQL CONSTRUCT pattern, via the `Accept-Profile` header or the `_profile` query parameter.
 
-## What CNBP aspects are supported
+Both mechanisms can be combined in a single request. The Gateway resolves the desired profile and format, then returns the resource accordingly.
 
-- HEAD/GET requests on resources return Link headers that specify the alternate profiles that the resource can be retrieved as.
-- QSA pattern support for resource retrieval under a given profile (eg `http://example.org/a&_profile=...`)
-- Accept-Profile header support for resource retrieval under a given profile (eg `Accept-Profile: <http://my.profile.spec/1>`)
-- Accept header and QSA `_mediatype` and `format` parameters can be used to render the resource in alternate RDF formats (eg `http://example.org/a&format=nt` or `Accept: application/n-triples`).
-- The list of both the acceptable profiles and RDF formats can be specified in the same request, and the best combination will be used to form the response.
+## Standard Mimetype Negotiation
 
-## What CNBP aspects LOD Gateway does NOT Support
-The LOD Gateway does NOT have a full implementation of every suggested access pattern CNBP W3C specification, and supports only the QSA patterns, and the Accept-Profile header for accessing a resource rendered under a selected profile.
-- Getting a profiled resource by using a profile key:value statement within an Accept header. For example `Accept: application/ld+json;charset=UTF-8;profile=<http....>`. This has been omitted from the first release of this functionality for simplicity but may be added in at a later date. This would be treated as lower priority than Accept-Profile, and the profile would inherit the q-values for the Accept mimetype it applies to.
-- Getting a profiled resource by using Link headers in the request. The Link header format is tricky to parse, and to form correctly, and the QSA pattern or the use of Accept-Profile are a much more robust path, and much easy to test and use especially by editing URLs in a browser. If compatibility with this request pattern is required, it will be added at a later date.
+Request an alternate RDF serialization of a stored resource.
 
-## Response flow
+### Request methods
 
-The following diagram outlines the broad decisions and priorities when determining what is preferred and acceptable based on the request received. 
+Use one of the following approaches, listed in order of priority:
 
-```mermaid
-graph TD
-    A[Record exists] --> B{Check eTag for If-None-Match?}
-    B -- Yes --> M[Return empty HTTP 304] --> K
-    B -- No --> C
-    C[Parse headers and parameters<br>Determine content negotiation and/or profile info<br>Mimetype priority: _mediatype or format > Accept header<br>Profile priority: _profile > Accept-Profile > Profile] --> D{Relative ID requested}
-    D -- Yes --> N[Return raw JSON-LD, unprefixed w/ eTag] --> K
-    D -- No --> F[Prefix all relative IDs in JSON/JSON-LD]
-    F --> G{Mimetype is JSON-LD<br>and no profile?}
-    G -- Yes --> H[Return prefixed JSON-LD as is w/ eTag] --> K
-    G -- No --> I{Requested profiles exist?}
-    I -- Yes --> J[Satisfy first supported profile with SPARQL pattern] --> Q
-    Q[Reformat data into desired format, NO eTag!] --> K
-    I -- No --> Z[Fail with HTTP 400 Bad Request]
-    K[Return Response with appropriate mimetype unless plaintext is requested]
+1. **Query parameter `_mediatype` or `format`** -- highest priority. Accepts a MIME type or shorthand format name.
+2. **`Accept` header** -- standard HTTP content negotiation. The Gateway selects the best match from the available formats.
+
+**Examples:**
+
+```bash
+# Request Turtle format using the format parameter
+curl "http://localhost:5100/museum/collection/object/123?format=turtle"
+
+# Request N-Triples using the Accept header
+curl -H "Accept: application/n-triples" \
+  http://localhost:5100/museum/collection/object/123
 ```
 
-## RDF Format Support
+### Supported formats
 
-The following mimetypes are supported for the `_mediatype`, `format` or Accept header. The QSA parameter and the `format` parameter also supports a number of shorthand values for certain types, and these are the short strings shown after the mimetype below:
+| MIME Type | Shorthand |
+|-----------|-----------|
+| `application/ld+json` | `json-ld` (default) |
+| `text/turtle` | `turtle` |
+| `application/n-triples` | `nt`, `nt11` |
+| `application/rdf+xml` | `xml` |
+| `text/n3` | `n3` |
+| `application/n-quads` | `nquads` |
+| `application/trig` | `trig` |
 
-- `application/n-triples` (`application/ntriples` also accepted), "nt11"|"nt"
-- `text/turtle`, "turtle"
-- `application/rdf+xml`, "xml"
-- `text/n3`, "n3"
-- `application/n-quads`, "nquads"
-- `application/ld+json`, "json-ld"
-- `application/trig`, "trig"
+The `format` and `_mediatype` parameters also accept the shorthand values. The MIME type `application/ntriples` is accepted as an alias for `application/n-triples`.
 
-## Force plain text mimetype in the response
+### Plain-text override
 
-The URL parameter `plaintext` or `force-plain-text` can be used to override the stated HTTP response mimetype. This is most useful when trying to view a given RDF format in a web browser when it does not support the RDF mimetype (even though it is a plain-text based format). For example, a browser will attempt to download a response in the N-Triples mimetype, rather than attempt to display it. Adding `&plaintext=true` to the parameters will give the response a mimetype of `text/plain` allowing the browser to display it.
+Browsers may attempt to download responses with RDF MIME types instead of displaying them. Add `&plaintext=true` or `&force-plain-text=true` to the query string to force the response `Content-Type` to `text/plain; charset=UTF-8`:
 
-## Link Header responses
-
-In the Link Header response from a resource request, there will be a number of additional 'links' corresponding to the canonical version of the resource, as well as any applicable versions that conform to profiles. This enables the client to determine what the profile options are for a given resource.
-
-The base URL for a resource will be `rel="canonical"`, and the profiled versions will have `rel="alternate"` with a format statement indicating which profile they conform to.
-
-## Writing SPARQL Patterns for Profile Generation
-
-This requires:
-- A SPARQL CONSTRUCT query that contains a single `$URI` parameter that represents the resource's URI.
-- a profile URI (`profile_uri`)
-- a list of applicable types (`applies_to`)
-
-The `profile_uri` and the `applies_to` parameters are not used within the 
-
-```
-Python 3.13.3 (v3.13.3:6280bb54784, Apr  8 2025, 10:47:54) [Clang 15.0.0 (clang-1500.3.9.4)] on darwin
-Type "help", "copyright", "credits" or "license" for more information.
-(InteractiveConsole)
->>>
->>> from gettysparqlpatterns import PatternSet
->>> from lodgatewayclient import LODGatewayClient
->>> p = PatternSet(name="Content Profiles")
->>>
->>> p.add_pattern(name="dc:title",
-...               sparql_pattern="""
-... PREFIX dc: <http://purl.org/dc/elements/1.1/>
-... PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-... CONSTRUCT {
-...   <$URI> dc:title ?title .
-... } WHERE {
-...  SELECT ?title WHERE {
-...     <$URI> rdfs:label ?title .
-...   }
-... }""",
-...               stype="construct",
-...               profile_uri="urn:getty:dctitle",
-...               applies_to=["InformationObject", "Person", "HumanMadeObject"]
-... )
-
->>> # Make the PatternSet run queries against the LODGatewayClient SPARQL endpoint by default
->>> p.use_lodgateway_for_queries(LODGatewayClient("https://data.getty.edu/research/collections/"))
-
->>> for triple in p.run_pattern("dc:title", URI="https://data.getty.edu/research/collections/component/ccc3cb32-8c53-5a93-8f13-4bff30fef52a"):
-...   print(triple['subject'], triple['predicate'], triple['object'])
-...
-https://data.getty.edu/research/collections/component/ccc3cb32-8c53-5a93-8f13-4bff30fef52a http://purl.org/dc/elements/1.1/title collection
-https://data.getty.edu/research/collections/component/ccc3cb32-8c53-5a93-8f13-4bff30fef52a http://purl.org/dc/elements/1.1/title Allan Sekula papers
+```bash
+curl "http://localhost:5100/museum/collection/object/123?format=nt&plaintext=true"
 ```
 
-Once the profiles are ready, they can be exported so that they can be loaded, or added to the existing set of profiles in an LOD Gateway. If there is an existing profile PatternSet, append the new patterns from the `patterns` list onto the existing PatternSet list. The pattern `name` for each one should be unique within that list as well.
+### ETag behavior
+
+When the Gateway reformats a resource into an alternate RDF serialization, the response does not include an `ETag` header. The ETag is only computed for the stored JSON-LD representation. Use ETags for cache validation only on requests that return the default JSON-LD format.
+
+## Content Negotiation by Profile
+
+Profiles transform the base resource into a custom view using SPARQL CONSTRUCT queries. Each profile is matched against the resource type and returns a filtered or remapped set of triples.
+
+### Request methods
+
+Use one of the following, listed in priority order:
+
+1. **Query parameter `_profile`** -- highest priority. Accepts a single profile URI.
+2. **`Accept-Profile` header** -- accepts one or more profile URIs with optional quality values.
+
+**Examples:**
+
+```bash
+# Request a profile using the query parameter
+curl "http://localhost:5100/museum/collection/object/123?_profile=http://example.org/profile/dublin-core"
+
+# Request a profile using the Accept-Profile header
+curl -H "Accept-Profile: <http://example.org/profile/dublin-core>" \
+  http://localhost:5100/museum/collection/object/123
+```
+
+When a profile is requested, the Gateway executes the matching SPARQL CONSTRUCT pattern against the graph store and returns the result. The response `Content-Type` reflects the requested format (or defaults to JSON-LD).
+
+### Combined profile and format request
+
+Request both a profile and an RDF format in the same call:
+
+```bash
+curl -H "Accept-Profile: <http://example.org/profile/dublin-core>" \
+  -H "Accept: text/turtle" \
+  http://localhost:5100/museum/collection/object/123
+```
+
+### Response headers
+
+When a profile is applied, the response includes a `Link` header declaring the profile URI:
 
 ```
->>> # p.export_patterns() creates the JSON-encodable representation
->>> import json
->>> print(json.dumps(p.export_patterns(), indent=2))
+Link: <http://example.org/profile/dublin-core>; rel="profile"
+```
+
+### Profile errors
+
+If the requested profile URI does not match any configured pattern for the resource type, the Gateway returns `400 Bad Request`:
+
+```json
+{
+  "title": "Profile is not supported",
+  "detail": "Profile \"http://example.org/profile/unknown\" is not supported for this resource."
+}
+```
+
+## Link Header Discovery
+
+Resource responses include `Link` headers that advertise available formats and profiles. Use these headers to discover what a resource can be retrieved as.
+
+**Example Link header:**
+
+```
+Link: <http://localhost:5100/museum/collection/-tm-/object/123>; rel="timemap"; type="application/link-format",
+      <http://localhost:5100/museum/collection/-tm-/object/123>; rel="timemap"; type="application/json",
+      <http://localhost:5100/museum/collection/object/123>; rel="original timegate",
+      <http://localhost:5100/museum/collection/object/123?_mediatype=application/ld+json>; rel="canonical"; type="application/ld+json",
+      <http://localhost:5100/museum/collection/object/123?_mediatype=text/turtle&_profile=http://example.org/profile/dublin-core>; rel="alternate"; type="text/turtle"; format="http://example.org/profile/dublin-core"
+```
+
+Link relation values:
+
+| `rel` | Description |
+|-------|-------------|
+| `canonical` | The base JSON-LD representation of the resource |
+| `alternate` | A profiled or reformatted view of the resource |
+| `profile` | Declares which profile the current response conforms to |
+| `timemap` | Memento timemap for version history |
+
+## Configuration
+
+Profiles are loaded at startup via environment variables. Both require `PROCESS_RDF=True`.
+
+| Variable | Description |
+|----------|-------------|
+| `CONTENT_PROFILE_DATA_URL` | URL to a JSON-encoded PatternSet export. The Gateway fetches and parses patterns from this URL on startup. |
+| `CONTENT_PROFILE_DATA` | JSON-encoded PatternSet data provided inline as an environment variable. Takes priority over `CONTENT_PROFILE_DATA_URL` when both are set. |
+
+When profiles are loaded successfully, the Gateway sets `CONTENT_PROFILE_PATTERNS_AVAILABLE=True` and indexes the patterns by entity type for fast lookup.
+
+The `X-LODGATEWAY-CAPABILITIES` response header indicates whether content profiles are active:
+
+```
+X-LODGATEWAY-CAPABILITIES: JSON-LD: 'True', Content Profiles: 'True'
+```
+
+## Writing SPARQL Patterns for Profiles
+
+Profiles are defined using the [`gettysparqlpatterns`](https://github.com/thegetty/getty-sparql-patterns) library. Each pattern is a SPARQL CONSTRUCT query with a single `$URI` keyword parameter representing the resource URI.
+
+### Pattern requirements
+
+- **SPARQL CONSTRUCT query** containing the `$URI` keyword parameter
+- **`profile_uri`** -- a unique URI identifying the profile
+- **`applies_to`** -- a list of entity types the profile applies to (e.g. `["HumanMadeObject", "Person"]`)
+- **`stype`** -- set to `"construct"`
+
+### Creating patterns with gettysparqlpatterns
+
+Install the library and create a PatternSet:
+
+```python
+from gettysparqlpatterns import PatternSet
+
+p = PatternSet(name="Content Profiles")
+
+p.add_pattern(
+    name="dc:title",
+    sparql_pattern="""
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+CONSTRUCT {
+  <$URI> dc:title ?title .
+} WHERE {
+  <$URI> rdfs:label ?title .
+}
+""",
+    stype="construct",
+    profile_uri="urn:getty:dctitle",
+    applies_to=["InformationObject", "Person", "HumanMadeObject"],
+)
+```
+
+### Exporting patterns
+
+Export the PatternSet to JSON for loading into the Gateway:
+
+```python
+import json
+
+pattern_export = p.export_patterns()
+print(json.dumps(pattern_export, indent=2))
+```
+
+The exported JSON follows this structure:
+
+```json
 {
   "name": "Content Profiles",
   "description": "No description given.",
@@ -120,17 +211,11 @@ Once the profiles are ready, they can be exported so that they can be loaded, or
     {
       "name": "dc:title",
       "description": "No description given",
-      "sparql_pattern": "\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nCONSTRUCT {\n  <$URI> dc:title ?title .\n} WHERE {\n SELECT ?title WHERE {\n    <$URI> rdfs:label ?title .\n  }\n}",
+      "sparql_pattern": "PREFIX dc: <...> CONSTRUCT { <$URI> dc:title ?title . } WHERE { <$URI> rdfs:label ?title . }",
       "stype": "construct",
-      "keyword_parameters": [
-        "URI"
-      ],
+      "keyword_parameters": ["URI"],
       "default_values": {},
-      "applies_to": [
-        "InformationObject",
-        "Person",
-        "HumanMadeObject"
-      ],
+      "applies_to": ["InformationObject", "Person", "HumanMadeObject"],
       "ask_filter": null,
       "framing": null,
       "profile_uri": "urn:getty:dctitle"
@@ -138,3 +223,40 @@ Once the profiles are ready, they can be exported so that they can be loaded, or
   ]
 }
 ```
+
+### Loading patterns into the Gateway
+
+Set `CONTENT_PROFILE_DATA` to the exported JSON string, or set `CONTENT_PROFILE_DATA_URL` to a URL hosting the JSON. The Gateway loads and indexes patterns on startup.
+
+Restart the container after updating profile data.
+
+## Unsupported CNBP Features
+
+The LOD Gateway does not implement the following CNBP access patterns:
+
+- **Profile parameter in the `Accept` header** -- `Accept: application/ld+json;profile="<http://...>"` is not supported. Use `Accept-Profile` or `_profile` instead.
+- **Link header in the request** -- sending profile preferences via `Link` headers in the request is not supported. Use `Accept-Profile` or `_profile` instead.
+
+These patterns are omitted to reduce parsing complexity and to keep the API surface testable via standard query parameters and headers.
+
+## Response Priority Summary
+
+When multiple negotiation parameters are present, the Gateway resolves them in this order:
+
+1. **Mimetype priority:** `_mediatype` or `format` query parameter > `Accept` header
+2. **Profile priority:** `_profile` query parameter > `Accept-Profile` header > default profile
+
+If neither mimetype nor profile parameters match any available configuration, the Gateway returns the resource as JSON-LD with no transformation.
+
+## Request Flow
+
+The Gateway processes content negotiation in the following stages:
+
+1. Check `If-None-Match` header against stored ETag. Return `304 Not Modified` if the checksum matches.
+2. Parse request headers and query parameters to determine desired mimetype and profile.
+3. If `relativeid=true` is set, return the raw JSON-LD without prefixing relative IDs.
+4. Prefix all relative IDs to absolute URIs.
+5. If the request is for JSON-LD with no profile, return the prefixed JSON-LD directly.
+6. If a profile is requested, execute the matching SPARQL CONSTRUCT pattern against the graph store.
+7. Reformat the result into the requested RDF serialization, if applicable.
+8. Return the response with appropriate `Content-Type` and `Link` headers.

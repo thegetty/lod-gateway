@@ -430,9 +430,13 @@ def create_app():
         app.config["LINK_HEADER_PREV_VERSION"] = True
 
     app.config["SUBADDRESSING"] = False
+    app.config["SUBADDRESSING_MIN_PARTS"] = 1
+    app.config["SUBADDRESSING_MAX_PARTS"] = 4
+
     if environ.get("SUBADDRESSING", "False").lower() == "true":
         app.logger.info("Subaddressing support is enabled")
         app.config["SUBADDRESSING"] = True
+
         if environ.get("SUBADDRESSING_DEPTH") is not None:
             try:
                 app.config["SUBADDRESSING_DEPTH"] = int(
@@ -442,6 +446,29 @@ def create_app():
                 app.logger.error(
                     f"Value for SUBADDRESSING_DEPTH could not be interpreted as an integer. Ignoring."
                 )
+
+        # Subaddressing search range -- can be tuned via env vars
+        try:
+            app.config["SUBADDRESSING_MIN_PARTS"] = int(
+                environ.get("SUBADDRESSING_MIN_PARTS", 1)
+            )
+        except (ValueError, TypeError):
+            app.logger.warning(
+                "SUBADDRESSING_MIN_PARTS is not a valid integer. Using default of 1."
+            )
+
+        try:
+            app.config["SUBADDRESSING_MAX_PARTS"] = int(
+                environ.get("SUBADDRESSING_MAX_PARTS", 4)
+            )
+        except (ValueError, TypeError):
+            app.logger.warning(
+                "SUBADDRESSING_MAX_PARTS is not a valid integer. Using default of 4."
+            )
+
+        app.logger.info(
+            f"Subaddressing search range: {app.config['SUBADDRESSING_MIN_PARTS']} to {app.config['SUBADDRESSING_MAX_PARTS']} parts"
+        )
 
     if app.config["FLASK_ENV"].lower() == "development":
         app.config["SQLALCHEMY_ECHO"] = True

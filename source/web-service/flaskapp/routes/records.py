@@ -684,13 +684,24 @@ def container_post_item(
     description="Create or update a resource at a specific URI. Requires Bearer token authentication and LDP_API=True.",
     security=[{"bearerAuth": []}],
     responses={
-        200: {"description": "Existing record updated"},
-        201: {"description": "New record created"},
+        200: {"description": "Existing record or container updated"},
+        201: {"description": "New record or container created"},
+        409: {"description": "Conflict -- Resource exists where container requested"},
         422: {"description": "Invalid JSON, JSON-LD, or ID mismatch"},
     },
 )
 def container_put_item(path: EntityIdPath, body: PlainBody):
-    """PUT a resource to a specific URI. Requires LDP_API=True.
+    """PUT a resource or container to a specific URI. Requires LDP_API=True.
+
+    If the request body declares itself as an ldp:BasicContainer (via @context and
+    @type/type), it is handled as a container operation:
+    - Creates a new container at the destination URI (201)
+    - Updates an existing container's dctitle/dcdescription (200)
+    - Fails with 409 if a Resource record already exists at that path
+
+    Otherwise the body is treated as a regular record:
+    - Creates a new record at the destination URI (201)
+    - Updates an existing record (200)
 
     Validates:
     - Request body is valid JSON
@@ -698,8 +709,9 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     - id/@id in body matches destination URI (or is injected from destination if missing)
 
     Returns:
-    - 201 Created if new record
-    - 200 OK if existing record updated
+    - 201 Created if new record or container
+    - 200 OK if existing record or container updated
+    - 409 Conflict if container creation/update blocked by existing Resource
     - 422 Unprocessable Entity if validation fails
     """
 
@@ -734,7 +746,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     # Validate JSON-LD (parse_representation handles both JSON and JSON-LD validation)
     # Pass the pydantic body model, not the raw dict
     try:
-        posted_representation = parse_representation(
+        put_body_representation = parse_representation(
             f'{current_app.config["idPrefix"]}/',
             relative_container,
             request,
@@ -742,7 +754,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             None,
         )
         current_app.logger.info(
-            f"PUT JSON parsed as JSON-LD and rebased to: {posted_representation.has_top_level_id()}"
+            f"PUT JSON parsed as JSON-LD and rebased to: {put_body_representation.has_top_level_id()}"
         )
     except ResourceValidationError as e:
         current_app.logger.error(f"Invalid JSON-LD in PUT request: {str(e)}")
@@ -752,17 +764,19 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         abort(response)
 
     # Handle missing ID: inject destination URI if no @id/id present
-    id_attr = "@id" if "@id" in posted_representation.json_ld else "id"
-    body_id = posted_representation.json_ld.get(id_attr)
+    id_attr = "@id" if "@id" in put_body_representation.json_ld else "id"
+    body_id = put_body_representation.json_ld.get(id_attr)
     if not body_id:
         # No ID in body - inject the destination URI (relative path)
         current_app.logger.info(
             f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"
         )
         # Remake the JSON-LD with the proper id and using 'id' or '@id' if body_id = ""
-        jsonld = posted_representation.json_ld
-        jsonld["@id"] = entity_id  # always '@id' to match posted_representation.id_attr
-        posted_representation.jsonld = jsonld
+        jsonld = put_body_representation.json_ld
+        jsonld["@id"] = (
+            entity_id  # always '@id' to match put_body_representation.id_attr
+        )
+        put_body_representation.jsonld = jsonld
         body_id = entity_id
 
     # Relaxed ID matching: normalize both IDs to compare them
@@ -817,7 +831,69 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         )
         abort(response)
 
-    # Process the PUT
+    # --- Container handling ---
+    # If the payload declares itself a BasicContainer, handle it as a container
+    # (create or update) rather than as a record.
+    if put_body_representation.is_basic_container:
+        # A Record at this path blocks container creation/update
+        if record:
+            current_app.logger.error(
+                f"PUT container conflict: a Resource exists at {entity_id} -- container cannot be created or updated"
+            )
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict Error",
+                    f"Cannot create or update container at {entity_id} because a Resource already exists at that path",
+                )
+            )
+            abort(response)
+
+        # Derive the container identifier (ensure leading/trailing slashes)
+        container_id = f"/{entity_id.strip('/')}/"
+
+        existing_container = get_container(container_id, optimistic=True)
+
+        if existing_container:
+            # --- Update existing container ---
+            current_app.logger.info(f"Updating existing container {container_id}")
+            new_title = put_body_representation.title
+            new_description = put_body_representation.description
+            if new_title:
+                existing_container.dctitle = new_title
+            if new_description is not None:
+                existing_container.dcdescription = new_description
+            db.session.commit()
+
+            # Return the updated container page representation
+            response = container_record(container_id, page=1)
+            response.status_code = 200
+            return response
+        else:
+            # --- Create new container ---
+            container_slug_id = entity_id.strip("/").split("/")[-1]
+            current_app.logger.info(
+                f"Creating new container at {container_id} with slug {container_slug_id}"
+            )
+
+            parent.new_child_container(
+                container_slug_id,
+                dctitle=put_body_representation.title or container_id,
+                dcdescription=put_body_representation.description,
+                db_dialect=current_app.config["DB_DIALECT"],
+            )
+            db.session.commit()
+
+            current_app.logger.info(
+                f"Successfully created new ldp:BasicContainer at {container_id}"
+            )
+
+            # Return the newly created container page representation
+            response = container_record(container_id, page=1)
+            response.status_code = 201
+            return response
+
+    # Process the PUT (as a Record)
 
     status_code = 200
     with db.session.no_autoflush:
@@ -828,7 +904,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
                 record_id = record.id
                 record_update(
                     record,
-                    posted_representation.json_ld,
+                    put_body_representation.json_ld,
                     commit=False,
                     process_the_activity=True,
                 )
@@ -836,7 +912,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
                 # Record doesn't exist - create it
                 current_app.logger.info(f"Creating new record {entity_id}")
                 record_id = record_create(
-                    posted_representation.json_ld,
+                    put_body_representation.json_ld,
                     commit=False,
                     process_the_activity=True,
                 )
@@ -846,11 +922,11 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             # Process RDF if applicable
             if current_app.config["PROCESS_RDF"] is True:
                 prefixed_jsonld = inflate_relative_uris(
-                    posted_representation.json_ld, posted_representation.id_attr
+                    put_body_representation.json_ld, put_body_representation.id_attr
                 )
 
                 if expanded := graph_expand(prefixed_jsonld):
-                    graph_uri = prefixed_jsonld[posted_representation.id_attr]
+                    graph_uri = prefixed_jsonld[put_body_representation.id_attr]
                     updated_graph = graph_replace(
                         graph_uri,
                         expanded,
@@ -900,8 +976,8 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             idPrefix = current_app.config["idPrefix"]
 
             # Get the record data with prefixed IDs (same as GET handler)
-            attr = "@id" if "@id" in posted_representation.json_ld else "id"
-            data = posted_representation.json_ld
+            attr = "@id" if "@id" in put_body_representation.json_ld else "id"
+            data = put_body_representation.json_ld
 
             urlprefixes = None
             if current_app.config["PROCESS_RDF"] is True and "@context" in data:

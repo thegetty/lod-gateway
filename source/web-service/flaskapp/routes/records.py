@@ -779,6 +779,46 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         put_body_representation.jsonld = jsonld
         body_id = entity_id
 
+    # Container-specific validation: enforce trailing slash conventions
+    if put_body_representation.is_basic_container:
+        # Container payloads require trailing slash on URL
+        if not entity_id.endswith("/"):
+            current_app.logger.error(
+                f"Container PUT requires trailing slash on URL: {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    422,
+                    "Invalid Container URL",
+                    f"Container resources must use a trailing slash in the URL: {entity_id}/",
+                )
+            )
+            abort(response)
+
+        # Normalize body_id to include trailing slash for containers
+        if body_id and not body_id.endswith("/"):
+            current_app.logger.info(
+                f"PUT container: normalizing body_id to include trailing slash: {body_id} -> {body_id}/"
+            )
+            body_id = body_id + "/"
+            jsonld = put_body_representation.json_ld
+            jsonld[id_attr] = body_id
+            put_body_representation.jsonld = jsonld
+    else:
+        # Non-container payloads must NOT use trailing slash on URL
+        if entity_id.endswith("/"):
+            current_app.logger.error(
+                f"Non-container PUT to container URL (trailing slash): {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    422,
+                    "Invalid Resource URL",
+                    f"Resource payloads cannot use a trailing slash. Use a container type (ldp:BasicContainer) or remove the trailing slash.",
+                )
+            )
+            abort(response)
+
     # Relaxed ID matching: normalize both IDs to compare them
     # The destination URI should be the entity_id with the idPrefix prepended
     fqdn_id = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"

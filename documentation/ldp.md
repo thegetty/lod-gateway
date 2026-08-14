@@ -21,8 +21,9 @@ All LDP write operations (POST, PUT, DELETE) require authentication. Include the
 | GET | Container | Returns 303 redirect to first page | 303 |
 | GET | Container page | Returns paginated member list | 200 |
 | GET | Resource | Returns the resource | 200, 404 |
-| POST | Container | Creates a new resource inside the container | 201, 409 |
+| POST | Container | Creates a new resource or container inside the container | 201, 409 |
 | PUT | Resource | Creates or replaces a resource at the target URI | 200, 201, 422 |
+| PUT | Container | Creates or updates a container at the target URI | 200, 201, 409, 422 |
 | DELETE | Resource | Soft-deletes the resource | 200, 404 |
 | DELETE | Container | Deletes empty containers only | 200, 404 |
 
@@ -31,8 +32,8 @@ All LDP write operations (POST, PUT, DELETE) require authentication. Include the
 | Operation | Container | Resource |
 |-----------|-----------|----------|
 | GET | 303 redirect to first page | 200 with resource data |
-| POST | 201 (creates child resource) | Not applicable |
-| PUT | Not applicable | 201 (create) or 200 (update) |
+| POST | 201 (creates child resource or container) | Not applicable |
+| PUT | 201 (create) or 200 (update) | 201 (create) or 200 (update) |
 | DELETE | 200 (empty containers only) | 200 (soft delete) |
 
 ### Configuration Prerequisites
@@ -237,8 +238,9 @@ PUT /{namespace}/{entity-id}
 
 | Code | Meaning |
 |------|---------|
-| 201 | New resource created. `Location` header contains the resource URI. |
-| 200 | Existing resource updated. |
+| 201 | New resource or container created. `Location` header contains the resource URI. |
+| 200 | Existing resource or container updated. |
+| 409 | Conflict -- a Resource exists where a container was requested. |
 | 422 | Invalid JSON, invalid JSON-LD, ID mismatch, or missing parent container. |
 
 **Response headers:** `Location`, `Content-Type`, `ETag`, `Last-Modified`, `Link` (timemap, canonical, LDP Resource type).
@@ -339,14 +341,74 @@ The body ID `wrong/entity/id` does not match the destination `object/foo`.
 
 | | POST | PUT |
 |---|---|---|
-| Target | Container | Resource |
+| Target | Container | Resource or Container |
 | Resource URI | Server assigns or rebases | Client specifies via URL |
 | Slug header | Supported | Not applicable |
 | Idempotent | No | Yes |
 | Creates intermediate containers | Yes (when `LDP_AUTOCREATE_CONTAINERS` enabled) | Yes (when `LDP_AUTOCREATE_CONTAINERS` enabled) |
 | Create status | 201 | 201 |
 | Update status | N/A | 200 |
-| Conflict on existing ID | 409 | Replaces (200) |
+| Conflict on existing ID | 409 | Replaces (200) or 409 (container blocked by Resource) |
+
+### PUT Container Support
+
+PUT can create or update containers, not just resources. When the request body declares itself as an `ldp:BasicContainer` (via `@context` and `@type`), the server treats it as a container operation.
+
+**Create a new container:**
+
+```bash
+curl -X PUT http://localhost:5100/demo/my-container/ \
+  -H "Authorization: Bearer AuthToken" \
+  -H "Content-Type: application/ld+json" \
+  -d '{
+    "@context": {
+      "ldp": "http://www.w3.org/ns/ldp#",
+      "dcterms": "http://purl.org/dc/terms/"
+    },
+    "@type": "ldp:BasicContainer",
+    "dcterms:title": "My New Container",
+    "dcterms:description": "A nested container"
+  }'
+# -> 201 Created
+```
+
+The container ID is derived from the destination URI. Only `dcterms:title` and `dcterms:description` are captured from the payload.
+
+**Update an existing container:**
+
+```bash
+curl -X PUT http://localhost:5100/demo/my-container/ \
+  -H "Authorization: Bearer AuthToken" \
+  -H "Content-Type: application/ld+json" \
+  -d '{
+    "@context": {
+      "ldp": "http://www.w3.org/ns/ldp#",
+      "dcterms": "http://purl.org/dc/terms/"
+    },
+    "@type": "ldp:BasicContainer",
+    "dcterms:title": "Updated Title"
+  }'
+# -> 200 OK
+```
+
+**Container blocked by Resource (409 Conflict):**
+
+If a Resource record already exists at the destination path, PUT cannot create or update a container at that location. The server returns 409 Conflict.
+
+```bash
+curl -X PUT http://localhost:5100/demo/object/foo/ \
+  -H "Authorization: Bearer AuthToken" \
+  -H "Content-Type: application/ld+json" \
+  -d '{
+    "@context": {
+      "ldp": "http://www.w3.org/ns/ldp#",
+      "dcterms": "http://purl.org/dc/terms/"
+    },
+    "@type": "ldp:BasicContainer",
+    "dcterms:title": "Cannot create"
+  }'
+# -> 409 Conflict
+```
 
 ### Container Requirements
 

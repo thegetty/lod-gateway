@@ -774,7 +774,6 @@ class TestPutContainer:
             "@context": {
                 "ldp": "http://www.w3.org/ns/ldp#",
                 "dcterms": str(DCTERMS),
-                "@type": "@type",
             },
             "@type": "ldp:BasicContainer",
             "dcterms:title": title,

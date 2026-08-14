@@ -901,16 +901,6 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
                     f"Cannot create or update container at {entity_id} because a Resource already exists at {blocking_id}",
                 )
             )
-            current_app.logger.error(
-                f"PUT container conflict: a Resource exists at {entity_id} -- container cannot be created or updated"
-            )
-            response = construct_error_response(
-                status_nt(
-                    409,
-                    "Conflict Error",
-                    f"Cannot create or update container at {entity_id} because a Resource already exists at that path",
-                )
-            )
             abort(response)
 
         # Derive the container identifier (ensure leading/trailing slashes)

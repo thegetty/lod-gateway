@@ -875,8 +875,32 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     # If the payload declares itself a BasicContainer, handle it as a container
     # (create or update) rather than as a record.
     if put_body_representation.is_basic_container:
-        # A Record at this path blocks container creation/update
-        if record:
+        # A Record at this path blocks container creation/update.
+        # Check both with and without trailing slash to prevent confusion
+        # between 'object/foo' (record) and 'object/foo/' (container).
+        record_without_slash = None
+        entity_no_slash = entity_id.rstrip("/")
+        if entity_no_slash != entity_id:
+            record_without_slash = (
+                db.session.query(Record)
+                .filter(Record.entity_id == entity_no_slash)
+                .options(defer(Record.data))
+                .limit(1)
+                .one_or_none()
+            )
+
+        if record or record_without_slash:
+            blocking_id = entity_id if record else entity_no_slash
+            current_app.logger.error(
+                f"PUT container conflict: a Resource exists at {blocking_id} -- container cannot be created or updated at {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict Error",
+                    f"Cannot create or update container at {entity_id} because a Resource already exists at {blocking_id}",
+                )
+            )
             current_app.logger.error(
                 f"PUT container conflict: a Resource exists at {entity_id} -- container cannot be created or updated"
             )
@@ -934,6 +958,24 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             return response
 
     # Process the PUT (as a Record)
+
+    # Block record creation if a container exists at the path with trailing slash.
+    # Prevents confusion between 'object/foo' (record) and 'object/foo/' (container).
+    if not record and not entity_id.endswith("/"):
+        container_path = entity_id + "/"
+        blocking_container = get_container(container_path, optimistic=True)
+        if blocking_container:
+            current_app.logger.error(
+                f"PUT record conflict: a Container exists at {container_path} -- record cannot be created at {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict Error",
+                    f"Cannot create record at {entity_id} because a Container already exists at {container_path}",
+                )
+            )
+            abort(response)
 
     status_code = 200
     with db.session.no_autoflush:

@@ -759,3 +759,145 @@ class TestPutEndpoint:
         assert "Location" in response.headers
         assert "Content-Type" in response.headers
         assert "application/ld+json" in response.headers["Content-Type"]
+
+
+class TestPutContainer:
+    """Tests for PUT container creation and update.
+
+    PUT to a container path (ending with /) with a payload that declares itself
+    as an ldp:BasicContainer should create or update that container.
+    """
+
+    def _basic_container_body(self, title, description=None):
+        """Build a minimal ldp:BasicContainer JSON-LD body."""
+        body = {
+            "@context": {
+                "ldp": "http://www.w3.org/ns/ldp#",
+                "dcterms": str(DCTERMS),
+                "@type": "@type",
+            },
+            "@type": "ldp:BasicContainer",
+            "dcterms:title": title,
+        }
+        if description:
+            body["dcterms:description"] = description
+        return body
+
+    def test_put_create_container(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """PUT to a new container path should create an ldp:BasicContainer.
+
+        Expected: 201 Created with container representation in response body.
+        """
+        container_id = "object/new-sub-container/"
+        body = self._basic_container_body("My New Container", "A test container")
+        body["@id"] = container_id.rstrip("/")
+
+        response = _put_jsonld(namespace, client_ldpapi, auth_token, container_id, body)
+
+        assert (
+            response.status_code == 201
+        ), f"Expected 201, got {response.status_code}. Response: {response.text}"
+
+        # Response body should be a paginated container page
+        data = response.get_json()
+        assert data is not None
+        assert "ldp:BasicContainer" in data.get("@type", [])
+        assert data.get("dcterms:title") == "My New Container"
+
+        # Verify the container is resolvable via GET
+        get_response = client_ldpapi.get(
+            to_relative(to_abs(namespace, container_id)),
+            follow_redirects=True,
+            headers={"Accept": JSONLD_CT},
+        )
+        assert get_response.status_code == 200
+        container_data = get_response.get_json()
+        assert "ldp:BasicContainer" in container_data.get("@type", [])
+        assert container_data.get("dcterms:title") == "My New Container"
+
+    def test_put_update_container(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """PUT to an existing container should update dctitle/dcdescription.
+
+        Expected: 200 OK with updated container representation.
+        """
+        # First create the container
+        container_id = "object/updatable-container/"
+        create_body = self._basic_container_body("Original Title", "Original desc")
+        create_body["@id"] = container_id.rstrip("/")
+
+        create_response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, container_id, create_body
+        )
+        assert create_response.status_code == 201
+
+        # Now PUT to update the title and description
+        update_body = self._basic_container_body("Updated Title", "Updated description")
+        update_body["@id"] = container_id.rstrip("/")
+
+        update_response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, container_id, update_body
+        )
+
+        assert (
+            update_response.status_code == 200
+        ), f"Expected 200, got {update_response.status_code}. Response: {update_response.text}"
+
+        # Verify the update persisted
+        get_response = client_ldpapi.get(
+            to_relative(to_abs(namespace, container_id)),
+            follow_redirects=True,
+            headers={"Accept": JSONLD_CT},
+        )
+        assert get_response.status_code == 200
+        container_data = get_response.get_json()
+        assert container_data.get("dcterms:title") == "Updated Title"
+        assert container_data.get("dcterms:description") == "Updated description"
+
+    def test_put_fail_container_record_exists(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """PUT a container at a path where a Resource record exists should fail.
+
+        Expected: 409 Conflict.
+        """
+        # First create a normal Resource record at the path
+        record_id = "object/conflict-path"
+        record_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": record_id,
+            "type": "Object",
+            "dcterms:title": "I am a Resource, not a container",
+        }
+
+        post_response = _post_jsonld(
+            namespace, client_ldpapi, auth_token, "object/", record_data
+        )
+        assert post_response.status_code == 201
+
+        # Now try to PUT a container at the same path (with trailing slash)
+        container_id = f"{record_id}/"
+        container_body = self._basic_container_body("Conflict Container")
+        container_body["@id"] = record_id
+
+        response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, container_id, container_body
+        )
+
+        assert (
+            response.status_code == 409
+        ), f"Expected 409, got {response.status_code}. Response: {response.text}"
+
+        # Verify the record is still intact
+        get_response = client_ldpapi.get(
+            to_abs(namespace, record_id),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert get_response.status_code == 200
+        assert (
+            get_response.get_json().get("dcterms:title")
+            == "I am a Resource, not a container"
+        )

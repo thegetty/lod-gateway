@@ -175,7 +175,7 @@ def graph_expand(data, proc=None):
         current_app.logger.debug(
             f"{json_ld_id} - RDFLIB parsing START at timecode {time.perf_counter() - tictoc}"
         )
-        g = get_bound_graph(identifier=json_ld_id)
+        ds, g = get_bound_graph(identifier=json_ld_id)
         g.parse(data=json.dumps(data), format="json-ld")
         current_app.logger.debug(
             f"{json_ld_id} - RDFLIB parsing END, START serialization at timecode {time.perf_counter() - tictoc}"
@@ -188,8 +188,9 @@ def graph_expand(data, proc=None):
                 f"graph_expand (RDFLib) returning: type=False, value=False"
             )
             return False
-        serialized = g.serialize(format="nquads")
-        current_app.logger.debug(
+
+        serialized = ds.serialize(format="nquads")
+        current_app.logger.info(
             f"graph_expand (RDFLib) returning: type={type(serialized)}, value={repr(serialized)[:200]}"
         )
         return serialized

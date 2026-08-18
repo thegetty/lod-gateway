@@ -144,13 +144,22 @@ def graph_expand(data, proc=None):
                 current_app.logger.error(
                     "Graph expansion error code:    %s" % (str(e.code))
                 )
-                current_app.logger.error(
-                    "Graph expansion error cause:   %s" % (str(e.cause))
-                )
-                current_app.logger.error(
-                    "Graph expansion error trace:   %s"
-                    % (str("".join(traceback.format_list(e.causeTrace))))
-                )
+                if e.__cause__ is not None:
+                    current_app.logger.error(
+                        "Graph expansion error cause:   %s" % (str(e.__cause__))
+                    )
+                    current_app.logger.error(
+                        "Graph expansion error trace:   %s"
+                        % (
+                            "".join(
+                                traceback.format_exception(
+                                    type(e.__cause__),
+                                    e.__cause__,
+                                    e.__cause__.__traceback__,
+                                )
+                            )
+                        )
+                    )
             else:
                 current_app.logger.error(
                     "Graph expansion error stack trace:\n%s" % (full_stack_trace())

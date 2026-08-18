@@ -8,7 +8,7 @@ Flask-Migrate==4.1.0
 flask-openapi3[swagger]>=4.3.0,<5.0
 Flask-SQLAlchemy==3.1.1
 gevent==25.4.1 
-git+https://github.com/thegetty/pyld.git@threadlocking#egg=pyld
+git+https://github.com/thegetty/pyld.git@3.2.0-getty#egg=pyld
 gettysparqlpatterns @ https://github.com/thegetty/getty-jsonld-sparql-patterns/archive/refs/tags/v1.2.3.zip
 gunicorn==23.0.0
 ldap3==2.9

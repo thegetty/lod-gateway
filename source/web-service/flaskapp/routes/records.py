@@ -1976,13 +1976,13 @@ def entity_version(path: EntityIdPath):
                             # using rdflib to both parse and re-serialize the RDF:
                             ds, g = get_bound_graph(identifier=ident)
 
-                            ds.parse(data=json.dumps(data), format="json-ld")
-
                             if desired[1] in QUAD_ENABLED:
                                 # formats allow quads
+                                ds.parse(data=json.dumps(data), format="json-ld")
                                 data = ds.serialize(format=desired[1])
                             else:
                                 # Triple-focussed output:
+                                g.parse(data=json.dumps(data), format="json-ld")
                                 data = g.serialize(format=desired[1])
 
                         current_app.logger.debug(

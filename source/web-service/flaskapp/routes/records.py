@@ -773,10 +773,10 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         )
         # Remake the JSON-LD with the proper id and using 'id' or '@id' if body_id = ""
         jsonld = put_body_representation.json_ld
-        jsonld["@id"] = (
-            entity_id  # always '@id' to match put_body_representation.id_attr
-        )
-        put_body_representation.jsonld = jsonld
+        jsonld[
+            "@id"
+        ] = entity_id  # always '@id' to match put_body_representation.id_attr
+        put_body_representation.json_ld = jsonld
         body_id = entity_id
 
     # Container-specific validation: enforce trailing slash conventions
@@ -803,7 +803,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             body_id = body_id + "/"
             jsonld = put_body_representation.json_ld
             jsonld[id_attr] = body_id
-            put_body_representation.jsonld = jsonld
+            put_body_representation.json_ld = jsonld
     else:
         # Non-container payloads must NOT use trailing slash on URL
         if entity_id.endswith("/"):
@@ -983,7 +983,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             else:
                 # Record doesn't exist - create it
                 current_app.logger.info(f"Creating new record {entity_id}")
-                record_id = record_create(
+                _ = record_create(
                     put_body_representation.json_ld,
                     commit=False,
                     process_the_activity=True,

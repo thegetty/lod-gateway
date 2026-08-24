@@ -852,10 +852,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     )
 
     # Get parent container
-    if len(container_breadcrumbs) == 1:
-        parent = get_container("/", optimistic=True)
-    else:
-        parent = get_container(container_breadcrumbs[-2], optimistic=True)
+    parent = get_container(container_breadcrumbs[-2], optimistic=True)
 
     if not parent and not current_app.config["LDP_AUTOCREATE_CONTAINERS"]:
         current_app.logger.error(

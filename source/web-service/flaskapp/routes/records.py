@@ -564,17 +564,6 @@ def container_post_item(
                     )
                 )
                 abort(response)
-                current_app.logger.error(
-                    f"Request failed - Cannot create a new resource with this identifier {identifier}, as it already exists"
-                )
-                response = construct_error_response(
-                    status_nt(
-                        409,
-                        "Conflict Error",
-                        f"Cannot create a new resource with this identifier {identifier}, as it already exists",
-                    )
-                )
-                abort(response)
             else:
                 with db.session.no_autoflush:
                     current_app.logger.debug(

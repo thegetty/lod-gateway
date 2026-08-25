@@ -79,14 +79,16 @@ class PlainBody(BaseModel):
 
     @model_validator(mode="after")
     def resolve_and_check_type(self):
-        # Normalize: if @type provided but not type, copy value
+        # Normalize: if @type provided but not type, copy value and vice versa
         if self.at_type and not self.type:
             self.type = self.at_type
-        if not self.type:
-            from pydantic import ValidationError
+        elif self.type and not self.at_type:
+            self.at_type = self.type
 
-            raise ValidationError(
-                "Either 'type' or '@type' must be provided", self=None
+        # if no type was given?
+        if not self.type:
+            raise PydanticCustomError(
+                "missing_type", "Either 'type' or '@type' must be provided"
             )
         return self
 

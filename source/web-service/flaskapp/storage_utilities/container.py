@@ -36,7 +36,7 @@ def create_root_container(dctitle="LOD Gateway", dcdescription=""):
     return root
 
 
-def get_container(container_identifier, optimistic=False):
+def get_container(container_identifier, optimistic=False, create=False):
     if current_app.config["LDP_BACKEND"]:
         if (
             result := db.session.query(LDPContainer)
@@ -51,9 +51,27 @@ def get_container(container_identifier, optimistic=False):
                 dcdescription="This is the root container for this LOD Service. All containers and "
                 "resources hosted by this service will be contained in this root container.",
             )
-        else:
-            if not optimistic:
-                raise NoLDPContainerFoundError(container_identifier)
+        elif optimistic is False:
+            raise NoLDPContainerFoundError(container_identifier)
+        elif create is True:
+            # This should be triggered by routes that require the container to exist, and
+            # have LDP_AUTOCREATE_CONTAINER set to True
+            container_list = assert_containers([container_identifier])
+
+            # return the last container in the list as the parent:
+            parent = container_list[-1]
+            container_slug = container_identifier.rstrip("/").split("/")[-1]
+            c = parent.new_child_container(
+                child_slug=container_slug,
+                dctitle=container_identifier,
+                dcdescription="Auto-generated container",
+                db_dialect=current_app.config["DB_DIALECT"],
+                commit=current_app.config["LDP_AUTOCREATE_CONTAINERS_w_COMMIT"],
+            )
+            # flush the session - useful for LDP_AUTOCREATE_CONTAINERS and not needed
+            # if they have already been committed (so no harm)
+            db.session.flush()
+            return c
 
     return None
 

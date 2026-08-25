@@ -762,9 +762,9 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         )
         # Remake the JSON-LD with the proper id and using 'id' or '@id' if body_id = ""
         jsonld = put_body_representation.json_ld
-        jsonld["@id"] = (
-            entity_id  # always '@id' to match put_body_representation.id_attr
-        )
+        jsonld[
+            "@id"
+        ] = entity_id  # always '@id' to match put_body_representation.id_attr
         put_body_representation.json_ld = jsonld
         body_id = entity_id
 
@@ -843,19 +843,25 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     # Get parent container
     parent = get_container(container_breadcrumbs[-2], optimistic=True)
 
-    if not parent and not current_app.config["LDP_AUTOCREATE_CONTAINERS"]:
-        current_app.logger.error(
-            "Request failed - no parent container available, and LDP_AUTOCREATE_CONTAINERS flag is False"
-        )
-        # Changed from status_not_implemented (501) to 422
-        response = construct_error_response(
-            status_nt(
-                422,
-                "Container not found",
-                "Parent container does not exist and LDP_AUTOCREATE_CONTAINERS is False",
+    if not parent:
+        if not current_app.config["LDP_AUTOCREATE_CONTAINERS"]:
+            current_app.logger.error(
+                "Request failed - no parent container available, and LDP_AUTOCREATE_CONTAINERS flag is False"
             )
-        )
-        abort(response)
+            # Changed from status_not_implemented (501) to 422
+            response = construct_error_response(
+                status_nt(
+                    422,
+                    "Container not found",
+                    "Parent container does not exist and LDP_AUTOCREATE_CONTAINERS is False",
+                )
+            )
+            abort(response)
+        else:
+            # No parent but LDP_AUTOCREATE_CONTAINERS is switched on - containers should be made for it:
+            parent = get_container(
+                container_breadcrumbs[-2], optimistic=True, create=True
+            )
 
     # --- Container handling ---
     # If the payload declares itself a BasicContainer, handle it as a container
@@ -933,6 +939,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             response.status_code = 201
             return response
 
+    ###############################
     # Process the PUT (as a Record)
 
     # Block record creation if a container exists at the path with trailing slash.

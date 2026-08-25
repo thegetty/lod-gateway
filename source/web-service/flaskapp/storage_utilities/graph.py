@@ -189,7 +189,7 @@ def graph_expand(data, proc=None):
             )
             return False
         serialized = g.serialize(format="nquads")
-        current_app.logger.info(
+        current_app.logger.debug(
             f"graph_expand (RDFLib) returning: type={type(serialized)}, value={repr(serialized)[:200]}"
         )
         return serialized

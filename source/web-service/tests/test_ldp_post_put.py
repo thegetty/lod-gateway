@@ -12,6 +12,7 @@ from uuid import uuid4
 import urllib.parse as urlparse
 
 from rdflib import Graph, Namespace, URIRef
+from rdflib.namespace import RDF
 
 # LDP & common namespaces
 LDP = Namespace("http://www.w3.org/ns/ldp#")
@@ -122,6 +123,98 @@ def get_graph(namespace, client_ldpapi, url: str) -> Graph:
     return g, r  # return response for header checks, too
 
 
+def parse_link_header(h: str) -> list:
+    """Parse RFC8288 Link header into a list of dicts: {"url": ..., "rel": ...}.
+
+    (Copied from test_ldp_api.py to keep this file self-contained.)
+    """
+    links = []
+    if not h:
+        return links
+    parts = [p.strip() for p in h.split(",") if p.strip()]
+    for p in parts:
+        if not p.startswith("<"):
+            continue
+        url_end = p.find(">")
+        url = p[1:url_end]
+        params_str = p[url_end + 1 :].strip().lstrip(";").strip()
+        params = {}
+        for kv in [x.strip() for x in params_str.split(";") if x.strip()]:
+            if "=" in kv:
+                k, v = kv.split("=", 1)
+                params[k.strip()] = v.strip().strip('"')
+        links.append({"url": url, **params})
+    return links
+
+
+def _page_base(data: dict) -> str:
+    """Extract @base from a container page response @context (str, dict, or list)."""
+    context = data.get("@context")
+    if isinstance(context, dict):
+        return context.get("@base", "") or ""
+    if isinstance(context, list):
+        for block in context:
+            if isinstance(block, dict) and block.get("@base"):
+                return block["@base"]
+    return ""
+
+
+def container_member_ids(namespace, client_ldpapi, container_url: str) -> set:
+    """Enumerate ALL members of a container via the LDP REST API.
+
+    GETs the container (following the 303 to page 1), collects the ldp:contains
+    @ids, then follows rel="next" Link headers until exhausted, unioning members
+    across pages (items are unique per page). Member identifiers are returned
+    relative to the page @base, e.g. 'object/foo' (a record) or
+    'object/new-sub-container/' (a container). A non-200 response (e.g. 404)
+    yields an empty set.
+    """
+    url = container_url
+    if url.startswith("http"):
+        url = to_relative(url)
+    if not (
+        url.startswith(f"/{namespace}/")
+        or url.startswith(f"{namespace}/")
+    ):
+        url = f"/{namespace}/{container_url}"
+    url = url.rstrip("/") + "/"
+
+    members = set()
+    pages = 0
+    while url and pages < 1000:
+        r = client_ldpapi.get(
+            url, follow_redirects=True, headers={"Accept": JSONLD_CT}
+        )
+        if r.status_code != 200:
+            return members
+        pages += 1
+        data = r.get_json() or {}
+        base = _page_base(data)
+
+        for item in data.get("ldp:contains", []) or []:
+            if isinstance(item, dict) and (mid := item.get("@id")):
+                if base and mid.startswith(base):
+                    mid = mid[len(base) :]
+                members.add(mid.lstrip("/"))
+
+        nexts = [
+            link["url"]
+            for link in parse_link_header(r.headers.get("Link", ""))
+            if link.get("rel") == "next"
+        ]
+        url = to_relative(nexts[0]) if nexts else None
+    return members
+
+
+def is_container_member(
+    namespace, client_ldpapi, container_url: str, identifier: str
+) -> bool:
+    """True if `identifier` (e.g. 'object/foo' or 'object/foo/') is a member
+    of the container, per the LDP REST API container membership."""
+    members = container_member_ids(namespace, client_ldpapi, container_url)
+    return identifier.lstrip("/") in members
+
+
 class TestPostToDeletedRecords:
     """Tests for Issue 1: POST to container paths that match deleted records."""
 
@@ -214,6 +307,10 @@ class TestPostToDeletedRecords:
             created_ref,
         ) in g_after_second_post, "BasicContainer did not re-add ldp:contains."
 
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", f"object/{entity_id}"
+        ), "Recreated record is not listed as a member of the container."
+
         # Verify new record was created via GET
         get_response = client_ldpapi.get(
             to_abs(namespace, f"object/{entity_id}"),
@@ -278,6 +375,18 @@ class TestPostToDeletedRecords:
         # Should fail with 409 Conflict
         assert response.status_code == 409
 
+        # Nothing was created or overwritten: the original remains the member,
+        # and its data is unchanged.
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", f"object/{entity_id}"
+        ), "Original record should remain a container member after a rejected POST."
+        get_after = client_ldpapi.get(
+            to_abs(namespace, f"object/{entity_id}"),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert get_after.status_code == 200
+        assert get_after.get_json().get("dcterms:title") == "Original"
+
     def test_post_to_nonexistent_path_succeeds(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -313,6 +422,10 @@ class TestPostToDeletedRecords:
         assert get_response.status_code == 200
         record_data = get_response.get_json()
         assert record_data.get("dcterms:title") == "Brand New Resource"
+
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", f"object/{entity_id}"
+        ), "Newly created record is not listed as a member of the container."
 
     def test_post_to_deleted_record_with_pagination(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -378,6 +491,10 @@ class TestPostToDeletedRecords:
         assert "totalItems" in container_data
         assert container_data["totalItems"] > 0
 
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", f"object/{new_entity_id}"
+        ), "Recreated record is not listed as a member of the container."
+
     def test_post_to_deleted_record_preserves_activity_stream(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -419,6 +536,10 @@ class TestPostToDeletedRecords:
         )
         assert delete_response.status_code == 200
 
+        assert not is_container_member(
+            namespace, client_ldpapi, "object/", f"object/{entity_id}"
+        ), "Deleted record should no longer be a container member."
+
         # POST again to the same container
         new_data = {
             "@id": entity_id,
@@ -435,6 +556,10 @@ class TestPostToDeletedRecords:
         )
 
         assert response.status_code == 201
+
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", f"object/{entity_id}"
+        ), "Recreated record is not listed as a member of the container."
 
         # Verify activity stream grew (new activity entries created)
         activity_after = client_ldpapi.get(
@@ -490,6 +615,10 @@ class TestPutEndpoint:
             get_response.get_json().get("dcterms:title") == "Resource with correct id"
         )
 
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", "object/foo"
+        ), "Created record is not listed as a member of the container."
+
     def test_put_with_correct_at_id_field(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -524,6 +653,10 @@ class TestPutEndpoint:
         assert (
             get_response.get_json().get("dcterms:title") == "Resource with correct @id"
         )
+
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", "object/bar"
+        ), "Created record is not listed as a member of the container."
 
     def test_put_with_remappable_relative_id(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -568,6 +701,10 @@ class TestPutEndpoint:
             == "Resource with remappable relative id"
         )
 
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", "object/bar"
+        ), "Created record is not listed as a member of the container."
+
     def test_put_with_remappable_relative_at_id(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -604,6 +741,10 @@ class TestPutEndpoint:
             == "Resource with remappable relative id"
         )
 
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", "object/baz"
+        ), "Created record is not listed as a member of the container."
+
     def test_put_without_id_injects_destination_uri(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -639,6 +780,10 @@ class TestPutEndpoint:
         # Verify the injected @id
         assert "@id" in record_data or "id" in record_data
 
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", "object/foobar"
+        ), "Created record is not listed as a member of the container."
+
     def test_put_with_mismatched_id_returns_error(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -663,6 +808,10 @@ class TestPutEndpoint:
 
         assert response.status_code == 422
 
+        assert not is_container_member(
+            namespace, client_ldpapi, "object/", "object/foo"
+        ), "A rejected PUT must not create a record or container membership."
+
     def test_put_with_invalid_json_returns_error(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -679,6 +828,10 @@ class TestPutEndpoint:
         )
 
         assert response.status_code == 422
+
+        assert not is_container_member(
+            namespace, client_ldpapi, "object/", "object/foo"
+        ), "A PUT with invalid JSON must not create a record or container membership."
 
     def test_put_with_valid_data_updates_existing_record(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -732,6 +885,10 @@ class TestPutEndpoint:
         assert get_response.status_code == 200
         assert get_response.get_json().get("dcterms:title") == "UPDATED Name"
 
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", f"object/{entity_id}"
+        ), "Updated record must remain a member of the container."
+
     def test_put_returns_correct_headers(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -759,6 +916,70 @@ class TestPutEndpoint:
         assert "Location" in response.headers
         assert "Content-Type" in response.headers
         assert "application/ld+json" in response.headers["Content-Type"]
+
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", "object/test-headers"
+        ), "Created record is not listed as a member of the container."
+
+    def test_put_autocreates_parent_containers(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """PUT to a deep path auto-creates the intermediate containers.
+
+        With LDP_AUTOCREATE_CONTAINERS=True, PUT to object/foo/bar/resource
+        must ensure each subpath container exists (/object/, /object/foo/,
+        /object/foo/bar/), and the resource must be a member of its parent
+        container. Each subpath becomes a container, and the membership chain
+        links them: object/ -> object/foo/ -> object/foo/bar/ -> resource.
+        Expected: 201 Created
+        """
+        valid_data = {
+            "@context": [{"dcterms": str(DCTERMS), "type": "@type"}],
+            "@id": "object/foo/bar/resource",
+            "type": "Object",
+            "dcterms:title": "Deeply nested resource",
+        }
+
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
+            "object/foo/bar/resource",
+            valid_data,
+        )
+
+        assert response.status_code == 201, f"Expected 201, got {response.status_code}"
+        assert response.headers["Location"].endswith("object/foo/bar/resource")
+
+        # Each intermediate subpath exists and is an ldp:BasicContainer
+        for container in ("object/foo/", "object/foo/bar/"):
+            g, _ = get_graph(namespace, client_ldpapi, container)
+            assert (
+                URIRef(to_abs(namespace, container)),
+                RDF.type,
+                LDP.BasicContainer,
+            ) in g, f"Auto-created container {container} is not an ldp:BasicContainer."
+
+        # Membership chain through the auto-created containers
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", "object/foo/"
+        ), "Auto-created container object/foo/ is not a member of object/."
+        assert is_container_member(
+            namespace, client_ldpapi, "object/foo/", "object/foo/bar/"
+        ), "Auto-created container object/foo/bar/ is not a member of object/foo/."
+        assert is_container_member(
+            namespace, client_ldpapi, "object/foo/bar/", "object/foo/bar/resource"
+        ), "Created resource is not a member of its parent container."
+
+        # Verify the resource via GET
+        get_response = client_ldpapi.get(
+            to_abs(namespace, "object/foo/bar/resource"),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert get_response.status_code == 200
+        assert (
+            get_response.get_json().get("dcterms:title") == "Deeply nested resource"
+        )
 
 
 class TestPutContainer:
@@ -816,6 +1037,10 @@ class TestPutContainer:
         assert "ldp:BasicContainer" in container_data.get("@type", [])
         assert container_data.get("dcterms:title") == "My New Container"
 
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", "object/new-sub-container/"
+        ), "Created container is not listed as a member of its parent container."
+
     def test_put_update_container(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
     ):
@@ -855,6 +1080,10 @@ class TestPutContainer:
         container_data = get_response.get_json()
         assert container_data.get("dcterms:title") == "Updated Title"
         assert container_data.get("dcterms:description") == "Updated description"
+
+        assert is_container_member(
+            namespace, client_ldpapi, "object/", "object/updatable-container/"
+        ), "Updated container must remain a member of its parent container."
 
     def test_put_fail_container_record_exists(
         self, namespace, client_ldpapi, ldp_fixture_app, auth_token
@@ -900,3 +1129,7 @@ class TestPutContainer:
             get_response.get_json().get("dcterms:title")
             == "I am a Resource, not a container"
         )
+
+        assert not is_container_member(
+            namespace, client_ldpapi, "object/", f"{record_id}/"
+        ), "A rejected container PUT must not add a container member."

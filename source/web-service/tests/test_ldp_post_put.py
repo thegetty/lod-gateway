@@ -172,19 +172,14 @@ def container_member_ids(namespace, client_ldpapi, container_url: str) -> set:
     url = container_url
     if url.startswith("http"):
         url = to_relative(url)
-    if not (
-        url.startswith(f"/{namespace}/")
-        or url.startswith(f"{namespace}/")
-    ):
+    if not (url.startswith(f"/{namespace}/") or url.startswith(f"{namespace}/")):
         url = f"/{namespace}/{container_url}"
     url = url.rstrip("/") + "/"
 
     members = set()
     pages = 0
     while url and pages < 1000:
-        r = client_ldpapi.get(
-            url, follow_redirects=True, headers={"Accept": JSONLD_CT}
-        )
+        r = client_ldpapi.get(url, follow_redirects=True, headers={"Accept": JSONLD_CT})
         if r.status_code != 200:
             return members
         pages += 1
@@ -977,9 +972,7 @@ class TestPutEndpoint:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert get_response.status_code == 200
-        assert (
-            get_response.get_json().get("dcterms:title") == "Deeply nested resource"
-        )
+        assert get_response.get_json().get("dcterms:title") == "Deeply nested resource"
 
 
 class TestPutContainer:

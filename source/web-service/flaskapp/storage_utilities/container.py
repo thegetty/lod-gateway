@@ -63,22 +63,16 @@ def get_container(container_identifier, optimistic=False, create=False):
             db.session.flush()
 
             # return the last container in the list as the parent:
-            parent_identifier = container_list[-1]
+            container_identifier = container_list[-1]
 
             if (
-                parent := db.session.query(LDPContainer)
+                c := db.session.query(LDPContainer)
                 .filter(LDPContainer.container_identifier == container_identifier)
                 .one_or_none()
             ):
-                container_slug = container_identifier.rstrip("/").split("/")[-1]
-                c = parent.new_child_container(
-                    child_slug=container_slug,
-                    dctitle=container_identifier,
-                    dcdescription="Auto-generated container",
-                    db_dialect=current_app.config["DB_DIALECT"],
-                    commit=current_app.config["LDP_AUTOCREATE_CONTAINERS_w_COMMIT"],
+                current_app.logger.debug(
+                    f"Autocreated container using get_container optimistic create {container_identifier}."
                 )
-                db.session.flush()
                 return c
             else:
                 current_app.logger.error(

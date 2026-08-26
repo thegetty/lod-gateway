@@ -76,7 +76,7 @@ def get_container(container_identifier, optimistic=False, create=False):
                 return c
             else:
                 current_app.logger.error(
-                    f"Failed to get Parent container for optimistic create {parent_identifier}."
+                    f"Failed to get Parent container for optimistic create {container_identifier}."
                 )
                 return None
 

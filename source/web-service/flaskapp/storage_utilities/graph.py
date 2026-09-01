@@ -166,6 +166,9 @@ def graph_expand(data, proc=None):
         current_app.logger.info(
             f"Graph {data[id_attr]} expanded in {time.perf_counter() - tictoc:05f}s"
         )
+        current_app.logger.info(
+            f"graph_expand returning: type={type(serialized_nt)}, value={repr(serialized_nt)[:200]}"
+        )
         return serialized_nt
     else:
         current_app.logger.info(f"{json_ld_id} - expanding using RDFLib")
@@ -181,8 +184,15 @@ def graph_expand(data, proc=None):
             current_app.logger.error(
                 f"No suitable quads or triples were parsed from the supplied JSON-LD. Is {json_ld_id} actually JSON-LD?"
             )
+            current_app.logger.info(
+                f"graph_expand (RDFLib) returning: type=False, value=False"
+            )
             return False
-        return g.serialize(format="nquads")
+        serialized = g.serialize(format="nquads")
+        current_app.logger.debug(
+            f"graph_expand (RDFLib) returning: type={type(serialized)}, value={repr(serialized)[:200]}"
+        )
+        return serialized
 
 
 def graph_replace(

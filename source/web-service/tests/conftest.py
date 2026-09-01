@@ -16,6 +16,7 @@ from flaskapp.utilities import Event
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
+from flaskapp.models.container import LDPContainer, LDPContainerContents
 
 from flaskapp.storage_utilities.container import get_container
 from flaskapp.storage_utilities.record import (
@@ -73,15 +74,25 @@ def current_app_no_rdf(app_no_rdf):
 
 @pytest.fixture
 def client_ldpapi(app_ldpapi):
-    testing_client = app_ldpapi.test_client()
+    # Setup DB within the same context that the test client uses,
+    # so that API requests and test queries share the same SQLAlchemy session.
     ctx = app_ldpapi.app_context()
     ctx.push()
+    if ".amazonaws.com" in app_ldpapi.config["SQLALCHEMY_DATABASE_URI"]:
+        pytest.exit(
+            ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
+        )
+    db.drop_all()
+    db.create_all()
+    _ = get_container("/")
+    db.session.commit()
+    testing_client = app_ldpapi.test_client()
     yield testing_client  # this is where the testing happens!
     ctx.pop()
 
 
 @pytest.fixture
-def ldp_fixture_app(app_ldpapi, test_db, ldp_sample_containers):
+def ldp_fixture_app(app_ldpapi, client_ldpapi, ldp_sample_containers):
     # Add some basic objects. One for the basic containers, and all the annotations into /annotations/ml-test/
     # for pagination testing.
     options = AnnotationOptions()
@@ -98,7 +109,7 @@ def ldp_fixture_app(app_ldpapi, test_db, ldp_sample_containers):
             options=options,
         )
         record_create(doc, process_the_activity=True)
-    test_db.session.commit()
+    db.session.commit()
 
     yield current_app
 
@@ -131,7 +142,6 @@ def client(app):
 
 @pytest.fixture
 def client_no_rdf(app_no_rdf):
-
     testing_client = app_no_rdf.test_client()
 
     ctx = app_no_rdf.app_context()
@@ -188,7 +198,6 @@ def sample_record(test_db):
 @pytest.fixture
 def sample_activity(test_db, sample_record):
     def _sample_activity(record_id):
-
         if not db.session.get(Record, record_id):
             record = sample_record()
             record_id = record.id
@@ -318,7 +327,6 @@ def sample_jsonldrecord_with_id(test_db, linguisticobject):
 @pytest.fixture
 def sample_activity_with_ids(test_db, sample_record_with_ids):
     def _sample_activity(record_id):
-
         if not db.session.get(Record, record_id):
             record = sample_record_with_ids()
             record_id = record.id
@@ -344,7 +352,7 @@ def sample_data_with_ids(sample_record_with_ids, sample_activity_with_ids):
 
 
 @pytest.fixture
-def ldp_sample_containers(test_db, namespace):
+def ldp_sample_containers(app_ldpapi, namespace):
     parent = get_container("/")
 
     for title, desc, ident in [
@@ -372,7 +380,7 @@ def ldp_sample_containers(test_db, namespace):
             db_dialect="base",
         )
 
-    test_db.session.commit()
+    db.session.commit()
 
     # Setup /annotations/ml-test/ as an example
     anno = get_container("/annotations/")
@@ -382,7 +390,7 @@ def ldp_sample_containers(test_db, namespace):
         dcdescription="Annotation collections in this container are for test purposes and not ready for public consumption",
         db_dialect="base",
     )
-    test_db.session.commit()
+    db.session.commit()
 
 
 @pytest.fixture(autouse=True)

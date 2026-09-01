@@ -7,7 +7,8 @@ Each model defines a single path parameter matching a Flask URL rule converter
 (e.g. ``<path:entity_id>`` -> ``entity_id: str``, ``<int:pagenum>`` -> ``pagenum: int``).
 """
 
-from pydantic import BaseModel, Field, ConfigDict, RootModel
+from pydantic import BaseModel, Field, ConfigDict, RootModel, model_validator
+from pydantic_core import PydanticCustomError
 
 # from uuid import UUID
 from typing import Optional
@@ -44,16 +45,52 @@ class EntityBody(BaseModel):
     at_id: Optional[str] = Field(
         default=None, alias="@id", description="Alternative semantic identifier"
     )
-    type: str = Field(..., description="Entity Type")
+    type: Optional[str] = Field(default=None, description="Entity Type")
+    at_type: Optional[str] = Field(
+        default=None, alias="@type", description="Alternative Entity Type (JSON-LD)"
+    )
 
     # Correct Pydantic v2 configuration for version 4.x+
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
+    @model_validator(mode="after")
+    def resolve_and_check_type(self):
+        # Normalize: if @type provided but not type, copy value and vice versa
+        if self.at_type and not self.type:
+            self.type = self.at_type
+        elif self.type and not self.at_type:
+            self.at_type = self.type
+
+        # if no type was given?
+        if not self.type:
+            raise PydanticCustomError(
+                "missing_type", "Either 'type' or '@type' must be provided"
+            )
+        return self
+
 
 # Body payloads
 class PlainBody(BaseModel):
-    type: str = Field(..., description="Entity Type")
-    model_config = ConfigDict(extra="allow")
+    type: Optional[str] = Field(default=None, description="Entity Type")
+    at_type: Optional[str] = Field(
+        default=None, alias="@type", description="Alternative Entity Type (JSON-LD)"
+    )
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    @model_validator(mode="after")
+    def resolve_and_check_type(self):
+        # Normalize: if @type provided but not type, copy value and vice versa
+        if self.at_type and not self.type:
+            self.type = self.at_type
+        elif self.type and not self.at_type:
+            self.at_type = self.type
+
+        # if no type was given?
+        if not self.type:
+            raise PydanticCustomError(
+                "missing_type", "Either 'type' or '@type' must be provided"
+            )
+        return self
 
 
 JSONL_examples = {

@@ -31,6 +31,7 @@ from flaskapp.utilities import (
 )
 from flaskapp.storage_utilities.record import (
     get_record,
+    record_update,
     record_delete,
     record_create,
     process_activity,
@@ -449,18 +450,29 @@ def container_post_item(
     )
 
     if record:
-        # Cannot POST things to a Record
-        current_app.logger.error(
-            "Request failed - Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer"
-        )
-        response = construct_error_response(
-            status_nt(
-                400,
-                "Bad Request",
-                "Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer",
+        # Check if the record is deleted (data is None and datetime_deleted is set)
+        if record.data is None and record.datetime_deleted is not None:
+            # Record is deleted - treat the path as available for new resource creation
+            current_app.logger.info(
+                f"Found deleted record at {record.entity_id}, removing it and proceeding with POST"
             )
-        )
-        abort(response)
+            # Delete the deleted record from the database
+            db.session.delete(record)
+            db.session.flush()
+            # Continue with normal POST flow - the path is now available
+        else:
+            # Cannot POST things to an active Record
+            current_app.logger.error(
+                "Request failed - Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer"
+            )
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict Error",
+                    f"Cannot POST a resource to a LOD Gateway resource. {path.container_id} is already a record, not a container.",
+                )
+            )
+            abort(response)
 
     # See if the entity_id is actually an existing container:
     cid = container_breadcrumbs[-1]
@@ -539,7 +551,8 @@ def container_post_item(
                 .limit(1)
                 .one_or_none()
             )
-            if existing:
+            if existing and existing.datetime_deleted is None:
+                # Only reject if the record is not deleted
                 current_app.logger.error(
                     f"Request failed - Cannot create a new resource with this identifier {identifier}, as it already exists"
                 )
@@ -553,18 +566,44 @@ def container_post_item(
                 abort(response)
             else:
                 with db.session.no_autoflush:
-                    record_id = record_create(
-                        posted_representation.json_ld,
-                        commit=False,
-                        process_the_activity=True,
+                    current_app.logger.debug(
+                        f"Creating record in DB for identifier: {identifier}"
                     )
+
+                    if existing and existing.datetime_deleted is not None:
+                        # Need to update existing but previously deleted record
+                        record_id = existing.id
+                        record_update(
+                            existing,
+                            posted_representation.json_ld,
+                            commit=False,
+                            process_the_activity=True,
+                        )
+                    else:
+                        record_id = record_create(
+                            posted_representation.json_ld,
+                            commit=False,
+                            process_the_activity=True,
+                        )
+                        current_app.logger.debug(
+                            f"New Record created with ID: {record_id}"
+                        )
 
                     prefixed_jsonld = inflate_relative_uris(
                         posted_representation.json_ld, posted_representation.id_attr
                     )
+                    current_app.logger.debug(
+                        f"Prefixed JSON-LD for graph expand: {json.dumps(prefixed_jsonld, indent=2)[:500]}"
+                    )
 
+                    current_app.logger.debug(
+                        f"Calling graph_expand for: {prefixed_jsonld.get(posted_representation.id_attr, 'NO ID')}"
+                    )
                     if expanded := graph_expand(prefixed_jsonld):
                         graph_uri = prefixed_jsonld[posted_representation.id_attr]
+                        current_app.logger.debug(
+                            f"Graph expanded successfully: {len(expanded)} bytes, graph URI: {graph_uri}"
+                        )
                         updated_graph = graph_replace(
                             graph_uri,
                             expanded,
@@ -574,11 +613,17 @@ def container_post_item(
                         if updated_graph is False:
                             # Failed to process this as a graph:
                             db.session.rollback()
-                            status_nt(
-                                422,
-                                "Graph expansion error",
-                                "Could not convert JSON-LD to RDF, id " + graph_uri,
+                            current_app.logger.error(
+                                f"graph_replace failed for URI: {graph_uri}"
                             )
+                            response = construct_error_response(
+                                status_nt(
+                                    422,
+                                    "Graph expansion error",
+                                    "Could not convert JSON-LD to RDF, id " + graph_uri,
+                                )
+                            )
+                            abort(response)
 
                         db.session.commit()
                         current_app.logger.info(
@@ -595,11 +640,17 @@ def container_post_item(
                         return jsonify(posted_representation.json_ld), 201, ldpheaders
                     else:
                         db.session.rollback()
-                        status_nt(
-                            422,
-                            "Graph expansion error",
-                            "Could not expand JSON-LD to RDF",
+                        current_app.logger.error(
+                            f"graph_expand returned False for URI: {prefixed_jsonld.get(posted_representation.id_attr, 'UNKNOWN')}"
                         )
+                        response = construct_error_response(
+                            status_nt(
+                                422,
+                                "Graph expansion error",
+                                "Could not expand JSON-LD to RDF",
+                            )
+                        )
+                        abort(response)
 
     else:
         current_app.logger.error(
@@ -613,6 +664,450 @@ def container_post_item(
             )
         )
         abort(response)
+
+
+@records.put(
+    "/<path:entity_id>",
+    tags=[ldp_tag, records_tag],
+    summary="Update or create resource (LDP PUT)",
+    description="Create or update a resource at a specific URI. Requires Bearer token authentication and LDP_API=True.",
+    security=[{"bearerAuth": []}],
+    responses={
+        200: {"description": "Existing record or container updated"},
+        201: {"description": "New record or container created"},
+        409: {"description": "Conflict -- Resource exists where container requested"},
+        422: {"description": "Invalid JSON, JSON-LD, or ID mismatch"},
+    },
+)
+def container_put_item(path: EntityIdPath, body: PlainBody):
+    """PUT a resource or container to a specific URI. Requires LDP_API=True.
+
+    If the request body declares itself as an ldp:BasicContainer (via @context and
+    @type/type), it is handled as a container operation:
+    - Creates a new container at the destination URI (201)
+    - Updates an existing container's dctitle/dcdescription (200)
+    - Fails with 409 if a Resource record already exists at that path
+
+    Otherwise the body is treated as a regular record:
+    - Creates a new record at the destination URI (201)
+    - Updates an existing record (200)
+
+    Validates:
+    - Request body is valid JSON
+    - Request body is valid JSON-LD
+    - id/@id in body matches destination URI (or is injected from destination if missing)
+
+    Returns:
+    - 201 Created if new record or container
+    - 200 OK if existing record or container updated
+    - 409 Conflict if container creation/update blocked by existing Resource
+    - 422 Unprocessable Entity if validation fails
+    """
+
+    if not current_app.config["LDP_API"] or not current_app.config["LDP_BACKEND"]:
+        response = construct_error_response(status_not_implemented)
+        abort(response)
+
+    # Authentication
+    status = authenticate_bearer(request, current_app)
+    if status != status_ok:
+        response = construct_error_response(status)
+        abort(response)
+
+    current_app.logger.debug(
+        f"Authentication checked - PUT LDP resource request allowed."
+    )
+
+    # CRUCIAL identifier
+    entity_id = path.entity_id
+
+    # Get the implied container-hierarchy from the entity_id
+    container_breadcrumbs = segment_entity_id(entity_id)
+
+    if len(container_breadcrumbs) == 1:
+        # Cannot PUT to /
+        response = construct_error_response(status_not_implemented)
+        abort(response)
+
+    # The parent container is the second-to-last breadcrumb (last is the entity itself)
+    relative_container = container_breadcrumbs[-2].strip("/")
+
+    # Validate JSON-LD (parse_representation handles both JSON and JSON-LD validation)
+    # Pass the pydantic body model, not the raw dict
+    try:
+        put_body_representation = parse_representation(
+            f'{current_app.config["idPrefix"]}/',
+            relative_container,
+            request,
+            body,
+            None,
+        )
+        current_app.logger.info(
+            f"PUT JSON parsed as JSON-LD and rebased to: {put_body_representation.has_top_level_id()}"
+        )
+    except ResourceValidationError as e:
+        current_app.logger.error(f"Invalid JSON-LD in PUT request: {str(e)}")
+        response = construct_error_response(
+            status_nt(422, "Invalid JSON-LD", f"Could not parse JSON-LD: {str(e)}")
+        )
+        abort(response)
+
+    # Handle missing ID: inject destination URI if no @id/id present
+    id_attr = "@id" if "@id" in put_body_representation.json_ld else "id"
+    body_id = put_body_representation.json_ld.get(id_attr)
+    if not body_id:
+        # No ID in body - inject the destination URI (relative path)
+        current_app.logger.info(
+            f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"
+        )
+        # Remake the JSON-LD with the proper id and using 'id' or '@id' if body_id = ""
+        jsonld = put_body_representation.json_ld
+        jsonld["@id"] = (
+            entity_id  # always '@id' to match put_body_representation.id_attr
+        )
+        put_body_representation.json_ld = jsonld
+        body_id = entity_id
+
+    # Container-specific validation: enforce trailing slash conventions
+    if put_body_representation.is_basic_container:
+        # Container payloads require trailing slash on URL
+        if not entity_id.endswith("/"):
+            current_app.logger.error(
+                f"Container PUT requires trailing slash on URL: {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    422,
+                    "Invalid Container URL",
+                    f"Container resources must use a trailing slash in the URL: {entity_id}/",
+                )
+            )
+            abort(response)
+
+        # Normalize body_id to include trailing slash for containers
+        if body_id and not body_id.endswith("/"):
+            current_app.logger.info(
+                f"PUT container: normalizing body_id to include trailing slash: {body_id} -> {body_id}/"
+            )
+            body_id = body_id + "/"
+            jsonld = put_body_representation.json_ld
+            jsonld[id_attr] = body_id
+            put_body_representation.json_ld = jsonld
+    else:
+        # Non-container payloads must NOT use trailing slash on URL
+        if entity_id.endswith("/"):
+            current_app.logger.error(
+                f"Non-container PUT to container URL (trailing slash): {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    422,
+                    "Invalid Resource URL",
+                    f"Resource payloads cannot use a trailing slash. Use a container type (ldp:BasicContainer) or remove the trailing slash.",
+                )
+            )
+            abort(response)
+
+    # Relaxed ID matching: normalize both IDs to compare them
+    # The destination URI should be the entity_id with the idPrefix prepended
+    fqdn_id = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
+
+    current_app.logger.info(
+        f"PUT ID check: body_id='{body_id}', fqdn_id='{fqdn_id}', entity_id='{entity_id}'"
+    )
+
+    # Check - does the body_id match the entity_id? Note that part of the POINT of the
+    # Representation parsing is to rebase the JSON-LD into a relative_id form
+    if body_id != entity_id:
+        current_app.logger.error(
+            f"ID mismatch in PUT request: body has '{body_id}' (normalized: '{entity_id}')"
+        )
+        response = construct_error_response(
+            status_nt(
+                422,
+                "ID Mismatch",
+                f"The {id_attr} in the body ({body_id}) does not match the destination URI ({entity_id})",
+            )
+        )
+        abort(response)
+
+    # Check if record exists
+    record = (
+        db.session.query(Record)
+        .filter(Record.entity_id == entity_id)
+        .options(defer(Record.data))
+        .limit(1)
+        .one_or_none()
+    )
+
+    # Get parent container
+    parent = get_container(container_breadcrumbs[-2], optimistic=True)
+
+    if not parent:
+        if not current_app.config["LDP_AUTOCREATE_CONTAINERS"]:
+            current_app.logger.error(
+                "Request failed - no parent container available, and LDP_AUTOCREATE_CONTAINERS flag is False"
+            )
+            # Changed from status_not_implemented (501) to 422
+            response = construct_error_response(
+                status_nt(
+                    422,
+                    "Container not found",
+                    "Parent container does not exist and LDP_AUTOCREATE_CONTAINERS is False",
+                )
+            )
+            abort(response)
+        else:
+            # No parent but LDP_AUTOCREATE_CONTAINERS is switched on - containers should be made for it:
+            parent = get_container(
+                container_breadcrumbs[-2], optimistic=True, create=True
+            )
+
+    # --- Container handling ---
+    # If the payload declares itself a BasicContainer, handle it as a container
+    # (create or update) rather than as a record.
+    if put_body_representation.is_basic_container:
+        # A Record at this path blocks container creation/update.
+        # Check both with and without trailing slash to prevent confusion
+        # between 'object/foo' (record) and 'object/foo/' (container).
+        record_without_slash = None
+        entity_no_slash = entity_id.rstrip("/")
+        if entity_no_slash != entity_id:
+            record_without_slash = (
+                db.session.query(Record)
+                .filter(Record.entity_id == entity_no_slash)
+                .options(defer(Record.data))
+                .limit(1)
+                .one_or_none()
+            )
+
+        if record or record_without_slash:
+            blocking_id = entity_id if record else entity_no_slash
+            current_app.logger.error(
+                f"PUT container conflict: a Resource exists at {blocking_id} -- container cannot be created or updated at {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict Error",
+                    f"Cannot create or update container at {entity_id} because a Resource already exists at {blocking_id}",
+                )
+            )
+            abort(response)
+
+        # Derive the container identifier (ensure leading/trailing slashes)
+        container_id = f"/{entity_id.strip('/')}/"
+
+        existing_container = get_container(container_id, optimistic=True)
+
+        if existing_container:
+            # --- Update existing container ---
+            current_app.logger.info(f"Updating existing container {container_id}")
+            new_title = put_body_representation.title
+            new_description = put_body_representation.description
+            if new_title:
+                existing_container.dctitle = new_title
+            if new_description is not None:
+                existing_container.dcdescription = new_description
+            db.session.commit()
+
+            # Return the updated container page representation
+            response = container_record(container_id, page=1)
+            response.status_code = 200
+            return response
+        else:
+            # --- Create new container ---
+            container_slug_id = entity_id.strip("/").split("/")[-1]
+            current_app.logger.info(
+                f"Creating new container at {container_id} with slug {container_slug_id}"
+            )
+
+            parent.new_child_container(
+                container_slug_id,
+                dctitle=put_body_representation.title or container_id,
+                dcdescription=put_body_representation.description,
+                db_dialect=current_app.config["DB_DIALECT"],
+            )
+            db.session.commit()
+
+            current_app.logger.info(
+                f"Successfully created new ldp:BasicContainer at {container_id}"
+            )
+
+            # Return the newly created container page representation
+            response = container_record(container_id, page=1)
+            response.status_code = 201
+            return response
+
+    ###############################
+    # Process the PUT (as a Record)
+
+    # Block record creation if a container exists at the path with trailing slash.
+    # Prevents confusion between 'object/foo' (record) and 'object/foo/' (container).
+    if not record and not entity_id.endswith("/"):
+        container_path = entity_id + "/"
+        blocking_container = get_container(container_path, optimistic=True)
+        if blocking_container:
+            current_app.logger.error(
+                f"PUT record conflict: a Container exists at {container_path} -- record cannot be created at {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict Error",
+                    f"Cannot create record at {entity_id} because a Container already exists at {container_path}",
+                )
+            )
+            abort(response)
+
+    status_code = 200
+    with db.session.no_autoflush:
+        try:
+            if record:
+                # Record exists - update it
+                current_app.logger.info(f"Updating existing record {entity_id}")
+                record_id = record.id
+                record_update(
+                    record,
+                    put_body_representation.json_ld,
+                    commit=False,
+                    process_the_activity=True,
+                )
+            else:
+                # Record doesn't exist - create it
+                current_app.logger.info(f"Creating new record {entity_id}")
+                _ = record_create(
+                    put_body_representation.json_ld,
+                    commit=False,
+                    process_the_activity=True,
+                )
+                # Created
+                status_code = 201
+
+            # Process RDF if applicable
+            if current_app.config["PROCESS_RDF"] is True:
+                prefixed_jsonld = inflate_relative_uris(
+                    put_body_representation.json_ld, put_body_representation.id_attr
+                )
+
+                if expanded := graph_expand(prefixed_jsonld):
+                    graph_uri = prefixed_jsonld[put_body_representation.id_attr]
+                    updated_graph = graph_replace(
+                        graph_uri,
+                        expanded,
+                        current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                        current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+                    )
+                    if updated_graph is False:
+                        # Failed to process this as a graph - rollback
+                        db.session.rollback()
+                        current_app.logger.error(
+                            f"Graph expansion error for {graph_uri}"
+                        )
+                        response = construct_error_response(
+                            status_nt(
+                                422,
+                                "Graph expansion error",
+                                f"Could not convert JSON-LD to RDF, id {graph_uri}",
+                            )
+                        )
+                        abort(response)
+                else:
+                    db.session.rollback()
+                    current_app.logger.error("Could not expand JSON-LD to RDF")
+                    response = construct_error_response(
+                        status_nt(
+                            422,
+                            "Graph expansion error",
+                            "Could not expand JSON-LD to RDF",
+                        )
+                    )
+                    abort(response)
+
+            db.session.commit()
+
+            # Reload the record to get the updated datetime_updated
+            record = (
+                db.session.query(Record)
+                .filter(Record.entity_id == entity_id)
+                .options(defer(Record.data))
+                .limit(1)
+                .first()
+            )
+
+            # Return the record representation equivalent to a GET on the entity
+            # This includes id remapping and other transformations
+            hostPrefix = current_app.config["BASE_URL"]
+            idPrefix = current_app.config["idPrefix"]
+
+            # Get the record data with prefixed IDs (same as GET handler)
+            attr = "@id" if "@id" in put_body_representation.json_ld else "id"
+            data = put_body_representation.json_ld
+
+            urlprefixes = None
+            if current_app.config["PROCESS_RDF"] is True and "@context" in data:
+                urlprefixes = get_url_prefixes_from_context(data["@context"])
+
+            # Prefix record IDs
+            prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
+            if prefixRecordIDs != "NONE":
+                data = containerRecursiveCallback(
+                    data=data,
+                    attr=attr,
+                    callback=idPrefixer,
+                    prefix=idPrefix,
+                    recursive=True,
+                    urlprefixes=urlprefixes,
+                )
+
+                # Remove @base if present
+                if context := data.get("@context"):
+                    if isinstance(context, dict):
+                        if "@base" in context:
+                            del context["@base"]
+                    elif isinstance(context, list):
+                        for x in context:
+                            if isinstance(x, dict) and "@base" in x:
+                                del x["@base"]
+
+            # Build response headers (similar to GET handler)
+            content_type = "application/ld+json;charset=UTF-8"
+            etag = f'"{record.checksum}"'
+
+            # Link headers
+            link_headers = (
+                f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=entity_id) }>; rel="timemap"; type="application/link-format" , '
+                + f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=entity_id) }>; rel="timemap"; type="application/json" , '
+                + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=entity_id) }>; rel="original timegate" , '
+                + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=entity_id, _mediatype="application/ld+json") }>; rel="canonical"; type="application/ld+json"'
+            )
+
+            # Add LDP Resource link header
+            if current_app.config["LDP_API"]:
+                link_headers = (
+                    link_headers + ', <http://www.w3.org/ns/ldp#Resource>; rel="type"'
+                )
+
+            # Build response
+            response = current_app.make_response(jsonify(data))
+            response.status_code = status_code
+            response.headers["Content-Type"] = content_type
+            if record and record.datetime_updated:
+                response.headers["Last-Modified"] = format_datetime(
+                    record.datetime_updated
+                )
+            if etag:
+                response.headers["ETag"] = etag
+            response.headers["Link"] = link_headers
+            response.headers["Location"] = f"{idPrefix}/{entity_id}"
+
+            return response
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database error during PUT: {str(e)}")
+            response = construct_error_response(status_db_save_error)
+            abort(response)
 
 
 @records.get(

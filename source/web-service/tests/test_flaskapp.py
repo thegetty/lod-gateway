@@ -49,14 +49,15 @@ class TestRDFIdPrefixConfig:
         app = create_app()
         assert app.config["RDFidPrefix"] == "https://g.example/graph"
         # display prefix unaffected by the override
-        assert app.config["idPrefix"] == "http://localhost:5100/museum/collection"
+        # (CI runs with APPLICATION_NAMESPACE="ns", overriding .env.example)
+        assert app.config["idPrefix"] == "http://localhost:5100/ns"
 
     def test_full_rdf_id_prefix_unset_falls_back(self, monkeypatch):
         monkeypatch.delenv("FULL_RDF_ID_PREFIX", raising=False)
         app = create_app()
-        # BASE_URL + RDF_NAMESPACE (which differs from APPLICATION_NAMESPACE in .env.example)
+        # BASE_URL + RDF_NAMESPACE (which equals APPLICATION_NAMESPACE="ns" in CI)
         assert app.config["RDFidPrefix"] == "http://localhost:5100/ns"
-        assert app.config["idPrefix"] == "http://localhost:5100/museum/collection"
+        assert app.config["idPrefix"] == "http://localhost:5100/ns"
 
     def test_full_rdf_id_prefix_empty_falls_back(self, monkeypatch):
         monkeypatch.setenv("FULL_RDF_ID_PREFIX", "")
@@ -87,5 +88,5 @@ class TestRDFIdPrefixConfig:
         monkeypatch.delenv("FULL_RDF_ID_PREFIX", raising=False)
         monkeypatch.setenv("RDF_BASE_GRAPH", "basegraph")
         app = create_app()
-        # BASE_URL + RDF_NAMESPACE (which differs from APPLICATION_NAMESPACE in .env.example)
+        # BASE_URL + RDF_NAMESPACE (which equals APPLICATION_NAMESPACE="ns" in CI)
         assert app.config["FULL_BASE_GRAPH"] == "http://localhost:5100/ns/basegraph"

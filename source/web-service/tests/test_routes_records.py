@@ -220,7 +220,10 @@ class TestObtainRecord:
             mock_profile_query.call_args.kwargs["uri"]
             == "https://graph.example/ns/object/123"
         )
-        assert mock_profile_query.call_args.kwargs["uri"] != f"{current_app.config['idPrefix']}/object/123"
+        assert (
+            mock_profile_query.call_args.kwargs["uri"]
+            != f"{current_app.config['idPrefix']}/object/123"
+        )
         # the response body is the profiled document, untouched by display prefixing
         assert json.loads(response.data) == json.loads(profiled_content)
         # the original record data was never mutated by the prefixing pass

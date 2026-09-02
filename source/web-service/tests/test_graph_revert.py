@@ -5,14 +5,10 @@ from flaskapp.storage_utilities.graph import revert_triplestore_if_possible
 
 
 class TestRevertTriplestoreDeletePath:
-    def test_relative_id_prefixed_with_rdfidprefix(
-        self, current_app, mocker
-    ):
+    def test_relative_id_prefixed_with_rdfidprefix(self, current_app, mocker):
         # divergent graph and display prefixes
         current_app.config["RDFidPrefix"] = "https://graph.example/ns"
-        mocker.patch(
-            "flaskapp.storage_utilities.graph.get_record", return_value=None
-        )
+        mocker.patch("flaskapp.storage_utilities.graph.get_record", return_value=None)
         mock_graph_delete = mocker.patch(
             "flaskapp.storage_utilities.graph.graph_delete", return_value=True
         )
@@ -25,13 +21,9 @@ class TestRevertTriplestoreDeletePath:
         assert call_args.args[0] != f"{current_app.config['idPrefix']}/objects/thing42"
         assert results == {"objects/thing42": "deleted"}
 
-    def test_absolute_id_passes_through_unchanged(
-        self, current_app, mocker
-    ):
+    def test_absolute_id_passes_through_unchanged(self, current_app, mocker):
         current_app.config["RDFidPrefix"] = "https://graph.example/ns"
-        mocker.patch(
-            "flaskapp.storage_utilities.graph.get_record", return_value=None
-        )
+        mocker.patch("flaskapp.storage_utilities.graph.get_record", return_value=None)
         mock_graph_delete = mocker.patch(
             "flaskapp.storage_utilities.graph.graph_delete", return_value=True
         )

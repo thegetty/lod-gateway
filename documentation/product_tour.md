@@ -1,6 +1,6 @@
 # LOD Gateway Product Tour
 
-([back to README](/README.md)
+([back to README](/README.md)))
 
 A product tour guide for the LOD Gateway, explaining its capabilities and how it solves problems when working with JSON and JSON-LD data.
 

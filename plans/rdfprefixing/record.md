@@ -29,3 +29,6 @@ verify: added FULL_RDF_ID_PREFIX row to the RDF and Graph Processing table (take
 **Step 9: VERIFY (full external suite)** - PENDING
 Status: Blocked on user run
 verify: all implementation steps (3-8) complete; local py_compile passes on all modified files; test suite must be run in docker/CircleCI per user's workflow.
+**Red/Green update - 2026-09-02**
+Status: 1 failure round (external CI run)
+verify: first external run: 163 tests, 2 failures - both in TestRDFIdPrefixConfig (test_full_rdf_id_prefix_set, test_full_rdf_id_prefix_unset_falls_back). Root cause: CircleCI passes --env APPLICATION_NAMESPACE="ns" (config.yml:198), overriding .env.example's museum/collection, so expected idPrefix values were wrong; implementation verified correct by the 4 other config tests passing (override, empty fallback, trailing slashes, both FULL_BASE_GRAPH derivations). Fix committed as follow-up 6c7a9a9 (test expectations only). Awaiting re-run for full GREEN.

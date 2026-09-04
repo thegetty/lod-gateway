@@ -76,7 +76,7 @@ from flaskapp.openapi_models import (
 )
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
+from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS, QUAD_ENABLED
 from flaskapp.conneg import (
     desired_rdf_format,
     determine_requested_format_and_profile,
@@ -1955,13 +1955,18 @@ def entity_version(path: EntityIdPath):
 
                             # rdflib to load and format the nquads
                             # forcing it, because of pyld's awful nquad export
-                            g = get_bound_graph(identifier=ident)
+                            ds, g = get_bound_graph(identifier=ident)
 
                             # May not be nquads, even though we requested it:
                             serialized_rdf = triples_to_quads(serialized_rdf, ident)
 
-                            g.parse(data=serialized_rdf, format="nquads")
-                            data = g.serialize(format=desired[1])
+                            ds.parse(data=serialized_rdf, format="nquads")
+                            if desired[1] in QUAD_ENABLED:
+                                # formats allow quads
+                                data = ds.serialize(format=desired[1])
+                            else:
+                                # Triple-focussed output:
+                                data = g.serialize(format=desired[1])
                         else:
                             current_app.logger.debug(
                                 f"{path.entity_id} - using RDFLIB to parse JSON-LD"
@@ -1969,10 +1974,16 @@ def entity_version(path: EntityIdPath):
                             ident = data.get("id") or data.get("@id")
 
                             # using rdflib to both parse and re-serialize the RDF:
-                            g = get_bound_graph(identifier=ident)
+                            ds, g = get_bound_graph(identifier=ident)
 
-                            g.parse(data=json.dumps(data), format="json-ld")
-                            data = g.serialize(format=desired[1])
+                            if desired[1] in QUAD_ENABLED:
+                                # formats allow quads
+                                ds.parse(data=json.dumps(data), format="json-ld")
+                                data = ds.serialize(format=desired[1])
+                            else:
+                                # Triple-focussed output:
+                                g.parse(data=json.dumps(data), format="json-ld")
+                                data = g.serialize(format=desired[1])
 
                         current_app.logger.debug(
                             f"VERSION {path.entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"

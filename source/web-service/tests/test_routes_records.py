@@ -188,6 +188,47 @@ class TestObtainRecord:
         assert "LOD Gateway" in response.headers["Server"]
         assert json.loads(response.data) == data
 
+    def test_profile_query_uses_rdfidprefix(
+        self, sample_data_with_ids, client, namespace, current_app, mocker
+    ):
+        # Divergent graph and display prefixes: the SPARQL profile query must
+        # address the triplestore graph URI (RDFidPrefix), not the display idPrefix
+        current_app.config["RDFidPrefix"] = "https://graph.example/ns"
+        current_app.config["PREFIX_RECORD_IDS"] = "RECURSIVE"
+        record = sample_data_with_ids["record"]
+
+        profiled_content = json.dumps(
+            {"@id": "https://graph.example/ns/object/123", "profiled": True}
+        ).encode()
+        mock_profile_query = mocker.patch(
+            "flaskapp.routes.records.get_data_using_profile_query",
+            return_value=(
+                profiled_content,
+                "application/ld+json",
+                "https://example/profile",
+            ),
+        )
+
+        response = client.get(
+            f"/{namespace}/{record.entity_id}",
+            query_string={"_profile": "https://example/profile"},
+        )
+
+        assert response.status_code == 200
+        # the SPARQL query received the graph-prefixed id
+        assert (
+            mock_profile_query.call_args.kwargs["uri"]
+            == "https://graph.example/ns/object/123"
+        )
+        assert (
+            mock_profile_query.call_args.kwargs["uri"]
+            != f"{current_app.config['idPrefix']}/object/123"
+        )
+        # the response body is the profiled document, untouched by display prefixing
+        assert json.loads(response.data) == json.loads(profiled_content)
+        # the original record data was never mutated by the prefixing pass
+        assert record.data["id"] == "object/123"
+
     def test_browse_records_base(self, sample_data, client, namespace):
         response = client.get(f"/{namespace}/*")
         assert response.status_code == 200

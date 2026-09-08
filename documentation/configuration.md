@@ -29,8 +29,9 @@ Values in `.env` files should not be quoted unless you intend the quotes to be p
 | `SPARQL_QUERY_ENDPOINT` | *(none)* | SPARQL query endpoint URL of the graph store. Required when `PROCESS_RDF=True`. |
 | `SPARQL_UPDATE_ENDPOINT` | *(none)* | SPARQL update endpoint URL of the graph store. Required when `PROCESS_RDF=True`. |
 | `SPARQL_QUERY_AUTHENTICATION` | `False` | Set to `True` to require authentication on the `/sparql` endpoint and `/sparql-ui` interface. |
-| `RDF_NAMESPACE` | *(same as APPLICATION_NAMESPACE)* | Separate namespace for RDF named graph URIs. Use when the RDF namespace must differ from the API namespace. |
-| `RDF_BASE_GRAPH` | *(none)* | Entity ID of the base graph resource. Triples in the base graph are removed from other named graphs to avoid duplication. |
+| `FULL_RDF_ID_PREFIX` | *(none)* | Full base URI (scheme, host, path included, e.g. `https://graph.example.org/rdf`) used as the prefix for RDF named graph URIs in the triplestore. When set to a non-empty value it fully specifies the prefix and takes precedence over the `BASE_URL`/`RDF_NAMESPACE` derivation below, decoupling triplestore graph URIs from API/display URLs. When unset or empty, the prefix is derived as `BASE_URL[/RDF_NAMESPACE]`. | 
+| `RDF_NAMESPACE` | *(same as APPLICATION_NAMESPACE)* | Separate namespace for RDF named graph URIs. Use when the RDF namespace must differ from the API namespace. Ignored when `FULL_RDF_ID_PREFIX` is set. |
+| `RDF_BASE_GRAPH` | *(none)* | Entity ID of the base graph resource. Triples in the base graph are removed from other named graphs to avoid duplication. The base graph URI is `{RDFidPrefix}/{RDF_BASE_GRAPH}`, where `RDFidPrefix` is `FULL_RDF_ID_PREFIX` if set, else derived from `BASE_URL`/`RDF_NAMESPACE`. |
 | `USE_PYLD_REFORMAT` | `True` | Set to `True` to use PyLD for JSON-LD expansion and reformatting. Set to `False` to use RDFLib. |
 | `RDF_CONTEXT_CACHE` | *(none)* | JSON-encoded context documents to preload into the document loader. Speeds up expansion by avoiding external context fetches. |
 | `RDF_CONTEXT_CACHE_EXPIRES` | `30` | Duration in seconds that context documents remain in cache. |

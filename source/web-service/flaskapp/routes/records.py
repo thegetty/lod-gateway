@@ -1521,11 +1521,18 @@ def entity_record(path: EntityIdPath):
                         if desired["requested_profiles"]:
                             ## Get a profiled version based on the data ##
                             try:
+                                # The SPARQL profile query addresses the triplestore, whose graph
+                                # URIs use RDFidPrefix - rebuild the id from the original
+                                # (unprefixed) data so the query always uses the graph URI, even
+                                # when the response body is prefixed with the display idPrefix.
+                                graph_prefixed = inflate_relative_uris(
+                                    subdata or record.data, attr
+                                )
                                 current_app.logger.info(
-                                    f"Attempting to load profiled version of {data[attr]}"
+                                    f"Attempting to load profiled version of {graph_prefixed[attr]}"
                                 )
                                 if profiled_data := get_data_using_profile_query(
-                                    uri=data[attr],
+                                    uri=graph_prefixed[attr],
                                     uritype=data.get("type") or record.entity_type,
                                     profiles=desired["requested_profiles"],
                                     patterns=current_app.config[

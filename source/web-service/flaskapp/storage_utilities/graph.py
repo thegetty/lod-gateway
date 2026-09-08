@@ -367,9 +367,15 @@ def revert_triplestore_if_possible(list_of_relative_ids: list, timeout: int = 45
         if record is None or ("record" in record and record["record"].data is None):
             # this record did not exist before the bulk request
             try:
-                graph_delete(relative_id, query_endpoint, update_endpoint, timeout)
+                # graph_delete needs the triplestore graph URI, so prefix the
+                # relative id with RDFidPrefix using the same idPrefixer semantics
+                # as the write paths (already-absolute ids pass through unchanged)
+                graph_uri = idPrefixer(
+                    "id", relative_id, prefix=current_app.config["RDFidPrefix"]
+                )
+                graph_delete(graph_uri, query_endpoint, update_endpoint, timeout)
                 current_app.logger.warning(
-                    f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
+                    f"REVERT: Deleted {graph_uri} from triplestore to match DB state (deleted/non-existent)"
                 )
                 results[relative_id] = "deleted"
             except (requests.exceptions.ConnectionError, RetryAfterError):

@@ -1,4 +1,4 @@
-from rdflib import ConjunctiveGraph, Namespace
+from rdflib import Dataset, Namespace
 
 from rdflib.namespace import DC, DCTERMS
 
@@ -16,6 +16,8 @@ BINDING = {
     "oa": Namespace("http://www.w3.org/ns/oa#"),
     "owl": Namespace("http://www.w3.org/2002/07/owl#"),
     "prov": Namespace("http://www.w3.org/ns/prov#"),
+    "dc": DC,
+    "dcterms": DCTERMS,
 }
 
 # For items uploaded outside of JSON-LD
@@ -42,6 +44,8 @@ FORMATS = {
     # "application/trix;charset=UTF-8": "trix",        the TriX output is not great tbh
 }
 
+QUAD_ENABLED = ("nquads", "json-ld", "trig")
+
 
 # Basic framing, anticipating a single top-level URI
 def get_frame(identifier):
@@ -53,9 +57,8 @@ def get_frame(identifier):
 
 
 def get_bound_graph(identifier):
-    g = ConjunctiveGraph(identifier=identifier)
-    g.bind("dc", DC)
-    g.bind("dcterms", DCTERMS)
+    ds = Dataset()
     for k, v in BINDING.items():
-        g.bind(k, v)
-    return g
+        ds.bind(k, v)
+    g = ds.graph(identifier)
+    return ds, g

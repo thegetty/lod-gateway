@@ -532,3 +532,87 @@ class TestNewJSONLDIngest:
 
         assert "LOD Gateway" in response.headers["Server"]
         assert b"Irises" in response.data
+
+
+class TestIngestLDPBackendAutocreate:
+    """Tests for the LDP backend autogeneration path in the ingest route.
+
+    These require LDP_BACKEND=True (client_ldpapi fixture). They exercise
+    handle_container_requirements() -> add_child_container(), which builds a
+    chain of intermediate containers back-to-back when a deep resource is
+    ingested with LDP_AUTOCREATE_CONTAINERS=True.
+    """
+
+    def _container_exists(self, container_id):
+        """Assert a container exists in the DB and is a valid member of its
+        parent (i.e. has a non-null container_id in entity_list).
+
+        Container identifiers are stored relative to the service root, e.g.
+        '/searchdatasets/' (no application namespace prefix).
+        """
+        from flaskapp.models.container import LDPContainer, LDPContainerContents
+
+        container = (
+            db.session.query(LDPContainer)
+            .filter(LDPContainer.container_identifier == container_id)
+            .one_or_none()
+        )
+        assert container is not None, f"Container {container_id} was not created"
+
+        membership = (
+            db.session.query(LDPContainerContents)
+            .filter(LDPContainerContents.entity_id == container_id)
+            .one_or_none()
+        )
+        assert (
+            membership is not None
+        ), f"Container {container_id} is not listed as a member of its parent"
+        assert (
+            membership.container_id is not None
+        ), f"Container {container_id} has a NULL container_id in entity_list"
+        return container
+
+    def test_ingest_autocreates_deep_container_chain(
+        self, client_ldpapi, namespace, auth_token, test_db
+    ):
+        """Ingesting a deep resource must create every intermediate container
+        without a NOT NULL violation on entity_list.container_id.
+
+        Regression test for the missing db.session.flush() in
+        LDPContainer.add_child_container(): without it, a freshly created
+        container used as the parent of the next container in the chain has
+        no .id yet, so container_id is written as NULL and PostgreSQL rejects
+        the insert.
+        """
+        response = client_ldpapi.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "id": "searchdatasets/magazines/markdownonly/manifest",
+                    "type": "Manifest",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        for container_id in (
+            "/searchdatasets/",
+            "/searchdatasets/magazines/",
+            "/searchdatasets/magazines/markdownonly/",
+        ):
+            self._container_exists(container_id)
+
+    def test_ingest_autocreates_single_level_container(
+        self, client_ldpapi, namespace, auth_token, test_db
+    ):
+        """A resource one level below the root also creates its container via
+        the same path, confirming the fix is not specific to deep chains.
+        """
+        response = client_ldpapi.post(
+            f"/{namespace}/ingest",
+            data=json.dumps({"id": "document/1", "type": "Document"}),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        self._container_exists("/document/")

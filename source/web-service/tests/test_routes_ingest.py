@@ -543,34 +543,32 @@ class TestIngestLDPBackendAutocreate:
     ingested with LDP_AUTOCREATE_CONTAINERS=True.
     """
 
-    def _container_exists(self, container_id):
-        """Assert a container exists in the DB and is a valid member of its
-        parent (i.e. has a non-null container_id in entity_list).
+    def _container_exists(self, namespace, client_ldpapi, container_id):
+        """Assert a container exists and is an ldp:BasicContainer, checked via
+        the LDP REST API (GET), not by querying the DB directly.
+
+        The API request and the test share no SQLAlchemy session, so the DB
+        cannot be trusted here. GET the container URL and confirm the response
+        is 200 and declares ldp:BasicContainer.
 
         Container identifiers are stored relative to the service root, e.g.
-        '/searchdatasets/' (no application namespace prefix).
+        'searchdatasets/' (no application namespace prefix).
         """
-        from flaskapp.models.container import LDPContainer, LDPContainerContents
+        from rdflib import URIRef
+        from rdflib.namespace import RDF
 
-        container = (
-            db.session.query(LDPContainer)
-            .filter(LDPContainer.container_identifier == container_id)
-            .one_or_none()
-        )
-        assert container is not None, f"Container {container_id} was not created"
+        from test_ldp_post_put import JSONLD_CT, LDP, get_graph, to_abs
 
-        membership = (
-            db.session.query(LDPContainerContents)
-            .filter(LDPContainerContents.entity_id == container_id)
-            .one_or_none()
-        )
+        # get_graph expects the path relative to the namespace, without a
+        # leading slash (e.g. 'searchdatasets/'), matching how container IDs
+        # are stored.
+        g, _ = get_graph(namespace, client_ldpapi, container_id.lstrip("/"))
         assert (
-            membership is not None
-        ), f"Container {container_id} is not listed as a member of its parent"
-        assert (
-            membership.container_id is not None
-        ), f"Container {container_id} has a NULL container_id in entity_list"
-        return container
+            URIRef(to_abs(namespace, container_id)),
+            RDF.type,
+            LDP.BasicContainer,
+        ) in g, f"Container {container_id} is not an ldp:BasicContainer"
+        return True
 
     def test_ingest_autocreates_deep_container_chain(
         self, client_ldpapi, namespace, auth_token, test_db
@@ -603,7 +601,7 @@ class TestIngestLDPBackendAutocreate:
             "/searchdatasets/magazines/",
             "/searchdatasets/magazines/markdownonly/",
         ):
-            self._container_exists(container_id)
+            self._container_exists(namespace, client_ldpapi, container_id)
 
     def test_ingest_autocreates_single_level_container(
         self, client_ldpapi, namespace, auth_token, test_db
@@ -624,4 +622,4 @@ class TestIngestLDPBackendAutocreate:
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200
-        self._container_exists("/document/")
+        self._container_exists(namespace, client_ldpapi, "/document/")

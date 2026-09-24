@@ -588,8 +588,10 @@ class TestIngestLDPBackendAutocreate:
             f"/{namespace}/ingest",
             data=json.dumps(
                 {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
                     "id": "searchdatasets/magazines/markdownonly/manifest",
                     "type": "Manifest",
+                    "_label": "A manifest",
                 }
             ),
             headers={"Authorization": "Bearer " + auth_token},
@@ -611,7 +613,14 @@ class TestIngestLDPBackendAutocreate:
         """
         response = client_ldpapi.post(
             f"/{namespace}/ingest",
-            data=json.dumps({"id": "document/1", "type": "Document"}),
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "document/1",
+                    "type": "HumanMadeObject",
+                    "_label": "A document",
+                }
+            ),
             headers={"Authorization": "Bearer " + auth_token},
         )
         assert response.status_code == 200

@@ -74,6 +74,7 @@ LOD Gateway uses a namespace prefix in all URLs. The format is `{base-url}/{name
 - **[Activity Streams](documentation/activitystreams.md)** -- paginated change history, entity-type filtering, datetime navigation, per-record streams
 - **[Versioning](documentation/versioning.md)** -- Memento timemaps (`/-tm-/{entity-id}`), version retrieval (`/-VERSION-/{entity-id}`), version deletion
 - **[LDP Containers](documentation/ldp.md)** -- container listing, POST and PUT resource management, slug support
+  - **[LDP ID Remapping](documentation/id-remapping.md)** -- worked examples of how POST and PUT remap id values: incoming, stored, and served forms
 - **[SPARQL](documentation/product_tour.md#sparql-get-sparql)** -- query endpoint at `/sparql` (GET and POST), YASGUI UI at `/sparql-ui`
 - **[Content Negotiation](documentation/content_negotiation.md)** -- standard mimetype negotiation and Content Negotiation by Profile
 - **Dashboard** -- web interface at `/dashboard`
@@ -90,6 +91,7 @@ The LOD Gateway generates an OpenAPI specification dynamically. Access the Swagg
 |----------|-------------|
 | [Product Tour](documentation/product_tour.md) | Conceptual overview, service levels, common scenarios |
 | [LDP API](documentation/ldp.md) | Linked Data Platform container support, POST and PUT operations |
+| [LDP ID Remapping](documentation/id-remapping.md) | Worked examples of how POST and PUT remap id values: incoming, stored, and served forms |
 | [Activity Streams](documentation/activitystreams.md) | Activity stream endpoints, pagination, datetime navigation |
 | [Versioning](documentation/versioning.md) | Memento versioning, timemaps, ETags, version lifecycle |
 | [Content Negotiation](documentation/content_negotiation.md) | Mimetype negotiation and Content Negotiation by Profile |

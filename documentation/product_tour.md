@@ -476,6 +476,7 @@ For detailed API documentation, see:
 - [Ingest API](/README.md#ingest)
 - [SPARQL Endpoint](/README.md#sparql)
 - [LDP API](ldp.md)
+- [LDP ID Remapping](id-remapping.md)
 - [Content Negotiation](content_negotiation.md)
 
 ---

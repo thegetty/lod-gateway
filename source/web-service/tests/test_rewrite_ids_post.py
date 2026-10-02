@@ -48,7 +48,7 @@ def test_matches_provided_example():
         "items/456",
         "items#frag",  # no extra slash before fragment
         "_:b1",  # blank node unchanged
-        "items/absolute/path",  # single slash joining
+        "/absolute/path",  # local absolute path: left untouched
         "http://another.host/things?id=1#part",
     ]
 
@@ -110,7 +110,7 @@ def test_custom_id_keys_supported():
         id_keys=("identifier",),
     )
     assert out["identifier"] == "items/thing/1"
-    assert out["alt"]["identifier"] == "items/absolute/path"
+    assert out["alt"]["identifier"] == "/absolute/path"  # local absolute: untouched
 
     # Not in id_keys → should stay unchanged
     assert out["@id"] == "http://x.org/should-not-be-touched-if-not-in_id_keys"
@@ -161,9 +161,10 @@ def test_already_prefixed_ids_not_duplicated():
     "container_path,value,expected",
     [
         ("items/", "relative/123", "items/relative/123"),
-        ("items/", "/absolute/path", "items/absolute/path"),
-        ("items", "/absolute/path", "items/absolute/path"),  # no double slash
+        ("items/", "/absolute/path", "/absolute/path"),  # local absolute: untouched
+        ("items", "/absolute/path", "/absolute/path"),  # local absolute: untouched
         ("items", "relative/123", "items/relative/123"),
+        ("items", "rel/123", "items/rel/123"),  # no double slash when joining
     ],
 )
 def test_absolute_and_relative_paths_and_no_double_slashes(
@@ -211,7 +212,9 @@ def test_nested_structures_traversed_but_context_not():
     out = prefix_rdf_ids(sample, "http://ex.org/", container_path="base/")
     assert out["@id"] == "base/root"
     assert out["children"][0]["@id"] == "base/c1"
-    assert out["children"][0]["children"][0]["@id"] == "base/c1/leaf"
+    assert (
+        out["children"][0]["children"][0]["@id"] == "/c1/leaf"
+    )  # local absolute: untouched
     assert out["children"][0]["children"][1]["id"] == "base/c1/leaf2"
     assert out["children"][1]["id"] == "base/c2"
 
@@ -304,7 +307,7 @@ def test_matches_provided_example_slug():
         "@graph": [
             {"@id": "https://example.org/items/780"},  # Will shorten
             {"@id": "items/780/anno/456"},
-            {"@id": "#frag"},  # not actually in the 'items' graph => no slug
+            {"@id": "#frag"},  # D1: fragments rebase under the slug root
             {"@id": "_:b1"},
             {"@id": "items/780/absolute/path"},
             {"@id": "http://another.host/things?id=1#part"},  # left unchanged
@@ -324,7 +327,7 @@ def test_matches_provided_example_slug():
     assert [n["@id"] for n in out["@graph"]] == [
         "items/slug-id",
         "items/slug-id/anno/456",
-        "items#frag",  # no extra slash before fragment
+        "items/slug-id#frag",  # D1: fragment rebased under the slug root
         "_:b1",  # blank node unchanged
         "items/slug-id/absolute/path",  # single slash joining
         "http://another.host/things?id=1#part",
@@ -334,3 +337,181 @@ def test_matches_provided_example_slug():
 
     # Ensure context is untouched
     assert out["@context"]["name"] == sample["@context"]["name"]
+
+
+def test_slug_rebases_bare_relative_ids_under_slug_root():
+    # D1: bare relative ids (not container-prefixed, not under the original
+    # top-level id) are rebased under container/slug
+    sample = {
+        "@id": "items/780",
+        "first": {"@id": "page"},
+        "second": {"@id": "annotation/1"},
+    }
+    out = prefix_rdf_ids(
+        sample, "https://example.org/", container_path="items", slug="slug-id"
+    )
+    assert out["@id"] == "items/slug-id"
+    assert out["first"]["@id"] == "items/slug-id/page"
+    assert out["second"]["@id"] == "items/slug-id/annotation/1"
+
+
+def test_slug_moves_container_prefixed_ids_under_slug_root():
+    # D2: ids already container-prefixed are moved under the slug root
+    sample = {"@id": "items/780", "child": {"@id": "items/page"}}
+    out = prefix_rdf_ids(
+        sample, "https://example.org/", container_path="items", slug="slug-id"
+    )
+    assert out["child"]["@id"] == "items/slug-id/page"
+
+
+def test_slug_absolute_uris_untouched_other_hosts_rebased_same_host():
+    # FR-4: foreign-host absolute URIs are unchanged under a slug; a
+    # same-host absolute URI has its base stripped and rebases under the slug
+    sample = {
+        "@id": "items/780",
+        "foreign": {"@id": "http://another.host/things?id=1#part"},
+        "samehost": {"@id": "https://example.org/other/1"},
+    }
+    out = prefix_rdf_ids(
+        sample, "https://example.org/", container_path="items", slug="slug-id"
+    )
+    assert out["foreign"]["@id"] == "http://another.host/things?id=1#part"
+    assert out["samehost"]["@id"] == "items/slug-id/other/1"
+
+
+def test_slug_root_guard_leaves_slug_addressed_values_unchanged():
+    # Slug-root guard: a nested value already at the slug root (exact match,
+    # under it via '/', or fragment on it via '#') is left unchanged.
+    sample = {
+        "@id": "items/780",
+        "at_root": {"@id": "items/slug-id"},
+        "under_root": {"@id": "items/slug-id/child"},
+        "root_frag": {"@id": "items/slug-id#frag"},
+    }
+    out = prefix_rdf_ids(
+        sample, "https://example.org/", container_path="items", slug="slug-id"
+    )
+    assert out["at_root"]["@id"] == "items/slug-id"
+    assert out["under_root"]["@id"] == "items/slug-id/child"
+    assert out["root_frag"]["@id"] == "items/slug-id#frag"
+
+
+def test_slug_sibling_string_prefix_is_moved_under_slug():
+    # Exact-match-plus-separator guard: a sibling like 'items/slug-id-x' is
+    # NOT protected; it is container-prefixed and moves under the slug (D2).
+    sample = {"@id": "items/780", "sibling": {"@id": "items/slug-id-x"}}
+    out = prefix_rdf_ids(
+        sample, "https://example.org/", container_path="items", slug="slug-id"
+    )
+    assert out["sibling"]["@id"] == "items/slug-id/slug-id-x"
+
+
+def test_no_slug_behavior_unchanged_parity():
+    # FR-5: with no slug, every rule reduces to the pre-fix output
+    sample = {
+        "@graph": [
+            {"@id": "https://example.org/items/123"},
+            {"@id": "items/456"},
+            {"@id": "#frag"},
+            {"@id": "page"},
+            {"@id": "_:b1"},
+            {"@id": "http://another.host/z"},
+        ],
+        "@id": "items/780",
+    }
+    out = prefix_rdf_ids(sample, "https://example.org/", container_path="items")
+    assert [n["@id"] for n in out["@graph"]] == [
+        "items/123",
+        "items/456",
+        "items#frag",  # fragment stays at container level without a slug
+        "items/page",  # bare relative id stays at container level
+        "_:b1",
+        "http://another.host/z",
+    ]
+    assert out["@id"] == "items/780"
+
+
+class TestLocalAbsolutePaths:
+    """Local absolute paths (start with '/', no scheme) are host-independent
+    references to other items in the store: the write-side id remapping must
+    leave them untouched, and a local absolute path as the top-level id is
+    invalid (treated as missing)."""
+
+    def test_nested_local_absolute_path_untouched_no_slug(self):
+        sample = {
+            "@id": "leaf",
+            "some_property": {"@id": "/absolute/path"},
+            "nested_rel": {"@id": "foo/bar"},
+        }
+        out = prefix_rdf_ids(
+            sample,
+            base_id="https://data.getty.edu/media/",
+            container_path="items/container/",
+        )
+        assert out["@id"] == "items/container/leaf"
+        # Local absolute path preserved as-is (not rebased under the container)
+        assert out["some_property"]["@id"] == "/absolute/path"
+        # Host-relative ids still rebase under the container
+        assert out["nested_rel"]["@id"] == "items/container/foo/bar"
+
+    def test_user_example_post_to_container_with_slug(self):
+        # {'id': 'aiusndiasndiandi', "some_property": {"id": "/absolute/path"}}
+        # --POST '/items/container/' with slug 'item1'--
+        # -> {'id': 'items/container/item1', "some_property": {'id': "/absolute/path"}}
+        sample = {
+            "id": "aiusndiasndiandi",
+            "some_property": {"id": "/absolute/path"},
+        }
+        out = prefix_rdf_ids(
+            sample,
+            base_id="https://data.getty.edu/media/",
+            container_path="items/container/",
+            slug="item1",
+        )
+        assert out["id"] == "items/container/item1"
+        assert out["some_property"]["id"] == "/absolute/path"
+
+    def test_host_relative_still_rebased_under_slug_root(self):
+        sample = {
+            "id": "orig",
+            "a": {"id": "foo/bar"},
+            "b": {"id": "/absolute/path"},
+        }
+        out = prefix_rdf_ids(
+            sample,
+            base_id="https://data.getty.edu/media/",
+            container_path="items/container/",
+            slug="item1",
+        )
+        assert out["a"]["id"] == "items/container/item1/foo/bar"
+        assert out["b"]["id"] == "/absolute/path"
+
+    def test_slug_with_original_top_level_absolute_path(self):
+        # Edge: the uploaded top-level id is itself a local absolute path. The
+        # slug wins for the destination; nested local absolute paths must not
+        # be re-absorbed via the unprefixer captured from that value.
+        sample = {
+            "id": "/abs/top",
+            "some_property": {"id": "/absolute/path"},
+        }
+        out = prefix_rdf_ids(
+            sample,
+            base_id="https://data.getty.edu/media/",
+            container_path="items/container/",
+            slug="item1",
+        )
+        assert out["id"] == "items/container/item1"
+        assert out["some_property"]["id"] == "/absolute/path"
+
+    def test_top_level_local_absolute_path_is_invalid(self):
+        from flaskapp.storage_utilities.representation import Representation
+
+        # A schemeless top-level id starting with '/' cannot name a resource
+        assert Representation._has_top_level_id({"@id": "/absolute/path"}) is False
+        assert Representation._has_top_level_id({"id": "/foo/bar"}) is False
+        # Host-relative and full-URI top-level ids remain valid
+        assert Representation._has_top_level_id({"@id": "items/123"}) == "items/123"
+        assert (
+            Representation._has_top_level_id({"@id": "https://host/x/abs"})
+            == "https://host/x/abs"
+        )

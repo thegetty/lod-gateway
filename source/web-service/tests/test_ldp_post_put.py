@@ -6,6 +6,8 @@ This test file covers:
 2. Issue 2: PUT mechanism for creating/updating records with full validation
 """
 
+import json
+
 import pytest
 from uuid import uuid4
 
@@ -72,9 +74,10 @@ def _post_jsonld(
     container_url: str,
     body: dict,
     slug: str = None,
+    content_type: str = JSONLD_CT,
 ):
     """POST with auth, using helpers from test_ldp_api.py."""
-    headers = {"Content-Type": JSONLD_CT, "Authorization": "Bearer " + auth_token}
+    headers = {"Content-Type": content_type, "Authorization": "Bearer " + auth_token}
     if slug:
         headers["Slug"] = slug
 
@@ -86,19 +89,29 @@ def _post_jsonld(
 
     container_url = container_url.rstrip("/") + "/"
 
-    response = client_ldpapi.post(container_url, json=body, headers=headers)
+    response = client_ldpapi.post(container_url, data=json.dumps(body), headers=headers)
 
     return response
 
 
-def _put_jsonld(namespace, client_ldpapi, auth_token, url: str, body: dict):
+def _put_jsonld(
+    namespace,
+    client_ldpapi,
+    auth_token,
+    url: str,
+    body: dict,
+    slug: str = None,
+    content_type: str = JSONLD_CT,
+):
     """PUT with auth, using helpers from test_ldp_api.py."""
-    headers = {"Content-Type": JSONLD_CT, "Authorization": "Bearer " + auth_token}
+    headers = {"Content-Type": content_type, "Authorization": "Bearer " + auth_token}
+    if slug:
+        headers["Slug"] = slug
 
     if not (url.startswith(f"/{namespace}/") or url.startswith(f"{namespace}/")):
         url = f"/{namespace}/{url}"
 
-    response = client_ldpapi.put(url, json=body, headers=headers)
+    response = client_ldpapi.put(url, data=json.dumps(body), headers=headers)
 
     return response
 
@@ -975,6 +988,321 @@ class TestPutEndpoint:
         assert get_response.get_json().get("dcterms:title") == "Deeply nested resource"
 
 
+class TestKeyVariantAndRebaseRegression:
+    """Regression tests for the key-variant preservation and slug rebase fixes.
+
+    Covers TC-1, TC-2 (FR-1 variant preservation), TC-3 (FR-3 + D1), TC-4
+    (FR-3 + D2), TC-5 (FR-4), TC-6 (FR-2 PUT id injection), TC-9 (422 fence).
+    """
+
+    # --- TC-1: POST with @-variant keys ---
+    def test_post_at_variant_preserved(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-1 (FR-1): upload with @id/@type keys must come back with @id/@type
+        keys only - no mirrored or plain-variant keys at the top level, in the
+        201 response or the subsequent GET."""
+        body = {
+            "@id": "1234",
+            "@type": "http://schema.org/Annotation",
+            "first": {"@id": "page"},
+        }
+        response = _post_jsonld(
+            namespace, client_ldpapi, auth_token, "object/", body, slug="1234"
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["@id"] == "object/1234"
+        assert data["@type"] == "http://schema.org/Annotation"
+        assert "at_type" not in data
+        assert "type" not in data
+        assert "at_id" not in data
+        assert "id" not in data
+
+        # GET on the Location returns the same key form
+        get_r = client_ldpapi.get(
+            to_abs(namespace, "object/1234"),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert get_r.status_code == 200
+        g = get_r.get_json()
+        assert "@id" in g and "@type" in g
+        assert "at_type" not in g and "type" not in g
+        assert "at_id" not in g and "id" not in g
+
+    # --- TC-2: POST with plain-variant keys ---
+    def test_post_plain_variant_preserved(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-2 (FR-1): upload with id/type keys must come back with id/type
+        keys only - none of @id/@type/at_id/at_type at the top level.
+
+        The inline @vocab context is only there so the plain-key document
+        expands to a non-empty RDF graph (a gateway-wide requirement, see
+        graph_expand); without it a plain-key document has no triples at all.
+        """
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "5678",
+            "type": "http://schema.org/Annotation",
+            "first": {"id": "page"},
+        }
+        response = _post_jsonld(
+            namespace, client_ldpapi, auth_token, "object/", body, slug="5678"
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == "object/5678"
+        assert data["type"] == "http://schema.org/Annotation"
+        assert "@id" not in data
+        assert "@type" not in data
+        assert "at_id" not in data
+        assert "at_type" not in data
+
+    # --- TC-3: slug rebases bare/fragment relative ids under container/slug (D1) ---
+    def test_post_slug_rebases_nested_relative_ids(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-3 (FR-3 + D1): with a Slug header, bare relative ids and
+        fragment-only ids in the document resolve under container/slug."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "s1",
+            "type": "http://schema.org/Annotation",
+            "first": {"id": "page"},
+            "second": {"id": "annotation/1"},
+            "frag": {"id": "#frag"},
+        }
+        response = _post_jsonld(
+            namespace, client_ldpapi, auth_token, "object/", body, slug="s1"
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == "object/s1"
+        assert data["first"]["id"] == "object/s1/page"
+        assert data["second"]["id"] == "object/s1/annotation/1"
+        assert data["frag"]["id"] == "object/s1#frag"
+
+    # --- TC-4: slug moves already-container-prefixed ids under the slug (D2) ---
+    def test_post_slug_moves_container_prefixed_ids(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-4 (FR-3 + D2): ids already container-prefixed are moved under
+        container/slug when a Slug header is present."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "s2",
+            "type": "http://schema.org/Annotation",
+            "a": {"id": "object/a"},
+            "b": {"id": "object/b"},
+        }
+        response = _post_jsonld(
+            namespace, client_ldpapi, auth_token, "object/", body, slug="s2"
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["a"]["id"] == "object/s2/a"
+        assert data["b"]["id"] == "object/s2/b"
+
+    # --- TC-5: slug leaves foreign-host absolute URIs untouched (FR-4) ---
+    def test_post_slug_leaves_absolute_uris_untouched(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-5 (FR-4): an id with a URI scheme on a different host is never
+        rewritten, even with a Slug header."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "s3",
+            "type": "http://schema.org/Annotation",
+            "foreign": {"id": "http://other.host/z?x=1#f"},
+        }
+        response = _post_jsonld(
+            namespace, client_ldpapi, auth_token, "object/", body, slug="s3"
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["foreign"]["id"] == "http://other.host/z?x=1#f"
+
+    # --- TC-6: PUT missing-id detection and injection (FR-2) ---
+    def test_put_missing_id_injects_destination_uri(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-6 case 1: PUT body with no id key at all -> destination URI
+        injected under '@id' (the default id_attr). The PUT response
+        re-serializes ids in absolute (prefixed) form."""
+        body = {"@type": "http://schema.org/Thing"}
+        response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, "object/newres", body
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["@id"] == to_abs(namespace, "object/newres")
+        assert "id" not in data
+        assert "at_id" not in data
+
+    def test_put_empty_id_injects_destination_uri(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-6 case 2: PUT body with an empty id -> destination URI injected
+        under 'id'. Pre-fix this 422'd with 'ID Mismatch' (object/ vs
+        object/newres2) - the regression anchor. The inline @vocab context
+        is only there so the plain-key document expands to a non-empty graph."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "",
+            "type": "http://schema.org/Thing",
+        }
+        response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, "object/newres2", body
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == to_abs(namespace, "object/newres2")
+        assert "@id" not in data
+        assert "at_id" not in data
+
+    def test_put_slug_empty_id_injects_destination_uri(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-6 case 3: PUT with a Slug header and empty id -> destination
+        URI object/snew injected under 'id'. Per D5 the Slug header is not
+        honored on PUT: here the slug happens to match the destination leaf,
+        so the observable result is unchanged (the slug is simply ignored)."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "",
+            "type": "http://schema.org/Thing",
+        }
+        response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, "object/snew", body, slug="snew"
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == to_abs(namespace, "object/snew")
+        assert "@id" not in data
+        assert "at_id" not in data
+
+    def test_put_slug_header_ignored(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """D5: PUT ignores the Slug header - the URL path is the sole target.
+        A mismatched slug must not rebase ids under the slug root and must
+        not inject the slug path: destination URI injected, nested relative
+        ids rebased under the destination container, not the slug root."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "",
+            "type": "http://schema.org/Thing",
+            "member": {"id": "nested/1"},
+        }
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
+            "object/slugtest",
+            body,
+            slug="mismatched",
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == to_abs(namespace, "object/slugtest")
+        assert "mismatched" not in data["id"]
+        assert data["member"]["id"] == to_abs(namespace, "object/nested/1")
+        assert "@id" not in data
+        assert "at_id" not in data
+
+    def test_put_invalid_id_injects_destination_uri(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-6 case 4: PUT body whose id is present but fails validid
+        (contains a space) is treated as missing and the destination URI is
+        injected under 'id'. This 201 is pinned behavior, not a defect."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "has space!",
+            "type": "http://schema.org/Thing",
+        }
+        response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, "object/badid", body
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == to_abs(namespace, "object/badid")
+        assert "@id" not in data
+        assert "at_id" not in data
+
+    # --- TC-9: 422 fence - docs missing both type and @type still rejected ---
+    def test_post_missing_type_rejected(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-9: POST a body with no type and no @type -> 422 from
+        framework-side PlainBody validation (behavior preserved by the
+        raw-body switch)."""
+        body = {"@id": "1"}
+        response = _post_jsonld(namespace, client_ldpapi, auth_token, "object/", body)
+        assert response.status_code == 422
+
+    def test_put_missing_type_rejected(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """TC-9: PUT a body with no type and no @type -> 422 from
+        framework-side PlainBody validation."""
+        body = {"@id": "notype"}
+        response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, "object/notype", body
+        )
+        assert response.status_code == 422
+
+
+class TestJsonMimetypeAcceptance:
+    """Step 14: parse_representation accepts any JSON media type (request.is_json),
+    not just application/ld+json, matching the framework-side body validation.
+    A request with a JSON Content-Type the framework already accepts must not
+    422 at the view layer."""
+
+    def test_post_accepts_application_json(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        body = {"@id": "cttest", "@type": "http://schema.org/Thing"}
+        response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
+            "object/",
+            body,
+            content_type="application/json",
+        )
+        assert response.status_code == 201, response.text
+
+    def test_put_accepts_application_json(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        body = {"@id": "object/cttest2", "@type": "http://schema.org/Thing"}
+        response = _put_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
+            "object/cttest2",
+            body,
+            content_type="application/json",
+        )
+        assert response.status_code == 201, response.text
+
+    def test_post_accepts_json_suffix_mimetype(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        body = {"@id": "cttest3", "@type": "http://schema.org/Thing"}
+        response = _post_jsonld(
+            namespace,
+            client_ldpapi,
+            auth_token,
+            "object/",
+            body,
+            content_type="application/geo+json",
+        )
+        assert response.status_code == 201, response.text
+
+
 class TestPutContainer:
     """Tests for PUT container creation and update.
 
@@ -1126,3 +1454,176 @@ class TestPutContainer:
         assert not is_container_member(
             namespace, client_ldpapi, "object/", f"{record_id}/"
         ), "A rejected container PUT must not add a container member."
+
+
+class TestLocalAbsolutePaths:
+    """Local absolute paths (ids starting with '/', no URI scheme) are
+    host-independent references to other items in the store: the write-side
+    id remapping leaves them untouched, while a local absolute path as the
+    top-level id is invalid (treated as missing: a no-slug POST gets a
+    generated id, a PUT gets the destination URI injected)."""
+
+    def test_post_slug_preserves_nested_local_absolute_paths(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """User's exact example (adapted to the 'object/' fixture container):
+        POST object/ with slug item1 and a nested '/absolute/path' stores the
+        nested id untouched, rebasing host-relative ids under the slug root."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "aiusndiasndiandi",
+            "type": "http://schema.org/Thing",
+            "some_property": {"id": "/absolute/path"},
+        }
+        response = _post_jsonld(
+            namespace, client_ldpapi, auth_token, "object/", body, slug="item1"
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == "object/item1"
+        assert data["some_property"]["id"] == "/absolute/path"
+        # Round-trip: the stored nested id is not rebased under object/item1
+        get_response = client_ldpapi.get(
+            to_abs(namespace, "object/item1"),
+            follow_redirects=True,
+            headers={"Accept": JSONLD_CT},
+        )
+        assert get_response.status_code == 200, get_response.text
+        stored = get_response.get_json()["some_property"]["id"]
+        assert stored.endswith("/absolute/path")
+        assert stored != to_abs(namespace, "object/item1/absolute/path")
+
+    def test_post_no_slug_top_level_absolute_path_gets_generated_id(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """A top-level local absolute path is invalid: a no-slug POST treats
+        it as missing and generates an id, rather than creating the resource
+        at container/absolute/path."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "type": "http://schema.org/Thing",
+            "id": "/absolute/path",
+        }
+        response = _post_jsonld(namespace, client_ldpapi, auth_token, "object/", body)
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"].startswith("object/")
+        assert data["id"] != "object/absolute/path"
+        location = response.headers.get("Location", "")
+        assert location == to_abs(namespace, data["id"])
+
+    def test_put_top_level_absolute_path_injects_destination_uri(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """A top-level local absolute path is invalid: PUT treats it as
+        missing and injects the destination URI (201, no 422 ID mismatch)."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "type": "http://schema.org/Thing",
+            "id": "/absolute/path",
+        }
+        response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, "object/absitem", body
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == to_abs(namespace, "object/absitem")
+
+
+class TestEmptyAndNullTopLevelId:
+    """A null or empty top-level id takes the same pathway as a missing id:
+    the destination is assigned (slug or generated id for POST, the
+    destination URI for PUT) and the id/@id key form is retained."""
+
+    def test_post_empty_id_with_slug_assigned_to_slug(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """POST object/ with Slug: 4321 and a top-level id of '': the slug
+        value is assigned under the same 'id' key (not rewritten to '@id'),
+        and nested relative ids rebase under container/slug."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "",
+            "type": "http://schema.org/Thing",
+            "member": {"id": "note/1"},
+        }
+        response = _post_jsonld(
+            namespace, client_ldpapi, auth_token, "object/", body, slug="4321"
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == "object/4321"
+        assert "@id" not in data
+        assert data["member"]["id"] == "object/4321/note/1"
+
+    def test_post_null_id_with_slug_assigned_to_slug(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """A top-level id of null (JSON null) is mapped to '' before
+        validation and takes the same pathway as the empty string."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": None,
+            "type": "http://schema.org/Thing",
+            "member": {"id": "note/1"},
+        }
+        response = _post_jsonld(
+            namespace, client_ldpapi, auth_token, "object/", body, slug="4321"
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == "object/4321"
+        assert "@id" not in data
+        assert data["member"]["id"] == "object/4321/note/1"
+
+    def test_post_empty_id_no_slug_generated(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """A no-slug POST with an empty top-level id must not mask the miss:
+        the record is created at a generated id under the container, not at
+        the container's own path."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": "",
+            "type": "http://schema.org/Thing",
+        }
+        response = _post_jsonld(namespace, client_ldpapi, auth_token, "object/", body)
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"].startswith("object/")
+        assert data["id"] != "object/"
+        assert "@id" not in data
+
+    def test_post_null_id_no_slug_generated(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": None,
+            "type": "http://schema.org/Thing",
+        }
+        response = _post_jsonld(namespace, client_ldpapi, auth_token, "object/", body)
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"].startswith("object/")
+        assert data["id"] != "object/"
+        assert "@id" not in data
+
+    def test_put_null_id_injects_destination_uri(
+        self, namespace, client_ldpapi, ldp_fixture_app, auth_token
+    ):
+        """A PUT with a top-level id of null treats it as missing and injects
+        the destination URI under the same 'id' key (201, no 422)."""
+        body = {
+            "@context": {"@vocab": "https://schema.org/"},
+            "id": None,
+            "type": "http://schema.org/Thing",
+            "member": {"id": "note/1"},
+        }
+        response = _put_jsonld(
+            namespace, client_ldpapi, auth_token, "object/nonnull", body
+        )
+        assert response.status_code == 201, response.text
+        data = response.get_json()
+        assert data["id"] == to_abs(namespace, "object/nonnull")
+        assert "@id" not in data

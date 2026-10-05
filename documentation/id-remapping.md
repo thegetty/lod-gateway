@@ -89,18 +89,20 @@ Incoming, `POST /component/` with `Slug: 123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
-  "id": null,
+  "type": "InformationObject",
+  "id": "",
   "referred_to_by": {"id": "note/1"}
 }
 ```
+
+NB `"id": null` will be treated the same way as a special edge-case for the top-level identifier.
 
 Stored:
 
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "referred_to_by": {"id": "component/123456/note/1"}
 }
@@ -118,7 +120,7 @@ Incoming, `POST /component/` with `Slug: 123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "referred_to_by": {"id": "component/123456/note/1"}
 }
@@ -137,7 +139,7 @@ Incoming, `POST /component/` with `Slug: 123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "collection",
   "referred_to_by": {"id": "item/1"}
 }
@@ -148,7 +150,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "referred_to_by": {"id": "component/123456/item/1"}
 }
@@ -164,7 +166,7 @@ Incoming, `POST /component/` with `Slug: 123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "collection",
   "about": {"id": "/people/123456"}
 }
@@ -175,7 +177,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "about": {"id": "/people/123456"}
 }
@@ -191,7 +193,7 @@ Incoming, `POST /component/` with `Slug: 4321`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "",
   "referred_to_by": {"id": "note/1"}
 }
@@ -202,7 +204,7 @@ Stored (identical for `"id": null`):
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/4321",
   "referred_to_by": {"id": "component/4321/note/1"}
 }
@@ -211,14 +213,14 @@ Stored (identical for `"id": null`):
 ### P6. No slug, bare leaf id
 
 With no `Slug` header, a relative top-level id resolves against the
-container.
+container. The top level id is treated like an implicit Slug id request.
 
 Incoming, `POST /component/`:
 
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "123456",
   "referred_to_by": {"id": "note/1"}
 }
@@ -229,7 +231,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "referred_to_by": {"id": "component/note/1"}
 }
@@ -245,7 +247,7 @@ Incoming, `POST /component/` (no `Slug` header, no top-level id):
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "referred_to_by": {"id": "note/1"}
 }
 ```
@@ -255,7 +257,7 @@ Stored (`8f2c…` stands for the generated UUID):
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "@id": "component/8f2c…",
   "referred_to_by": {"id": "component/8f2c…/note/1"}
 }
@@ -275,7 +277,7 @@ Incoming, `POST /component/`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "/people/123456"
 }
 ```
@@ -285,7 +287,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/8f2c…"
 }
 ```
@@ -300,13 +302,14 @@ Incoming, `POST /component/`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "referred_to_by": {"id": "component/note/9"}
 }
 ```
 
-Stored: unchanged.
+Stored: unchanged. This mimics the JSON-LD relative forms that the /ingest
+route requires and that can be retrieved from the store with ?relativeids=true.
 
 ### P10. Fragments, full URIs, blank nodes
 
@@ -317,7 +320,7 @@ Incoming:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "123456",
   "depicts": {"id": "#frag"},
   "iiif_manifest": {"id": "https://data.getty.edu/item/5"},
@@ -332,7 +335,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "depicts": {"id": "component/123456#frag"},
   "iiif_manifest": {"id": "component/123456/item/5"},
@@ -360,7 +363,7 @@ Incoming, `PUT /component/123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "referred_to_by": {"id": "component/123456/note/1"}
 }
@@ -377,7 +380,7 @@ Incoming, `PUT /component/123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "123456",
   "referred_to_by": {"id": "note/1"}
 }
@@ -388,7 +391,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "referred_to_by": {"id": "component/note/1"}
 }
@@ -404,7 +407,7 @@ Incoming, `PUT /component/123456` (identical for `"id": ""` or
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "referred_to_by": {"id": "note/1"}
 }
 ```
@@ -414,7 +417,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "@id": "component/123456",
   "referred_to_by": {"id": "component/note/1"}
 }
@@ -430,7 +433,7 @@ Incoming, `PUT /component/123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "has space!",
   "referred_to_by": {"id": "note/1"}
 }
@@ -441,7 +444,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "referred_to_by": {"id": "component/note/1"}
 }
@@ -457,7 +460,7 @@ Incoming, `PUT /component/123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "/people/123456",
   "about": {"id": "/people/789"}
 }
@@ -468,7 +471,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "about": {"id": "/people/789"}
 }
@@ -483,7 +486,7 @@ Incoming, `PUT /component/123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "https://data.getty.edu/component/123456",
   "referred_to_by": {"id": "note/1"}
 }
@@ -494,7 +497,7 @@ Stored:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "component/123456",
   "referred_to_by": {"id": "component/note/1"}
 }
@@ -509,7 +512,7 @@ Incoming, `PUT /component/123456`:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "other/999"
 }
 ```
@@ -532,7 +535,7 @@ forms is:
 ```json
 {
   "@context": "https://linked.art/ns/v1/linked-art.json",
-  "type": "crmm:Component",
+  "type": "InformationObject",
   "id": "https://data.getty.edu/component/123456",
   "referred_to_by": {"id": "https://data.getty.edu/component/123456/note/1"}
 }
@@ -563,7 +566,3 @@ paths.
 | Destination assignment on POST (slug, generated id) | `POST` in `flaskapp/routes/records.py` |
 | Destination injection on PUT | `PUT` in `flaskapp/routes/records.py` |
 | Export-side prefixing (graph store, served JSON-LD) | `idPrefixer` in `flaskapp/utilities.py` |
-
-The full write-path behavior contract, including the graph-expansion gate
-(every document must expand to at least one RDF triple), is specified in
-[`specs/ldp-write-path.md`](../specs/ldp-write-path.md).

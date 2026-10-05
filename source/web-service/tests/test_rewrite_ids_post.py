@@ -515,3 +515,58 @@ class TestLocalAbsolutePaths:
             Representation._has_top_level_id({"@id": "https://host/x/abs"})
             == "https://host/x/abs"
         )
+
+
+class TestSameOriginSubpathIsolation:
+    """Several LOD Gateway instances can be served from the same host at
+    different subpaths (eg https://data.getty.edu/media/ and
+    https://data.getty.edu/research/collection/). The 'same server root'
+    FQDN check must match against the instance's full configured root
+    (origin PLUS subpath): an FQDN under a sibling instance's subpath on
+    the same origin is left untouched, while FQDNs under this instance's
+    own root are normalized to relative and rebased."""
+
+    BASE = "https://data.getty.edu/media/"
+
+    def test_no_slug_sibling_subpath_untouched(self):
+        sample = {
+            "sibling": {
+                "id": "https://data.getty.edu/research/collection/component/12345"
+            },
+            "own": {"id": "https://data.getty.edu/media/visualitems/9"},
+            "prefix_collision": {"id": "https://data.getty.edu/media-archive/x"},
+            "other_host": {"id": "https://example.org/thing"},
+        }
+        out = prefix_rdf_ids(sample, base_id=self.BASE, container_path="visualitems")
+        # Sibling instance: same origin, different subpath - untouched
+        assert (
+            out["sibling"]["id"]
+            == "https://data.getty.edu/research/collection/component/12345"
+        )
+        # Under this instance's own root: normalized, container-prefixed form
+        # passes through unchanged
+        assert out["own"]["id"] == "visualitems/9"
+        # The trailing-slash boundary matters: /media-archive is NOT under /media/
+        assert out["prefix_collision"]["id"] == "https://data.getty.edu/media-archive/x"
+        # Other host: untouched
+        assert out["other_host"]["id"] == "https://example.org/thing"
+
+    def test_slug_sibling_subpath_untouched(self):
+        sample = {
+            "id": "9",
+            "sibling": {
+                "id": "https://data.getty.edu/research/collection/component/12345"
+            },
+            "own": {"id": "https://data.getty.edu/media/visualitems/9"},
+            "other_host": {"id": "https://example.org/thing"},
+        }
+        out = prefix_rdf_ids(
+            sample, base_id=self.BASE, container_path="visualitems", slug="4321"
+        )
+        assert out["id"] == "visualitems/4321"
+        assert (
+            out["sibling"]["id"]
+            == "https://data.getty.edu/research/collection/component/12345"
+        )
+        assert out["own"]["id"] == "visualitems/4321/9"
+        assert out["other_host"]["id"] == "https://example.org/thing"

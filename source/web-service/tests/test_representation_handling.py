@@ -285,3 +285,28 @@ class TestNullAndEmptyTopLevelId:
         r.json_ld = {"id": "resource/123", "part_of": {"id": None}}
         assert r.json_ld["id"] == "resource/123"
         assert r.json_ld["part_of"]["id"] is None
+
+
+def test_jsonld_same_origin_different_subpath_ids_unchanged(
+    server_root, relative_container
+):
+    """The FQDN 'same server root' check matches against the full
+    configured root (origin plus subpath). A document that references a
+    sibling LOD Gateway served from the same origin at a different
+    subpath keeps those ids untouched; ids under this instance's own root
+    are rebased, as are other-host URIs left as-is. This pins the
+    route-level plumbing (server_root flows to prefix_rdf_ids verbatim)."""
+    doc = {
+        "@id": "resource/555",
+        "sibling": {"@id": "http://example.org/other/thing/1"},
+        "own": {"@id": "http://example.org/base/resource/789"},
+        "other_host": {"@id": "http://elsewhere.example/item/2"},
+    }
+    r = Representation(server_root=server_root, relative_container=relative_container)
+    r.json_ld = doc
+    # Sibling instance on the same origin: untouched
+    assert r.json_ld["sibling"]["@id"] == "http://example.org/other/thing/1"
+    # Own root: normalized to the relative form
+    assert r.json_ld["own"]["@id"] == "resource/789"
+    # Other host: untouched
+    assert r.json_ld["other_host"]["@id"] == "http://elsewhere.example/item/2"

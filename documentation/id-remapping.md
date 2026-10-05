@@ -20,13 +20,13 @@ gateway's:
 - an id pointing somewhere else entirely (`collection`);
 - a local absolute path (`/people/123456`) that names another item in the
   store without committing to a host;
-- a full URI, same-host or not;
+- a full URI, under this instance's server root or not;
 - no id at all, or an empty/null id, meaning "assign one".
 
 The write path remaps (rebases) id values so the stored document is
 self-consistent with the address it will be served from, while leaving
-references that must not move (other hosts, local absolute paths, blank
-nodes) exactly where they are. This document walks the rules through small
+references that must not move (other server roots, local absolute paths,
+blank nodes) exactly where they are. This document walks the rules through small
 examples, all using the linked.art `@context`:
 
 ```json
@@ -48,8 +48,17 @@ For every id value in the document (top-level, nested, bare, fragment-only):
 | Fragment-only (`#frag`) | Anchored to the destination: `component/123456#frag` |
 | Already container-prefixed (`component/...`) | Stripped of the container prefix and rejoined under the destination (idempotent when it already matches) |
 | Local absolute path (`/people/123456`) | **Left untouched**, in every position: it names another item in the store host-independently |
-| Full URI, same host (`https://data.getty.edu/item/5`) | Normalized to its relative form and rebased like any relative id |
-| Full URI, other host (`https://example.org/thing`) | **Left untouched** |
+| Full URI under this instance's server root (`https://data.getty.edu/item/5`) | Normalized to its relative form and rebased like any relative id |
+| Full URI at a different server root (`https://example.org/thing`) | **Left untouched** |
+| Full URI at a sibling subpath on the same host (`https://data.getty.edu/research/collection/x`, seen from the `/media/` instance) | **Left untouched** |
+
+"Server root" means the instance's full configured root: scheme, host, and
+subpath (eg `https://data.getty.edu/media/` for an instance served there).
+Several LOD Gateway instances may run on the same host at different
+subpaths, so the check is against the whole configured root, not just the
+host: an FQDN under a *sibling* subpath is a different store and is left
+touched (as is any other-host FQDN), while FQDNs under the instance's own
+root are normalized and rebased.
 | Blank node (`_:b1`) | **Left untouched** |
 | Query string / fragment (`item/1?ver=2#state`) | Preserved through rebasing |
 
@@ -63,8 +72,8 @@ Top-level id handling:
 | No id, or `""` / `null` / whitespace id | Slug value, or a generated id (uuid by default), under the uploaded key | Destination URI injected under the uploaded key |
 | Id failing the valid-id rule (e.g. a space) | Treated as missing: generated id | Treated as missing: destination URI injected |
 | Local absolute path as the top-level id | Treated as missing: generated id | Treated as missing: destination URI injected |
-| Full URI, same host | Normalized to relative, then handled as above | Same |
-| Full URI, other host | Rejected (422): the record would be served from a different host | Rejected (422 ID mismatch) |
+| Full URI, under this instance's server root | Normalized to relative, then handled as above | Same |
+| Full URI, a different server root (other host or sibling subpath) | Rejected (422): the record would be served from a different address | Rejected (422 ID mismatch) |
 
 A `null` top-level id is mapped to `""` before JSON-LD validation (pyld
 rejects a null `@id`), so absent, `null`, and `""` all take the missing-id
@@ -346,7 +355,7 @@ Stored:
 ```
 
 - `#frag` anchors to the destination.
-- The same-host full URI is normalized to relative and rebased.
+- The same-server-root full URI is normalized to relative and rebased.
 - The other-host full URI, the blank node, and the query string + fragment
   survive untouched or preserved.
 
@@ -477,7 +486,7 @@ Stored:
 }
 ```
 
-### U6. Same-host full URI
+### U6. Same-server-root full URI
 
 Normalized to relative; it then matches the destination.
 

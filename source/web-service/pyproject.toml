@@ -15,7 +15,7 @@ version = "1.0.0"
 requires-python = ">=3.10"
 dependencies = [
     "Flask>=3.1.0,<4.0",
-    "Flask-Cors>=5.0.0,<6.0",
+    "Flask-Cors>=6.0.0,<7.0",
     "Flask-Migrate>=4.1.0,<5.0",
     "Flask-SQLAlchemy>=3.1.0,<4.0",
     "SQLAlchemy>=2.0.40,<3.0",

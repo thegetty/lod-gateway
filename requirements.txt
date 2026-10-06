@@ -3,7 +3,7 @@ black==26.*
 dateparser==1.2.1
 Flask==3.1.*
 Flask-Compress==1.14
-Flask-Cors==5.0.*
+Flask-Cors==6.*
 Flask-Migrate==4.1.0
 flask-openapi3[swagger]>=4.3.0,<5.0
 Flask-SQLAlchemy==3.1.1

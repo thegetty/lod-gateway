@@ -202,3 +202,111 @@ def test_jsonld_container_prefixed_dcterms(
     assert r.json_ld["@id"] == "resource/annotations"
     assert r.title == "Test Container"
     assert r.description == "Test Description"
+
+
+# -- null / empty top-level id handling -----------------------------------
+# A null or empty top-level id takes the same pathway as a missing id: it is
+# treated as missing (not an error), the id/@id key form is retained, and the
+# destination is assigned (slug or generated id for POST, destination URI for
+# PUT). A null top-level id is mapped to "" before validation because pyld
+# rejects a null @id as "must be a string".
+
+
+class TestNullAndEmptyTopLevelId:
+    @pytest.mark.parametrize("value", [None, "", "   ", 42, 3.14, ["x"]])
+    def test_unusable_top_level_id_is_missing_not_crash(self, value):
+        # Must return False (treated as missing), never raise.
+        assert Representation._has_top_level_id({"id": value}) is False
+        assert Representation._has_top_level_id({"@id": value}) is False
+
+    def test_valid_top_level_id_returned(self):
+        assert Representation._has_top_level_id({"id": "leaf"}) == "leaf"
+        assert Representation._has_top_level_id({"@id": "items/1"}) == "items/1"
+
+    def test_null_id_maps_to_empty_and_accepted(self, server_root, relative_container):
+        r = Representation(
+            server_root=server_root, relative_container=relative_container
+        )
+        # A null top-level id no longer raises; it is mapped to "".
+        r.json_ld = {"id": None}
+        assert r.json_ld["id"] == "resource/"
+        assert "@id" not in r.json_ld
+        # The raw upload is what detection runs against, and it reads as missing.
+        assert r.has_original_top_level_id() is False
+
+    def test_null_at_id_maps_to_empty_and_accepted(
+        self, server_root, relative_container
+    ):
+        r = Representation(
+            server_root=server_root, relative_container=relative_container
+        )
+        r.json_ld = {"@id": None}
+        assert r.json_ld["@id"] == "resource/"
+        assert "id" not in r.json_ld
+        assert r.has_original_top_level_id() is False
+
+    def test_null_id_with_slug_retains_key_form(self, server_root, relative_container):
+        r = Representation(
+            server_root=server_root, relative_container=relative_container, slug="4321"
+        )
+        r.json_ld = {"id": None, "referred_to_by": {"id": "note/1"}}
+        assert r.json_ld["id"] == "resource/4321"
+        assert "@id" not in r.json_ld
+        assert r.json_ld["referred_to_by"]["id"] == "resource/4321/note/1"
+
+    def test_null_at_id_with_slug_retains_key_form(
+        self, server_root, relative_container
+    ):
+        r = Representation(
+            server_root=server_root, relative_container=relative_container, slug="4321"
+        )
+        r.json_ld = {"@id": None, "referred_to_by": {"id": "note/1"}}
+        assert r.json_ld["@id"] == "resource/4321"
+        assert "id" not in r.json_ld
+
+    def test_empty_id_with_slug_retains_key_form(self, server_root, relative_container):
+        # "" and null take the same pathway.
+        r = Representation(
+            server_root=server_root, relative_container=relative_container, slug="4321"
+        )
+        r.json_ld = {"id": "", "referred_to_by": {"id": "note/1"}}
+        assert r.json_ld["id"] == "resource/4321"
+        assert "@id" not in r.json_ld
+
+    def test_mapping_is_top_level_only(self, server_root, relative_container):
+        # Only the top-level id is mapped to "". A nested id is left exactly
+        # as uploaded (a nested null is not legal JSON-LD under contexts that
+        # treat id as an @id alias, and pyld rejects it there; under other
+        # contexts pyld drops the null object. Either way the setter does not
+        # touch it).
+        r = Representation(
+            server_root=server_root, relative_container=relative_container
+        )
+        r.json_ld = {"id": "resource/123", "part_of": {"id": None}}
+        assert r.json_ld["id"] == "resource/123"
+        assert r.json_ld["part_of"]["id"] is None
+
+
+def test_jsonld_same_origin_different_subpath_ids_unchanged(
+    server_root, relative_container
+):
+    """The FQDN 'same server root' check matches against the full
+    configured root (origin plus subpath). A document that references a
+    sibling LOD Gateway served from the same origin at a different
+    subpath keeps those ids untouched; ids under this instance's own root
+    are rebased, as are other-host URIs left as-is. This pins the
+    route-level plumbing (server_root flows to prefix_rdf_ids verbatim)."""
+    doc = {
+        "@id": "resource/555",
+        "sibling": {"@id": "http://example.org/other/thing/1"},
+        "own": {"@id": "http://example.org/base/resource/789"},
+        "other_host": {"@id": "http://elsewhere.example/item/2"},
+    }
+    r = Representation(server_root=server_root, relative_container=relative_container)
+    r.json_ld = doc
+    # Sibling instance on the same origin: untouched
+    assert r.json_ld["sibling"]["@id"] == "http://example.org/other/thing/1"
+    # Own root: normalized to the relative form
+    assert r.json_ld["own"]["@id"] == "resource/789"
+    # Other host: untouched
+    assert r.json_ld["other_host"]["@id"] == "http://elsewhere.example/item/2"

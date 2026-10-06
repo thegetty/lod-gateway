@@ -8,6 +8,7 @@ from flask import current_app
 from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
 from flaskapp.storage_utilities.container import find_parent_container
 from flaskapp.errors import status_nt
+from test_ldp_api import to_abs
 
 
 class TestIngestErrors:
@@ -623,3 +624,42 @@ class TestIngestLDPBackendAutocreate:
         )
         assert response.status_code == 200
         self._container_exists(namespace, client_ldpapi, "/document/")
+
+
+class TestIngestKeyVariantPreservation:
+    """TC-8 (FR-6): the ingest path round-trips the uploaded key form with no
+    injected or mirrored keys. The path is pure json.loads with no Pydantic,
+    so this is a verification test, not a fix."""
+
+    def test_ingest_at_variant_preserved(
+        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
+    ):
+        """TC-8: ingest a record using @id/@type keys; the stored record and
+        the GET must carry only @id/@type - no at_type/at_id/mirrored keys."""
+        response = client_no_rdf.post(
+            f"/{namespace}/ingest",
+            data=json.dumps({"@id": "x/1", "@type": "http://schema.org/T"}),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200, response.data
+        assert b"x/1" in response.data
+
+        obj = Record.query.filter_by(entity_id="x/1").one_or_none()
+        assert obj is not None, "ingested record not found in the database"
+        stored = obj.data
+        assert stored.get("@id") == "x/1"
+        assert stored.get("@type") == "http://schema.org/T"
+        assert "at_type" not in stored
+        assert "at_id" not in stored
+        assert "type" not in stored
+        assert "id" not in stored
+
+        # GET the record: same key form, no mirrored keys (GET, like PUT
+        # responses, re-serializes ids in absolute prefixed form)
+        get_r = client_no_rdf.get(f"/{namespace}/x/1")
+        assert get_r.status_code == 200, get_r.data
+        g = get_r.get_json()
+        assert g.get("@id") == to_abs(namespace, "x/1")
+        assert g.get("@type") == "http://schema.org/T"
+        assert "at_type" not in g
+        assert "at_id" not in g

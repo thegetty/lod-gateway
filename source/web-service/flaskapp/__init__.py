@@ -156,19 +156,30 @@ def create_app():
     )
     if app.config["idPrefix"].endswith("/"):
         # idPrefix should not end with a /
-        app.config["idPrefix"][:-1]
+        app.config["idPrefix"] = app.config["idPrefix"][:-1]
 
     app.config["NAMESPACE_FOR_RDF"] = (
         environ.get("RDF_NAMESPACE", app.config["NAMESPACE"]) or ""
     )
-    app.config["RDFidPrefix"] = (
-        f"{app.config['BASE_URL']}/{app.config['NAMESPACE_FOR_RDF']}"
-        if app.config["NAMESPACE_FOR_RDF"]
-        else app.config["BASE_URL"]
-    )
+    # RDFidPrefix is the prefix for RDF named graph URIs in the triplestore.
+    # FULL_RDF_ID_PREFIX, when set to a non-empty value, fully specifies the
+    # prefix (a complete URI, scheme included) and decouples it from BASE_URL;
+    # otherwise it is derived from BASE_URL[/NAMESPACE_FOR_RDF] as before.
+    full_rdf_id_prefix = environ.get("FULL_RDF_ID_PREFIX") or None
+    if full_rdf_id_prefix is not None:
+        app.config["RDFidPrefix"] = full_rdf_id_prefix
+        app.logger.info(
+            f"FULL_RDF_ID_PREFIX is set; RDF named graph URIs use {full_rdf_id_prefix} (BASE_URL/RDF_NAMESPACE derivation ignored)."
+        )
+    else:
+        app.config["RDFidPrefix"] = (
+            f"{app.config['BASE_URL']}/{app.config['NAMESPACE_FOR_RDF']}"
+            if app.config["NAMESPACE_FOR_RDF"]
+            else app.config["BASE_URL"]
+        )
     if app.config["RDFidPrefix"].endswith("/"):
         # RDFidPrefix should not end with a /
-        app.config["RDFidPrefix"][:-1]
+        app.config["RDFidPrefix"] = app.config["RDFidPrefix"][:-1]
 
     # How long should the idprefixer keep cached lists of RDF prefixes from resolving
     # contexts (default 12 hours)
@@ -496,9 +507,9 @@ def create_app():
         # Needs the app context and the db to be initialized:
         if basegraph := environ.get("RDF_BASE_GRAPH"):
             app.config["RDF_BASE_GRAPH"] = basegraph
-            app.config["FULL_BASE_GRAPH"] = (
-                f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
-            )
+            # derive from RDFidPrefix so the base graph URI matches every other
+            # triplestore URI, including when FULL_RDF_ID_PREFIX is in effect
+            app.config["FULL_BASE_GRAPH"] = f"{app.config['RDFidPrefix']}/{basegraph}"
 
             app.config["RDF_FILTER_SET"] = base_graph_filter(
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]

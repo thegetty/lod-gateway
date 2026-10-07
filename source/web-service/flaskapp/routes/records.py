@@ -408,7 +408,6 @@ def container_post_item(
             f'{current_app.config["idPrefix"]}/',
             container_breadcrumbs[-1].strip("/"),
             request,
-            body,
             query,
         )
         current_app.logger.info(
@@ -486,8 +485,24 @@ def container_post_item(
         # otherwise, HTTP 409
         # "/" might also be caught here, but it might be shadowed by the 'home_page.py' routes
 
-        # if the POSTed JSON-LD has no top-level id, assign one
-        identifier = posted_representation.has_top_level_id()
+        # if the POSTed JSON-LD has no usable top-level id, assign one via
+        # the slug mechanism (LDP_ID_GEN, uuid by default)
+        #
+        # Detection runs against the raw pre-rebase upload when there is no
+        # slug (has_original_top_level_id): prefix_rdf_ids rewrites a missing,
+        # empty, or null top-level id to the container path (eg component/),
+        # which would mask the miss and try to create the record at the
+        # container's own path. With a slug, the destination always comes from
+        # the slug, so the rebased id (container/slug) stands as the
+        # identifier.
+        identifier = (
+            posted_representation.has_top_level_id()
+            if (
+                posted_representation.slug
+                or posted_representation.has_original_top_level_id()
+            )
+            else False
+        )
         if identifier is False:
             posted_representation.slug_id = current_app.config["LDP_ID_GEN"]()
             identifier = posted_representation.has_top_level_id()
@@ -733,13 +748,11 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
     relative_container = container_breadcrumbs[-2].strip("/")
 
     # Validate JSON-LD (parse_representation handles both JSON and JSON-LD validation)
-    # Pass the pydantic body model, not the raw dict
     try:
         put_body_representation = parse_representation(
             f'{current_app.config["idPrefix"]}/',
             relative_container,
             request,
-            body,
             None,
         )
         current_app.logger.info(
@@ -752,9 +765,20 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         )
         abort(response)
 
-    # Handle missing ID: inject destination URI if no @id/id present
-    id_attr = "@id" if "@id" in put_body_representation.json_ld else "id"
-    body_id = put_body_representation.json_ld.get(id_attr)
+    # Handle missing ID: inject destination URI if no usable @id/id present.
+    # Detection runs against the raw pre-rebase upload: a missing key, a null
+    # or other non-string value, an empty/whitespace value, a value failing
+    # validid, or a local absolute path (e.g. '/absolute/path') all count as
+    # missing
+    # (has_original_top_level_id). Do not test the rebased json_ld
+    # here - prefix_rdf_ids may have rewritten such an id to the container
+    # path, which would mask the miss.
+    id_attr = put_body_representation.id_attr
+    body_id = (
+        put_body_representation.json_ld.get(id_attr)
+        if put_body_representation.has_original_top_level_id()
+        else None
+    )
     if not body_id:
         # No ID in body - inject the destination URI (relative path)
         current_app.logger.info(
@@ -762,9 +786,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
         )
         # Remake the JSON-LD with the proper id and using 'id' or '@id' if body_id = ""
         jsonld = put_body_representation.json_ld
-        jsonld["@id"] = (
-            entity_id  # always '@id' to match put_body_representation.id_attr
-        )
+        jsonld[put_body_representation.id_attr] = entity_id
         put_body_representation.json_ld = jsonld
         body_id = entity_id
 
@@ -1041,7 +1063,7 @@ def container_put_item(path: EntityIdPath, body: PlainBody):
             idPrefix = current_app.config["idPrefix"]
 
             # Get the record data with prefixed IDs (same as GET handler)
-            attr = "@id" if "@id" in put_body_representation.json_ld else "id"
+            attr = put_body_representation.id_attr
             data = put_body_representation.json_ld
 
             urlprefixes = None
@@ -1521,11 +1543,18 @@ def entity_record(path: EntityIdPath):
                         if desired["requested_profiles"]:
                             ## Get a profiled version based on the data ##
                             try:
+                                # The SPARQL profile query addresses the triplestore, whose graph
+                                # URIs use RDFidPrefix - rebuild the id from the original
+                                # (unprefixed) data so the query always uses the graph URI, even
+                                # when the response body is prefixed with the display idPrefix.
+                                graph_prefixed = inflate_relative_uris(
+                                    subdata or record.data, attr
+                                )
                                 current_app.logger.info(
-                                    f"Attempting to load profiled version of {data[attr]}"
+                                    f"Attempting to load profiled version of {graph_prefixed[attr]}"
                                 )
                                 if profiled_data := get_data_using_profile_query(
-                                    uri=data[attr],
+                                    uri=graph_prefixed[attr],
                                     uritype=data.get("type") or record.entity_type,
                                     profiles=desired["requested_profiles"],
                                     patterns=current_app.config[

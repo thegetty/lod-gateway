@@ -8,6 +8,7 @@ from flask import current_app
 from flaskapp.routes.ingest import process_graphstore_record_set, process_record_set
 from flaskapp.storage_utilities.container import find_parent_container
 from flaskapp.errors import status_nt
+from test_ldp_api import to_abs
 
 
 class TestIngestErrors:
@@ -532,3 +533,133 @@ class TestNewJSONLDIngest:
 
         assert "LOD Gateway" in response.headers["Server"]
         assert b"Irises" in response.data
+
+
+class TestIngestLDPBackendAutocreate:
+    """Tests for the LDP backend autogeneration path in the ingest route.
+
+    These require LDP_BACKEND=True (client_ldpapi fixture). They exercise
+    handle_container_requirements() -> add_child_container(), which builds a
+    chain of intermediate containers back-to-back when a deep resource is
+    ingested with LDP_AUTOCREATE_CONTAINERS=True.
+    """
+
+    def _container_exists(self, namespace, client_ldpapi, container_id):
+        """Assert a container exists and is an ldp:BasicContainer, checked via
+        the LDP REST API (GET), not by querying the DB directly.
+
+        The API request and the test share no SQLAlchemy session, so the DB
+        cannot be trusted here. GET the container URL and confirm the response
+        is 200 and declares ldp:BasicContainer.
+
+        Container identifiers are stored relative to the service root, e.g.
+        'searchdatasets/' (no application namespace prefix).
+        """
+        from rdflib import URIRef
+        from rdflib.namespace import RDF
+
+        from test_ldp_post_put import JSONLD_CT, LDP, get_graph, to_abs
+
+        # get_graph expects the path relative to the namespace, without a
+        # leading slash (e.g. 'searchdatasets/'), matching how container IDs
+        # are stored.
+        g, _ = get_graph(namespace, client_ldpapi, container_id.lstrip("/"))
+        assert (
+            URIRef(to_abs(namespace, container_id)),
+            RDF.type,
+            LDP.BasicContainer,
+        ) in g, f"Container {container_id} is not an ldp:BasicContainer"
+        return True
+
+    def test_ingest_autocreates_deep_container_chain(
+        self, client_ldpapi, namespace, auth_token, test_db
+    ):
+        """Ingesting a deep resource must create every intermediate container
+        without a NOT NULL violation on entity_list.container_id.
+
+        Regression test for the missing db.session.flush() in
+        LDPContainer.add_child_container(): without it, a freshly created
+        container used as the parent of the next container in the chain has
+        no .id yet, so container_id is written as NULL and PostgreSQL rejects
+        the insert.
+        """
+        response = client_ldpapi.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "searchdatasets/magazines/markdownonly/manifest",
+                    "type": "Manifest",
+                    "_label": "A manifest",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+
+        for container_id in (
+            "/searchdatasets/",
+            "/searchdatasets/magazines/",
+            "/searchdatasets/magazines/markdownonly/",
+        ):
+            self._container_exists(namespace, client_ldpapi, container_id)
+
+    def test_ingest_autocreates_single_level_container(
+        self, client_ldpapi, namespace, auth_token, test_db
+    ):
+        """A resource one level below the root also creates its container via
+        the same path, confirming the fix is not specific to deep chains.
+        """
+        response = client_ldpapi.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "document/1",
+                    "type": "HumanMadeObject",
+                    "_label": "A document",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200
+        self._container_exists(namespace, client_ldpapi, "/document/")
+
+
+class TestIngestKeyVariantPreservation:
+    """TC-8 (FR-6): the ingest path round-trips the uploaded key form with no
+    injected or mirrored keys. The path is pure json.loads with no Pydantic,
+    so this is a verification test, not a fix."""
+
+    def test_ingest_at_variant_preserved(
+        self, client_no_rdf, namespace, auth_token, test_db_no_rdf
+    ):
+        """TC-8: ingest a record using @id/@type keys; the stored record and
+        the GET must carry only @id/@type - no at_type/at_id/mirrored keys."""
+        response = client_no_rdf.post(
+            f"/{namespace}/ingest",
+            data=json.dumps({"@id": "x/1", "@type": "http://schema.org/T"}),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 200, response.data
+        assert b"x/1" in response.data
+
+        obj = Record.query.filter_by(entity_id="x/1").one_or_none()
+        assert obj is not None, "ingested record not found in the database"
+        stored = obj.data
+        assert stored.get("@id") == "x/1"
+        assert stored.get("@type") == "http://schema.org/T"
+        assert "at_type" not in stored
+        assert "at_id" not in stored
+        assert "type" not in stored
+        assert "id" not in stored
+
+        # GET the record: same key form, no mirrored keys (GET, like PUT
+        # responses, re-serializes ids in absolute prefixed form)
+        get_r = client_no_rdf.get(f"/{namespace}/x/1")
+        assert get_r.status_code == 200, get_r.data
+        g = get_r.get_json()
+        assert g.get("@id") == to_abs(namespace, "x/1")
+        assert g.get("@type") == "http://schema.org/T"
+        assert "at_type" not in g
+        assert "at_id" not in g

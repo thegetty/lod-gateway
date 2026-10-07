@@ -136,7 +136,7 @@ POST /{namespace}/{container-path}/
 | Header | Required | Description |
 |--------|----------|-------------|
 | Authorization | Yes | `Bearer {token}` |
-| Content-Type | Yes | `application/ld+json` |
+| Content-Type | Yes | Any JSON media type (`application/json`, `application/ld+json`, or other `application/*+json`) |
 | Slug | No | Desired leaf identifier for the new resource |
 
 **Status codes:**
@@ -150,11 +150,23 @@ POST /{namespace}/{container-path}/
 
 ### How POST Handles IDs
 
-The body may include an `id` or `@id` property. The server rebases relative IDs to match the container's path. If no ID is present, the server generates a UUID.
+The body may include an `id` or `@id` property. The server rebases relative IDs to match the container's path. If no usable ID is present (the key is missing, the value is JSON `null`, or the value is empty/whitespace-only), the server generates a UUID. A `null` top-level id is mapped to an empty string before validation so it takes the same pathway as a missing id.
 
-A `Slug` header overrides the top-level ID and replaces it with the slug value. Nested relative IDs are preserved under the new slug path.
+A `Slug` header overrides the top-level ID and replaces it with the slug value. Nested relative IDs are rebased under the new slug path: the document's base becomes the `container/slug` URI.
 
-See [Appendix A: POST Rebasing Examples](#appendix-a-post-rebasing-examples) for detailed examples of how rebasing works.
+See [Appendix A: POST Rebasing Examples](#appendix-a-post-rebasing-examples) for a quick reference of how rebasing works. For the complete treatment, see [ID Remapping on LDP POST and PUT](id-remapping.md): a worked-example reference that traces small linked.art documents through the write path, showing the incoming request body, the stored (relative) form, and the prefixed form served from the graph store. It covers every id shape - relative, fragment-only, container-prefixed, local absolute path, same-host and other-host full URIs, blank nodes, and missing/empty/null ids - with and without a `Slug`, plus the equivalent PUT examples and the rules that bind them.
+
+### Key Variant Preservation
+
+The gateway stores and returns JSON-LD documents verbatim, key form and all: a body uploaded with `@id`/`@type` is stored and exported with `@id`/`@type`, and a body uploaded with plain `id`/`type` (which must carry an `@context` so the document is valid RDF) is stored and exported with plain `id`/`type`. The server never rewrites, normalizes, or mirrors key forms, and no extra mirror keys are added to the stored record. The same rule applies to the `POST /ingest` path, which has always stored the uploaded body byte for byte.
+
+### Local Absolute Paths
+
+A *local absolute path* is an id that starts with `/` and carries no URI scheme, e.g. `/absolute/path`. Local absolute paths are host-independent references to other items in the store, and the gateway's write-side id remapping leaves them untouched in every position, with or without a `Slug` header. Host-relative ids (`foo/bar`) are rebased under the container (or `container/slug`) as usual.
+
+A local absolute path cannot name the resource being created, so it is not accepted as the top-level id: it is treated as missing. A no-slug POST then gets a generated UUID for the resource, and a PUT gets the destination URI injected under the same key (`id` or `@id`). On export (GET) the host prefix is joined onto the path, yielding a full URI such as `https://data.getty.edu/media/absolute/path`.
+
+Example: `POST /my-container/` with `Slug: item1` and body `{"id": "some-uuid", "type": "http://schema.org/Thing", "seeAlso": {"id": "/absolute/path"}}` stores the resource at `my-container/item1` with `seeAlso.id` still `/absolute/path` (whereas `"nested": {"id": "foo/bar"}` would be stored as `my-container/item1/foo/bar`).
 
 ### Example: POST without Slug
 
@@ -197,6 +209,8 @@ curl -X POST http://localhost:5100/demo/my-container/ \
 
 The `Slug` header replaces the body ID. The resource is stored at the slug path.
 
+A local absolute path (an id starting with `/` and carrying no URI scheme, e.g. `/absolute/path`) is not accepted as the top-level id of a POSTed resource: it is treated as missing, so a no-slug POST gets a generated UUID instead, and a PUT gets the destination URI injected. See [Local Absolute Paths](#local-absolute-paths).
+
 ### Example: POST with Nested Path (Auto-Create Containers)
 
 ```bash
@@ -221,7 +235,7 @@ When `LDP_AUTOCREATE_CONTAINERS=True`, the server creates the intermediate `sub-
 
 Create or replace a resource at a specific URI. PUT is idempotent: calling it multiple times with the same body produces the same result.
 
-Unlike POST, which targets a container and lets the server determine the resource URI, PUT targets the resource URI directly. The body `id` or `@id` must match the destination URI.
+Unlike POST, which targets a container and lets the server determine the resource URI, PUT targets the resource URI directly. The body's top-level `id` or `@id` should match the destination URI; a leaf-only, missing, empty, null, or invalid id is remapped or injected to the destination instead (see [ID Validation Rules](#id-validation-rules) below), and a genuinely mismatched relative id is rejected with 422. A complete worked-example reference of the remapping rules is in [ID Remapping on LDP POST and PUT](id-remapping.md).
 
 ```
 PUT /{namespace}/{entity-id}
@@ -232,7 +246,9 @@ PUT /{namespace}/{entity-id}
 | Header | Required | Description |
 |--------|----------|-------------|
 | Authorization | Yes | `Bearer {token}` |
-| Content-Type | Yes | `application/ld+json` |
+| Content-Type | Yes | Any JSON media type (`application/json`, `application/ld+json`, or other `application/*+json`) |
+
+The `Slug` header has no effect on PUT: PUT targets the URL path directly, and the server ignores any `Slug` header sent with a PUT request.
 
 **Status codes:**
 
@@ -253,10 +269,16 @@ PUT validates that the top-level `id` or `@id` in the request body matches the d
 |-------------------|-----------------|--------|
 | `object/foo` | `/{namespace}/object/foo` | Accepted -- IDs match |
 | `foo` (leaf name only) | `/{namespace}/object/foo` | Accepted -- remapped to destination path |
-| *(no id or @id)* | `/{namespace}/object/foo` | Accepted -- destination URI injected as `@id` |
+| *(no id or @id key)* | `/{namespace}/object/foo` | Accepted -- destination URI injected as `@id` |
+| `""` or whitespace-only id | `/{namespace}/object/foo` | Accepted -- treated as missing; destination URI injected under the same key |
+| `null` (JSON null) | `/{namespace}/object/foo` | Accepted -- mapped to `""` before validation, then treated as missing; destination URI injected under the same key |
+| id failing the valid-id rule (e.g. contains a space) | `/{namespace}/object/foo` | Accepted -- treated as missing; destination URI injected under the same key |
+| `/absolute/path` (local absolute path) | `/{namespace}/object/foo` | Accepted -- invalid as a resource id, so treated as missing; destination URI injected under the same key |
 | `wrong/path` | `/{namespace}/object/foo` | Rejected -- 422 ID mismatch |
 
-Rebasing applies the same rules as POST: relative IDs are resolved against the destination URI, absolute URIs are preserved, and blank nodes (`_:...`) are left unchanged.
+Rebasing applies the same rules as POST: relative IDs are resolved against the destination URI, absolute URIs are preserved, local absolute paths (starting with `/`) are left untouched, and blank nodes (`_:...`) are left unchanged.
+
+When the body's id is missing, null, blank, or fails the valid-id rule, the gateway injects the destination URI into the stored document. The injection follows the key form of the uploaded body: a body that carries a plain `id` key (even if its value is blank or invalid) gets the destination URI back under `id`; a body with no id key at all gets `@id`. No extra mirror keys are ever written.
 
 ### Example: Create a New Resource
 
@@ -686,10 +708,10 @@ Result (retrieved with `?relativeid=true`):
   "@graph": [
     {"@id": "my-container/newitems/780"},
     {"@id": "my-container/newitems/780/anno/456"},
-    {"@id": "my-container#frag"},
+    {"@id": "my-container/newitems/780#frag"},
     {"@id": "_:b1"},
     {"@id": "my-container/newitems/780/absolute/path"},
-    {"@id": "my-container/someotherthing/annotation"},
+    {"@id": "my-container/newitems/780/someotherthing/annotation"},
     {"@id": "http://another.host/things?id=1#part"}
   ],
   "@id": "my-container/newitems/780",
@@ -701,7 +723,7 @@ Result (retrieved with `?relativeid=true`):
 }
 ```
 
-Relative references are rebased under the new slug path. The fragment `#frag` is rebased to the container root. The blank node `_:b1` is preserved. The absolute URI from another host is unchanged.
+Relative references are rebased under the new slug path, which becomes the document's base (the fragment `#frag` lands at `my-container/newitems/780#frag`). The blank node `_:b1` is preserved. The absolute URI from another host is unchanged.
 
 **Important:** This POST requires `LDP_AUTOCREATE_CONTAINERS=True` because the slug `newitems/780` implies an intermediate container at `newitems/`. The server auto-creates it:
 

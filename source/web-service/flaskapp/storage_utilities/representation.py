@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 from typing import Any, Tuple
 from pyld import jsonld as pyjsonld
 
+from flask import current_app
+
 from flaskapp.utilities import join_baseid_and_rel
 from flaskapp.errors import ResourceValidationError
 
@@ -49,7 +51,9 @@ class Representation:
     def _validate_jsonld(cls, json_ld):
         try:
             # Expand the JSON-LD to check for syntax/structure compliance
-            pyjsonld.expand(json_ld)
+            pyjsonld.expand(
+                json_ld, {"documentLoader": current_app.config["RDF_DOCLOADER"]}
+            )
             return True
         except pyjsonld.JsonLdError as e:
             print(str(e))
@@ -258,7 +262,9 @@ class Representation:
 
     def get_dcterms(self):
         self._title = self._description = ""
-        expanded = pyjsonld.expand(self.json_ld)
+        expanded = pyjsonld.expand(
+            self.json_ld, {"documentLoader": current_app.config["RDF_DOCLOADER"]}
+        )
 
         def _get_value(d):
             return next((x.get("@value") for x in d if "@value" in x), "")

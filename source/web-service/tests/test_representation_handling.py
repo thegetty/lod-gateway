@@ -1,6 +1,18 @@
 import pytest
+from flaskapp import create_app
 from flaskapp.storage_utilities.representation import Representation
 from flaskapp.errors import ResourceValidationError
+
+
+@pytest.fixture(autouse=True)
+def app_context():
+    # These tests exercise Representation (and _validate_jsonld) directly, not
+    # through a client request. Validation now runs pyld with the app's
+    # RDF_DOCLOADER, so an application context must be pushed for every test.
+    app = create_app()
+    app.config["TESTING"] = True
+    with app.app_context():
+        yield
 
 
 @pytest.fixture

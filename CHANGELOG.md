@@ -1,6 +1,38 @@
 LOD Gateway - Changelog
 =======================
 
+v2.10.1 RDFLib 7 and PyLD 3.2 Migration
+
+## What's Changed
+* RDFLib 7.x / PyLD 3.2 migration: rdflib bound to 7.x, pyld pin moved to the 3.2.0-getty branch, dataset-based graph handling with named-graph-preserving nquads output, ingest handling for missing containers, and caching document loader for PyLD representation handling by @benosteen in https://github.com/thegetty/lod-gateway/pull/507
+* Dependency update: Flask-Cors to 6.+ by @benosteen in https://github.com/thegetty/lod-gateway/pull/511
+
+## BUG FIXES
+### RDFLib 7 / PyLD 3.2 compatibility
+Pins were updated to rdflib 7.x and the 3.2.0-getty branch of PyLD.
+`get_bound_graph` now returns a `(Dataset, graph)` pair, and graph
+expansion serializes the dataset rather than the default graph so named
+graphs survive the nquads output. `entity_version` triple-format
+reformatting parses into the named graph to match. `JsonLdError` cause
+and traceback reporting was updated to read the underlying exception via
+Python exception chaining (the PyLD 3.x API no longer exposes `cause`
+and `causeTrace` attributes directly).
+
+### Ingest with missing containers
+`/ingest` now handles requests for containers that do not exist when
+container auto-creation is disabled, returning an explicit error instead
+of failing mid-request.
+
+### PyLD representation handling
+A use of PyLD in the representation handling path was found that was not
+using the existing caching document loader. This version fixes that so
+that all uses of PyLD now correctly use the context document caching
+loader.
+Dead JSON-LD framing code (unused in the current codebase) was removed
+as part of the migration.
+
+**Full Changelog**: https://github.com/thegetty/lod-gateway/compare/v2.10.0...v2.10.1
+
 v2.10.0 LDP Write-Path Fixes and RDF Prefix Control
 
 ## What's Changed

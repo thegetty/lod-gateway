@@ -92,6 +92,27 @@ def client_ldpapi(app_ldpapi):
 
 
 @pytest.fixture
+def client_ldpapi_no_autocreate(app_ldpapi):
+    # LDP backend is on but containers are NOT autocreated on /ingest. This
+    # mirrors a misconfigured/legacy deployment: ingesting a resource whose
+    # parent container does not exist must fail with a 4xx (404), not a 500.
+    app_ldpapi.config["LDP_AUTOCREATE_CONTAINERS"] = False
+    ctx = app_ldpapi.app_context()
+    ctx.push()
+    if ".amazonaws.com" in app_ldpapi.config["SQLALCHEMY_DATABASE_URI"]:
+        pytest.exit(
+            ">>> WARNING – Cannot run the PyTest suite as the `DATABASE` environment variable currently references an AWS-hosted database, which will be *DESTROYED* by running the test suite! <<<"
+        )
+    db.drop_all()
+    db.create_all()
+    _ = get_container("/")
+    db.session.commit()
+    testing_client = app_ldpapi.test_client()
+    yield testing_client  # this is where the testing happens!
+    ctx.pop()
+
+
+@pytest.fixture
 def ldp_fixture_app(app_ldpapi, client_ldpapi, ldp_sample_containers):
     # Add some basic objects. One for the basic containers, and all the annotations into /annotations/ml-test/
     # for pagination testing.

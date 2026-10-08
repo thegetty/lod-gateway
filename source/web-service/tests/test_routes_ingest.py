@@ -626,6 +626,62 @@ class TestIngestLDPBackendAutocreate:
         self._container_exists(namespace, client_ldpapi, "/document/")
 
 
+class TestIngestContainerNotFound:
+    """When LDP_BACKEND is on but LDP_AUTOCREATE_CONTAINERS is off, ingesting a
+    resource whose parent container does not exist must fail with a 4xx (404
+    Container Not Found), not an unhandled 500. The exception is a client error
+    (the addressed container genuinely does not exist), so it must not surface
+    as a server-fault status.
+    """
+
+    def test_ingest_missing_parent_container_returns_404(
+        self, client_ldpapi_no_autocreate, namespace, auth_token, test_db
+    ):
+        """A resource nested under a non-existent container is rejected with 404,
+        not 500. The missing container path is reported in the error detail."""
+        response = client_ldpapi_no_autocreate.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "searchdatasets/magazines/markdownonly/manifest",
+                    "type": "Manifest",
+                    "_label": "A manifest",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        assert response.status_code == 404, response.data
+        body = response.get_json()
+        assert body["errors"][0]["title"] == "Container Not Found"
+        # The missing container path should be surfaced in the detail.
+        assert "searchdatasets/magazines/markdownonly" in body["errors"][0]["detail"]
+
+    def test_ingest_missing_parent_container_does_not_persist(
+        self, client_ldpapi_no_autocreate, namespace, auth_token, test_db
+    ):
+        """A rejected ingest must roll back the batch: no Record row is left
+        behind for the failed resource."""
+        client_ldpapi_no_autocreate.post(
+            f"/{namespace}/ingest",
+            data=json.dumps(
+                {
+                    "@context": "https://linked.art/ns/v1/linked-art.json",
+                    "id": "searchdatasets/magazines/markdownonly/manifest",
+                    "type": "Manifest",
+                    "_label": "A manifest",
+                }
+            ),
+            headers={"Authorization": "Bearer " + auth_token},
+        )
+        from flaskapp.models.record import Record
+
+        obj = Record.query.filter_by(
+            entity_id="searchdatasets/magazines/markdownonly/manifest"
+        ).one_or_none()
+        assert obj is None, "failed ingest left a persisted Record row"
+
+
 class TestIngestKeyVariantPreservation:
     """TC-8 (FR-6): the ingest path round-trips the uploaded key form with no
     injected or mirrored keys. The path is pure json.loads with no Pydantic,

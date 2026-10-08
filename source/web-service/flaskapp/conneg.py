@@ -15,8 +15,6 @@ from flaskapp.errors import status_graphstore_error, status_nt
 from .graph_prefix_bindings import (
     FORMATS,
     get_bound_graph,
-    get_frame,
-    BASE_FRAME_CONTEXT,
     QUAD_ENABLED,
 )
 from .utilities import triples_to_quads
@@ -215,36 +213,3 @@ def reformat_rdf(data, shortformat="turtle", use_pyld=True, rdf_docloader=None):
             data = g.serialize(format=shortformat)
 
         return data
-
-
-def reformat_to_jsonld(data, incoming_format, target_base=None, top_level_id=None):
-    if incoming_format == "json-ld":
-        return data
-
-    # Rebase to target
-    if incoming_format in ["turtle", "n3"] and target_base is not None:
-        # rewrite the incoming base to the new one
-        # the json-ld property setter will validate and finish the rebase properly
-        data = "\n".join(
-            [f"@base <{target_base}> ."]
-            + [x for x in data.split("\n") if not x.startswith("@base")]
-        )
-
-    # using rdflib to both parse and re-serialize the RDF:
-    ds, g = get_bound_graph(identifier=top_level_id)
-
-    ds.parse(data=data, format=incoming_format)
-
-    # data = g.serialize(format="json-ld", base=target_base, compact=True)
-    data = ds.serialize(format="json-ld", compact=True)
-
-    # load it as JSON
-    return json.loads(data)
-
-
-def frame_jsonld(data, target_uri):
-    # This will be used on data pulled in via turtle or similar, not JSON-LD
-    frame = get_frame(target_uri)
-    expanded = jsonld.expand(data)
-    framed = jsonld.frame(expanded, frame)
-    return jsonld.compact(framed, BASE_FRAME_CONTEXT)

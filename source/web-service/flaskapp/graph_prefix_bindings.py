@@ -20,14 +20,6 @@ BINDING = {
     "dcterms": DCTERMS,
 }
 
-# For items uploaded outside of JSON-LD
-BASE_FRAME_CONTEXT = {
-    "id": "@id",
-    "type": "@type",
-}
-for k, v in BINDING.items():
-    BASE_FRAME_CONTEXT[k] = str(v)
-
 FORMATS = {
     # RDF triple formats
     "application/n-triples; charset=UTF-8": "nt11",
@@ -45,15 +37,6 @@ FORMATS = {
 }
 
 QUAD_ENABLED = ("nquads", "json-ld", "trig")
-
-
-# Basic framing, anticipating a single top-level URI
-def get_frame(identifier):
-    return {
-        "@context": BASE_FRAME_CONTEXT,
-        "@id": identifier,
-        "@embed": "@always",
-    }
 
 
 def get_bound_graph(identifier):

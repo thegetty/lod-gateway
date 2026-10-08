@@ -33,6 +33,7 @@ from flaskapp.storage_utilities.graph import (
     RetryAfterError,
 )
 from flaskapp.storage_utilities.container import assert_containers
+from flaskapp.models.container import NoLDPContainerFoundError
 
 from flaskapp.errors import (
     status_nt,
@@ -233,6 +234,18 @@ def process_record_set(record_list, query_endpoint=None, update_endpoint=None):
             )
             db.session.rollback()
             return status_db_save_error
+
+        # A record in this batch addresses a resource under an LDP Container that
+        # does not exist and could not be created (LDP_AUTOCREATE_CONTAINERS off).
+        # This is a client error, not a server fault, so return 404 instead of 500.
+        except NoLDPContainerFoundError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Required LDP Container not found: {e}")
+            return status_nt(
+                404,
+                "Container Not Found",
+                f"Unable to find container in database: {e}",
+            )
 
         # Process graph store entries. Check the graph store flag - if not set, do not process, return 'True'
         # Note, we compare to a string 'True' or 'False' passed from .evn file, not a boolean

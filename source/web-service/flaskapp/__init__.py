@@ -8,7 +8,15 @@ import requests
 from datetime import datetime
 import sqlite3
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 from flask import Flask, Response
+from flask_openapi3.openapi import OpenAPI
+from flask_openapi3 import Info
+from flask_openapi3.models import SecurityScheme
+
+from flaskapp.openapi_models import patch_ingest_route
+
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_compress import Compress
@@ -61,8 +69,73 @@ logging.config.dictConfig(
 )
 
 
+def proxy_fix_wrap(app, x_for, x_host, x_prefix, x_proto=1):
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_proto=1,  # Ensures url_for() generates https:// instead of http:// if the original is https
+        x_host=x_host,  # Preserves the external domain name
+        x_for=x_for,  # 0 - Keeps internal IPs from polluting your logs, 1 - keep IPs passed from the proxy
+        x_prefix=x_prefix,  # DISABLED: Unnecessary since internal and external paths match
+        #    (eg external is ...edu/vocab/ and local is also served at /vocab/).
+    )
+
+
 def create_app():
-    app = Flask(__name__)
+    # Monkey-patch flask-openapi3's _validate_request to pass path_kwargs through.
+    # Flask-OpenAPI3 returns the validated path model as {'path': Model(...)} which
+    # doesn't unpack into individual route params. Passing path_kwargs ensures the
+    # route function receives actual parameters like entity_id, version, etc.
+    from flask_openapi3 import scaffold
+    from flask_openapi3.scaffold import _validate_request as original_validate_request
+
+    def _patched_validate_request(
+        header=None,
+        cookie=None,
+        path=None,
+        query=None,
+        form=None,
+        body=None,
+        raw=None,
+        path_kwargs=None,
+    ):
+        func_kwargs = original_validate_request(
+            header=header,
+            cookie=cookie,
+            path=path,
+            query=query,
+            form=form,
+            body=body,
+            raw=raw,
+            path_kwargs=path_kwargs,
+        )
+        if path_kwargs:
+            func_kwargs.update(path_kwargs)
+        return func_kwargs
+
+    scaffold._validate_request = _patched_validate_request
+
+    lod_desc = environ.get("LOD_AS_DESC", "LOD Gateway")
+
+    # Get the subpath at which this is being served:
+    subpath = environ["APPLICATION_NAMESPACE"] or ""
+
+    if subpath == "/":
+        subpath = ""
+
+    # Define security configuration:
+    bearer_scheme = SecurityScheme(
+        type="http", scheme="bearer", bearerFormat="Opaque"  # just a plain token
+    )
+
+    security_schemes = {"bearerAuth": bearer_scheme}
+
+    app = OpenAPI(
+        __name__,
+        info=Info(title=lod_desc, version="1.0.0"),
+        doc_ui=True,
+        doc_prefix=f"/{subpath}/openapi",
+        security_schemes=security_schemes,
+    )
 
     app.config["DEBUG_LEVEL"] = getenv("DEBUG_LEVEL", "INFO")
     app.config["FLASK_ENV"] = getenv("FLASK_ENV", "production")
@@ -83,19 +156,30 @@ def create_app():
     )
     if app.config["idPrefix"].endswith("/"):
         # idPrefix should not end with a /
-        app.config["idPrefix"][:-1]
+        app.config["idPrefix"] = app.config["idPrefix"][:-1]
 
     app.config["NAMESPACE_FOR_RDF"] = (
         environ.get("RDF_NAMESPACE", app.config["NAMESPACE"]) or ""
     )
-    app.config["RDFidPrefix"] = (
-        f"{app.config['BASE_URL']}/{app.config['NAMESPACE_FOR_RDF']}"
-        if app.config["NAMESPACE_FOR_RDF"]
-        else app.config["BASE_URL"]
-    )
+    # RDFidPrefix is the prefix for RDF named graph URIs in the triplestore.
+    # FULL_RDF_ID_PREFIX, when set to a non-empty value, fully specifies the
+    # prefix (a complete URI, scheme included) and decouples it from BASE_URL;
+    # otherwise it is derived from BASE_URL[/NAMESPACE_FOR_RDF] as before.
+    full_rdf_id_prefix = environ.get("FULL_RDF_ID_PREFIX") or None
+    if full_rdf_id_prefix is not None:
+        app.config["RDFidPrefix"] = full_rdf_id_prefix
+        app.logger.info(
+            f"FULL_RDF_ID_PREFIX is set; RDF named graph URIs use {full_rdf_id_prefix} (BASE_URL/RDF_NAMESPACE derivation ignored)."
+        )
+    else:
+        app.config["RDFidPrefix"] = (
+            f"{app.config['BASE_URL']}/{app.config['NAMESPACE_FOR_RDF']}"
+            if app.config["NAMESPACE_FOR_RDF"]
+            else app.config["BASE_URL"]
+        )
     if app.config["RDFidPrefix"].endswith("/"):
         # RDFidPrefix should not end with a /
-        app.config["RDFidPrefix"][:-1]
+        app.config["RDFidPrefix"] = app.config["RDFidPrefix"][:-1]
 
     # How long should the idprefixer keep cached lists of RDF prefixes from resolving
     # contexts (default 12 hours)
@@ -138,6 +222,13 @@ def create_app():
         # for Flask 2.3+
         app.config["JSON_SORT_KEYS"] = True
         app.json.sort_keys = True
+
+    # Strict Slashes - default to True as Werkzeug does
+    app.config["FLASK_STRICT_SLASHES"] = True
+    if "false" in environ.get("FLASK_STRICT_SLASHES", "true").lower():
+        app.config["FLASK_STRICT_SLASHES"] = False
+
+    app.url_map.strict_slashes = app.config["FLASK_STRICT_SLASHES"]
 
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
@@ -350,9 +441,13 @@ def create_app():
         app.config["LINK_HEADER_PREV_VERSION"] = True
 
     app.config["SUBADDRESSING"] = False
+    app.config["SUBADDRESSING_MIN_PARTS"] = 1
+    app.config["SUBADDRESSING_MAX_PARTS"] = 4
+
     if environ.get("SUBADDRESSING", "False").lower() == "true":
         app.logger.info("Subaddressing support is enabled")
         app.config["SUBADDRESSING"] = True
+
         if environ.get("SUBADDRESSING_DEPTH") is not None:
             try:
                 app.config["SUBADDRESSING_DEPTH"] = int(
@@ -362,6 +457,29 @@ def create_app():
                 app.logger.error(
                     f"Value for SUBADDRESSING_DEPTH could not be interpreted as an integer. Ignoring."
                 )
+
+        # Subaddressing search range -- can be tuned via env vars
+        try:
+            app.config["SUBADDRESSING_MIN_PARTS"] = int(
+                environ.get("SUBADDRESSING_MIN_PARTS", 1)
+            )
+        except (ValueError, TypeError):
+            app.logger.warning(
+                "SUBADDRESSING_MIN_PARTS is not a valid integer. Using default of 1."
+            )
+
+        try:
+            app.config["SUBADDRESSING_MAX_PARTS"] = int(
+                environ.get("SUBADDRESSING_MAX_PARTS", 4)
+            )
+        except (ValueError, TypeError):
+            app.logger.warning(
+                "SUBADDRESSING_MAX_PARTS is not a valid integer. Using default of 4."
+            )
+
+        app.logger.info(
+            f"Subaddressing search range: {app.config['SUBADDRESSING_MIN_PARTS']} to {app.config['SUBADDRESSING_MAX_PARTS']} parts"
+        )
 
     if app.config["FLASK_ENV"].lower() == "development":
         app.config["SQLALCHEMY_ECHO"] = True
@@ -389,9 +507,9 @@ def create_app():
         # Needs the app context and the db to be initialized:
         if basegraph := environ.get("RDF_BASE_GRAPH"):
             app.config["RDF_BASE_GRAPH"] = basegraph
-            app.config["FULL_BASE_GRAPH"] = (
-                f'{app.config["BASE_URL"]}/{app.config["NAMESPACE_FOR_RDF"]}/{basegraph}'
-            )
+            # derive from RDFidPrefix so the base graph URI matches every other
+            # triplestore URI, including when FULL_RDF_ID_PREFIX is in effect
+            app.config["FULL_BASE_GRAPH"] = f"{app.config['RDFidPrefix']}/{basegraph}"
 
             app.config["RDF_FILTER_SET"] = base_graph_filter(
                 app.config["RDF_BASE_GRAPH"], app.config["FULL_BASE_GRAPH"]
@@ -430,15 +548,21 @@ def create_app():
             f"LOD Gateway will serve from a base of '{app.config['idPrefix']}"
         )
 
-        app.register_blueprint(home_page, url_prefix=f"/{ns}")
-        app.register_blueprint(activity, url_prefix=f"/{ns}")
-        app.register_blueprint(activity_entity, url_prefix=f"/{ns}")
-        app.register_blueprint(records, url_prefix=f"/{ns}")
-        app.register_blueprint(ingest, url_prefix=f"/{ns}")
-        app.register_blueprint(sparql, url_prefix=f"/{ns}")
-        app.register_blueprint(yasgui, url_prefix=f"/{ns}")
-        app.register_blueprint(timegate, url_prefix=f"/{ns}")
-        app.register_blueprint(health, url_prefix=f"/{ns}")
+        nsprefix = f"/{ns}"
+        if nsprefix == "//":
+            nsprefix = "/"
+        app.register_api(home_page, url_prefix=nsprefix)
+        app.register_api(activity, url_prefix=nsprefix)
+        app.register_api(activity_entity, url_prefix=nsprefix)
+        app.register_api(records, url_prefix=nsprefix)
+        app.register_api(ingest, url_prefix=nsprefix)
+        app.register_api(sparql, url_prefix=nsprefix)
+        app.register_api(yasgui, url_prefix=nsprefix)
+        app.register_api(timegate, url_prefix=nsprefix)
+        app.register_api(health, url_prefix=nsprefix)
+
+        # Non-JSON formatted payload patch for the OpenAPI
+        patch_ingest_route(app, nsprefix)
 
         app.logger.info("LOD Gateway configured and ready for use")
 
@@ -461,4 +585,36 @@ def create_app():
 
             return response
 
+        if environ.get("WERKZEUG_PROXY_FIX", "false").lower() in ["true", "t", "1"]:
+            # Documentation: https://werkzeug.palletsprojects.com/en/stable/middleware/proxy_fix/
+
+            # NGINX-Ingress can be set to cluster or local (externalTrafficPolicy)
+            # If set to cluster, the IP address it passes along is the internal IP, not the client's one.
+            # If set to local (or using the use-proxy-protocol: "true" which might have unintended consequences, I don't know), client IPs should be passed on.
+
+            # X_FOR - 0 discard X-Forwarded-For and keep the NGINX/load balancer IP as the one to use, 1 - keep and use X-Forwarded-For
+            # If IP addresses are not passed on (cluster), either 0 or 1 produces the same behavior.
+
+            # Default: 1
+            X_FOR = 1
+            if environ.get("WERKZEUG_X_FOR", "0").lower() in ["0", 0, "n", "false"]:
+                X_FOR = 0
+
+            # X_PREFIX x_prefix=1 tells Werkzeug to look for the X-Forwarded-Prefix header
+            #    and use it to temporarily rewrite the application's root path (SCRIPT_NAME).
+
+            # Set to 0 to not do anything to the path before processing it.
+            X_PREFIX = 0
+            if environ.get("WERKZEUG_X_PREFIX", "0").lower() in ["1", 1, "y", "true"]:
+                X_PREFIX = 1
+
+            # Preserves the external domain name, 0 to not preserve it.
+            # Default: 1
+            X_HOST = 1
+            if environ.get("WERKZEUG_X_HOST", "0").lower() in ["0", 0, "n", "false"]:
+                X_HOST = 0
+
+            print("Applying Werkzeug Proxy Fixes")
+
+            proxy_fix_wrap(app, X_FOR, X_HOST, X_PREFIX, 1)
         return app

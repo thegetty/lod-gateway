@@ -144,13 +144,22 @@ def graph_expand(data, proc=None):
                 current_app.logger.error(
                     "Graph expansion error code:    %s" % (str(e.code))
                 )
-                current_app.logger.error(
-                    "Graph expansion error cause:   %s" % (str(e.cause))
-                )
-                current_app.logger.error(
-                    "Graph expansion error trace:   %s"
-                    % (str("".join(traceback.format_list(e.causeTrace))))
-                )
+                if e.__cause__ is not None:
+                    current_app.logger.error(
+                        "Graph expansion error cause:   %s" % (str(e.__cause__))
+                    )
+                    current_app.logger.error(
+                        "Graph expansion error trace:   %s"
+                        % (
+                            "".join(
+                                traceback.format_exception(
+                                    type(e.__cause__),
+                                    e.__cause__,
+                                    e.__cause__.__traceback__,
+                                )
+                            )
+                        )
+                    )
             else:
                 current_app.logger.error(
                     "Graph expansion error stack trace:\n%s" % (full_stack_trace())
@@ -166,13 +175,16 @@ def graph_expand(data, proc=None):
         current_app.logger.info(
             f"Graph {data[id_attr]} expanded in {time.perf_counter() - tictoc:05f}s"
         )
+        current_app.logger.info(
+            f"graph_expand returning: type={type(serialized_nt)}, value={repr(serialized_nt)[:200]}"
+        )
         return serialized_nt
     else:
         current_app.logger.info(f"{json_ld_id} - expanding using RDFLib")
         current_app.logger.debug(
             f"{json_ld_id} - RDFLIB parsing START at timecode {time.perf_counter() - tictoc}"
         )
-        g = get_bound_graph(identifier=json_ld_id)
+        ds, g = get_bound_graph(identifier=json_ld_id)
         g.parse(data=json.dumps(data), format="json-ld")
         current_app.logger.debug(
             f"{json_ld_id} - RDFLIB parsing END, START serialization at timecode {time.perf_counter() - tictoc}"
@@ -181,8 +193,16 @@ def graph_expand(data, proc=None):
             current_app.logger.error(
                 f"No suitable quads or triples were parsed from the supplied JSON-LD. Is {json_ld_id} actually JSON-LD?"
             )
+            current_app.logger.info(
+                f"graph_expand (RDFLib) returning: type=False, value=False"
+            )
             return False
-        return g.serialize(format="nquads")
+
+        serialized = ds.serialize(format="nquads")
+        current_app.logger.info(
+            f"graph_expand (RDFLib) returning: type={type(serialized)}, value={repr(serialized)[:200]}"
+        )
+        return serialized
 
 
 def graph_replace(
@@ -357,9 +377,15 @@ def revert_triplestore_if_possible(list_of_relative_ids: list, timeout: int = 45
         if record is None or ("record" in record and record["record"].data is None):
             # this record did not exist before the bulk request
             try:
-                graph_delete(relative_id, query_endpoint, update_endpoint, timeout)
+                # graph_delete needs the triplestore graph URI, so prefix the
+                # relative id with RDFidPrefix using the same idPrefixer semantics
+                # as the write paths (already-absolute ids pass through unchanged)
+                graph_uri = idPrefixer(
+                    "id", relative_id, prefix=current_app.config["RDFidPrefix"]
+                )
+                graph_delete(graph_uri, query_endpoint, update_endpoint, timeout)
                 current_app.logger.warning(
-                    f"REVERT: Deleted {relative_id} from triplestore to match DB state (deleted/non-existent)"
+                    f"REVERT: Deleted {graph_uri} from triplestore to match DB state (deleted/non-existent)"
                 )
                 results[relative_id] = "deleted"
             except (requests.exceptions.ConnectionError, RetryAfterError):

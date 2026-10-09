@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 from typing import Any, Tuple
 from pyld import jsonld as pyjsonld
 
+from flask import current_app
+
 from flaskapp.utilities import join_baseid_and_rel
 from flaskapp.errors import ResourceValidationError
 
@@ -49,7 +51,9 @@ class Representation:
     def _validate_jsonld(cls, json_ld):
         try:
             # Expand the JSON-LD to check for syntax/structure compliance
-            pyjsonld.expand(json_ld)
+            pyjsonld.expand(
+                json_ld, {"documentLoader": current_app.config["RDF_DOCLOADER"]}
+            )
             return True
         except pyjsonld.JsonLdError as e:
             print(str(e))
@@ -61,8 +65,18 @@ class Representation:
             # return 'id_missing' if no 'id' present
             id_attr = "@id" if "@id" in json_ld.keys() else "id"
 
-            # No top level id (either missing an id value, or )
-            if id_attr not in json_ld.keys() or not json_ld[id_attr].strip():
+            # No usable top-level id: a missing key, a null or other
+            # non-string value, or an empty/whitespace value all count as
+            # missing (null and "" take the same pathway).
+            id_value = json_ld.get(id_attr)
+            if not isinstance(id_value, str) or not id_value.strip():
+                return False
+
+            # A local absolute path (eg '/foo/bar') cannot name a resource:
+            # the top-level id must be host-relative (or a full URI). Treat as
+            # missing so the caller assigns the address (generated id for a
+            # POST, destination URI for a PUT).
+            if id_value.startswith("/") and not urlparse(id_value).scheme:
                 return False
 
             if not validid.match(json_ld[id_attr]):
@@ -83,6 +97,14 @@ class Representation:
 
     def has_top_level_id(self):
         return Representation._has_top_level_id(self.json_ld)
+
+    def has_original_top_level_id(self):
+        # Detect a usable top-level id against the untouched raw upload, not
+        # the rebased json_ld: with no slug, prefix_rdf_ids rewrites a
+        # missing, empty, or null id to the container path (e.g. object/),
+        # which would mask the miss.
+        # Inherited return convention: the id string, or False.
+        return Representation._has_top_level_id(self._original)
 
     @property
     def is_basic_container(self):
@@ -117,6 +139,16 @@ class Representation:
         # do a shallow copy so that changes to the top-level dict won't affect the
         # supplied dict.
         json_ld = json_ld_input.copy()
+
+        # A null top-level id is not legal JSON-LD (an @id must be a string),
+        # but callers use it to mean "no id, assign one." Map it to "" before
+        # validation so it takes the same pathway as an empty or absent id:
+        # the key form ('id' or '@id') is retained and the destination is
+        # assigned (slug or generated id for a POST, the destination URI for a
+        # PUT). Nested null ids are not mapped - they remain invalid JSON-LD.
+        for id_key in ("id", "@id"):
+            if id_key in json_ld and json_ld[id_key] is None:
+                json_ld[id_key] = ""
 
         if Representation._validate_jsonld(json_ld) is False:
             raise ResourceValidationError(
@@ -230,7 +262,9 @@ class Representation:
 
     def get_dcterms(self):
         self._title = self._description = ""
-        expanded = pyjsonld.expand(self.json_ld)
+        expanded = pyjsonld.expand(
+            self.json_ld, {"documentLoader": current_app.config["RDF_DOCLOADER"]}
+        )
 
         def _get_value(d):
             return next((x.get("@value") for x in d if "@value" in x), "")
@@ -244,21 +278,34 @@ class Representation:
                         self._description = _get_value(v)
 
 
-def parse_representation(server_root, relative_container, request):
+def parse_representation(server_root, relative_container, request, query_params):
     # check for valid JSON-LD
     # rebase, and return Representation
-    # capture the Slug header if present, even though the rebase does not take that into account yet.
-    if request.headers["Content-Type"] == "application/ld+json":
-        # Slug?
-        slug = request.headers.get("Slug") or None
+
+    # The Slug header (and ?slug= query param) apply to POST only: the server
+    # chooses the resource address for a POST. A PUT targets the URL path
+    # directly and must not be diverted or rebased by a Slug header.
+    # Any JSON media type is acceptable (application/json, application/ld+json,
+    # or other application/*+json)
+    if request.is_json:
+        slug = None
+        if request.method == "POST":
+            slug = request.headers.get("Slug") or None
+            if query_params and query_params.slug:
+                slug = query_params.slug
+
         r = Representation(
             server_root=server_root, relative_container=relative_container, slug=slug
         )
+        # Use the raw uploaded body. This preserves the upload's
+        # id/@id and type/@type key variant exactly. Never model_dump() here.
         r.json_ld = request.get_json()
+
         return r
     else:
         raise ResourceValidationError(
-            "Only application/ld+json Content-Type is acceptable"
+            "Only JSON Content-Types are acceptable (application/json, "
+            "application/ld+json, or other application/*+json media types)"
         )
 
 
@@ -286,6 +333,9 @@ def prefix_rdf_ids(
     4) IDs become *relative IRIs* (no scheme, no host). Fragments are preserved.
     5) Blank node identifiers (e.g., '_:b1') are left unchanged.
     6) '@context' is not traversed or altered.
+    7) Local absolute paths (e.g., '/absolute/path' - starts with '/' and has
+       no URI scheme) are host-independent references to other items in the
+       store and are left unchanged in every position.
 
     eg
     >>> sample = {
@@ -303,7 +353,7 @@ def prefix_rdf_ids(
     ... }
     >>> out = prefix_rdf_ids(sample, "items/")
     >>> [n["@id"] for n in out["@graph"]]
-    ['https://example.org/items/123', 'items/456', 'items#frag', '_:b1', 'items/absolute/path', 'http://another.host/things?id=1#part']
+    ['https://example.org/items/123', 'items/456', 'items#frag', '_:b1', '/absolute/path', 'http://another.host/things?id=1#part']
     """
 
     # The JSON-LD may have a preference for a form of the '@id' property, eg if it has been aliased in the context.
@@ -350,6 +400,13 @@ def prefix_rdf_ids(
         if bool(parsed_baseurl.scheme):
             return rel
 
+        # Local absolute paths (eg '/absolute/path') reference other items in
+        # the store without committing to a host: leave them untouched. Must
+        # come before the unprefixer check so a slug captured from an original
+        # top-level local absolute path cannot re-absorb these values.
+        if rel.startswith("/"):
+            return rel
+
         # slug - unprefixer? eg so that "items/1234" with slug 'slug' turns into 'items/slug/1234'
         #        instead of 'items/slug/items/1234' but 'items/999' stays as 'items/999'
         if unprefixer and rel.startswith(unprefixer):
@@ -357,11 +414,30 @@ def prefix_rdf_ids(
             # Join base and the relative part carefully (fragments vs paths)
             return join_baseid_and_rel(relative_prefix, rel).rstrip("/")
 
-        # If already starts with the normalized base, do not repeat the prefix.
-        if rel.startswith(container_path):
+        # slug only: value already at or under the slug root (the slug block's
+        # own top-level assignment, or a nested id already addressed to the
+        # slug root) -> unchanged. Exact-match-plus-separator form: a sibling
+        # like 'items/slug-id-x' is NOT protected and is rebased below.
+        if slug and (
+            rel == relative_prefix
+            or rel.startswith(f"{relative_prefix}/")
+            or rel.startswith(f"{relative_prefix}#")
+        ):
             return rel
 
-        # Not an id 'owned' by this named graph but still relative, rebase it as expected without a slug.
+        # Container-prefixed value.
+        if rel.startswith(container_path):
+            if slug:
+                # move the container-prefixed value under the slug root (D2)
+                rel = rel.removeprefix(container_path)
+                return join_baseid_and_rel(relative_prefix, rel)
+            return rel
+
+        # Any other relative value: rebase under the container (no slug) or
+        # under the container/slug root (slug, D1; fragments land at
+        # container/slug#frag).
+        if slug:
+            return join_baseid_and_rel(relative_prefix, rel)
         return join_baseid_and_rel(container_path, rel)
 
     def walk(node: Any) -> Any:

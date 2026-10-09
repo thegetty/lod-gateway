@@ -22,6 +22,9 @@ KEEPALIVE="${WEB_KEEPALIVE:-75}"
 
 FLASK_RUN_PORT="${FLASK_RUN_PORT:-5100}"
 
+# forwarded-allow-ips -> lets gunicorn trust various X- headers coming from NGINX. 
+# Cannot be tightended to an IP range or localhost as that isn't possible with the deployed environ
+
 # sync/threads? or green threads?
 if [[ "$WORKER_CLASS" != "gevent" ]]; then
 	echo "Running with either sync/gthreads - $WORKERS workers, $THREADS threads" && \
@@ -34,6 +37,7 @@ if [[ "$WORKER_CLASS" != "gevent" ]]; then
          --access-logfile '-' \
          --error-logfile '-' \
          --worker-tmp-dir /dev/shm \
+         --forwarded-allow-ips="*" \
          wsgi:app
 	$@
 else
@@ -47,6 +51,7 @@ else
          --access-logfile '-' \
          --error-logfile '-' \
          --worker-tmp-dir /dev/shm \
+         --forwarded-allow-ips="*" \
          wsgi:app
 	$@
 fi

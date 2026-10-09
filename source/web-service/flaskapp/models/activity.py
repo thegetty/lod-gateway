@@ -1,6 +1,8 @@
 from flaskapp.models import db
 
 
+# cascade="all, delete-orphan" -> for the very rare occasion where a deleted
+# record is truly removed.
 class Activity(db.Model):
     __tablename__ = "activities"
     id = db.Column(db.Integer, primary_key=True)
@@ -9,5 +11,8 @@ class Activity(db.Model):
     record_id = db.Column(
         db.Integer, db.ForeignKey("records.id"), index=True, nullable=False
     )
-    record = db.relationship("Record", backref=db.backref("activities", lazy=True))
+    record = db.relationship(
+        "Record",
+        backref=db.backref("activities", lazy=True, cascade="all, delete-orphan"),
+    )
     event = db.Column(db.String, nullable=False)

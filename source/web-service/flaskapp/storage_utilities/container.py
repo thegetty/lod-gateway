@@ -36,7 +36,7 @@ def create_root_container(dctitle="LOD Gateway", dcdescription=""):
     return root
 
 
-def get_container(container_identifier, optimistic=False):
+def get_container(container_identifier, optimistic=False, create=False):
     if current_app.config["LDP_BACKEND"]:
         if (
             result := db.session.query(LDPContainer)
@@ -51,9 +51,34 @@ def get_container(container_identifier, optimistic=False):
                 dcdescription="This is the root container for this LOD Service. All containers and "
                 "resources hosted by this service will be contained in this root container.",
             )
-        else:
-            if not optimistic:
-                raise NoLDPContainerFoundError(container_identifier)
+        elif optimistic is False:
+            raise NoLDPContainerFoundError(container_identifier)
+        elif create is True:
+            # This should be triggered by routes that require the container to exist, and
+            # have LDP_AUTOCREATE_CONTAINER set to True
+            container_list = assert_containers([container_identifier])
+
+            # flush the session - useful for LDP_AUTOCREATE_CONTAINERS and not needed
+            # if they have already been committed (so no harm)
+            db.session.flush()
+
+            # return the last container in the list as the parent:
+            container_identifier = container_list[-1]
+
+            if (
+                c := db.session.query(LDPContainer)
+                .filter(LDPContainer.container_identifier == container_identifier)
+                .one_or_none()
+            ):
+                current_app.logger.debug(
+                    f"Autocreated container using get_container optimistic create {container_identifier}."
+                )
+                return c
+            else:
+                current_app.logger.error(
+                    f"Failed to get Parent container for optimistic create {container_identifier}."
+                )
+                return None
 
     return None
 

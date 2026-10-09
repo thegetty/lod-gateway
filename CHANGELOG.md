@@ -1,6 +1,101 @@
 LOD Gateway - Changelog
 =======================
 
+v2.10.1 RDFLib 7 and PyLD 3.2 Migration
+
+## What's Changed
+* RDFLib 7.x / PyLD 3.2 migration: rdflib bound to 7.x, pyld pin moved to the 3.2.0-getty branch, dataset-based graph handling with named-graph-preserving nquads output, ingest handling for missing containers, and caching document loader for PyLD representation handling by @benosteen in https://github.com/thegetty/lod-gateway/pull/507
+* Dependency update: Flask-Cors to 6.+ by @benosteen in https://github.com/thegetty/lod-gateway/pull/511
+
+## BUG FIXES
+### RDFLib 7 / PyLD 3.2 compatibility
+Pins were updated to rdflib 7.x and the 3.2.0-getty branch of PyLD.
+`get_bound_graph` now returns a `(Dataset, graph)` pair, and graph
+expansion serializes the dataset rather than the default graph so named
+graphs survive the nquads output. `entity_version` triple-format
+reformatting parses into the named graph to match. `JsonLdError` cause
+and traceback reporting was updated to read the underlying exception via
+Python exception chaining (the PyLD 3.x API no longer exposes `cause`
+and `causeTrace` attributes directly).
+
+### Ingest with missing containers
+`/ingest` now handles requests for containers that do not exist when
+container auto-creation is disabled, returning an explicit error instead
+of failing mid-request.
+
+### PyLD representation handling
+A use of PyLD in the representation handling path was found that was not
+using the existing caching document loader. This version fixes that so
+that all uses of PyLD now correctly use the context document caching
+loader.
+Dead JSON-LD framing code (unused in the current codebase) was removed
+as part of the migration.
+
+**Full Changelog**: https://github.com/thegetty/lod-gateway/compare/v2.10.0...v2.10.1
+
+v2.10.0 LDP Write-Path Fixes and RDF Prefix Control
+
+## What's Changed
+* LDP POST/PUT hardening: on-demand container creation for PUT, Pydantic v2 validator fix, cascade delete on activity models, and expanded POST/PUT test coverage by @benosteen in https://github.com/thegetty/lod-gateway/pull/505
+* Documentation Overhaul mk II by @benosteen in https://github.com/thegetty/lod-gateway/pull/506
+* Full RDF id prefix control by @benosteen in https://github.com/thegetty/lod-gateway/pull/508
+* Postgres deep container chain flush fix by @benosteen in https://github.com/thegetty/lod-gateway/pull/509
+* LDP representation fixes (key-variant preservation, slug rebasing, PUT id injection, local absolute path handling) by @benosteen in https://github.com/thegetty/lod-gateway/pull/510
+
+## FEATURE ADDITION
+### Full RDF id prefix control
+A new `FULL_RDF_ID_PREFIX` environment variable overrides the prefix used when
+serializing full RDF ids, and prefix derivations in SPARQL graph addressing
+(ingest revert and profile queries) were corrected to use it. See
+[configuration.md](documentation/configuration.md).
+
+## BUG FIXES
+### LDP representation fidelity
+The body of a document is now stored exactly as uploaded. I had tried to use
+Pydantic to be more type-secure and to validate the upload but it messes too much
+with the data. To support having either `id`/`@id` and `type`/`@type` key variants
+with Pydantic led it to inject mirror keys. This only affected the PUT/POST LDP API
+and after this version, all create/update API calls use the verbatim uploaded JSON,
+only using Pydantic for basic validation on the way in.
+
+The `Slug` header (and `?slug=` query param) is honored on POST only - with a slug, all relative ids,
+including fragment-only ids and ids already container-prefixed, are rebased
+under the `container/slug` URI. A PUT targets the URL path directly and
+ignores any `Slug` header; a missing, null, empty, or invalid top-level id on PUT
+is treated as missing and the destination URI is injected, keeping the
+uploaded key form. A top-level id of JSON `null` is mapped to an empty string
+before validation (pyld rejects a null `@id`), so absent, `null`, and `""` ids
+all take the missing-id pathway - slug or generated id on POST, injected
+destination on PUT. LDP POST and PUT now accept any JSON media type
+(`application/json`, `application/ld+json`, or other `application/*+json`).
+A local absolute path in a document (an id starting with `/` and carrying no
+URI scheme, e.g. `/absolute/path`) is a host-independent reference to another
+item in the store; the write-side id remapping now leaves those untouched in
+every position instead of rebasing them under the container or slug. A local
+absolute path as the top-level id is invalid and treated as missing: a no-slug
+POST gets a generated id, and a PUT gets the destination URI injected.
+The unused `EntityBody` model (same mirror-key pattern) was removed.
+
+[Note: I had originally based the id rebasing with how we currently make documents with 
+internal ids; eg 'component/1' at the top level is also the prefix on all relative ids inside
+that document. However, with some annotations where I needed to add some ephemeral ids to 
+satisfy downstream requests, I was using 'page' and 'annotation/1' without an easy replaceable
+prefix, and this exposed that this did not handle adding in slugs properly, hence this update]
+
+### Postgres deep container chains
+An edge case where creating deep container chains against a Postgres graph
+store could fail to flush was fixed.
+
+**Full Changelog**: https://github.com/thegetty/lod-gateway/compare/v2.9.1...v2.10.0
+
+v2.9.1 Strict Slashes
+v2.9.1 - Created: 2026-06-10T14:18:22-07:00
+
+## What's Changed
+* Telling werkzeug not to enforce trailing slashes, with an OPTIONS-on-asset test by @benosteen in https://github.com/thegetty/lod-gateway/pull/500
+
+**Full Changelog**: https://github.com/thegetty/lod-gateway/compare/v2.9.0...v2.9.1
+
 v2.9.0 Linked Data Platform Support
 
 ## What's Changed

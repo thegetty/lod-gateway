@@ -9,7 +9,8 @@ import time
 
 from email.utils import formatdate
 
-from flask import Blueprint, current_app, abort, request, jsonify, url_for, redirect
+from flask_openapi3 import APIBlueprint
+from flask import current_app, abort, request, jsonify, url_for, redirect
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import load_only, defer
 from sqlalchemy import func, exc
@@ -30,6 +31,7 @@ from flaskapp.utilities import (
 )
 from flaskapp.storage_utilities.record import (
     get_record,
+    record_update,
     record_delete,
     record_create,
     process_activity,
@@ -61,9 +63,20 @@ from flaskapp.errors import (
 )
 from flaskapp.utilities import checksum_json, authenticate_bearer, squish_dict
 from flaskapp.base_graph_utils import get_url_prefixes_from_context
+from flaskapp.openapi import records_tag, ldp_tag, timegate_tag, activity_tag
+
+# For path typing
+from flaskapp.openapi_models import (
+    EntityIdPath,
+    ContainerIdPath,
+    PlainBody,
+    OptionalSlugQuery,
+    EntityIdActivityStreamPagenumPath,
+    _strip_openapi_kwargs,
+)
 
 # RDF format translations
-from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS
+from flaskapp.graph_prefix_bindings import get_bound_graph, FORMATS, QUAD_ENABLED
 from flaskapp.conneg import (
     desired_rdf_format,
     determine_requested_format_and_profile,
@@ -71,12 +84,14 @@ from flaskapp.conneg import (
     reformat_rdf,
 )
 
+
 from gettysparqlpatterns import RequiredParametersMissingError
 
 from pyld import jsonld
 
 # Create a new "records" route blueprint
-records = Blueprint("records", __name__)
+records = APIBlueprint("records", __name__)
+_strip_openapi_kwargs(records)
 
 trueset = {"true", "t", "y"}
 
@@ -328,9 +343,24 @@ def container_record(container_id, page=None):
         )
 
 
-@records.route("/<path:entity_id>/", methods=["POST"], strict_slashes=False)
-@records.route("/", methods=["POST"], defaults={"entity_id": "/"}, strict_slashes=False)
-def container_post_item(entity_id):
+@records.post(
+    "/<path:container_id>/",
+    tags=[ldp_tag, records_tag],
+    summary="Create resource (LDP)",
+    description="Create a new resource or container by POSTing to an LDP container. Requires Bearer token authentication.",
+    security=[{"bearerAuth": []}],
+    responses={
+        201: {"description": "Resource created"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        409: {"description": "Conflict"},
+    },
+    strict_slashes=False,
+)
+@records.post("/", defaults={"container_id": "/"}, strict_slashes=False)
+def container_post_item(
+    path: ContainerIdPath, body: PlainBody, query: OptionalSlugQuery = None
+):
     # Could be a resource or a container being POSTed to a target URI which has to be an existing container
     # Behavior will be as LDP states:
     # - if the target is a Container, and the POSTed item is a valid Resource or Container:
@@ -367,10 +397,10 @@ def container_post_item(entity_id):
         "Authentication checked - POST LDP resource request allowed."
     )
 
-    # Get the implied container-hierarchy from the entity_id:
+    # Get the implied container-hierarchy from the container_id:
     # eg "/object/1234" --> ["/", "/object/", "/object/1234"]
-    # Will always contain "/" as first item, unless the entity_id is "/"
-    container_breadcrumbs = segment_entity_id(entity_id)
+    # Will always contain "/" as first item, unless the container_id is "/"
+    container_breadcrumbs = segment_entity_id(path.container_id)
 
     # Valid JSON-LD? Fail if not with a HTTP 422 Wrong Syntax
     try:
@@ -378,6 +408,7 @@ def container_post_item(entity_id):
             f'{current_app.config["idPrefix"]}/',
             container_breadcrumbs[-1].strip("/"),
             request,
+            query,
         )
         current_app.logger.info(
             f"POSTed JSON parsed as JSON-LD and rebased to: {posted_representation.has_top_level_id()}"
@@ -407,29 +438,40 @@ def container_post_item(entity_id):
 
     # Is there a record here?
     current_app.logger.debug(
-        f"Looking up resource {entity_id} in case it is a record not a container"
+        f"Looking up resource {path.container_id} in case it is a record not a container"
     )
     record = (
         db.session.query(Record)
-        .filter(Record.entity_id == entity_id)
+        .filter(Record.entity_id == path.container_id)
         .options(defer(Record.data))
         .limit(1)
         .one_or_none()
     )
 
     if record:
-        # Cannot POST things to a Record
-        current_app.logger.error(
-            "Request failed - Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer"
-        )
-        response = construct_error_response(
-            status_nt(
-                400,
-                "Bad Request",
-                "Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer",
+        # Check if the record is deleted (data is None and datetime_deleted is set)
+        if record.data is None and record.datetime_deleted is not None:
+            # Record is deleted - treat the path as available for new resource creation
+            current_app.logger.info(
+                f"Found deleted record at {record.entity_id}, removing it and proceeding with POST"
             )
-        )
-        abort(response)
+            # Delete the deleted record from the database
+            db.session.delete(record)
+            db.session.flush()
+            # Continue with normal POST flow - the path is now available
+        else:
+            # Cannot POST things to an active Record
+            current_app.logger.error(
+                "Request failed - Cannot POST a resource to a LOD Gateway resource. Needs to be a valid ldp:BasicContainer"
+            )
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict Error",
+                    f"Cannot POST a resource to a LOD Gateway resource. {path.container_id} is already a record, not a container.",
+                )
+            )
+            abort(response)
 
     # See if the entity_id is actually an existing container:
     cid = container_breadcrumbs[-1]
@@ -443,8 +485,24 @@ def container_post_item(entity_id):
         # otherwise, HTTP 409
         # "/" might also be caught here, but it might be shadowed by the 'home_page.py' routes
 
-        # if the POSTed JSON-LD has no top-level id, assign one
-        identifier = posted_representation.has_top_level_id()
+        # if the POSTed JSON-LD has no usable top-level id, assign one via
+        # the slug mechanism (LDP_ID_GEN, uuid by default)
+        #
+        # Detection runs against the raw pre-rebase upload when there is no
+        # slug (has_original_top_level_id): prefix_rdf_ids rewrites a missing,
+        # empty, or null top-level id to the container path (eg component/),
+        # which would mask the miss and try to create the record at the
+        # container's own path. With a slug, the destination always comes from
+        # the slug, so the rebased id (container/slug) stands as the
+        # identifier.
+        identifier = (
+            posted_representation.has_top_level_id()
+            if (
+                posted_representation.slug
+                or posted_representation.has_original_top_level_id()
+            )
+            else False
+        )
         if identifier is False:
             posted_representation.slug_id = current_app.config["LDP_ID_GEN"]()
             identifier = posted_representation.has_top_level_id()
@@ -508,7 +566,8 @@ def container_post_item(entity_id):
                 .limit(1)
                 .one_or_none()
             )
-            if existing:
+            if existing and existing.datetime_deleted is None:
+                # Only reject if the record is not deleted
                 current_app.logger.error(
                     f"Request failed - Cannot create a new resource with this identifier {identifier}, as it already exists"
                 )
@@ -522,18 +581,44 @@ def container_post_item(entity_id):
                 abort(response)
             else:
                 with db.session.no_autoflush:
-                    record_id = record_create(
-                        posted_representation.json_ld,
-                        commit=False,
-                        process_the_activity=True,
+                    current_app.logger.debug(
+                        f"Creating record in DB for identifier: {identifier}"
                     )
+
+                    if existing and existing.datetime_deleted is not None:
+                        # Need to update existing but previously deleted record
+                        record_id = existing.id
+                        record_update(
+                            existing,
+                            posted_representation.json_ld,
+                            commit=False,
+                            process_the_activity=True,
+                        )
+                    else:
+                        record_id = record_create(
+                            posted_representation.json_ld,
+                            commit=False,
+                            process_the_activity=True,
+                        )
+                        current_app.logger.debug(
+                            f"New Record created with ID: {record_id}"
+                        )
 
                     prefixed_jsonld = inflate_relative_uris(
                         posted_representation.json_ld, posted_representation.id_attr
                     )
+                    current_app.logger.debug(
+                        f"Prefixed JSON-LD for graph expand: {json.dumps(prefixed_jsonld, indent=2)[:500]}"
+                    )
 
+                    current_app.logger.debug(
+                        f"Calling graph_expand for: {prefixed_jsonld.get(posted_representation.id_attr, 'NO ID')}"
+                    )
                     if expanded := graph_expand(prefixed_jsonld):
                         graph_uri = prefixed_jsonld[posted_representation.id_attr]
+                        current_app.logger.debug(
+                            f"Graph expanded successfully: {len(expanded)} bytes, graph URI: {graph_uri}"
+                        )
                         updated_graph = graph_replace(
                             graph_uri,
                             expanded,
@@ -543,11 +628,17 @@ def container_post_item(entity_id):
                         if updated_graph is False:
                             # Failed to process this as a graph:
                             db.session.rollback()
-                            status_nt(
-                                422,
-                                "Graph expansion error",
-                                "Could not convert JSON-LD to RDF, id " + graph_uri,
+                            current_app.logger.error(
+                                f"graph_replace failed for URI: {graph_uri}"
                             )
+                            response = construct_error_response(
+                                status_nt(
+                                    422,
+                                    "Graph expansion error",
+                                    "Could not convert JSON-LD to RDF, id " + graph_uri,
+                                )
+                            )
+                            abort(response)
 
                         db.session.commit()
                         current_app.logger.info(
@@ -564,11 +655,17 @@ def container_post_item(entity_id):
                         return jsonify(posted_representation.json_ld), 201, ldpheaders
                     else:
                         db.session.rollback()
-                        status_nt(
-                            422,
-                            "Graph expansion error",
-                            "Could not expand JSON-LD to RDF",
+                        current_app.logger.error(
+                            f"graph_expand returned False for URI: {prefixed_jsonld.get(posted_representation.id_attr, 'UNKNOWN')}"
                         )
+                        response = construct_error_response(
+                            status_nt(
+                                422,
+                                "Graph expansion error",
+                                "Could not expand JSON-LD to RDF",
+                            )
+                        )
+                        abort(response)
 
     else:
         current_app.logger.error(
@@ -578,36 +675,578 @@ def container_post_item(entity_id):
             status_nt(
                 404,
                 "No Resource Found",
-                f"Must POST a resource to a valid ldp:BasicContainer. {entity_id} is not a container",
+                f"Must POST a resource to a valid ldp:BasicContainer. {path.container_id} is not a container",
             )
         )
         abort(response)
 
 
-@records.route("/<path:entity_id>", methods=["GET", "HEAD", "OPTIONS"])
-def entity_record(entity_id):
+@records.put(
+    "/<path:entity_id>",
+    tags=[ldp_tag, records_tag],
+    summary="Update or create resource (LDP PUT)",
+    description="Create or update a resource at a specific URI. Requires Bearer token authentication and LDP_API=True.",
+    security=[{"bearerAuth": []}],
+    responses={
+        200: {"description": "Existing record or container updated"},
+        201: {"description": "New record or container created"},
+        409: {"description": "Conflict -- Resource exists where container requested"},
+        422: {"description": "Invalid JSON, JSON-LD, or ID mismatch"},
+    },
+)
+def container_put_item(path: EntityIdPath, body: PlainBody):
+    """PUT a resource or container to a specific URI. Requires LDP_API=True.
+
+    If the request body declares itself as an ldp:BasicContainer (via @context and
+    @type/type), it is handled as a container operation:
+    - Creates a new container at the destination URI (201)
+    - Updates an existing container's dctitle/dcdescription (200)
+    - Fails with 409 if a Resource record already exists at that path
+
+    Otherwise the body is treated as a regular record:
+    - Creates a new record at the destination URI (201)
+    - Updates an existing record (200)
+
+    Validates:
+    - Request body is valid JSON
+    - Request body is valid JSON-LD
+    - id/@id in body matches destination URI (or is injected from destination if missing)
+
+    Returns:
+    - 201 Created if new record or container
+    - 200 OK if existing record or container updated
+    - 409 Conflict if container creation/update blocked by existing Resource
+    - 422 Unprocessable Entity if validation fails
+    """
+
+    if not current_app.config["LDP_API"] or not current_app.config["LDP_BACKEND"]:
+        response = construct_error_response(status_not_implemented)
+        abort(response)
+
+    # Authentication
+    status = authenticate_bearer(request, current_app)
+    if status != status_ok:
+        response = construct_error_response(status)
+        abort(response)
+
+    current_app.logger.debug(
+        f"Authentication checked - PUT LDP resource request allowed."
+    )
+
+    # CRUCIAL identifier
+    entity_id = path.entity_id
+
+    # Get the implied container-hierarchy from the entity_id
+    container_breadcrumbs = segment_entity_id(entity_id)
+
+    if len(container_breadcrumbs) == 1:
+        # Cannot PUT to /
+        response = construct_error_response(status_not_implemented)
+        abort(response)
+
+    # The parent container is the second-to-last breadcrumb (last is the entity itself)
+    relative_container = container_breadcrumbs[-2].strip("/")
+
+    # Validate JSON-LD (parse_representation handles both JSON and JSON-LD validation)
+    try:
+        put_body_representation = parse_representation(
+            f'{current_app.config["idPrefix"]}/',
+            relative_container,
+            request,
+            None,
+        )
+        current_app.logger.info(
+            f"PUT JSON parsed as JSON-LD and rebased to: {put_body_representation.has_top_level_id()}"
+        )
+    except ResourceValidationError as e:
+        current_app.logger.error(f"Invalid JSON-LD in PUT request: {str(e)}")
+        response = construct_error_response(
+            status_nt(422, "Invalid JSON-LD", f"Could not parse JSON-LD: {str(e)}")
+        )
+        abort(response)
+
+    # Handle missing ID: inject destination URI if no usable @id/id present.
+    # Detection runs against the raw pre-rebase upload: a missing key, a null
+    # or other non-string value, an empty/whitespace value, a value failing
+    # validid, or a local absolute path (e.g. '/absolute/path') all count as
+    # missing
+    # (has_original_top_level_id). Do not test the rebased json_ld
+    # here - prefix_rdf_ids may have rewritten such an id to the container
+    # path, which would mask the miss.
+    id_attr = put_body_representation.id_attr
+    body_id = (
+        put_body_representation.json_ld.get(id_attr)
+        if put_body_representation.has_original_top_level_id()
+        else None
+    )
+    if not body_id:
+        # No ID in body - inject the destination URI (relative path)
+        current_app.logger.info(
+            f"PUT request missing {id_attr} field, injecting destination URI: {entity_id}"
+        )
+        # Remake the JSON-LD with the proper id and using 'id' or '@id' if body_id = ""
+        jsonld = put_body_representation.json_ld
+        jsonld[put_body_representation.id_attr] = entity_id
+        put_body_representation.json_ld = jsonld
+        body_id = entity_id
+
+    # Container-specific validation: enforce trailing slash conventions
+    if put_body_representation.is_basic_container:
+        # Container payloads require trailing slash on URL
+        if not entity_id.endswith("/"):
+            current_app.logger.error(
+                f"Container PUT requires trailing slash on URL: {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    422,
+                    "Invalid Container URL",
+                    f"Container resources must use a trailing slash in the URL: {entity_id}/",
+                )
+            )
+            abort(response)
+
+        # Normalize body_id to include trailing slash for containers
+        if body_id and not body_id.endswith("/"):
+            current_app.logger.info(
+                f"PUT container: normalizing body_id to include trailing slash: {body_id} -> {body_id}/"
+            )
+            body_id = body_id + "/"
+            jsonld = put_body_representation.json_ld
+            jsonld[id_attr] = body_id
+            put_body_representation.json_ld = jsonld
+    else:
+        # Non-container payloads must NOT use trailing slash on URL
+        if entity_id.endswith("/"):
+            current_app.logger.error(
+                f"Non-container PUT to container URL (trailing slash): {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    422,
+                    "Invalid Resource URL",
+                    f"Resource payloads cannot use a trailing slash. Use a container type (ldp:BasicContainer) or remove the trailing slash.",
+                )
+            )
+            abort(response)
+
+    # Relaxed ID matching: normalize both IDs to compare them
+    # The destination URI should be the entity_id with the idPrefix prepended
+    fqdn_id = f"{current_app.config['idPrefix']}/{entity_id.lstrip('/')}"
+
+    current_app.logger.info(
+        f"PUT ID check: body_id='{body_id}', fqdn_id='{fqdn_id}', entity_id='{entity_id}'"
+    )
+
+    # Check - does the body_id match the entity_id? Note that part of the POINT of the
+    # Representation parsing is to rebase the JSON-LD into a relative_id form
+    if body_id != entity_id:
+        current_app.logger.error(
+            f"ID mismatch in PUT request: body has '{body_id}' (normalized: '{entity_id}')"
+        )
+        response = construct_error_response(
+            status_nt(
+                422,
+                "ID Mismatch",
+                f"The {id_attr} in the body ({body_id}) does not match the destination URI ({entity_id})",
+            )
+        )
+        abort(response)
+
+    # Check if record exists
+    record = (
+        db.session.query(Record)
+        .filter(Record.entity_id == entity_id)
+        .options(defer(Record.data))
+        .limit(1)
+        .one_or_none()
+    )
+
+    # Get parent container
+    parent = get_container(container_breadcrumbs[-2], optimistic=True)
+
+    if not parent:
+        if not current_app.config["LDP_AUTOCREATE_CONTAINERS"]:
+            current_app.logger.error(
+                "Request failed - no parent container available, and LDP_AUTOCREATE_CONTAINERS flag is False"
+            )
+            # Changed from status_not_implemented (501) to 422
+            response = construct_error_response(
+                status_nt(
+                    422,
+                    "Container not found",
+                    "Parent container does not exist and LDP_AUTOCREATE_CONTAINERS is False",
+                )
+            )
+            abort(response)
+        else:
+            # No parent but LDP_AUTOCREATE_CONTAINERS is switched on - containers should be made for it:
+            parent = get_container(
+                container_breadcrumbs[-2], optimistic=True, create=True
+            )
+
+    # --- Container handling ---
+    # If the payload declares itself a BasicContainer, handle it as a container
+    # (create or update) rather than as a record.
+    if put_body_representation.is_basic_container:
+        # A Record at this path blocks container creation/update.
+        # Check both with and without trailing slash to prevent confusion
+        # between 'object/foo' (record) and 'object/foo/' (container).
+        record_without_slash = None
+        entity_no_slash = entity_id.rstrip("/")
+        if entity_no_slash != entity_id:
+            record_without_slash = (
+                db.session.query(Record)
+                .filter(Record.entity_id == entity_no_slash)
+                .options(defer(Record.data))
+                .limit(1)
+                .one_or_none()
+            )
+
+        if record or record_without_slash:
+            blocking_id = entity_id if record else entity_no_slash
+            current_app.logger.error(
+                f"PUT container conflict: a Resource exists at {blocking_id} -- container cannot be created or updated at {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict Error",
+                    f"Cannot create or update container at {entity_id} because a Resource already exists at {blocking_id}",
+                )
+            )
+            abort(response)
+
+        # Derive the container identifier (ensure leading/trailing slashes)
+        container_id = f"/{entity_id.strip('/')}/"
+
+        existing_container = get_container(container_id, optimistic=True)
+
+        if existing_container:
+            # --- Update existing container ---
+            current_app.logger.info(f"Updating existing container {container_id}")
+            new_title = put_body_representation.title
+            new_description = put_body_representation.description
+            if new_title:
+                existing_container.dctitle = new_title
+            if new_description is not None:
+                existing_container.dcdescription = new_description
+            db.session.commit()
+
+            # Return the updated container page representation
+            response = container_record(container_id, page=1)
+            response.status_code = 200
+            return response
+        else:
+            # --- Create new container ---
+            container_slug_id = entity_id.strip("/").split("/")[-1]
+            current_app.logger.info(
+                f"Creating new container at {container_id} with slug {container_slug_id}"
+            )
+
+            parent.new_child_container(
+                container_slug_id,
+                dctitle=put_body_representation.title or container_id,
+                dcdescription=put_body_representation.description,
+                db_dialect=current_app.config["DB_DIALECT"],
+            )
+            db.session.commit()
+
+            current_app.logger.info(
+                f"Successfully created new ldp:BasicContainer at {container_id}"
+            )
+
+            # Return the newly created container page representation
+            response = container_record(container_id, page=1)
+            response.status_code = 201
+            return response
+
+    ###############################
+    # Process the PUT (as a Record)
+
+    # Block record creation if a container exists at the path with trailing slash.
+    # Prevents confusion between 'object/foo' (record) and 'object/foo/' (container).
+    if not record and not entity_id.endswith("/"):
+        container_path = entity_id + "/"
+        blocking_container = get_container(container_path, optimistic=True)
+        if blocking_container:
+            current_app.logger.error(
+                f"PUT record conflict: a Container exists at {container_path} -- record cannot be created at {entity_id}"
+            )
+            response = construct_error_response(
+                status_nt(
+                    409,
+                    "Conflict Error",
+                    f"Cannot create record at {entity_id} because a Container already exists at {container_path}",
+                )
+            )
+            abort(response)
+
+    status_code = 200
+    with db.session.no_autoflush:
+        try:
+            if record:
+                # Record exists - update it
+                current_app.logger.info(f"Updating existing record {entity_id}")
+                record_id = record.id
+                record_update(
+                    record,
+                    put_body_representation.json_ld,
+                    commit=False,
+                    process_the_activity=True,
+                )
+            else:
+                # Record doesn't exist - create it
+                current_app.logger.info(f"Creating new record {entity_id}")
+                _ = record_create(
+                    put_body_representation.json_ld,
+                    commit=False,
+                    process_the_activity=True,
+                )
+                # Created
+                status_code = 201
+
+            # Process RDF if applicable
+            if current_app.config["PROCESS_RDF"] is True:
+                prefixed_jsonld = inflate_relative_uris(
+                    put_body_representation.json_ld, put_body_representation.id_attr
+                )
+
+                if expanded := graph_expand(prefixed_jsonld):
+                    graph_uri = prefixed_jsonld[put_body_representation.id_attr]
+                    updated_graph = graph_replace(
+                        graph_uri,
+                        expanded,
+                        current_app.config["SPARQL_UPDATE_ENDPOINT"],
+                        current_app.config["EXTERNALHTTPCALLS_TIMELIMIT"],
+                    )
+                    if updated_graph is False:
+                        # Failed to process this as a graph - rollback
+                        db.session.rollback()
+                        current_app.logger.error(
+                            f"Graph expansion error for {graph_uri}"
+                        )
+                        response = construct_error_response(
+                            status_nt(
+                                422,
+                                "Graph expansion error",
+                                f"Could not convert JSON-LD to RDF, id {graph_uri}",
+                            )
+                        )
+                        abort(response)
+                else:
+                    db.session.rollback()
+                    current_app.logger.error("Could not expand JSON-LD to RDF")
+                    response = construct_error_response(
+                        status_nt(
+                            422,
+                            "Graph expansion error",
+                            "Could not expand JSON-LD to RDF",
+                        )
+                    )
+                    abort(response)
+
+            db.session.commit()
+
+            # Reload the record to get the updated datetime_updated
+            record = (
+                db.session.query(Record)
+                .filter(Record.entity_id == entity_id)
+                .options(defer(Record.data))
+                .limit(1)
+                .first()
+            )
+
+            # Return the record representation equivalent to a GET on the entity
+            # This includes id remapping and other transformations
+            hostPrefix = current_app.config["BASE_URL"]
+            idPrefix = current_app.config["idPrefix"]
+
+            # Get the record data with prefixed IDs (same as GET handler)
+            attr = put_body_representation.id_attr
+            data = put_body_representation.json_ld
+
+            urlprefixes = None
+            if current_app.config["PROCESS_RDF"] is True and "@context" in data:
+                urlprefixes = get_url_prefixes_from_context(data["@context"])
+
+            # Prefix record IDs
+            prefixRecordIDs = current_app.config["PREFIX_RECORD_IDS"]
+            if prefixRecordIDs != "NONE":
+                data = containerRecursiveCallback(
+                    data=data,
+                    attr=attr,
+                    callback=idPrefixer,
+                    prefix=idPrefix,
+                    recursive=True,
+                    urlprefixes=urlprefixes,
+                )
+
+                # Remove @base if present
+                if context := data.get("@context"):
+                    if isinstance(context, dict):
+                        if "@base" in context:
+                            del context["@base"]
+                    elif isinstance(context, list):
+                        for x in context:
+                            if isinstance(x, dict) and "@base" in x:
+                                del x["@base"]
+
+            # Build response headers (similar to GET handler)
+            content_type = "application/ld+json;charset=UTF-8"
+            etag = f'"{record.checksum}"'
+
+            # Link headers
+            link_headers = (
+                f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=entity_id) }>; rel="timemap"; type="application/link-format" , '
+                + f'<{hostPrefix}{ url_for("timegate.get_timemap", entity_id=entity_id) }>; rel="timemap"; type="application/json" , '
+                + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=entity_id) }>; rel="original timegate" , '
+                + f'<{hostPrefix}{ url_for("records.entity_record", entity_id=entity_id, _mediatype="application/ld+json") }>; rel="canonical"; type="application/ld+json"'
+            )
+
+            # Add LDP Resource link header
+            if current_app.config["LDP_API"]:
+                link_headers = (
+                    link_headers + ', <http://www.w3.org/ns/ldp#Resource>; rel="type"'
+                )
+
+            # Build response
+            response = current_app.make_response(jsonify(data))
+            response.status_code = status_code
+            response.headers["Content-Type"] = content_type
+            if record and record.datetime_updated:
+                response.headers["Last-Modified"] = format_datetime(
+                    record.datetime_updated
+                )
+            if etag:
+                response.headers["ETag"] = etag
+            response.headers["Link"] = link_headers
+            response.headers["Location"] = f"{idPrefix}/{entity_id}"
+
+            return response
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database error during PUT: {str(e)}")
+            response = construct_error_response(status_db_save_error)
+            abort(response)
+
+
+@records.get(
+    "/<path:entity_id>",
+    tags=[records_tag],
+    summary="Get record",
+    description="Retrieve a record by entity ID. Supports RDF content negotiation via Accept header or 'format' query parameter. Returns the record in the requested format (JSON-LD, Turtle, N-Triples, N-Quads, N3, or TRIG).",
+    responses={
+        200: {
+            "description": "Record data in requested format",
+            "content": {
+                "application/ld+json": {
+                    "schema": {
+                        "type": "object",
+                        "description": "JSON-LD representation of the record with expanded context and prefixed URIs.",
+                    },
+                    "examples": {
+                        "json-ld": {
+                            "summary": "JSON-LD format",
+                            "value": {
+                                "@context": "https://www.w3.org/ns/ontology-web-syntax",
+                                "@id": "https://example.org/entity/123",
+                                "type": "Thing",
+                                "name": "Example Entity",
+                            },
+                        }
+                    },
+                },
+                "application/n-triples": {
+                    "schema": {
+                        "type": "string",
+                        "description": "N-Triples format - a simple line-based RDF serialization with one triple per line.",
+                    },
+                    "examples": {
+                        "nt": {
+                            "summary": "N-Triples format",
+                            "value": "<https://example.org/entity/123> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2000/01/rdf-schema#Thing> .\n",
+                        }
+                    },
+                },
+                "text/turtle": {
+                    "schema": {
+                        "type": "string",
+                        "description": "Turtle format - a more compact RDF serialization that groups triples by subject.",
+                    },
+                    "examples": {
+                        "turtle": {
+                            "summary": "Turtle format",
+                            "value": "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix ex: <https://example.org/entity/123> .\nex: a rdf:Thing .\n",
+                        }
+                    },
+                },
+                "application/n-quads": {
+                    "schema": {
+                        "type": "string",
+                        "description": "N-Quads format - N-Triples with an additional quad graph name per line.",
+                    },
+                    "examples": {
+                        "nquads": {
+                            "summary": "N-Quads format",
+                            "value": "<https://example.org/entity/123> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2000/01/rdf-schema#Thing> <https://example.org/graph> .\n",
+                        }
+                    },
+                },
+                "text/n3": {
+                    "schema": {
+                        "type": "string",
+                        "description": "N3 format - a more expressive RDF serialization with support for named graphs and negation.",
+                    },
+                    "examples": {
+                        "n3": {
+                            "summary": "N3 format",
+                            "value": "@prefix ex: <https://example.org/entity/123> .\n@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\nex: a rdf:Thing .\n",
+                        }
+                    },
+                },
+                "application/trig": {
+                    "schema": {
+                        "type": "string",
+                        "description": "TRIG format - Turtle with support for named graphs.",
+                    },
+                    "examples": {
+                        "trig": {
+                            "summary": "TRIG format",
+                            "value": "@prefix ex: <https://example.org/entity/123> .\n@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n{\n  ex: a rdf:Thing .\n} .\n",
+                        }
+                    },
+                },
+            },
+        },
+        304: {"description": "Not Modified (ETag match)"},
+        404: {"description": "Record not found"},
+    },
+)
+def entity_record(path: EntityIdPath):
     """GET the record that exactly matches the entity_id, or if the entity_id ends with a '*', treat it as a wildcard
     search for items in the LOD Gateway"""
     # idPrefix will be used by either the API route returning the record, or the route listing matches
-    if current_app.config["LDP_API"] and entity_id.endswith("/"):
+    if current_app.config["LDP_API"] and path.entity_id.endswith("/"):
         # treat trailing slashes in IDs as containers
-        return container_record(entity_id)
+        return container_record(path.entity_id)
 
     hostPrefix = current_app.config["BASE_URL"]
     idPrefix = current_app.config["idPrefix"]
 
-    current_app.logger.debug(f"{entity_id} - Profiling started 0.0000000")
+    current_app.logger.debug(f"{path.entity_id} - Profiling started 0.0000000")
     profile_time = time.perf_counter()
 
-    if entity_id.endswith("*"):
+    if path.entity_id.endswith("*"):
         ####################
         # Prefix searching #
         ####################
 
         # entity_id ends with a '*'
-        r_json = handle_prefix_listing(entity_id, request, idPrefix)
+        r_json = handle_prefix_listing(path.entity_id, request, idPrefix)
         current_app.logger.debug(
-            f"{entity_id} - Handle prefix listing took {time.perf_counter() - profile_time}"
+            f"{path.entity_id} - Handle prefix listing took {time.perf_counter() - profile_time}"
         )
         return jsonify(r_json)
     else:
@@ -615,17 +1254,17 @@ def entity_record(entity_id):
         # Direct record access #
         ########################
 
-        current_app.logger.info(f"Looking up resource {entity_id}")
+        current_app.logger.info(f"Looking up resource {path.entity_id}")
         record = (
             db.session.query(Record)
-            .filter(Record.entity_id == entity_id)
+            .filter(Record.entity_id == path.entity_id)
             .options(defer(Record.data))
             .limit(1)
             .first()
         )
 
         current_app.logger.debug(
-            f"{entity_id} - Record lookup complete at timecode {time.perf_counter() - profile_time}"
+            f"{path.entity_id} - Record lookup complete at timecode {time.perf_counter() - profile_time}"
         )
         # Sub-addressing vars
         subaddressed = None
@@ -633,11 +1272,11 @@ def entity_record(entity_id):
 
         if record is None and current_app.config["SUBADDRESSING"] is True:
             current_app.logger.warning(
-                f"{entity_id} not found - attempting subaddress to find a document containing this identifier."
+                f"{path.entity_id} not found - attempting subaddress to find a document containing this identifier."
             )
-            record, subdata = subaddressing_search(entity_id)
+            record, subdata = subaddressing_search(path.entity_id)
             current_app.logger.debug(
-                f"{entity_id} - Subaddressing lookup at {time.perf_counter() - profile_time}"
+                f"{path.entity_id} - Subaddressing lookup at {time.perf_counter() - profile_time}"
             )
             if record is not None:
                 subaddressed = url_for(
@@ -690,10 +1329,10 @@ def entity_record(entity_id):
                 )
 
             current_app.logger.debug(
-                f"{entity_id} - Version query run and Link headers generated at timecode {time.perf_counter() - profile_time}"
+                f"{path.entity_id} - Version query run and Link headers generated at timecode {time.perf_counter() - profile_time}"
             )
         else:
-            current_app.logger.debug(f"{entity_id} - Version query run disabled.")
+            current_app.logger.debug(f"{path.entity_id} - Version query run disabled.")
 
         # Is the client trying to negotiate for an earlier version through Accept-Datetime
         if (
@@ -702,7 +1341,7 @@ def entity_record(entity_id):
             and "accept-datetime" in request.headers
         ):
             current_app.logger.debug(
-                f"{entity_id} - request for earlier version. Query begun at {time.perf_counter() - profile_time}"
+                f"{path.entity_id} - request for earlier version. Query begun at {time.perf_counter() - profile_time}"
             )
             # parse date and try to find a matching version, 302 redirect
             desired_datetime = dateparser.parse(
@@ -734,7 +1373,7 @@ def entity_record(entity_id):
                     abort(response)
 
                 current_app.logger.debug(
-                    f"{entity_id} - Desired version generated at timecode {time.perf_counter() - profile_time}"
+                    f"{path.entity_id} - Desired version generated at timecode {time.perf_counter() - profile_time}"
                 )
                 # found an version predating the version asked for
                 # 302 Redirect to that version.
@@ -754,7 +1393,7 @@ def entity_record(entity_id):
         # Otherwise, supply the current record.
         if record and record.data:
             current_app.logger.debug(
-                f"{entity_id} - If-None-Match header set? {bool(request.if_none_match)}"
+                f"{path.entity_id} - If-None-Match header set? {bool(request.if_none_match)}"
             )
             if record.checksum in request.if_none_match:
                 # Client has supplied etags of the resources it has cached for this URI
@@ -809,7 +1448,7 @@ def entity_record(entity_id):
                 )  # so pass back the record data as-is to the client
             else:  # otherwise, record "id" field prefixing is enabled, as configured
                 current_app.logger.debug(
-                    f"{entity_id} - PREFIXING IDs to absolute URIs STARTED at timecode {time.perf_counter() - profile_time}"
+                    f"{path.entity_id} - PREFIXING IDs to absolute URIs STARTED at timecode {time.perf_counter() - profile_time}"
                 )
 
                 recursive = (
@@ -850,7 +1489,7 @@ def entity_record(entity_id):
                         del data["@context"]
 
                 current_app.logger.debug(
-                    f"{entity_id} - PREFIXING IDs to absolute URIs ENDED at timecode {time.perf_counter() - profile_time}"
+                    f"{path.entity_id} - PREFIXING IDs to absolute URIs ENDED at timecode {time.perf_counter() - profile_time}"
                 )
 
             # data holds a version of the JSON with the FQDN version of the ids
@@ -904,11 +1543,18 @@ def entity_record(entity_id):
                         if desired["requested_profiles"]:
                             ## Get a profiled version based on the data ##
                             try:
+                                # The SPARQL profile query addresses the triplestore, whose graph
+                                # URIs use RDFidPrefix - rebuild the id from the original
+                                # (unprefixed) data so the query always uses the graph URI, even
+                                # when the response body is prefixed with the display idPrefix.
+                                graph_prefixed = inflate_relative_uris(
+                                    subdata or record.data, attr
+                                )
                                 current_app.logger.info(
-                                    f"Attempting to load profiled version of {data[attr]}"
+                                    f"Attempting to load profiled version of {graph_prefixed[attr]}"
                                 )
                                 if profiled_data := get_data_using_profile_query(
-                                    uri=data[attr],
+                                    uri=graph_prefixed[attr],
                                     uritype=data.get("type") or record.entity_type,
                                     profiles=desired["requested_profiles"],
                                     patterns=current_app.config[
@@ -986,7 +1632,7 @@ def entity_record(entity_id):
                             ## Reformat the JSON-LD ##
                             # Set the mimetype:
                             current_app.logger.debug(
-                                f"{entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
+                                f"{path.entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
                             )
                             content_type, q, shortformat = desired[
                                 "accepted_mimetypes"
@@ -998,7 +1644,7 @@ def entity_record(entity_id):
                             )
                             if use_pyld:
                                 current_app.logger.debug(
-                                    f"{entity_id} - using PyLD to parse JSON-LD"
+                                    f"{path.entity_id} - using PyLD to parse JSON-LD"
                                 )
                                 data = reformat_rdf(
                                     data,
@@ -1010,7 +1656,7 @@ def entity_record(entity_id):
                                 etag = None
                             else:
                                 current_app.logger.debug(
-                                    f"{entity_id} - using RDFLIB to parse JSON-LD"
+                                    f"{path.entity_id} - using RDFLIB to parse JSON-LD"
                                 )
                                 data = reformat_rdf(
                                     data,
@@ -1022,7 +1668,7 @@ def entity_record(entity_id):
                                 etag = None
 
                             current_app.logger.debug(
-                                f"{entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"
+                                f"{path.entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"
                             )
 
             # Force plaintext?
@@ -1043,7 +1689,7 @@ def entity_record(entity_id):
             if subaddressed is not None:
                 response.headers["Location"] = subaddressed
             current_app.logger.debug(
-                f"{entity_id} - REQUEST COMPLETE at timecode {time.perf_counter() - profile_time}"
+                f"{path.entity_id} - REQUEST COMPLETE at timecode {time.perf_counter() - profile_time}"
             )
             if request.method == "HEAD":
                 # clear the response body as this is just a HEAD request
@@ -1067,8 +1713,19 @@ def entity_record(entity_id):
 
 
 # 'DELETE' method.
-@records.route("/<path:id>", methods=["DELETE"])
-def delete(id):
+@records.delete(
+    "/<path:entity_id>",
+    tags=[records_tag],
+    summary="Delete record",
+    description="Permanently delete a record by entity ID. Requires Bearer token authentication.",
+    security=[{"bearerAuth": []}],
+    responses={
+        200: {"description": "Deleted successfully"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+    },
+)
+def delete(path: EntityIdPath):
     # Authentication
     status = authenticate_bearer(request, current_app)
     if status != status_ok:
@@ -1078,7 +1735,7 @@ def delete(id):
     current_app.logger.debug("Authentication checked - DELETE request allowed.")
 
     # Get record from DB
-    db_resp = get_record(id)
+    db_resp = get_record(path.entity_id)
 
     # No such record or a stub record
     match db_resp:
@@ -1090,14 +1747,18 @@ def delete(id):
             # Process DELETE
             with db.session.no_autoflush:
                 try:
-                    current_app.logger.debug(f"Starting delete process on {id}")
+                    current_app.logger.debug(
+                        f"Starting delete process on {path.entity_id}"
+                    )
 
                     process_activity(db_rec.id, Event.Delete)
                     record_delete(db_rec, None)
 
                     # Process RDF if applicable
                     if current_app.config["PROCESS_RDF"] is True:
-                        full_uri = f"{current_app.config['RDFidPrefix']}/{id}"
+                        full_uri = (
+                            f"{current_app.config['RDFidPrefix']}/{path.entity_id}"
+                        )
                         current_app.logger.debug(
                             f"Attempting to delete {full_uri} from graphstore"
                         )
@@ -1124,7 +1785,7 @@ def delete(id):
                 except exc.OperationalError as e:
                     current_app.logger.error(e)
                     current_app.logger.critical(
-                        f"DB Failure when attempting to delete {id}"
+                        f"DB Failure when attempting to delete {path.entity_id}"
                     )
                     db.session.rollback()
                     abort(construct_error_response(status_db_save_error))
@@ -1163,14 +1824,25 @@ def delete(id):
                     )
                     abort(response)
         case None:
-            current_app.logger.error(f"No such resource at {id}")
+            current_app.logger.error(f"No such resource at {path.entity_id}")
             response = construct_error_response(status_record_not_found)
             abort(response)
 
 
 # old version of a record
-@records.route("/-VERSION-/<path:entity_id>", methods=["GET", "HEAD"])
-def entity_version(entity_id):
+@records.get(
+    "/-VERSION-/<path:entity_id>",
+    tags=[timegate_tag, records_tag],
+    summary="Get record version",
+    description="Retrieve a previous version of a record. Authentication is required if the VERSION_AUTH environment variable is set to true (default: true).",
+    security=[{"bearerAuth": []}, {}],
+    responses={
+        200: {"description": "Version data"},
+        304: {"description": "Not Modified"},
+        404: {"description": "Not found"},
+    },
+)
+def entity_version(path: EntityIdPath):
     # check if versioning authentication required
     status = status_ok
     if current_app.config["VERSION_AUTH"].lower() == "true":
@@ -1180,7 +1852,7 @@ def entity_version(entity_id):
         response = construct_error_response(status)
         abort(response)
 
-    current_app.logger.debug(f"{entity_id} - Profiling started 0.0000000")
+    current_app.logger.debug(f"{path.entity_id} - Profiling started 0.0000000")
     profile_time = time.perf_counter()
 
     if current_app.config["KEEP_LAST_VERSION"] is True:
@@ -1190,7 +1862,9 @@ def entity_version(entity_id):
         hostPrefix = current_app.config["BASE_URL"]
         idPrefix = current_app.config["idPrefix"]
 
-        version = Version.query.filter(Version.entity_id == entity_id).one_or_none()
+        version = Version.query.filter(
+            Version.entity_id == path.entity_id
+        ).one_or_none()
 
         if version is not None:
             # There is a record of a version of a resource here. The record is available through version.record
@@ -1238,7 +1912,7 @@ def entity_version(entity_id):
                     allow_format_rewriting = False
                 else:  # otherwise, record "id" field prefixing is enabled, as configured
                     current_app.logger.debug(
-                        f"{entity_id} - PREFIXING IDs to absolute URIs STARTED at timecode {time.perf_counter() - profile_time}"
+                        f"{path.entity_id} - PREFIXING IDs to absolute URIs STARTED at timecode {time.perf_counter() - profile_time}"
                     )
                     recursive = (
                         False if prefixRecordIDs == "TOP" else True
@@ -1260,7 +1934,7 @@ def entity_version(entity_id):
                     )
 
                 current_app.logger.debug(
-                    f"{entity_id} - PREFIXING IDs to absolute URIs ENDED at timecode {time.perf_counter() - profile_time}"
+                    f"{path.entity_id} - PREFIXING IDs to absolute URIs ENDED at timecode {time.perf_counter() - profile_time}"
                 )
 
             content_type = "application/json;charset=UTF-8"
@@ -1279,7 +1953,7 @@ def entity_version(entity_id):
                     if desired[1] != "json-ld":
                         # Set the mimetype:
                         current_app.logger.debug(
-                            f"VERSION {entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
+                            f"VERSION {path.entity_id} - CHANGING RDFFORMAT STARTED at timecode {time.perf_counter() - profile_time}"
                         )
                         content_type = desired[0]
                         if "force-plain-text" in request.values:
@@ -1291,7 +1965,7 @@ def entity_version(entity_id):
                             and "rdflib" not in request.values
                         ):
                             current_app.logger.debug(
-                                f"VERSION {entity_id} - using PyLD to parse JSON-LD"
+                                f"VERSION {path.entity_id} - using PyLD to parse JSON-LD"
                             )
                             # Use the PyLD library to parse into nquads, and rdflib to convert
                             # rdflib's json-ld import has not been tested on our data, so not relying on it
@@ -1310,27 +1984,38 @@ def entity_version(entity_id):
 
                             # rdflib to load and format the nquads
                             # forcing it, because of pyld's awful nquad export
-                            g = get_bound_graph(identifier=ident)
+                            ds, g = get_bound_graph(identifier=ident)
 
                             # May not be nquads, even though we requested it:
                             serialized_rdf = triples_to_quads(serialized_rdf, ident)
 
-                            g.parse(data=serialized_rdf, format="nquads")
-                            data = g.serialize(format=desired[1])
+                            ds.parse(data=serialized_rdf, format="nquads")
+                            if desired[1] in QUAD_ENABLED:
+                                # formats allow quads
+                                data = ds.serialize(format=desired[1])
+                            else:
+                                # Triple-focussed output:
+                                data = g.serialize(format=desired[1])
                         else:
                             current_app.logger.debug(
-                                f"{entity_id} - using RDFLIB to parse JSON-LD"
+                                f"{path.entity_id} - using RDFLIB to parse JSON-LD"
                             )
                             ident = data.get("id") or data.get("@id")
 
                             # using rdflib to both parse and re-serialize the RDF:
-                            g = get_bound_graph(identifier=ident)
+                            ds, g = get_bound_graph(identifier=ident)
 
-                            g.parse(data=json.dumps(data), format="json-ld")
-                            data = g.serialize(format=desired[1])
+                            if desired[1] in QUAD_ENABLED:
+                                # formats allow quads
+                                ds.parse(data=json.dumps(data), format="json-ld")
+                                data = ds.serialize(format=desired[1])
+                            else:
+                                # Triple-focussed output:
+                                g.parse(data=json.dumps(data), format="json-ld")
+                                data = g.serialize(format=desired[1])
 
                         current_app.logger.debug(
-                            f"VERSION {entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"
+                            f"VERSION {path.entity_id} - CHANGING RDFFORMAT FINISHED at timecode {time.perf_counter() - profile_time}"
                         )
 
             response = current_app.make_response(data or "")
@@ -1365,8 +2050,18 @@ def entity_version(entity_id):
 
 
 # old version of a record
-@records.route("/-VERSION-/<path:entity_id>", methods=["DELETE"])
-def delete_entity_version(entity_id):
+@records.delete(
+    "/-VERSION-/<path:entity_id>",
+    tags=[timegate_tag],
+    summary="Delete record version",
+    description="Delete a specific previous version of a record. Requires Bearer token authentication.",
+    security=[{"bearerAuth": []}],
+    responses={
+        200: {"description": "Version deleted"},
+        404: {"description": "Not found"},
+    },
+)
+def delete_entity_version(path: EntityIdPath):
     # Authentication. If fails, abort with 401
     status = authenticate_bearer(request, current_app)
     if status != status_ok:
@@ -1376,7 +2071,9 @@ def delete_entity_version(entity_id):
     if current_app.config["KEEP_LAST_VERSION"] is True:
         """GET the version that exactly matches the id supplied"""
 
-        version = Version.query.filter(Version.entity_id == entity_id).one_or_none()
+        version = Version.query.filter(
+            Version.entity_id == path.entity_id
+        ).one_or_none()
 
         if version is None:
             response = construct_error_response(status_record_not_found)
@@ -1384,15 +2081,15 @@ def delete_entity_version(entity_id):
 
         try:
             current_app.logger.warning(
-                f"Deleting version '-VERSION-/{entity_id}' as requested."
+                f"Deleting version '-VERSION-/{path.entity_id}' as requested."
             )
             db.session.delete(version)
             db.session.commit()
-            return jsonify({"message": f"-VERSION-/{entity_id} deleted."}), 200
+            return jsonify({"message": f"-VERSION-/{path.entity_id} deleted."}), 200
         except SQLAlchemyError as e:
             db.session.rollback()
             current_app.logger.error(
-                f"Hit an error attempting to delete -VERSION-/{entity_id}"
+                f"Hit an error attempting to delete -VERSION-/{path.entity_id}"
             )
             current_app.logger.error(e)
             response = construct_error_response(status_db_error)
@@ -1402,9 +2099,17 @@ def delete_entity_version(entity_id):
 ### Activity Stream of the record ###
 
 
-@records.route("/<path:entity_id>/activity-stream", methods=["GET", "HEAD"])
-def entity_record_activity_stream(entity_id):
-    count = get_record_activities_count(entity_id)
+@records.get(
+    "/<path:entity_id>/activity-stream",
+    tags=[activity_tag],
+    summary="Record activity stream",
+    responses={
+        200: {"description": "Activity stream"},
+        404: {"description": "No activity stream for this record"},
+    },
+)
+def entity_record_activity_stream(path: EntityIdPath):
+    count = get_record_activities_count(path.entity_id)
     limit = current_app.config["ITEMS_PER_PAGE"]
     total_pages = math.ceil(count / limit)
 
@@ -1419,31 +2124,42 @@ def entity_record_activity_stream(entity_id):
             "@context": "https://www.w3.org/ns/activitystreams",
             "summary": current_app.config["AS_DESC"],
             "type": "OrderedCollection",
-            "id": url_record(entity_id),
+            "id": url_record(path.entity_id),
             "totalItems": count,
         }
 
         data["first"] = {
-            "id": url_record(entity_id, 1),
+            "id": url_record(path.entity_id, 1),
             "type": "OrderedCollectionPage",
         }
         data["last"] = {
-            "id": url_record(entity_id, total_pages),
+            "id": url_record(path.entity_id, total_pages),
             "type": "OrderedCollectionPage",
         }
 
     return current_app.make_response(data)
 
 
-@records.route("/<path:entity_id>/activity-stream", methods=["POST"])
-def truncate_activity_stream_of_entity_id(entity_id):
+@records.post(
+    "/<path:entity_id>/activity-stream",
+    tags=[activity_tag],
+    summary="Truncate record activity stream",
+    description="Truncate the activity stream for a record, keeping only the N most recent events specified by the `keep` query parameter. Requires Bearer token authentication.",
+    security=[{"bearerAuth": []}],
+    responses={
+        200: {"description": "Events removed"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+    },
+)
+def truncate_activity_stream_of_entity_id(path: EntityIdPath):
     # Authentication. If fails, abort with 401
     status = authenticate_bearer(request, current_app)
     if status != status_ok:
         response = construct_error_response(status)
         abort(response)
 
-    count = get_record_activities_count(entity_id)
+    count = get_record_activities_count(path.entity_id)
     # Are there events for this ID?
     if count == 0:
         response = construct_error_response(status_record_not_found)
@@ -1493,7 +2209,7 @@ def truncate_activity_stream_of_entity_id(entity_id):
     # Get the list of events, sorted by id but DESCENDING
     # Should be from newest to oldest event.
     activity_list = (
-        Activity.query.filter(Activity.record.has(entity_id=entity_id))
+        Activity.query.filter(Activity.record.has(entity_id=path.entity_id))
         .order_by(Activity.id.desc())
         .all()
     )
@@ -1506,7 +2222,7 @@ def truncate_activity_stream_of_entity_id(entity_id):
         deleted += 1
 
     current_app.logger.warning(
-        f"Truncating {entity_id} activity-stream to most recent {keep_latest_events} event(s)"
+        f"Truncating {path.entity_id} activity-stream to most recent {keep_latest_events} event(s)"
     )
     try:
         db.session.commit()
@@ -1517,14 +2233,22 @@ def truncate_activity_stream_of_entity_id(entity_id):
         raise e
 
 
-@records.route("/<path:entity_id>/activity-stream/page/<string:pagenum>")
-def record_activity_stream_page(entity_id, pagenum):
-    count = get_record_activities_count(entity_id)
-    pagenum = int(pagenum)
+@records.get(
+    "/<path:entity_id>/activity-stream/page/<int:pagenum>",
+    tags=[activity_tag],
+    summary="Record activity stream page",
+    responses={
+        200: {"description": "Paginated activity items"},
+        404: {"description": "Page out of bounds"},
+    },
+)
+def record_activity_stream_page(path: EntityIdActivityStreamPagenumPath):
+    count = get_record_activities_count(path.entity_id)
+    pagenum = int(path.pagenum)
     limit = current_app.config["ITEMS_PER_PAGE"]
     offset = (pagenum - 1) * limit
     total_pages = math.ceil(count / limit)
-    activities = get_record_activities(entity_id, offset, limit)
+    activities = get_record_activities(path.entity_id, offset, limit)
 
     if pagenum == 0 or pagenum > total_pages:
         response = construct_error_response(status_page_not_found)
@@ -1533,19 +2257,19 @@ def record_activity_stream_page(entity_id, pagenum):
     data = {
         "@context": "https://www.w3.org/ns/activitystreams",
         "type": "OrderedCollectionPage",
-        "id": url_record(entity_id, pagenum),
-        "partOf": {"id": url_record(entity_id), "type": "OrderedCollection"},
+        "id": url_record(path.entity_id, pagenum),
+        "partOf": {"id": url_record(path.entity_id), "type": "OrderedCollection"},
     }
 
     if pagenum < total_pages:
         data["next"] = {
-            "id": url_record(entity_id, pagenum + 1),
+            "id": url_record(path.entity_id, pagenum + 1),
             "type": "OrderedCollectionPage",
         }
 
     if pagenum > 1:
         data["prev"] = {
-            "id": url_record(entity_id, pagenum - 1),
+            "id": url_record(path.entity_id, pagenum - 1),
             "type": "OrderedCollectionPage",
         }
 

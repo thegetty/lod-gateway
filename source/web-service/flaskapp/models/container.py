@@ -76,6 +76,11 @@ class LDPContainer(db.Model):
     def add_child_container(self, child_container: "LDPContainer", db_dialect="base"):
         child_container.parent = self
         db.session.add(child_container)
+        # Flush so the new container gets its autoincrement .id before it can be
+        # used as the parent of the next container in an autogeneration chain.
+        # Without this, add_to_container() writes container_id=None into
+        # entity_list and PostgreSQL rejects it with a NOT NULL violation.
+        db.session.flush()
         self.add_to_container(child_container, is_container=True, db_dialect=db_dialect)
 
     # Create a child container
@@ -98,6 +103,11 @@ class LDPContainer(db.Model):
         db.session.add(child_container)
         if commit:
             db.session.commit()
+        else:
+            # Flush so the new container gets its autoincrement .id before it can
+            # be used as the parent of the next container in an autogeneration
+            # chain. Mirrors add_child_container().
+            db.session.flush()
         self.add_to_container(child_container, is_container=True, db_dialect=db_dialect)
 
         return child_container

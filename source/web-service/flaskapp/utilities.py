@@ -6,6 +6,7 @@ import sys
 import re
 import requests
 
+from datetime import timezone
 from enum import Enum
 
 from urllib.parse import urlsplit, urlunsplit
@@ -116,6 +117,35 @@ def full_stack_trace():
 # Used across the app
 def format_datetime(dt):
     return dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+
+# Format a datetime as ISO 8601 UTC with a `Z` designator, e.g.
+# '2019-11-22T13:02:53Z'.
+# Naive datetimes are treated as UTC; aware datetimes are converted to UTC.
+# Second precision, matching format_datetime.
+def format_utc_datetime(dt):
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
+
+def max_utc_datetime(datetimes):
+    """The max of ``datetimes`` after normalizing each to aware UTC.
+
+    ``None`` when the input is empty. Each value is normalized before
+    comparison because a column written across different ingest code shapes
+    can mix naive and aware datetimes, and ``max()`` raises ``TypeError``
+    on such a mix.
+    """
+    result = None
+    for dt in datetimes:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            dt = dt.astimezone(timezone.utc)
+        if result is None or dt > result:
+            result = dt
+    return result
 
 
 def checksum_json(json_obj):

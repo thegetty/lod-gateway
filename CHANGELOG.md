@@ -1,6 +1,14 @@
 LOD Gateway - Changelog
 =======================
 
+v2.11.0 Activity Stream Compliance
+
+## What's Changed
+* Activity Stream endpoints now serve their documents with the `application/activity+json` media type instead of `application/json`, and Activity Stream responses are included in the compressor's media type scope so they benefit from gzip/br when compression is enabled.
+* All seven Activity Stream GET endpoints (global collection and page, single item, entity-type collection and page, per-record collection and page) support HTTP revalidation: responses carry an `ETag` and, for non-empty documents, a `Last-Modified` header, and `If-None-Match` / `If-Modified-Since` requests are answered with `304 Not Modified` and an empty body.
+* Activity Stream items always include an `endTime` property with a `Z` UTC designator. The legacy `created` property is unchanged by default and can be omitted by setting the new `ACTSTR_INCLUDE_CREATED` variable to `False`. `created` is scheduled for removal in a future release; strict JSON-LD consumers should read `endTime`.
+* Note at deploy: `ETag` values on Activity Stream documents rotate once when this version is deployed, because the `endTime` `Z` designator changes the serialized byte stream; clients that cache Activity Stream responses by `ETag` will receive a fresh `200` once after the rollout.
+
 v2.10.1 RDFLib 7 and PyLD 3.2 Migration
 
 ## What's Changed

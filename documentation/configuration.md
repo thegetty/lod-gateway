@@ -96,6 +96,12 @@ Values in `.env` files should not be quoted unless you intend the quotes to be p
 | `ITEMS_PER_PAGE` | `100` | Number of items per page for Activity Stream and dashboard pagination. |
 | `BROWSE_PAGE_SIZE` | `200` | Number of records returned per page for prefix search (glob browse) results. |
 
+## Activity Streams
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ACTSTR_INCLUDE_CREATED` | `True` | Set to `False` to omit the legacy `created` property from Activity Stream items. `endTime` is always rendered. |
+
 ## Local Thesaurus
 
 | Variable | Default | Description |
@@ -129,6 +135,7 @@ Values in `.env` files should not be quoted unless you intend the quotes to be p
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FLASK_GZIP_COMPRESSION` | `False` | Set to `True` to enable gzip compression of responses. |
+| `ACTIVITY_JSON` | *(none)* | Semicolon-separated list of media types to include in the compressor's scope in addition to the built-in list. `application/activity+json` is included by default so Activity Stream responses are compressed. |
 | `FLASK_STRICT_SLASHES` | `True` | Set to `False` to allow URLs with and without trailing slashes to resolve to the same route. |
 | `FLASK_RUN_PORT` | `5100` | Port number for the Flask development server. |
 | `FLASK_APP` | `/app/flaskapp` | Path to the Flask application module. |

@@ -16,6 +16,7 @@ from flask_openapi3 import Info
 from flask_openapi3.models import SecurityScheme
 
 from flaskapp.openapi_models import patch_ingest_route
+from flaskapp.activity_streams import ACTIVITY_JSON
 
 from flask_cors import CORS
 from flask_migrate import Migrate
@@ -232,6 +233,12 @@ def create_app():
 
     app.config["ITEMS_PER_PAGE"] = 100
     app.config["AS_DESC"] = environ["LOD_AS_DESC"]
+
+    # Include the legacy `created` term on stream events unless the flag is
+    # explicitly falsey. Will switch to a False by default eventually.
+    app.config["ACTSTR_INCLUDE_CREATED"] = environ.get(
+        "ACTSTR_INCLUDE_CREATED", "true"
+    ).lower() not in ("false", "f")
 
     # SPARQL endpoints only apply if LOD Gateway is configured to process input into RDF triples
     app.config["RDF_BASE_GRAPH"] = None
@@ -486,6 +493,30 @@ def create_app():
 
     db.init_app(app)
     compress = Compress()
+    # flask-compress gates compression on an exact match of response.mimetype
+    # against COMPRESS_MIMETYPES, and its vendor defaults do not include the
+    # Activity Stream media type.
+
+    # Explicit list of compressables, with some future proofing in there too
+    if "COMPRESS_MIMETYPES" not in app.config:
+        app.config["COMPRESS_MIMETYPES"] = [
+            "application/javascript",
+            "application/json",
+            "text/css",
+            "text/html",
+            "text/javascript",
+            "text/xml",
+            "application/n-triples",
+            "application/n-quads",
+            "text/turtle",
+            "application/rdf+xml",
+            "application/ld+json",
+            "application/trig",
+            "text/n3",
+        ]
+    if ACTIVITY_JSON not in app.config["COMPRESS_MIMETYPES"]:
+        app.config["COMPRESS_MIMETYPES"].append(ACTIVITY_JSON)
+
     if app.config["FLASK_GZIP_COMPRESSION"].lower() == "true":
         compress.init_app(app)
     migrate = Migrate(app, db)

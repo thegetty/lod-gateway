@@ -11,7 +11,7 @@ from math import ceil
 from urllib import parse
 from datetime import datetime
 
-from flaskapp.routes.activity_entity import url_base
+from flaskapp.activity_streams import url_base
 from flaskapp.models.record import Record
 from flaskapp.models.activity import Activity
 from sqlalchemy import func, desc, exc

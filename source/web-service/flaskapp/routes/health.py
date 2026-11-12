@@ -4,10 +4,9 @@ from flask import current_app, abort, request, jsonify
 from flaskapp.models import db
 from flaskapp.routes import ingest
 from flaskapp.errors import (
-    status_db_error,
     status_db_save_error,
     construct_error_response,
-    status_graphstore_error,
+    status_graphstore_unavailable,
     status_ok,
 )
 
@@ -75,7 +74,7 @@ def healthcheck_readiness_get():
     if health_db():
         return jsonify({"status": "okay"}), 200
     else:
-        response = construct_error_response(status_db_error)
+        response = construct_error_response(status_db_save_error)
         return abort(response)
 
 
@@ -151,7 +150,7 @@ def rdf_healthcheck_get():
             if health_graphstore(query_endpoint):
                 return jsonify({"status": "okay"}), 200
             else:
-                response = construct_error_response(status_graphstore_error)
+                response = construct_error_response(status_graphstore_unavailable)
                 return abort(response)
         else:
             return jsonify({"status": "okay"}), 200
@@ -162,7 +161,9 @@ def rdf_healthcheck_get():
 
 def health_db():
     try:
-        db.session.execute(text("select 1;"))
+        # Why not SELECT 1;? It should fail if the tables don't exist
+        # as the whole app will error in that case (eg not ready)
+        db.session.execute(text("select id from records limit 1;"))
         return True
     except Exception as e:
         current_app.logger.error(f"Error - {e}")

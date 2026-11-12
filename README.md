@@ -10,7 +10,7 @@ LOD Gateway is a fast, reliable Linked Open Data document store with integrated 
 - **Content Negotiation** -- standard HTTP content negotiation and [Content Negotiation by Profile](documentation/content_negotiation.md)
 - **Linked Data Platform** -- hierarchical container support with POST/PUT resource management ([LDP API](documentation/ldp.md))
 - **Memento versioning** -- automatic version history with Memento-compliant timemaps ([Versioning](documentation/versioning.md))
-- **Activity Streams** -- paginated change history with datetime navigation and entity-type filtering ([Activity Streams](documentation/activitystreams.md))
+- **Activity Streams** -- paginated change history with datetime navigation and entity-type filtering, served as `application/activity+json` with HTTP revalidation ([Activity Streams](documentation/activitystreams.md))
 - **Sub-addressing** -- resolve nested paths within documents to parent resources
 - **Base graph deduplication** -- remove common triples from named graphs to reduce storage
 
@@ -71,7 +71,7 @@ LOD Gateway uses a namespace prefix in all URLs. The format is `{base-url}/{name
 
 ### Additional Endpoints
 
-- **[Activity Streams](documentation/activitystreams.md)** -- paginated change history, entity-type filtering, datetime navigation, per-record streams
+- **[Activity Streams](documentation/activitystreams.md)** -- paginated change history, entity-type filtering, datetime navigation, per-record streams; `application/activity+json` media type, 304 revalidation, `ACTSTR_INCLUDE_CREATED` flag
 - **[Versioning](documentation/versioning.md)** -- Memento timemaps (`/-tm-/{entity-id}`), version retrieval (`/-VERSION-/{entity-id}`), version deletion
 - **[LDP Containers](documentation/ldp.md)** -- container listing, POST and PUT resource management, slug support
   - **[LDP ID Remapping](documentation/id-remapping.md)** -- worked examples of how POST and PUT remap id values: incoming, stored, and served forms
@@ -92,7 +92,7 @@ The LOD Gateway generates an OpenAPI specification dynamically. Access the Swagg
 | [Product Tour](documentation/product_tour.md) | Conceptual overview, service levels, common scenarios |
 | [LDP API](documentation/ldp.md) | Linked Data Platform container support, POST and PUT operations |
 | [LDP ID Remapping](documentation/id-remapping.md) | Worked examples of how POST and PUT remap id values: incoming, stored, and served forms |
-| [Activity Streams](documentation/activitystreams.md) | Activity stream endpoints, pagination, datetime navigation |
+| [Activity Streams](documentation/activitystreams.md) | Activity stream endpoints, pagination, datetime navigation, revalidation |
 | [Versioning](documentation/versioning.md) | Memento versioning, timemaps, ETags, version lifecycle |
 | [Content Negotiation](documentation/content_negotiation.md) | Mimetype negotiation and Content Negotiation by Profile |
 | [Configuration](documentation/configuration.md) | Complete environment variable reference |

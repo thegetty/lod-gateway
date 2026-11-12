@@ -6,7 +6,7 @@ The LOD Gateway generates an Activity Streams 2.0-compliant change history for e
 
 ## Overview
 
-Activity Stream endpoints return JSON-encoded [Activity Streams 2.0](https://www.w3.org/TR/activitystreams-core/) data structures. The root endpoint returns an `OrderedCollection` with `totalItems` and pagination links. Paginated endpoints return `OrderedCollectionPage` objects with `orderedItems`, `next`, and `prev` links.
+Activity Stream endpoints return JSON-encoded [Activity Streams 2.0](https://www.w3.org/TR/activitystreams-core/) data structures with the `application/activity+json` media type. The root endpoint returns an `OrderedCollection` with `totalItems` and pagination links. Paginated endpoints return `OrderedCollectionPage` objects with `orderedItems`, `next`, and `prev` links.
 
 Each activity item follows the structure:
 
@@ -15,13 +15,15 @@ Each activity item follows the structure:
   "id": "{base-url}/{namespace}/activity-stream/{uuid}",
   "type": "Create",
   "created": "2025-01-15T10:30:00+00:00",
-  "endTime": "2025-01-15T10:30:00+00:00",
+  "endTime": "2025-01-15T10:30:00Z",
   "object": {
     "id": "{base-url}/{namespace}/{entity-id}",
     "type": "HumanMadeObject"
   }
 }
 ```
+
+The `created` property uses the service's legacy datetime rendering and may be omitted when the `ACTSTR_INCLUDE_CREATED` variable is set to `False`. `created` is scheduled for removal in a future release; strict JSON-LD consumers should read `endTime`. The `endTime` property is always present and always carries the `Z` UTC designator.
 
 The `type` field reflects the operation performed: `Create`, `Update`, or `Delete`. The `object` field contains the resource identifier and entity type at the time of the activity.
 
@@ -79,7 +81,7 @@ The number of items per page is controlled by the `ITEMS_PER_PAGE` environment v
       "id": "http://localhost:5100/museum/collection/activity-stream/a1b2c3d4",
       "type": "Create",
       "created": "2025-01-15T10:30:00+00:00",
-      "endTime": "2025-01-15T10:30:00+00:00",
+      "endTime": "2025-01-15T10:30:00Z",
       "object": {
         "id": "http://localhost:5100/museum/collection/object/1234",
         "type": "HumanMadeObject"
@@ -190,10 +192,17 @@ Returns an `OrderedCollection` scoped to that entity, with pagination links.
 |---------------------|---------|-------------|
 | `ITEMS_PER_PAGE` | `100` | Number of activity items per page |
 | `LOD_AS_DESC` | `LOD Gateway` | Description text used in Activity Stream `summary` field and dashboard |
+| `ACTSTR_INCLUDE_CREATED` | `True` | Set to `False` to omit the legacy `created` property from Activity Stream items. `endTime` is always rendered. |
+
+## Page Size and Pagination Semantics
+
+A page carries between 0 and `ITEMS_PER_PAGE` items (default 100). Pages are stable windows ordered by event ID: summing `orderedItems` across every page yields exactly `totalItems`, and any shortfall against `pageCount x ITEMS_PER_PAGE` is records deleted after the page count was established. An empty stream returns a collection with `totalItems: 0` and no `first` or `last` links.
 
 ## Response Headers
 
-Activity Stream endpoints return standard JSON responses with `Content-Type: application/json`. The Gateway includes the `X-LODGATEWAY-CAPABILITIES` header on all responses.
+Activity Stream endpoints return their documents with the `application/activity+json` media type. The Gateway includes the `X-LODGATEWAY-CAPABILITIES` header on all responses.
+
+All Activity Stream GET endpoints support HTTP revalidation. Responses carry an `ETag` (a quoted SHA-256 digest of the serialized document) and, for non-empty documents, a `Last-Modified` header (RFC 9110 IMF-fixdate, second resolution). A request whose `If-None-Match` matches the current `ETag`, or whose `If-Modified-Since` is at or after the current `Last-Modified`, receives `304 Not Modified` with an empty body; compressed (`gzip`/`br`) responses carry a validator suffix inside the `ETag` quotes.
 
 ## Use Cases
 

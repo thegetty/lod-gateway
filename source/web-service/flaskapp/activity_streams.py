@@ -306,6 +306,13 @@ def as_response(data, last_modified=None):
     # TODO look at the resource ETag handling and see if that needs to be
     # updated to match. It's used by the clients currently, so I don't want to
     # break that for this feature update.
+
+    # TODO #2 If the page has a 'next', it can be considered as immutable by
+    # downstream caches. Maybe there is merit in adding a header like:
+    # Cache-Control: public, max-age=31536000, immutable
+    # Counter to that, if the cache keeps latest requested pages, a full pull
+    # might affect that so that human-requested pages drop out of the cache.
+    # Bots can wait.
     matched_tag = None
     if request.if_none_match.star_tag:
         # * matches any representation

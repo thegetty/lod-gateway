@@ -8,8 +8,11 @@ from __future__ import annotations
 import hashlib
 from datetime import datetime, timedelta, timezone
 
+import os
+
 import pytest
 
+from flaskapp import create_app
 from flaskapp.activity_streams import (
     ACTIVITY_JSON,
     AS_CONTEXT,
@@ -90,19 +93,23 @@ class TestUrlMakers:
         assert stream_item_url("i") == type_item_url("i") == record_item_url("i")
         assert object_url("e") == type_object_url("e") == record_object_url("e")
 
-    # Using the builtin monkeypatch fixture to patch in per-test config settings
-    def test_join_styles_diverge_without_namespace(self, current_app, monkeypatch):
-        # pin the documented edge semantics in a no-namespace deployment
-        monkeypatch.setitem(current_app.config, "BASE_URL", "http://example.com/api")
-        monkeypatch.setitem(current_app.config, "NAMESPACE", "")
-        # filtered join (global family): empty parts dropped -> single slash
-        assert stream_url() == "http://example.com/api/activity-stream"
-        assert object_url("e") == "http://example.com/api/e"
-        # raw concatenation (type / record families): trailing slash kept -> double slash
-        assert url_base() == "http://example.com/api/"
-        assert type_item_url("i") == "http://example.com/api//activity-stream/i"
-        assert record_stream_url("e") == "http://example.com/api//e/activity-stream"
-        assert record_object_url("e") == "http://example.com/api//e"
+    # Pin the documented edge semantics in a no-namespace deployment. The
+    # idPrefix is derived from the environment during create_app(), so the
+    # deployment is built from environment inputs rather than patched config.
+    def test_join_styles_diverge_without_namespace(self, monkeypatch):
+        monkeypatch.setenv("BASE_URL", "http://example.com/api")
+        monkeypatch.setenv("APPLICATION_NAMESPACE", "")
+        flask_app = create_app()
+        flask_app.config["TESTING"] = True
+        with flask_app.app_context():
+            # filtered join (global family): empty parts dropped -> single slash
+            assert stream_url() == "http://example.com/api/activity-stream"
+            assert object_url("e") == "http://example.com/api/e"
+            # raw concatenation (type / record families): trailing slash is ditched
+            assert url_base() == "http://example.com/api/"
+            assert type_item_url("i") == "http://example.com/api/activity-stream/i"
+            assert record_stream_url("e") == "http://example.com/api/e/activity-stream"
+            assert record_object_url("e") == "http://example.com/api/e"
 
 
 class TestBuildEventItem:

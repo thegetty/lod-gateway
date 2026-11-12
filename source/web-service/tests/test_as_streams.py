@@ -106,7 +106,7 @@ class TestUrlMakers:
             assert stream_url() == "http://example.com/api/activity-stream"
             assert object_url("e") == "http://example.com/api/e"
             # raw concatenation (type / record families): trailing slash is ditched
-            assert url_base() == "http://example.com/api/"
+            assert url_base() == "http://example.com/api"
             assert type_item_url("i") == "http://example.com/api/activity-stream/i"
             assert record_stream_url("e") == "http://example.com/api/e/activity-stream"
             assert record_object_url("e") == "http://example.com/api/e"

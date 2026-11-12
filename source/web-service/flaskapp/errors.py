@@ -45,7 +45,7 @@ status_db_error = status_nt(
 )
 
 status_graphstore_error = status_nt(
-    500, "Graph Store Error", "Graph store connection cannot be established"
+    503, "Graph Store Error", "Graph store connection cannot be established"
 )
 
 status_graphstore_timeout = status_nt(
@@ -72,7 +72,6 @@ class ResourceValidationError(RDFDataError):
 
 # Construct 'error response' object
 def construct_error_response(status, source: int = None, detail: str = None):
-
     err = {}
     err["status"] = status.code
 

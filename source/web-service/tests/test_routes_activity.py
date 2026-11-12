@@ -1,12 +1,21 @@
 import json
 import uuid
 import re
+import gzip
 
 from datetime import datetime
 
-from flaskapp.routes.activity import generate_url
+import pytest
+
+from flaskapp.activity_streams import (
+    generate_url,
+    record_item_url,
+    record_stream_url,
+    type_page_url,
+    type_stream_url,
+    url_base,
+)
 from flaskapp.routes import activity_entity
-from flaskapp.routes import records
 from flaskapp.models.activity import Activity
 
 from flaskapp.utilities import format_datetime, Event
@@ -36,13 +45,18 @@ class TestBaseRoute:
         response = client.get(url)
         payload = json.loads(response.data)
         assert response.status_code == 200
-        assert response.headers["Content-Type"] == "application/json"
+        assert response.headers["Content-Type"] == "application/activity+json"
         assert response.headers["Access-Control-Allow-Origin"] == "*"
         assert "LOD Gateway" in response.headers["Server"]
         assert payload["type"] == "OrderedCollection"
         assert payload["summary"] == "desc"
         assert url in payload["id"]
         assert f"{url}/page/1" in payload["first"]["id"]
+
+    def test_media_type_is_activity_json(self, client, sample_data, namespace):
+        response = client.get(f"/{namespace}/activity-stream")
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "application/activity+json"
 
     def test_item_count(self, client, sample_activity, namespace):
         response = client.get(f"/{namespace}/activity-stream")
@@ -87,12 +101,17 @@ class TestPageRoute:
         response = client.get(url)
         payload = json.loads(response.data)
         assert response.status_code == 200
-        assert response.headers["Content-Type"] == "application/json"
+        assert response.headers["Content-Type"] == "application/activity+json"
         assert response.headers["Access-Control-Allow-Origin"] == "*"
         assert "LOD Gateway" in response.headers["Server"]
         assert payload["type"] == "OrderedCollectionPage"
         assert re.search("/activity-stream$", payload["partOf"]["id"])
         assert re.search(f"{url}$", payload["id"])
+
+    def test_media_type_is_activity_json(self, client, sample_data, namespace):
+        response = client.get(f"/{namespace}/activity-stream/page/1")
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "application/activity+json"
 
     def test_object_creation(self, client, sample_data, namespace):
         url = f"/{namespace}/activity-stream/page/1"
@@ -359,10 +378,44 @@ class TestItemRoute:
         response = client.get(url)
         payload = json.loads(response.data)
         assert response.status_code == 200
-        assert response.headers["Content-Type"] == "application/json"
+        assert response.headers["Content-Type"] == "application/activity+json"
         assert response.headers["Access-Control-Allow-Origin"] == "*"
         assert "LOD Gateway" in response.headers["Server"]
         assert payload["type"] == Event.Create.name
+
+    def test_media_type_is_activity_json(self, client, sample_data, namespace):
+        activity = sample_data["activity"]
+        response = client.get(f"/{namespace}/activity-stream/{activity.uuid}")
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "application/activity+json"
+
+    def test_created_present_by_default(self, client, sample_data, namespace):
+        activity = sample_data["activity"]
+        payload = json.loads(
+            client.get(f"/{namespace}/activity-stream/{activity.uuid}").data
+        )
+        # The legacy term keeps its existing (non-Z) rendering...
+        assert payload["created"] == "2019-11-22T13:02:53"
+        # ...while endTime always carries the Z designator.
+        assert payload["endTime"].endswith("Z")
+
+    def test_z_end_time(self, client, sample_data, namespace):
+        activity = sample_data["activity"]
+        payload = json.loads(
+            client.get(f"/{namespace}/activity-stream/{activity.uuid}").data
+        )
+        assert payload["endTime"] == "2019-11-22T13:02:53Z"
+
+    def test_created_omitted_when_flag_off(
+        self, client, current_app, sample_data, namespace, monkeypatch
+    ):
+        monkeypatch.setitem(current_app.config, "ACTSTR_INCLUDE_CREATED", False)
+        activity = sample_data["activity"]
+        payload = json.loads(
+            client.get(f"/{namespace}/activity-stream/{activity.uuid}").data
+        )
+        assert "created" not in payload
+        assert payload["endTime"].endswith("Z")
 
     def test_invalid_url(self, client, sample_data, namespace):
         activity = sample_data["activity"]
@@ -371,47 +424,295 @@ class TestItemRoute:
         assert response.status_code == 404
 
 
+class TestRouteValidators:
+    """ETag / Last-Modified / 304 on the global stream (AC-3..AC-5)."""
+
+    @pytest.mark.parametrize("path", ["/activity-stream", "/activity-stream/page/1"])
+    def test_etag_present_and_stable(self, client, sample_data, namespace, path):
+        url = f"/{namespace}{path}"
+        response = client.get(url)
+        assert response.status_code == 200
+        etag = response.headers.get("ETag")
+        assert re.fullmatch(r'"[0-9a-f]{64}"', etag)
+        assert client.get(url).headers["ETag"] == etag
+
+    @pytest.mark.parametrize("url", ["/activity-stream", "/activity-stream/page/1"])
+    def test_etag_on_root_and_page(self, client, sample_data, namespace, url):
+        self.test_etag_present_and_stable(client, sample_data, namespace, url)
+
+    @pytest.mark.parametrize("suffixed", [False, True])
+    def test_if_none_match_returns_304(
+        self, client, sample_data, namespace, suffixed
+    ):
+        url = f"/{namespace}/activity-stream"
+        first = client.get(url)
+        token = first.headers["ETag"]
+        if suffixed:
+            # The shape Flask-Compress serves for a compressed 200:
+            # the strong tag with the :algorithm suffix inside the quotes.
+            token = token[:-1] + ":gzip\""
+        response = client.get(url, headers={"If-None-Match": token})
+        assert response.status_code == 304
+        assert response.data == b""
+        # The client's token is echoed, suffix and all.
+        assert response.headers["ETag"] == token
+
+    @pytest.mark.parametrize("subsecond", [False, True])
+    def test_if_modified_since_returns_304(
+        self, client, sample_activity, test_db, namespace, subsecond
+    ):
+        sample_activity(1)
+        # Reseal the event's stamp. With non-zero microseconds (the
+        # production shape: ingest stamps datetime.now(timezone.utc)) the
+        # rendered Last-Modified is the floored second, so re-sending it
+        # must still 304 - the whole-second fixtures alone can never detect
+        # a missing seconds-floor.
+        a = Activity.query.filter(Activity.id == 1).one()
+        a.datetime_created = datetime(2019, 11, 22, 13, 2, 53, 123456 if subsecond else 0)
+        test_db.session.add(a)
+        test_db.session.commit()
+
+        url = f"/{namespace}/activity-stream"
+        first = client.get(url)
+        last_modified = first.headers["Last-Modified"]
+        response = client.get(url, headers={"If-Modified-Since": last_modified})
+        assert response.status_code == 304
+        assert response.data == b""
+
+    def test_gzip_304_round_trip(self, client, current_app, sample_activity, test_db, namespace):
+        url = f"/{namespace}/activity-stream/page/1"
+        for i in range(20):
+            sample_activity(i % 5 + 1)
+        first = client.get(url, headers={"Accept-Encoding": "gzip"})
+        assert first.status_code == 200
+        assert first.headers.get("Content-Encoding") == "gzip"
+        assert first.headers["ETag"].endswith(":gzip\"")
+        response = client.get(
+            url, headers={"Accept-Encoding": "gzip", "If-None-Match": first.headers["ETag"]}
+        )
+        assert response.status_code == 304
+        assert response.data == b""
+        assert response.headers["ETag"] == first.headers["ETag"]
+
+    def test_root_etag_tracks_deletion(
+        self, client, sample_activity, test_db, namespace
+    ):
+        url = f"/{namespace}/activity-stream"
+        a1 = sample_activity(1)
+        a2 = sample_activity(1)
+        etag_before = client.get(url).headers["ETag"]
+        test_db.session.delete(a2)
+        test_db.session.commit()
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.headers["ETag"] != etag_before
+
+
+class TestDeletionDrill:
+    def test_deletion_drill_global(
+        self, client, current_app, sample_activity, test_db, namespace
+    ):
+        # Exact seed config (AC-7): page size 3, four activities pk 1-4
+        # -> pages of 3 + 1.
+        current_app.config["ITEMS_PER_PAGE"] = 3
+        a1 = sample_activity(1)  # pk 1
+        a2 = sample_activity(1)  # pk 2 (middle of page 1)
+        a3 = sample_activity(2)  # pk 3
+        sample_activity(2)  # pk 4
+
+        base = f"/{namespace}/activity-stream"
+        assert json.loads(client.get(base).data)["totalItems"] == 4
+        etag_page1 = client.get(base + "/page/1").headers["ETag"]
+        etag_page2 = client.get(base + "/page/2").headers["ETag"]
+
+        # Delete the middle activity of page 1 (direct Activity delete).
+        test_db.session.delete(a2)
+        test_db.session.commit()
+
+        page1 = client.get(base + "/page/1")
+        assert page1.status_code == 200
+        assert len(json.loads(page1.data)["orderedItems"]) == 2
+        assert page1.headers["ETag"] != etag_page1
+
+        page2 = client.get(base + "/page/2")
+        assert page2.status_code == 200
+        assert len(json.loads(page2.data)["orderedItems"]) == 1
+        # The untouched page's body bytes are identical: same ETag.
+        assert page2.headers["ETag"] == etag_page2
+
+        assert json.loads(client.get(base).data)["totalItems"] == 3
+
+        # The deleted event's single-item route 404s.
+        assert client.get(base + "/" + a2.uuid).status_code == 404
+
+    def test_page_sum_invariant(
+        self, client, current_app, sample_activity, test_db, namespace
+    ):
+        current_app.config["ITEMS_PER_PAGE"] = 3
+        base = f"/{namespace}/activity-stream"
+
+        for i in range(10):
+            sample_activity(i % 4 + 1)
+
+        def page_sum():
+            root = json.loads(client.get(base).data)
+            last_page = int(root["last"]["id"].split("/")[-1])
+            total = 0
+            for page in range(1, last_page + 1):
+                total += len(json.loads(client.get(base + f"/page/{page}").data)["orderedItems"])
+            return root["totalItems"], total
+
+        # Holds with N...
+        total_items, total = page_sum()
+        assert total == total_items == 10
+
+        # ...and after deletions (a deleted activity leaves a gap in its
+        # pk window; the page count derives from the highest id).
+        activities = Activity.query.all()
+        test_db.session.delete(activities[1])
+        test_db.session.delete(activities[6])
+        test_db.session.commit()
+
+        total_items, total = page_sum()
+        assert total == total_items == 8
+
+
+class TestPageGzip:
+    def test_gzip_encodes_body(
+        self, client, current_app, sample_activity, test_db, namespace
+    ):
+        # A body well over Flask-Compress's COMPRESS_MIN_SIZE (500 bytes):
+        # ~30 items of stream data is several kilobytes uncompressed.
+        current_app.config["ITEMS_PER_PAGE"] = 100
+        for i in range(30):
+            sample_activity(i % 5 + 1)
+
+        url = f"/{namespace}/activity-stream/page/1"
+        plain = client.get(url)
+        assert plain.headers.get("Content-Encoding") is None
+
+        gz = client.get(url, headers={"Accept-Encoding": "gzip"})
+        assert gz.status_code == 200
+        assert gz.headers.get("Content-Encoding") == "gzip"
+        assert gz.headers["Content-Type"] == "application/activity+json"
+        assert gzip.decompress(gz.data) == plain.data
+
+
 class TestActivityEntity:
+    def setup_method(self):
+        # Module-global type cache (populated on the first in-session GET):
+        # reset so these tests are order-independent.
+        activity_entity.lod_entity_types = []
+
     def test_url_base(self, current_app, base_url):
-        assert activity_entity.url_base() == f"{base_url}"
+        assert url_base() == f"{base_url}"
 
     def test_url_activity(self, current_app, base_url):
         assert (
-            activity_entity.url_activity("someentity")
+            type_stream_url("SomeEntity")
             == f"{base_url}/activity-stream/type/someentity"
         )
 
     def test_url_page(self, current_app, base_url):
         assert (
-            activity_entity.url_page(11, "someentity")
+            type_page_url(11, "SomeEntity")
             == f"{base_url}/activity-stream/type/someentity/page/11"
         )
+
+    def test_collection_media_type(self, client, sample_data, namespace):
+        response = client.get(f"/{namespace}/activity-stream/type/object")
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "application/activity+json"
+
+    def test_page_media_type(self, client, sample_data, namespace):
+        response = client.get(f"/{namespace}/activity-stream/type/object/page/1")
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "application/activity+json"
+
+    def test_created_and_z_end_time(self, client, sample_data, namespace):
+        payload = json.loads(
+            client.get(f"/{namespace}/activity-stream/type/object/page/1").data
+        )
+        item = payload["orderedItems"][0]
+        assert item["created"] == "2019-11-22T13:02:53"
+        assert item["endTime"] == "2019-11-22T13:02:53Z"
+
+    def test_created_omitted_when_flag_off(
+        self, client, current_app, sample_data, namespace, monkeypatch
+    ):
+        monkeypatch.setitem(current_app.config, "ACTSTR_INCLUDE_CREATED", False)
+        payload = json.loads(
+            client.get(f"/{namespace}/activity-stream/type/object/page/1").data
+        )
+        item = payload["orderedItems"][0]
+        assert "created" not in item
+        assert item["endTime"].endswith("Z")
+
+    def test_etag_and_304(self, client, sample_data, namespace):
+        url = f"/{namespace}/activity-stream/type/object"
+        first = client.get(url)
+        etag = first.headers.get("ETag")
+        assert re.fullmatch(r'"[0-9a-f]{64}"', etag)
+        response = client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 304
+        assert response.data == b""
+        last_modified = first.headers["Last-Modified"]
+        response = client.get(url, headers={"If-Modified-Since": last_modified})
+        assert response.status_code == 304
 
 
 class TestActivityRecord:
     def test_url_base(self, current_app, base_url):
-        assert records.url_base("someid") == f"{base_url}/someid"
-
-    def test_url_base(self, current_app, base_url):
-        assert records.url_base() == f"{base_url}"
+        assert url_base("someid") == f"{base_url}/someid"
+        assert url_base() == f"{base_url}"
 
     def test_url_record(self, current_app, base_url):
         assert (
-            records.url_record("someentityid")
+            record_stream_url("someentityid")
             == f"{base_url}/someentityid/activity-stream"
         )
-
-    def test_url_record(self, current_app, base_url):
         assert (
-            records.url_record("someentityid", 11)
+            record_stream_url("someentityid", 11)
             == f"{base_url}/someentityid/activity-stream/page/11"
         )
 
     def test_url_activity(self, current_app, base_url):
         assert (
-            records.url_activity("someactivityid")
+            record_item_url("someactivityid")
             == f"{base_url}/activity-stream/someactivityid"
         )
+
+    def test_root_media_type_etag_and_304(self, client, sample_data, namespace):
+        rid = sample_data["record"].entity_id
+        url = f"/{namespace}/{rid}/activity-stream"
+        first = client.get(url)
+        assert first.status_code == 200
+        assert first.headers["Content-Type"] == "application/activity+json"
+        etag = first.headers.get("ETag")
+        assert re.fullmatch(r'"[0-9a-f]{64}"', etag)
+        response = client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 304
+
+    def test_page_media_type_created_and_z_end_time(
+        self, client, sample_data, namespace
+    ):
+        rid = sample_data["record"].entity_id
+        first = client.get(f"/{namespace}/{rid}/activity-stream/page/1")
+        assert first.status_code == 200
+        assert first.headers["Content-Type"] == "application/activity+json"
+        payload = json.loads(first.data)
+        item = payload["orderedItems"][0]
+        assert item["created"] == "2019-11-22T13:02:53"
+        assert item["endTime"] == "2019-11-22T13:02:53Z"
+
+    def test_page_304(self, client, sample_data, namespace):
+        rid = sample_data["record"].entity_id
+        url = f"/{namespace}/{rid}/activity-stream/page/1"
+        first = client.get(url)
+        etag = first.headers.get("ETag")
+        assert re.fullmatch(r'"[0-9a-f]{64}"', etag)
+        response = client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 304
 
 
 class TestTruncateActivityStream:

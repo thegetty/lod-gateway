@@ -3,7 +3,7 @@ import math
 from flask_openapi3 import APIBlueprint
 from flask import current_app, abort, redirect, jsonify, url_for
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql.functions import coalesce, max
+from sqlalchemy.sql.functions import coalesce
 from sqlalchemy import func
 
 # date parsing
@@ -12,7 +12,7 @@ import dateparser
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
-from flaskapp.utilities import format_datetime
+from flaskapp.utilities import max_utc_datetime
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
@@ -26,6 +26,15 @@ from flaskapp.openapi_models import (
     PagenumPath,
     UuidPath,
     _strip_openapi_kwargs,
+)
+
+from flaskapp.activity_streams import (
+    as_response,
+    build_collection,
+    build_event_item,
+    build_page,
+    stream_page_url,
+    stream_url,
 )
 
 # Create a new "activity" route blueprint
@@ -124,40 +133,34 @@ def _redirect_to_page_using_datetime(target_datetime=None):
     "/activity-stream",
     tags=[activity_tag],
     summary="Activity Stream root",
-    responses={200: {"description": "Activity Stream collection"}},
+    responses={
+        200: {"description": "Activity Stream collection"},
+        304: {"description": "Not modified"},
+    },
 )
 @activity.get("/activity-stream/")
 def activity_stream_collection():
     """Generate the root OrderedCollection for the stream
 
-    TODO: This does not currently filter against namespaces for the count. Should it?
-
     Returns:
-        Response: A JSON-encoded OrderedCollection
+        Response: A JSON-encoded OrderedCollection with the AS 2.0 media
+        type, an ETag and a Last-Modified (RFC 9110 revalidation).
     """
 
-    count = db.session.query(func.count(Activity.id)).scalar()
-    total_pages = str(compute_total_pages())
-
-    data = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "summary": current_app.config["AS_DESC"],
-        "type": "OrderedCollection",
-        "id": generate_url(),
-        "totalItems": count,
-    }
-
-    if count:
-        data["first"] = {
-            "id": generate_url(sub=["page", "1"]),
-            "type": "OrderedCollectionPage",
-        }
-        data["last"] = {
-            "id": generate_url(sub=["page", total_pages]),
-            "type": "OrderedCollectionPage",
-        }
-
-    return current_app.make_response(data)
+    limit = current_app.config["ITEMS_PER_PAGE"]
+    count, max_id, max_dt = (
+        db.session.query(
+            func.count(Activity.id),
+            coalesce(func.max(Activity.id), 0),
+            func.max(Activity.datetime_created),
+        ).one()
+    )
+    # PK-window pagination: page N covers the id window
+    # ((N-1)*size, N*size], so the page count derives from the highest id,
+    # not from the row count (deletions leave gaps, not fewer pages).
+    total_pages = math.ceil(max_id / limit)
+    data = build_collection(stream_url(), count, total_pages, stream_page_url)
+    return as_response(data, max_dt)
 
 
 @activity.get(
@@ -166,6 +169,7 @@ def activity_stream_collection():
     summary="Activity Stream page",
     responses={
         200: {"description": "Paginated activity items"},
+        304: {"description": "Not modified"},
         404: {"description": "Page out of bounds"},
     },
 )
@@ -178,6 +182,12 @@ def activity_stream_page(path: PagenumPath):
 
     Returns:
         TYPE: Response: a JSON-encoded OrderedCollectionPage
+
+
+    The items are fetched by primary-key window (not OFFSET/LIMIT): the
+    window bounds are index-scanned, which is far faster than an offset
+    scan. Deleted ids inside a window leave a short page; the page count
+    derives from the highest id, so a windowed page is always in bounds.
     """
 
     pagenum = None
@@ -189,44 +199,40 @@ def activity_stream_page(path: PagenumPath):
 
     limit = current_app.config["ITEMS_PER_PAGE"]
     offset = (pagenum - 1) * limit
-    total_pages = compute_total_pages()
+    max_id = db.session.query(coalesce(func.max(Activity.id), 0)).scalar()
+    total_pages = math.ceil(max_id / limit)
 
     if pagenum == 0 or pagenum > total_pages:
         response = construct_error_response(status_page_not_found)
         return abort(response)
 
-    data = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "OrderedCollectionPage",
-        "id": generate_url(sub=["page", str(pagenum)]),
-        "partOf": {"id": generate_url(), "type": "OrderedCollection"},
-    }
-
-    if pagenum < total_pages:
-        data["next"] = {
-            "id": generate_url(sub=["page", str(pagenum + 1)]),
-            "type": "OrderedCollectionPage",
-        }
-
-    if pagenum > 1:
-        data["prev"] = {
-            "id": generate_url(sub=["page", str(pagenum - 1)]),
-            "type": "OrderedCollectionPage",
-        }
-
-    if activities := (
-        Activity.query.options(
-            joinedload(Activity.record, innerjoin=True).defer(Record.data)
+    rows = (
+        Activity.query.with_entities(
+            Activity.uuid,
+            Activity.event,
+            Activity.datetime_created,
+            Record.entity_id,
+            Record.entity_type,
         )
+        .join(Record)
         .filter(Activity.id > offset, Activity.id <= offset + limit)
-        .order_by("id")
-    ):
-        items = [generate_item(a) for a in activities]
-        data["orderedItems"] = items
-    else:
-        data["orderedItems"] = []
+        .order_by(Activity.id)
+    )
+    items = [
+        build_event_item(
+            "global", r.uuid, r.event, r.datetime_created, r.entity_id, r.entity_type
+        )
+        for r in rows
+    ]
+    # Last-Modified covers this page's items only, so activity on other
+    # pages of the stream does not invalidate this representation's cache.
+    last_modified = max_utc_datetime(r.datetime_created for r in rows)
 
-    return current_app.make_response(data)
+    data = build_page(
+        pagenum, total_pages, stream_page_url(pagenum), stream_url(), stream_page_url, items
+    )
+
+    return as_response(data, last_modified)
 
 
 @activity.get(
@@ -235,6 +241,7 @@ def activity_stream_page(path: PagenumPath):
     summary="Activity Stream item",
     responses={
         200: {"description": "Activity item"},
+        304: {"description": "Not modified"},
         404: {"description": "Not found"},
     },
 )
@@ -259,57 +266,14 @@ def activity_stream_item(path: UuidPath):
         response = construct_error_response(status_record_not_found)
         return abort(response)
 
-    data = generate_item(activity)
+    data = build_event_item(
+        "global",
+        activity.uuid,
+        activity.event,
+        activity.datetime_created,
+        activity.record.entity_id,
+        activity.record.entity_type,
+        standalone=True,
+    )
 
-    return current_app.make_response(data)
-
-
-def compute_total_pages():
-    limit = current_app.config["ITEMS_PER_PAGE"]
-    # Quick count
-    last = db.session.query(coalesce(max(Activity.id), 0).label("num")).one()
-    return math.ceil(last.num / limit)
-
-
-def generate_url(sub=[], base=False):
-    """Create a URL string from relevant fragments
-
-    Args:
-        sub (list, optional): A list of additional URL parts
-        base (bool, optional): Should the "activity-stream" part be added?
-
-    Returns:
-        String: The generated URL string
-    """
-    base_url = current_app.config["BASE_URL"]
-    namespace = current_app.config["NAMESPACE"]
-
-    if base:
-        as_prefix = None
-    else:
-        as_prefix = "activity-stream"
-
-    parts = [base_url, namespace, as_prefix, "/".join(sub)]
-    parts = [item for item in parts if item]
-    return "/".join(parts)
-
-
-def generate_item(activity):
-    """Generate the ActivityStream Create record
-
-    Args:
-        activity (Activity): The Activity record to generate
-
-    Returns:
-        Dict: The generated data structure
-    """
-    return {
-        "id": generate_url(sub=[str(activity.uuid)]),
-        "type": activity.event,
-        "created": format_datetime(activity.datetime_created),
-        "endTime": format_datetime(activity.datetime_created),
-        "object": {
-            "id": generate_url(base=True, sub=[str(activity.record.entity_id)]),
-            "type": activity.record.entity_type,
-        },
-    }
+    return as_response(data, activity.datetime_created)

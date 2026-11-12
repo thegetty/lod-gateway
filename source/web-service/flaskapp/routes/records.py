@@ -24,10 +24,18 @@ from flaskapp.models.container import NoLDPContainerFoundError
 from flaskapp.utilities import (
     Event,
     format_datetime,
+    max_utc_datetime,
     containerRecursiveCallback,
     idPrefixer,
     triples_to_quads,
     segment_entity_id,
+)
+from flaskapp.activity_streams import (
+    as_response,
+    build_collection,
+    build_event_item,
+    build_page,
+    record_stream_url,
 )
 from flaskapp.storage_utilities.record import (
     get_record,
@@ -2105,11 +2113,20 @@ def delete_entity_version(path: EntityIdPath):
     summary="Record activity stream",
     responses={
         200: {"description": "Activity stream"},
+        304: {"description": "Not modified"},
         404: {"description": "No activity stream for this record"},
     },
 )
 def entity_record_activity_stream(path: EntityIdPath):
-    count = get_record_activities_count(path.entity_id)
+    count, max_dt = (
+        db.session.query(
+            func.count(Activity.id),
+            func.max(Activity.datetime_created),
+        )
+        .join(Record)
+        .filter(Record.entity_id == path.entity_id)
+        .one()
+    )
     limit = current_app.config["ITEMS_PER_PAGE"]
     total_pages = math.ceil(count / limit)
 
@@ -2119,25 +2136,12 @@ def entity_record_activity_stream(path: EntityIdPath):
             detail="An Activity Stream is only available for records that currently exist or previously existed",
         )
         abort(response)
-    else:
-        data = {
-            "@context": "https://www.w3.org/ns/activitystreams",
-            "summary": current_app.config["AS_DESC"],
-            "type": "OrderedCollection",
-            "id": url_record(path.entity_id),
-            "totalItems": count,
-        }
 
-        data["first"] = {
-            "id": url_record(path.entity_id, 1),
-            "type": "OrderedCollectionPage",
-        }
-        data["last"] = {
-            "id": url_record(path.entity_id, total_pages),
-            "type": "OrderedCollectionPage",
-        }
-
-    return current_app.make_response(data)
+    page_url_fn = lambda page: record_stream_url(path.entity_id, page)
+    data = build_collection(
+        record_stream_url(path.entity_id), count, total_pages, page_url_fn
+    )
+    return as_response(data, max_dt)
 
 
 @records.post(
@@ -2239,6 +2243,7 @@ def truncate_activity_stream_of_entity_id(path: EntityIdPath):
     summary="Record activity stream page",
     responses={
         200: {"description": "Paginated activity items"},
+        304: {"description": "Not modified"},
         404: {"description": "Page out of bounds"},
     },
 )
@@ -2248,68 +2253,37 @@ def record_activity_stream_page(path: EntityIdActivityStreamPagenumPath):
     limit = current_app.config["ITEMS_PER_PAGE"]
     offset = (pagenum - 1) * limit
     total_pages = math.ceil(count / limit)
+    # Per-record streams page with standard OFFSET/LIMIT over a count (not
+    # the global stream's pk-window), per the service's paging policy.
     activities = get_record_activities(path.entity_id, offset, limit)
 
     if pagenum == 0 or pagenum > total_pages:
         response = construct_error_response(status_page_not_found)
         abort(response)
 
-    data = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "OrderedCollectionPage",
-        "id": url_record(path.entity_id, pagenum),
-        "partOf": {"id": url_record(path.entity_id), "type": "OrderedCollection"},
-    }
+    items = [
+        build_event_item(
+            "record", a.uuid, a.event, a.datetime_created, a.entity_id, a.entity_type
+        )
+        for a in activities
+    ]
+    # Last-Modified covers this page's items only.
+    last_modified = max_utc_datetime(a.datetime_created for a in activities)
 
-    if pagenum < total_pages:
-        data["next"] = {
-            "id": url_record(path.entity_id, pagenum + 1),
-            "type": "OrderedCollectionPage",
-        }
+    page_url_fn = lambda page: record_stream_url(path.entity_id, page)
+    data = build_page(
+        pagenum,
+        total_pages,
+        record_stream_url(path.entity_id, pagenum),
+        record_stream_url(path.entity_id),
+        page_url_fn,
+        items,
+    )
 
-    if pagenum > 1:
-        data["prev"] = {
-            "id": url_record(path.entity_id, pagenum - 1),
-            "type": "OrderedCollectionPage",
-        }
-
-    items = [generate_item(a) for a in activities]
-    data["orderedItems"] = items
-
-    return current_app.make_response(data)
+    return as_response(data, last_modified)
 
 
 # Auxiliary functions
-
-
-def url_base(entity_id=None):
-    base_url = current_app.config["BASE_URL"]
-    namespace = current_app.config["NAMESPACE"]
-    url = base_url + "/" + namespace
-    if entity_id:
-        url = url + "/" + entity_id
-    return url
-
-
-def url_record(entity_id, page=None):
-    url = url_base() + "/" + entity_id + "/activity-stream"
-    if page:
-        url = url + "/page/" + str(page)
-    return url
-
-
-def url_activity(id):
-    return url_base() + "/activity-stream/" + id
-
-
-def generate_item(activity):
-    return {
-        "id": url_activity(activity.uuid),
-        "type": activity.event,
-        "created": format_datetime(activity.datetime_created),
-        "endTime": format_datetime(activity.datetime_created),
-        "object": {"id": url_base(activity.entity_id), "type": activity.entity_type},
-    }
 
 
 def get_record_activities(entity_id, offset, limit):

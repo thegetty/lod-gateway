@@ -7,7 +7,7 @@ from sqlalchemy import func
 from flaskapp.models import db
 from flaskapp.models.activity import Activity
 from flaskapp.models.record import Record
-from flaskapp.utilities import format_datetime
+from flaskapp.utilities import max_utc_datetime
 from flaskapp.errors import (
     construct_error_response,
     status_record_not_found,
@@ -18,6 +18,15 @@ from flaskapp.openapi_models import (
     EntityTypePath,
     EntityTypePagenumPath,
     _strip_openapi_kwargs,
+)
+
+from flaskapp.activity_streams import (
+    as_response,
+    build_collection,
+    build_event_item,
+    build_page,
+    type_page_url,
+    type_stream_url,
 )
 
 # Create a new "activity" route blueprint
@@ -37,11 +46,18 @@ lod_entity_types = []
     summary="Activity Stream by entity type",
     responses={
         200: {"description": "Filtered activity collection"},
+        304: {"description": "Not modified"},
         404: {"description": "Entity type not found"},
     },
 )
 @activity_entity.get("/activity-stream/type/<string:entity_type>")
 def activity_stream_entity_collection(path: EntityTypePath):
+    """Generate the root OrderedCollection for a type-filtered stream.
+
+    Returns:
+        Response: A JSON-encoded OrderedCollection with the AS 2.0 media
+        type, an ETag and a Last-Modified (RFC 9110 revalidation).
+    """
     entity_type = path.entity_type
     entity_type = entity_type.lower()
     global lod_entity_types
@@ -52,7 +68,7 @@ def activity_stream_entity_collection(path: EntityTypePath):
         return abort(response)
 
     data = create_activity_collection(entity_type)
-    return current_app.make_response(data)
+    return data
 
 
 @activity_entity.get(
@@ -62,6 +78,7 @@ def activity_stream_entity_collection(path: EntityTypePath):
     path=EntityTypePagenumPath,
     responses={
         200: {"description": "Paginated activity items"},
+        304: {"description": "Not modified"},
         404: {"description": "Not found"},
     },
 )
@@ -69,39 +86,34 @@ def activity_stream_entity_collection(path: EntityTypePath):
 def activity_stream_entity_page(path: EntityTypePagenumPath):
     entity_type = path.entity_type.lower()
     data = create_page_data(path.pagenum, entity_type)
-    return current_app.make_response(data)
+    return data
 
 
 ### Functions ###
 
 
 def create_activity_collection(entity_type):
-    count = get_count(entity_type)
+    """Build the type collection and return it with its validators."""
     limit = current_app.config["ITEMS_PER_PAGE"]
-    total_pages = str(math.ceil(count / limit))
-
-    data = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "summary": current_app.config["AS_DESC"],
-        "type": "OrderedCollection",
-        "id": url_activity(entity_type),
-        "totalItems": count,
-    }
-
-    if count:
-        data["first"] = {
-            "id": url_page(1, entity_type),
-            "type": "OrderedCollectionPage",
-        }
-        data["last"] = {
-            "id": url_page(total_pages, entity_type),
-            "type": "OrderedCollectionPage",
-        }
-
-    return data
+    count, max_dt = (
+        db.session.query(
+            func.count(Activity.id),
+            func.max(Activity.datetime_created),
+        )
+        .join(Record)
+        .filter(func.lower(Record.entity_type) == entity_type)
+        .one()
+    )
+    total_pages = math.ceil(count / limit)
+    page_url_fn = lambda page: type_page_url(page, entity_type)
+    data = build_collection(
+        type_stream_url(entity_type), count, total_pages, page_url_fn
+    )
+    return as_response(data, max_dt)
 
 
 def create_page_data(pagenum, entity_type):
+    """Build a type stream page and return it with its validators."""
     pagenum = int(pagenum)
     limit = current_app.config["ITEMS_PER_PAGE"]
     offset = (pagenum - 1) * limit
@@ -112,45 +124,29 @@ def create_page_data(pagenum, entity_type):
         response = construct_error_response(status_page_not_found)
         return abort(response)
 
-    data = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "OrderedCollectionPage",
-        "id": url_page(pagenum, entity_type),
-        "partOf": {"id": url_activity(entity_type), "type": "OrderedCollection"},
-    }
+    # Type streams page with standard OFFSET/LIMIT over a count (not the
+    # global stream's pk-window), per the service's paging policy.
+    rows = get_entity_activities(entity_type, offset, limit)
+    items = [
+        build_event_item(
+            "type", a.uuid, a.event, a.datetime_created, a.entity_id, a.entity_type
+        )
+        for a in rows
+    ]
+    # Last-Modified covers this page's items only.
+    last_modified = max_utc_datetime(a.datetime_created for a in rows)
 
-    if pagenum < total_pages:
-        data["next"] = {
-            "id": url_page(pagenum + 1, entity_type),
-            "type": "OrderedCollectionPage",
-        }
+    page_url_fn = lambda page: type_page_url(page, entity_type)
+    data = build_page(
+        pagenum,
+        total_pages,
+        type_page_url(pagenum, entity_type),
+        type_stream_url(entity_type),
+        page_url_fn,
+        items,
+    )
 
-    if pagenum > 1:
-        data["prev"] = {
-            "id": url_page(pagenum - 1, entity_type),
-            "type": "OrderedCollectionPage",
-        }
-
-    activities = get_entity_activities(entity_type, offset, limit)
-
-    items = [generate_item(a) for a in activities]
-    data["orderedItems"] = items
-
-    return data
-
-
-def url_base():
-    base_url = current_app.config["BASE_URL"]
-    namespace = current_app.config["NAMESPACE"]
-    return base_url + "/" + namespace
-
-
-def url_activity(entity_type):
-    return url_base() + "/activity-stream/type/" + entity_type.lower()
-
-
-def url_page(page_num, entity_type):
-    return url_activity(entity_type) + "/page/" + str(page_num)
+    return as_response(data, last_modified)
 
 
 def get_distinct_entity_types():
@@ -191,16 +187,3 @@ def get_entity_activities(entity_type, offset, limit):
     )
 
     return activities
-
-
-def generate_item(activity):
-    return {
-        "id": url_base() + "/activity-stream/" + str(activity.uuid),
-        "type": activity.event,
-        "created": format_datetime(activity.datetime_created),
-        "endTime": format_datetime(activity.datetime_created),
-        "object": {
-            "id": url_base() + "/" + activity.entity_id,
-            "type": activity.entity_type,
-        },
-    }

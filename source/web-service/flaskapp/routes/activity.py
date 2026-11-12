@@ -148,13 +148,11 @@ def activity_stream_collection():
     """
 
     limit = current_app.config["ITEMS_PER_PAGE"]
-    count, max_id, max_dt = (
-        db.session.query(
-            func.count(Activity.id),
-            coalesce(func.max(Activity.id), 0),
-            func.max(Activity.datetime_created),
-        ).one()
-    )
+    count, max_id, max_dt = db.session.query(
+        func.count(Activity.id),
+        coalesce(func.max(Activity.id), 0),
+        func.max(Activity.datetime_created),
+    ).one()
     # PK-window pagination: page N covers the id window
     # ((N-1)*size, N*size], so the page count derives from the highest id,
     # not from the row count (deletions leave gaps, not fewer pages).
@@ -229,7 +227,12 @@ def activity_stream_page(path: PagenumPath):
     last_modified = max_utc_datetime(r.datetime_created for r in rows)
 
     data = build_page(
-        pagenum, total_pages, stream_page_url(pagenum), stream_url(), stream_page_url, items
+        pagenum,
+        total_pages,
+        stream_page_url(pagenum),
+        stream_url(),
+        stream_page_url,
+        items,
     )
 
     return as_response(data, last_modified)

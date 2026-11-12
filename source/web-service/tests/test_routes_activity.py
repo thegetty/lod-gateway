@@ -441,16 +441,14 @@ class TestRouteValidators:
         self.test_etag_present_and_stable(client, sample_data, namespace, url)
 
     @pytest.mark.parametrize("suffixed", [False, True])
-    def test_if_none_match_returns_304(
-        self, client, sample_data, namespace, suffixed
-    ):
+    def test_if_none_match_returns_304(self, client, sample_data, namespace, suffixed):
         url = f"/{namespace}/activity-stream"
         first = client.get(url)
         token = first.headers["ETag"]
         if suffixed:
             # The shape Flask-Compress serves for a compressed 200:
             # the strong tag with the :algorithm suffix inside the quotes.
-            token = token[:-1] + ":gzip\""
+            token = token[:-1] + ':gzip"'
         response = client.get(url, headers={"If-None-Match": token})
         assert response.status_code == 304
         assert response.data == b""
@@ -468,7 +466,9 @@ class TestRouteValidators:
         # must still 304 - the whole-second fixtures alone can never detect
         # a missing seconds-floor.
         a = Activity.query.filter(Activity.id == 1).one()
-        a.datetime_created = datetime(2019, 11, 22, 13, 2, 53, 123456 if subsecond else 0)
+        a.datetime_created = datetime(
+            2019, 11, 22, 13, 2, 53, 123456 if subsecond else 0
+        )
         test_db.session.add(a)
         test_db.session.commit()
 
@@ -479,16 +479,19 @@ class TestRouteValidators:
         assert response.status_code == 304
         assert response.data == b""
 
-    def test_gzip_304_round_trip(self, client, current_app, sample_activity, test_db, namespace):
+    def test_gzip_304_round_trip(
+        self, client, current_app, sample_activity, test_db, namespace
+    ):
         url = f"/{namespace}/activity-stream/page/1"
         for i in range(20):
             sample_activity(i % 5 + 1)
         first = client.get(url, headers={"Accept-Encoding": "gzip"})
         assert first.status_code == 200
         assert first.headers.get("Content-Encoding") == "gzip"
-        assert first.headers["ETag"].endswith(":gzip\"")
+        assert first.headers["ETag"].endswith(':gzip"')
         response = client.get(
-            url, headers={"Accept-Encoding": "gzip", "If-None-Match": first.headers["ETag"]}
+            url,
+            headers={"Accept-Encoding": "gzip", "If-None-Match": first.headers["ETag"]},
         )
         assert response.status_code == 304
         assert response.data == b""
@@ -559,7 +562,9 @@ class TestDeletionDrill:
             last_page = int(root["last"]["id"].split("/")[-1])
             total = 0
             for page in range(1, last_page + 1):
-                total += len(json.loads(client.get(base + f"/page/{page}").data)["orderedItems"])
+                total += len(
+                    json.loads(client.get(base + f"/page/{page}").data)["orderedItems"]
+                )
             return root["totalItems"], total
 
         # Holds with N...

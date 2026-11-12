@@ -155,6 +155,6 @@ class TestOpenApiStreamResponses:
             path = template.format(ns=ns)
             assert path in spec, f"missing OpenAPI registration: {path}"
             assert "get" in spec[path], f"no GET registration: {path}"
-            assert "304" in spec[path]["get"].get("responses", {}), (
-                f"no 304 response declared: {path}"
-            )
+            assert "304" in spec[path]["get"].get(
+                "responses", {}
+            ), f"no 304 response declared: {path}"

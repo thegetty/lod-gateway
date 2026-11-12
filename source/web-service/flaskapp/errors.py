@@ -60,6 +60,10 @@ status_db_save_error = status_nt(
     503, "Service Unavailable", "Cannot perform database operation"
 )
 
+status_graphstore_unavailable = status_nt(
+    503, "Service Unavailable", "Cannot perform graphstore operation"
+)
+
 
 class RDFDataError(ValueError):
     """Error representing a general problem treating some data as RDF"""

@@ -1,12 +1,12 @@
 from flask_openapi3 import APIBlueprint
-from flask import current_app, abort, request
+from flask import current_app, abort, request, jsonify
 
 from flaskapp.models import db
 from flaskapp.routes import ingest
 from flaskapp.errors import (
-    status_db_error,
+    status_db_save_error,
     construct_error_response,
-    status_graphstore_error,
+    status_graphstore_unavailable,
     status_ok,
 )
 
@@ -46,21 +46,35 @@ def _health_add_url_rule(*args, **kwargs):
 health.add_url_rule = _health_add_url_rule
 
 
-# Checks DB Connectivity ONLY
+# Checks liveness ONLY
 @health.get(
     "/health",
     tags=[health_tag],
-    summary="Health check",
+    summary="Liveness health check",
     responses={
         200: {"description": "OK"},
         503: {"description": "Database unavailable"},
     },
 )
 def healthcheck_get():
+    return jsonify({"status": "okay"}), 200
+
+
+# Checks DB Connectivity
+@health.get(
+    "/health/readiness",
+    tags=[health_tag],
+    summary="Readiness health check",
+    responses={
+        200: {"description": "OK"},
+        503: {"description": "Database unavailable"},
+    },
+)
+def healthcheck_readiness_get():
     if health_db():
-        return "OK"
+        return jsonify({"status": "okay"}), 200
     else:
-        response = construct_error_response(status_db_error)
+        response = construct_error_response(status_db_save_error)
         return abort(response)
 
 
@@ -68,7 +82,19 @@ def healthcheck_get():
 @health.get(
     "/authhealth",
     tags=[health_tag],
-    summary="Authenticated health check",
+    summary="Authenticated Readiness health check (deprecated route)",
+    description="Same as /health but requires a valid bearer token.",
+    security=[{"bearerAuth": []}],
+    responses={
+        200: {"description": "OK"},
+        401: {"description": "Unauthorized"},
+        503: {"description": "Database unavailable"},
+    },
+)
+@health.get(
+    "/health/readiness/withauth",
+    tags=[health_tag],
+    summary="Authenticated Readiness health check",
     description="Same as /health but requires a valid bearer token.",
     security=[{"bearerAuth": []}],
     responses={
@@ -88,9 +114,9 @@ def authd_healthcheck_get():
         return abort(response)
 
     if health_db():
-        return "OK"
+        return jsonify({"status": "okay"}), 200
     else:
-        response = construct_error_response(status_db_error)
+        response = construct_error_response(status_db_save_error)
         return abort(response)
 
 
@@ -98,7 +124,17 @@ def authd_healthcheck_get():
 @health.get(
     "/rdfhealth",
     tags=[health_tag],
-    summary="RDF health check",
+    summary="RDF Readiness health check (deprecated route)",
+    description="Checks database connectivity AND (when RDF processing is enabled) the SPARQL endpoint status.",
+    responses={
+        200: {"description": "OK"},
+        503: {"description": "Database or SPARQL endpoint unavailable"},
+    },
+)
+@health.get(
+    "/health/readiness/rdf",
+    tags=[health_tag],
+    summary="RDF Readiness health check",
     description="Checks database connectivity AND (when RDF processing is enabled) the SPARQL endpoint status.",
     responses={
         200: {"description": "OK"},
@@ -112,19 +148,21 @@ def rdf_healthcheck_get():
         if current_app.config["PROCESS_RDF"] is True:
             query_endpoint = current_app.config["SPARQL_QUERY_ENDPOINT"]
             if health_graphstore(query_endpoint):
-                return "OK"
+                return jsonify({"status": "okay"}), 200
             else:
-                response = construct_error_response(status_graphstore_error)
+                response = construct_error_response(status_graphstore_unavailable)
                 return abort(response)
         else:
-            return "OK"
+            return jsonify({"status": "okay"}), 200
     else:
-        response = construct_error_response(status_db_error)
+        response = construct_error_response(status_db_save_error)
         return abort(response)
 
 
 def health_db():
     try:
+        # Why not SELECT 1;? It should fail if the tables don't exist
+        # as the whole app will error in that case (eg not ready)
         db.session.execute(text("select id from records limit 1;"))
         return True
     except Exception as e:

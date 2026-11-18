@@ -26,3 +26,6 @@ requests>=2.32
 SQLAlchemy==2.0.40
 wheel
 setuptools
+
+# CVE-2026-111497 -> also python
+brotli>=1.2.1

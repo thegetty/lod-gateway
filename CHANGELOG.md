@@ -1,7 +1,41 @@
 LOD Gateway - Changelog
 =======================
 
+v2.11.0 Health Check Restructure
+v2.11.0 - Created: 2026-11-13T12:58:29-08:00
+
+## What's Changed
+* New liveness and readiness health check endpoints, with the original routes retained as deprecated aliases
+
+## HEALTH CHECKS
+The health check routes have been restructured into Kubernetes-style liveness and
+readiness checks:
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health` | Liveness check. Returns `200` if the process is running; no external dependencies are checked. |
+| `GET /health/readiness` | Readiness check. Verifies database connectivity, including the presence of the schema, so the container reports not-ready until `flask db upgrade` has run. |
+| `GET /health/readiness/withauth` | Same readiness check, but requires a valid bearer token first (returns `401` if missing or invalid). A cheap way for clients to verify their credentials. |
+| `GET /health/readiness/rdf` | Readiness check that additionally probes the SPARQL endpoint when `PROCESS_RDF=True`. |
+
+Readiness checks return `503 Service Unavailable` when a dependency is unreachable,
+using new dedicated error responses for database and graph store failures.
+
+The previous routes remain available as deprecated aliases: `/authhealth`
+(`= /health/readiness/withauth`) and `/rdfhealth` (`= /health/readiness/rdf`).
+Existing deployments that probe these routes are unaffected.
+
+Intended probe configuration: use `/health` as the liveness probe (it is
+deliberately independent of external services, so a database or graph store
+outage does not restart healthy containers) and `/health/readiness` (or
+`/health/readiness/rdf` when graph processing is enabled and you want the
+graph store gated) as the readiness probe. See
+[deployment.md](documentation/deployment.md).
+
+**Full Changelog**: https://github.com/thegetty/lod-gateway/compare/v2.10.1...v2.11.0
+
 v2.10.1 RDFLib 7 and PyLD 3.2 Migration
+v2.10.1 - Created: 2026-10-23T16:06:01-07:00
 
 ## What's Changed
 * RDFLib 7.x / PyLD 3.2 migration: rdflib bound to 7.x, pyld pin moved to the 3.2.0-getty branch, dataset-based graph handling with named-graph-preserving nquads output, ingest handling for missing containers, and caching document loader for PyLD representation handling by @benosteen in https://github.com/thegetty/lod-gateway/pull/507
@@ -34,6 +68,7 @@ as part of the migration.
 **Full Changelog**: https://github.com/thegetty/lod-gateway/compare/v2.10.0...v2.10.1
 
 v2.10.0 LDP Write-Path Fixes and RDF Prefix Control
+v2.10.0 - Created: 2026-10-23T16:06:01-07:00
 
 ## What's Changed
 * LDP POST/PUT hardening: on-demand container creation for PUT, Pydantic v2 validator fix, cascade delete on activity models, and expanded POST/PUT test coverage by @benosteen in https://github.com/thegetty/lod-gateway/pull/505

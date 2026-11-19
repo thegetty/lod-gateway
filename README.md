@@ -65,9 +65,12 @@ LOD Gateway uses a namespace prefix in all URLs. The format is `{base-url}/{name
 
 | Method | Route | Description | Auth |
 |--------|-------|-------------|------|
-| `GET` | `/health` | Check database connectivity | No |
-| `GET` | `/authhealth` | Check database connectivity with authentication | Yes |
-| `GET` | `/rdfhealth` | Check database and SPARQL endpoint connectivity | No |
+| `GET` | `/health` | Liveness check | No |
+| `GET` | `/health/readiness` | Readiness check (database connectivity) | No |
+| `GET` | `/health/readiness/withauth` | Readiness check with authentication | Yes |
+| `GET` | `/health/readiness/rdf` | Readiness check (database and SPARQL endpoint) | No |
+
+The original routes remain as deprecated aliases: `/authhealth` and `/rdfhealth`.
 
 ### Additional Endpoints
 

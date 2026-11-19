@@ -188,15 +188,27 @@ Critical secrets include:
 
 ## Health Checks
 
-The LOD Gateway provides three health check endpoints:
+The LOD Gateway provides liveness and readiness endpoints at two levels of depth:
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /health` | Database connectivity check |
-| `GET /authhealth` | Database check with authentication. Validates bearer token. |
-| `GET /rdfhealth` | Database and SPARQL endpoint check. More resource-intensive. |
+| `GET /health` | Liveness check. Returns `200` if the process is running and able to respond. No external dependencies are checked. |
+| `GET /health/readiness` | Readiness check. Verifies database connectivity (queries the `records` table, so it also fails until the schema has been migrated). |
+| `GET /health/readiness/withauth` | Same readiness check, but requires a valid bearer token first. A cheap way for clients to verify their credentials. Returns `401` if the token is missing or invalid. |
+| `GET /health/readiness/rdf` | Readiness check that additionally probes the SPARQL endpoint when `PROCESS_RDF=True`. Fails if the database or the graph store is unreachable. |
 
-All return `200 OK` when healthy, `503 Service Unavailable` when unhealthy. Use `/health` for basic load balancer probes and `/rdfhealth` for deeper integration testing.
+All readiness checks return `200 OK` when healthy and `503 Service Unavailable` when a dependency is unreachable.
+
+The original routes remain available as deprecated aliases: `GET /authhealth` (same as `/health/readiness/withauth`) and `GET /rdfhealth` (same as `/health/readiness/rdf`).
+
+### Container Orchestration Probes
+
+When running under Kubernetes or similar orchestrators:
+
+- Use `/health` as the **liveness probe** -- it is cheap and independent of external services, so a database or graph store outage will not restart healthy containers.
+- Use `/health/readiness` as the **readiness probe** -- the container is taken out of the load balancer pool until the database is reachable and the schema is present, which covers the initial `flask db upgrade` window.
+- If your deployment runs with `PROCESS_RDF=True` and you want the container also excluded from the pool when the graph store is down, point the readiness probe at `/health/readiness/rdf` instead.
+- The `withauth` check is not a dependency probe; use it for verifying client credentials from a maintenance job or client-side health UI.
 
 ## Updating the Application
 
@@ -205,7 +217,7 @@ All return `200 OK` when healthy, `503 Service Unavailable` when unhealthy. Use 
 3. Run database migrations: `docker compose exec web flask db upgrade`
 4. Restart containers: `docker compose up --detach`
 
-After updating, verify the application via the `/health` and `/rdfhealth` endpoints.
+After updating, verify the application via the `/health` and `/health/readiness` endpoints.
 
 ## Capabilities Header
 
